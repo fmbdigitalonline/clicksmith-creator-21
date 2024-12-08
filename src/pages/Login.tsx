@@ -4,9 +4,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { Card } from "@/components/ui/card";
+import { useToast } from "@/components/ui/use-toast";
 
 const Login = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -30,9 +32,32 @@ const Login = () => {
               container: 'space-y-4',
               button: 'w-full',
               input: 'w-full'
+            },
+            style: {
+              button: { background: 'rgb(59 130 246)', color: 'white' },
+              anchor: { color: 'rgb(59 130 246)' },
             }
           }}
           providers={['google', 'github']}
+          localization={{
+            variables: {
+              sign_up: {
+                password_label: 'Password (minimum 6 characters)',
+                password_input_placeholder: 'Your password (min. 6 characters)'
+              },
+              sign_in: {
+                password_label: 'Your password',
+                password_input_placeholder: 'Your password'
+              }
+            }
+          }}
+          onError={(error) => {
+            toast({
+              title: "Error",
+              description: error.message,
+              variant: "destructive"
+            });
+          }}
         />
       </Card>
     </div>
