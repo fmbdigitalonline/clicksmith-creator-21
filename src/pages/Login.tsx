@@ -43,20 +43,24 @@ const Login = () => {
             variables: {
               sign_up: {
                 password_label: 'Password (minimum 6 characters)',
-                password_input_placeholder: 'Your password (min. 6 characters)'
+                password_input_placeholder: 'Your password (min. 6 characters)',
+                email_input_placeholder: 'Your email address',
+                button_label: 'Sign up',
+                loading_button_label: 'Signing up ...',
+                social_provider_text: 'Sign in with {{provider}}',
+                link_text: 'Don\'t have an account? Sign up',
+                confirmation_text: 'Check your email for the confirmation link'
               },
               sign_in: {
                 password_label: 'Your password',
-                password_input_placeholder: 'Your password'
+                password_input_placeholder: 'Your password',
+                email_input_placeholder: 'Your email address',
+                button_label: 'Sign in',
+                loading_button_label: 'Signing in ...',
+                social_provider_text: 'Sign in with {{provider}}',
+                link_text: 'Already have an account? Sign in'
               }
             }
-          }}
-          onError={(error) => {
-            toast({
-              title: "Error",
-              description: error.message,
-              variant: "destructive"
-            });
           }}
         />
       </Card>
