@@ -56,7 +56,7 @@ const App = () => (
               <div className="flex h-[calc(100vh-4rem)] mt-16">
                 <AppSidebar />
                 <main className="flex-1 p-6 overflow-auto">
-                  <div className="glass p-6 min-h-[calc(100vh-8rem)]">
+                  <div className="glass p-6 min-h-[calc(100vh-8rem)]" role="main" aria-label="Main content">
                     <BreadcrumbNav />
                     <div className="mt-6">
                       <Routes>
@@ -74,6 +74,39 @@ const App = () => (
                           element={
                             <ProtectedRoute>
                               <AdWizard />
+                            </ProtectedRoute>
+                          }
+                        />
+                        {/* Placeholder routes for navigation - implement these pages when needed */}
+                        <Route
+                          path="/projects"
+                          element={
+                            <ProtectedRoute>
+                              <Navigate to="/" replace />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/documents"
+                          element={
+                            <ProtectedRoute>
+                              <Navigate to="/" replace />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/notes"
+                          element={
+                            <ProtectedRoute>
+                              <Navigate to="/" replace />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/settings"
+                          element={
+                            <ProtectedRoute>
+                              <Navigate to="/" replace />
                             </ProtectedRoute>
                           }
                         />

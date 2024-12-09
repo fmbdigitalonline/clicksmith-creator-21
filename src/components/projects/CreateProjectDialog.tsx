@@ -1,4 +1,4 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -100,6 +100,12 @@ const CreateProjectDialog = ({
           <DialogTitle>
             {showActions ? "What's next?" : "Create New Project"}
           </DialogTitle>
+          <DialogDescription>
+            {showActions 
+              ? "Choose your next action for the project"
+              : "Create a new project to start generating ads"
+            }
+          </DialogDescription>
         </DialogHeader>
         {!showActions ? (
           <ProjectForm
