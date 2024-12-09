@@ -4,28 +4,30 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { Card } from "@/components/ui/card";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 const Login = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    // Check if user is already logged in
+    supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
+        navigate('/');
+      }
+    });
+
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN') {
         toast({
           title: "Welcome back!",
           description: "You have successfully logged in.",
         });
-        navigate("/");
+        navigate('/');
       }
     });
-
-    // Check URL for access token
-    const hashParams = new URLSearchParams(window.location.hash.substring(1));
-    if (hashParams.get('access_token')) {
-      navigate('/');
-    }
 
     return () => subscription.unsubscribe();
   }, [navigate, toast]);
@@ -38,33 +40,38 @@ const Login = () => {
           supabaseClient={supabase}
           appearance={{
             theme: ThemeSupa,
+            style: {
+              button: { background: 'rgb(59 130 246)', color: 'white' },
+              anchor: { color: 'rgb(59 130 246)' },
+              input: { background: 'white' }
+            },
             className: {
               container: 'space-y-4',
               button: 'w-full',
               input: 'w-full'
-            },
-            style: {
-              button: { background: 'rgb(59 130 246)', color: 'white' },
-              anchor: { color: 'rgb(59 130 246)' },
             }
           }}
           providers={['google', 'github']}
+          redirectTo={`${window.location.origin}/`}
+          onlyThirdPartyProviders={false}
           localization={{
             variables: {
               sign_up: {
-                password_label: 'Password (minimum 6 characters)',
-                password_input_placeholder: 'Your password (min. 6 characters)',
+                email_label: 'Email address',
+                password_label: 'Create a Password',
                 email_input_placeholder: 'Your email address',
+                password_input_placeholder: 'Your password',
                 button_label: 'Sign up',
-                loading_button_label: 'Signing up ...',
+                loading_button_label: 'Creating account ...',
                 social_provider_text: 'Sign in with {{provider}}',
-                link_text: 'Don\'t have an account? Sign up',
+                link_text: "Don't have an account? Sign up",
                 confirmation_text: 'Check your email for the confirmation link'
               },
               sign_in: {
+                email_label: 'Email address',
                 password_label: 'Your password',
-                password_input_placeholder: 'Your password',
                 email_input_placeholder: 'Your email address',
+                password_input_placeholder: 'Your password',
                 button_label: 'Sign in',
                 loading_button_label: 'Signing in ...',
                 social_provider_text: 'Sign in with {{provider}}',
