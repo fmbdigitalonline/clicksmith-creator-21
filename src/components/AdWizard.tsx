@@ -34,12 +34,34 @@ const AdWizard = () => {
   const nextStep = () => setCurrentStep((prev) => Math.min(prev + 1, 4));
   const prevStep = () => setCurrentStep((prev) => Math.max(prev - 1, 1));
 
+  const canNavigateToStep = (step: number) => {
+    // Can always go back
+    if (step <= currentStep) return true;
+    
+    // Check if previous steps are completed
+    if (step === 2 && !businessIdea) return false;
+    if (step === 3 && !selectedAudience) return false;
+    if (step === 4 && !selectedHook) return false;
+    
+    return true;
+  };
+
+  const handleStepClick = (step: number) => {
+    if (canNavigateToStep(step)) {
+      setCurrentStep(step);
+    }
+  };
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
       <h1 className="text-3xl font-bold text-center mb-8 text-facebook">
         Facebook Ad Generator
       </h1>
-      <WizardProgress currentStep={currentStep} />
+      <WizardProgress 
+        currentStep={currentStep} 
+        onStepClick={handleStepClick}
+        canNavigateToStep={canNavigateToStep}
+      />
       <Card className="p-6 mt-8 animate-fadeIn">
         {currentStep === 1 && (
           <BusinessIdeaStep
