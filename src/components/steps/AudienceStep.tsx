@@ -62,12 +62,12 @@ const AudienceStep = ({
   }, []);
 
   return (
-    <div className="space-y-8">
-      <div className="flex justify-between mb-4">
+    <div className="space-y-6 md:space-y-8">
+      <div className="flex flex-col md:flex-row justify-between gap-4 mb-4">
         <Button
           variant="outline"
           onClick={onBack}
-          className="space-x-2"
+          className="space-x-2 w-full md:w-auto"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Previous Step</span>
@@ -75,7 +75,7 @@ const AudienceStep = ({
         <Button
           onClick={generateAudiences}
           disabled={isGenerating}
-          className="bg-facebook hover:bg-facebook/90 text-white"
+          className="bg-facebook hover:bg-facebook/90 text-white w-full md:w-auto"
         >
           <Wand2 className="w-4 h-4 mr-2" />
           {isGenerating ? "Generating..." : "Generate New Audiences"}
@@ -83,21 +83,13 @@ const AudienceStep = ({
       </div>
 
       <div>
-        <h2 className="text-2xl font-semibold mb-2">Choose Your Target Audience</h2>
+        <h2 className="text-xl md:text-2xl font-semibold mb-2">Choose Your Target Audience</h2>
         <p className="text-gray-600">
           Select the audience that best matches your ideal customers.
         </p>
       </div>
 
-      {audiences.length === 0 && !isGenerating && (
-        <Card className="p-6 bg-gradient-to-br from-facebook/5 to-transparent">
-          <p className="text-center text-gray-600">
-            Click "Generate New Audiences" to get AI-generated audience suggestions based on your business idea.
-          </p>
-        </Card>
-      )}
-
-      <div className="grid gap-6 md:grid-cols-3">
+      <div className="grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
         {audiences.map((audience) => (
           <Card
             key={audience.name}

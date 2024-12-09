@@ -34,11 +34,11 @@ const BusinessIdeaStep = ({
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 md:space-y-8">
       <div className="flex justify-end mb-4">
         <Button
           onClick={handleSubmit}
-          className="bg-facebook hover:bg-facebook/90 text-white"
+          className="bg-facebook hover:bg-facebook/90 text-white w-full md:w-auto"
           size="lg"
         >
           Next Step
@@ -47,13 +47,13 @@ const BusinessIdeaStep = ({
       </div>
 
       <div>
-        <h2 className="text-2xl font-semibold mb-2">Tell us about your business</h2>
+        <h2 className="text-xl md:text-2xl font-semibold mb-2">Tell us about your business</h2>
         <p className="text-gray-600">
           Describe your product or service, and we'll help you create compelling ads.
         </p>
       </div>
 
-      <Card className="p-6 bg-gradient-to-br from-facebook/5 to-transparent border-facebook/20">
+      <Card className="p-4 md:p-6 bg-gradient-to-br from-facebook/5 to-transparent border-facebook/20">
         <div className="flex items-start space-x-4">
           <div className="flex-shrink-0">
             <Lightbulb className="w-6 h-6 text-facebook" />

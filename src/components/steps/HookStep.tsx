@@ -77,12 +77,12 @@ const HookStep = ({
   };
 
   return (
-    <div className="space-y-8">
-      <div className="flex justify-between mb-4">
+    <div className="space-y-6 md:space-y-8">
+      <div className="flex flex-col md:flex-row justify-between gap-4 mb-4">
         <Button
           variant="outline"
           onClick={onBack}
-          className="space-x-2"
+          className="space-x-2 w-full md:w-auto"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Previous Step</span>
@@ -90,7 +90,7 @@ const HookStep = ({
         <Button
           onClick={generateHooks}
           disabled={isGenerating}
-          className="bg-facebook hover:bg-facebook/90 text-white"
+          className="bg-facebook hover:bg-facebook/90 text-white w-full md:w-auto"
         >
           <Wand2 className="w-4 h-4 mr-2" />
           {isGenerating ? "Generating..." : "Generate New Hooks"}
@@ -98,7 +98,7 @@ const HookStep = ({
       </div>
 
       <div>
-        <h2 className="text-2xl font-semibold mb-2">Choose Your Ad Hook</h2>
+        <h2 className="text-xl md:text-2xl font-semibold mb-2">Choose Your Ad Hook</h2>
         <p className="text-gray-600">
           Select a compelling message that will grab your audience's attention.
         </p>

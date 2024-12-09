@@ -61,25 +61,25 @@ const AdWizard = () => {
 
   return (
     <div className="min-h-screen bg-gradient-radial from-white via-gray-50 to-gray-100">
-      <div className="container mx-auto px-4 py-8 max-w-5xl">
-        <div className="flex items-center mb-8">
+      <div className="container mx-auto px-3 md:px-4 py-4 md:py-8 max-w-5xl">
+        <div className="flex flex-col md:flex-row md:items-center gap-4 mb-6 md:mb-8">
           <Button
             variant="ghost"
             size="sm"
-            className="mr-4 text-gray-600 hover:text-gray-900"
+            className="text-gray-600 hover:text-gray-900 w-fit"
             onClick={() => navigate("/projects")}
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Projects
           </Button>
-          <h1 className="text-h1 bg-gradient-to-r from-facebook to-blue-600 bg-clip-text text-transparent">
+          <h1 className="text-h2 md:text-h1 bg-gradient-to-r from-facebook to-blue-600 bg-clip-text text-transparent">
             Facebook Ad Generator
           </h1>
         </div>
 
-        <Card className="bg-gradient-glass backdrop-blur-sm shadow-lg p-6 mb-8 border-0">
-          <h2 className="text-h2 mb-6 text-gray-800">How it works</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <Card className="bg-gradient-glass backdrop-blur-sm shadow-lg p-4 md:p-6 mb-6 md:mb-8 border-0">
+          <h2 className="text-h3 md:text-h2 mb-6 text-gray-800">How it works</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
             <div className="flex items-start space-x-4">
               <div className="flex-shrink-0 w-10 h-10 rounded-full bg-facebook/10 text-facebook flex items-center justify-center font-semibold">
                 1
@@ -116,7 +116,7 @@ const AdWizard = () => {
           </div>
         </Card>
 
-        <div className="mb-8">
+        <div className="mb-6 md:mb-8">
           <WizardProgress
             currentStep={currentStep}
             onStepClick={handleStepClick}
@@ -124,7 +124,7 @@ const AdWizard = () => {
           />
         </div>
 
-        <Card className="bg-white shadow-lg border-0 p-8 animate-fadeIn">
+        <Card className="bg-white shadow-lg border-0 p-4 md:p-8 animate-fadeIn">
           {currentStep === 1 && (
             <BusinessIdeaStep
               onNext={(idea) => {

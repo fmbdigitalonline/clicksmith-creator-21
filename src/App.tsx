@@ -57,12 +57,12 @@ const App = () => (
           <BrowserRouter>
             <div className="flex flex-col w-full">
               <Navigation />
-              <div className="flex h-[calc(100vh-4rem)] mt-16">
+              <div className="flex flex-col md:flex-row h-[calc(100vh-4rem)] mt-16">
                 <AppSidebar />
-                <main className="flex-1 p-6 overflow-auto">
-                  <div className="glass p-6 min-h-[calc(100vh-8rem)]" role="main" aria-label="Main content">
+                <main className="flex-1 p-3 md:p-6 overflow-auto">
+                  <div className="glass p-4 md:p-6 min-h-[calc(100vh-8rem)]" role="main" aria-label="Main content">
                     <BreadcrumbNav />
-                    <div className="mt-6">
+                    <div className="mt-4 md:mt-6">
                       <Routes>
                         <Route path="/login" element={<Login />} />
                         <Route

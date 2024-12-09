@@ -25,18 +25,18 @@ const PreviewStep = ({
   };
 
   return (
-    <div className="space-y-8">
-      <div className="flex justify-between mb-4">
+    <div className="space-y-6 md:space-y-8">
+      <div className="flex flex-col md:flex-row justify-between gap-4 mb-4">
         <Button
           variant="outline"
           onClick={onBack}
-          className="space-x-2"
+          className="space-x-2 w-full md:w-auto"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Previous Step</span>
         </Button>
         <Button
-          className="bg-facebook hover:bg-facebook/90 space-x-2"
+          className="bg-facebook hover:bg-facebook/90 space-x-2 w-full md:w-auto"
           onClick={handleExport}
         >
           <Download className="w-4 h-4" />
@@ -45,7 +45,7 @@ const PreviewStep = ({
       </div>
 
       <div>
-        <h2 className="text-2xl font-semibold mb-2">Preview Your Ad</h2>
+        <h2 className="text-xl md:text-2xl font-semibold mb-2">Preview Your Ad</h2>
         <p className="text-gray-600">
           Review how your ad will look on Facebook and make any final adjustments.
         </p>
