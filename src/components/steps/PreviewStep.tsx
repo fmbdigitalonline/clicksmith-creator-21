@@ -8,6 +8,7 @@ const PreviewStep = ({
   businessIdea,
   audience,
   hook,
+  onBack,
 }: {
   businessIdea: BusinessIdea;
   audience: TargetAudience;
