@@ -1,52 +1,42 @@
-import { Link, useLocation } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import {
   Breadcrumb,
   BreadcrumbItem,
   BreadcrumbLink,
   BreadcrumbList,
-  BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import { Home } from "lucide-react";
 
 const BreadcrumbNav = () => {
   const location = useLocation();
-  const pathnames = location.pathname.split("/").filter((x) => x);
+  const pathSegments = location.pathname.split("/").filter(Boolean);
+
+  // Add console logging for debugging
+  console.log("Current path segments:", pathSegments);
+
+  const getDisplayName = (segment: string) => {
+    switch (segment) {
+      case "ad-wizard":
+        return "Ad Wizard";
+      default:
+        return segment.charAt(0).toUpperCase() + segment.slice(1);
+    }
+  };
 
   return (
-    <Breadcrumb className="py-4 px-6">
+    <Breadcrumb>
       <BreadcrumbList>
         <BreadcrumbItem>
-          <BreadcrumbLink asChild>
-            <Link to="/">
-              <Home className="h-4 w-4" />
-            </Link>
-          </BreadcrumbLink>
+          <BreadcrumbLink href="/">Home</BreadcrumbLink>
         </BreadcrumbItem>
-        <BreadcrumbSeparator />
-        {pathnames.map((name, index) => {
-          const routeTo = `/${pathnames.slice(0, index + 1).join("/")}`;
-          const isLast = index === pathnames.length - 1;
-
-          return (
-            <BreadcrumbItem key={routeTo}>
-              {!isLast ? (
-                <>
-                  <BreadcrumbLink asChild>
-                    <Link to={routeTo}>
-                      {name.charAt(0).toUpperCase() + name.slice(1)}
-                    </Link>
-                  </BreadcrumbLink>
-                  <BreadcrumbSeparator />
-                </>
-              ) : (
-                <BreadcrumbPage>
-                  {name.charAt(0).toUpperCase() + name.slice(1)}
-                </BreadcrumbPage>
-              )}
-            </BreadcrumbItem>
-          );
-        })}
+        {pathSegments.map((segment, index) => (
+          <BreadcrumbItem key={index}>
+            <BreadcrumbSeparator />
+            <BreadcrumbLink href={`/${pathSegments.slice(0, index + 1).join("/")}`}>
+              {getDisplayName(segment)}
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+        ))}
       </BreadcrumbList>
     </Breadcrumb>
   );

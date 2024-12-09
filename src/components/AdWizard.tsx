@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import BusinessIdeaStep from "./steps/BusinessIdeaStep";
 import AudienceStep from "./steps/AudienceStep";
@@ -30,6 +30,14 @@ const AdWizard = () => {
     null
   );
   const [selectedHook, setSelectedHook] = useState<Hook | null>(null);
+
+  // Add logging for state changes
+  useEffect(() => {
+    console.log("Current step:", currentStep);
+    console.log("Business idea:", businessIdea);
+    console.log("Selected audience:", selectedAudience);
+    console.log("Selected hook:", selectedHook);
+  }, [currentStep, businessIdea, selectedAudience, selectedHook]);
 
   const nextStep = () => setCurrentStep((prev) => Math.min(prev + 1, 4));
   const prevStep = () => setCurrentStep((prev) => Math.max(prev - 1, 1));
@@ -66,6 +74,7 @@ const AdWizard = () => {
         {currentStep === 1 && (
           <BusinessIdeaStep
             onNext={(idea) => {
+              console.log("Business idea submitted:", idea);
               setBusinessIdea(idea);
               nextStep();
             }}
@@ -75,6 +84,7 @@ const AdWizard = () => {
           <AudienceStep
             businessIdea={businessIdea}
             onNext={(audience) => {
+              console.log("Audience selected:", audience);
               setSelectedAudience(audience);
               nextStep();
             }}
@@ -85,6 +95,7 @@ const AdWizard = () => {
           <HookStep
             audience={selectedAudience}
             onNext={(hook) => {
+              console.log("Hook selected:", hook);
               setSelectedHook(hook);
               nextStep();
             }}
