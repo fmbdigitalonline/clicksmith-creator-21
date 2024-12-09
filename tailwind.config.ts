@@ -100,7 +100,7 @@ export default {
       },
       backgroundImage: {
         "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
-        "gradient-glass": "linear-gradient(109.6deg, rgba(14,16,18,0.9) 11.2%, rgba(27,31,35,0.9) 91.1%)",
+        "gradient-glass": "linear-gradient(109.6deg, rgba(255,255,255,0.9) 11.2%, rgba(240,240,240,0.9) 91.1%)",
       },
     },
   },
