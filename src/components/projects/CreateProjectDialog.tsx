@@ -20,6 +20,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
+import { useEffect, useState } from "react";
 
 const projectSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -39,6 +40,18 @@ const CreateProjectDialog = ({
   onSuccess,
 }: CreateProjectDialogProps) => {
   const { toast } = useToast();
+  const [userId, setUserId] = useState<string | null>(null);
+  
+  useEffect(() => {
+    const getCurrentUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setUserId(user.id);
+      }
+    };
+    getCurrentUser();
+  }, []);
+
   const form = useForm<z.infer<typeof projectSchema>>({
     resolver: zodResolver(projectSchema),
     defaultValues: {
@@ -49,6 +62,15 @@ const CreateProjectDialog = ({
   });
 
   const onSubmit = async (values: z.infer<typeof projectSchema>) => {
+    if (!userId) {
+      toast({
+        title: "Error creating project",
+        description: "You must be logged in to create a project",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const tags = values.tags
       ? values.tags.split(",").map((tag) => tag.trim())
       : [];
@@ -57,6 +79,8 @@ const CreateProjectDialog = ({
       title: values.title,
       description: values.description || null,
       tags,
+      user_id: userId,
+      status: "draft",
     });
 
     if (error) {
