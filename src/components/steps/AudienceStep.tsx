@@ -58,6 +58,17 @@ const AudienceStep = ({
 
   return (
     <div className="space-y-8">
+      <div className="flex justify-between mb-4">
+        <Button
+          variant="outline"
+          onClick={onBack}
+          className="space-x-2"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>Previous Step</span>
+        </Button>
+      </div>
+
       <div>
         <h2 className="text-2xl font-semibold mb-2">Choose Your Target Audience</h2>
         <p className="text-gray-600">
@@ -96,17 +107,6 @@ const AudienceStep = ({
             </CardContent>
           </Card>
         ))}
-      </div>
-
-      <div className="flex justify-between">
-        <Button
-          variant="outline"
-          onClick={onBack}
-          className="space-x-2"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span>Previous Step</span>
-        </Button>
       </div>
     </div>
   );

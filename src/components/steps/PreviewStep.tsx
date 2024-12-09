@@ -26,6 +26,24 @@ const PreviewStep = ({
 
   return (
     <div className="space-y-8">
+      <div className="flex justify-between mb-4">
+        <Button
+          variant="outline"
+          onClick={onBack}
+          className="space-x-2"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>Previous Step</span>
+        </Button>
+        <Button
+          className="bg-facebook hover:bg-facebook/90 space-x-2"
+          onClick={handleExport}
+        >
+          <Download className="w-4 h-4" />
+          <span>Export Ad</span>
+        </Button>
+      </div>
+
       <div>
         <h2 className="text-2xl font-semibold mb-2">Preview Your Ad</h2>
         <p className="text-gray-600">
@@ -69,24 +87,6 @@ const PreviewStep = ({
           </div>
         </CardContent>
       </Card>
-
-      <div className="flex justify-between">
-        <Button
-          variant="outline"
-          onClick={onBack}
-          className="space-x-2"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span>Previous Step</span>
-        </Button>
-        <Button
-          className="bg-facebook hover:bg-facebook/90 space-x-2"
-          onClick={handleExport}
-        >
-          <Download className="w-4 h-4" />
-          <span>Export Ad</span>
-        </Button>
-      </div>
     </div>
   );
 };

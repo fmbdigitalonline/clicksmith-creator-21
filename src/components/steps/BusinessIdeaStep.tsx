@@ -35,6 +35,17 @@ const BusinessIdeaStep = ({
 
   return (
     <div className="space-y-8">
+      <div className="flex justify-end mb-4">
+        <Button
+          onClick={handleSubmit}
+          className="bg-facebook hover:bg-facebook/90 text-white"
+          size="lg"
+        >
+          Next Step
+          <ArrowRight className="ml-2 h-5 w-5" />
+        </Button>
+      </div>
+
       <div>
         <h2 className="text-2xl font-semibold mb-2">Tell us about your business</h2>
         <p className="text-gray-600">
@@ -66,16 +77,6 @@ const BusinessIdeaStep = ({
           onChange={(e) => setDescription(e.target.value)}
           className="min-h-[150px] text-base"
         />
-        <div className="flex justify-end">
-          <Button
-            onClick={handleSubmit}
-            className="bg-facebook hover:bg-facebook/90 text-white"
-            size="lg"
-          >
-            Next Step
-            <ArrowRight className="ml-2 h-5 w-5" />
-          </Button>
-        </div>
       </div>
     </div>
   );
