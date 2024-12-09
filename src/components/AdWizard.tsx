@@ -93,7 +93,7 @@ const AdWizard = () => {
       </div>
 
       {currentStep === "idea" && (
-        <IdeaStep onSubmit={handleIdeaSubmit} />
+        <IdeaStep onNext={handleIdeaSubmit} />
       )}
 
       {currentStep === "audience" && businessIdea && (
