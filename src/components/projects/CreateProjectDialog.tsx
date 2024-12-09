@@ -97,18 +97,16 @@ const CreateProjectDialog = ({
       return;
     }
 
-    toast({
-      title: "Project created",
-      description: "Your project has been created successfully.",
-    });
-
     if (data && data[0]) {
       setCreatedProjectId(data[0].id);
       setShowActions(true);
+      toast({
+        title: "Project created",
+        description: "Your project has been created successfully.",
+      });
+      form.reset();
+      onSuccess();
     }
-    
-    form.reset();
-    onSuccess();
   };
 
   const handleGenerateAds = () => {
@@ -122,11 +120,22 @@ const CreateProjectDialog = ({
     onOpenChange(false);
   };
 
+  // Reset states when dialog is closed
+  useEffect(() => {
+    if (!open) {
+      setShowActions(false);
+      setCreatedProjectId(null);
+      form.reset();
+    }
+  }, [open, form]);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Create New Project</DialogTitle>
+          <DialogTitle>
+            {showActions ? "What's next?" : "Create New Project"}
+          </DialogTitle>
         </DialogHeader>
         {!showActions ? (
           <Form {...form}>
