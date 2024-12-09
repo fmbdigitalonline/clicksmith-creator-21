@@ -6,6 +6,7 @@ import {
   StickyNote,
   Settings,
   ChevronRight,
+  PlusCircle,
 } from "lucide-react";
 import {
   Sidebar,
@@ -17,6 +18,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { Button } from "./ui/button";
 
 const menuItems = [
   {
@@ -52,6 +54,12 @@ export function AppSidebar() {
   return (
     <Sidebar>
       <SidebarContent>
+        <div className="px-4 py-4">
+          <Button className="w-full bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary">
+            <PlusCircle className="mr-2 h-4 w-4" />
+            New Project
+          </Button>
+        </div>
         <SidebarGroup>
           <SidebarGroupLabel>Menu</SidebarGroupLabel>
           <SidebarGroupContent>

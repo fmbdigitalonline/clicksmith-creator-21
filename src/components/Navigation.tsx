@@ -38,12 +38,12 @@ const Navigation = () => {
   };
 
   return (
-    <div className="sticky top-0 z-40 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center">
+    <div className="fixed top-0 left-0 right-0 z-40 bg-white/80 backdrop-blur-lg border-b border-border/40">
+      <div className="flex h-16 items-center px-6">
         <Link to="/" className="mr-6 flex items-center space-x-2">
-          <FileText className="h-6 w-6 text-primary neon-glow" />
-          <span className="hidden font-bold sm:inline-block bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-            Document Manager
+          <FileText className="h-6 w-6 text-primary animate-pulse" />
+          <span className="hidden font-bold sm:inline-block text-xl bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
+            Ad Generator
           </span>
         </Link>
 
@@ -52,24 +52,24 @@ const Navigation = () => {
             <div className="flex flex-1 items-center space-x-4">
               <div className="w-full max-w-xl">
                 <div className="relative">
-                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Search..."
-                    className="pl-8 bg-secondary/50 border-border/40 focus:border-primary/40 focus:ring-primary/20"
+                    placeholder="Search projects..."
+                    className="pl-10 bg-secondary/30 border-none focus-visible:ring-primary/20"
                   />
                 </div>
               </div>
             </div>
 
-            <div className="ml-auto flex items-center space-x-4">
+            <div className="ml-auto flex items-center space-x-3">
               <Button
                 variant="ghost"
                 size="icon"
-                className="relative hover:bg-primary/10 hover:text-primary"
+                className="relative hover:bg-primary/10 hover:text-primary rounded-full"
                 aria-label="Notifications"
               >
-                <Bell className="h-4 w-4" />
-                <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] text-white neon-glow">
+                <Bell className="h-5 w-5" />
+                <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] text-white animate-pulse">
                   2
                 </span>
               </Button>
@@ -79,22 +79,29 @@ const Navigation = () => {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="relative hover:bg-primary/10 hover:text-primary"
+                    className="relative hover:bg-primary/10 hover:text-primary rounded-full"
                     aria-label="User menu"
                   >
-                    <User className="h-4 w-4" />
+                    <User className="h-5 w-5" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56 card-gradient">
-                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                  <DropdownMenuSeparator className="bg-border/40" />
+                <DropdownMenuContent align="end" className="w-56 mt-2">
+                  <DropdownMenuLabel className="font-normal">
+                    <div className="flex flex-col space-y-1">
+                      <p className="text-sm font-medium leading-none">User</p>
+                      <p className="text-xs leading-none text-muted-foreground">
+                        user@example.com
+                      </p>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
                     <Link to="/profile" className="cursor-pointer">Profile</Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
                     <Link to="/settings" className="cursor-pointer">Settings</Link>
                   </DropdownMenuItem>
-                  <DropdownMenuSeparator className="bg-border/40" />
+                  <DropdownMenuSeparator />
                   <DropdownMenuItem
                     className="text-destructive focus:text-destructive cursor-pointer"
                     onClick={handleSignOut}
