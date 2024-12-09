@@ -26,12 +26,6 @@ const Login = () => {
           description: "You have successfully logged in.",
         });
         navigate('/');
-      } else if (event === 'USER_DELETED') {
-        toast({
-          variant: "destructive",
-          title: "Account Deleted",
-          description: "Your account has been successfully deleted.",
-        });
       } else if (event === 'PASSWORD_RECOVERY') {
         toast({
           title: "Password Reset Email Sent",
@@ -111,7 +105,7 @@ const Login = () => {
               }
             }
           }}
-          onError={handleError}
+          onAuthError={handleError}
         />
       </Card>
     </div>
