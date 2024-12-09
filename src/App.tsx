@@ -47,7 +47,7 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <SidebarProvider>
-        <div className="min-h-screen flex w-full">
+        <div className="min-h-screen flex w-full bg-gradient-radial from-background via-background to-secondary/20">
           <Toaster />
           <Sonner />
           <BrowserRouter>
@@ -55,29 +55,31 @@ const App = () => (
               <Navigation />
               <div className="flex flex-1">
                 <AppSidebar />
-                <div className="flex-1">
-                  <BreadcrumbNav />
-                  <main className="flex-1 p-4">
-                    <Routes>
-                      <Route path="/login" element={<Login />} />
-                      <Route
-                        path="/"
-                        element={
-                          <ProtectedRoute>
-                            <Index />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/ad-wizard/:projectId"
-                        element={
-                          <ProtectedRoute>
-                            <AdWizard />
-                          </ProtectedRoute>
-                        }
-                      />
-                    </Routes>
-                  </main>
+                <div className="flex-1 p-6">
+                  <div className="glass p-6 min-h-[calc(100vh-7rem)]">
+                    <BreadcrumbNav />
+                    <main className="mt-6">
+                      <Routes>
+                        <Route path="/login" element={<Login />} />
+                        <Route
+                          path="/"
+                          element={
+                            <ProtectedRoute>
+                              <Index />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/ad-wizard/:projectId"
+                          element={
+                            <ProtectedRoute>
+                              <AdWizard />
+                            </ProtectedRoute>
+                          }
+                        />
+                      </Routes>
+                    </main>
+                  </div>
                 </div>
               </div>
             </div>
