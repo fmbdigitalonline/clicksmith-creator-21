@@ -7,6 +7,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { TargetAudience, Hook } from "../AdWizard";
+import { MessageCircle, ArrowLeft, ChevronRight } from "lucide-react";
 
 const mockHooks: Hook[] = [
   {
@@ -34,38 +35,51 @@ const HookStep = ({
   onNext: (hook: Hook) => void;
   onBack: () => void;
 }) => {
-  // In a real app, we would generate hooks based on the selected audience
   const hooks = mockHooks;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
-        <h2 className="text-2xl font-semibold mb-4">Choose Your Ad Hook</h2>
-        <p className="text-gray-600 mb-4">
-          Select the message that will grab your audience's attention.
+        <h2 className="text-2xl font-semibold mb-2">Choose Your Ad Hook</h2>
+        <p className="text-gray-600">
+          Select a compelling message that will grab your audience's attention.
         </p>
       </div>
 
-      <div className="grid gap-4">
+      <div className="space-y-4">
         {hooks.map((hook) => (
           <Card
             key={hook.text}
-            className="cursor-pointer hover:border-facebook transition-colors"
+            className="relative group cursor-pointer hover:shadow-lg transition-all duration-200 border-2 hover:border-facebook"
             onClick={() => onNext(hook)}
           >
+            <div className="absolute inset-0 bg-gradient-to-br from-facebook/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-xl" />
             <CardHeader>
-              <CardTitle className="text-lg">{hook.text}</CardTitle>
+              <div className="flex items-center space-x-3">
+                <MessageCircle className="w-5 h-5 text-facebook" />
+                <CardTitle className="text-lg">{hook.text}</CardTitle>
+              </div>
             </CardHeader>
             <CardContent>
-              <CardDescription>{hook.description}</CardDescription>
+              <CardDescription className="text-base">
+                {hook.description}
+              </CardDescription>
+              <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <ChevronRight className="w-5 h-5 text-facebook" />
+              </div>
             </CardContent>
           </Card>
         ))}
       </div>
 
       <div className="flex justify-between">
-        <Button variant="outline" onClick={onBack}>
-          Back
+        <Button
+          variant="ghost"
+          onClick={onBack}
+          className="space-x-2"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>Back</span>
         </Button>
       </div>
     </div>

@@ -2,10 +2,22 @@ import { CheckIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const steps = [
-  "Business Idea",
-  "Target Audience",
-  "Hook Selection",
-  "Ad Preview",
+  {
+    title: "Business Idea",
+    description: "Describe your product"
+  },
+  {
+    title: "Target Audience",
+    description: "Choose who to reach"
+  },
+  {
+    title: "Hook Selection",
+    description: "Create your message"
+  },
+  {
+    title: "Ad Preview",
+    description: "Review and export"
+  }
 ];
 
 interface WizardProgressProps {
@@ -14,63 +26,62 @@ interface WizardProgressProps {
   canNavigateToStep: (step: number) => boolean;
 }
 
-const WizardProgress = ({ 
-  currentStep, 
+const WizardProgress = ({
+  currentStep,
   onStepClick,
-  canNavigateToStep 
+  canNavigateToStep
 }: WizardProgressProps) => {
   return (
-    <div className="flex justify-between items-center w-full">
-      {steps.map((step, index) => {
-        const stepNumber = index + 1;
-        const isClickable = canNavigateToStep(stepNumber);
-        
-        return (
-          <div
-            key={step}
-            className={cn(
-              "flex flex-col items-center flex-1 relative",
-              isClickable && "cursor-pointer"
-            )}
-            onClick={() => isClickable && onStepClick(stepNumber)}
-          >
+    <div className="relative">
+      <div className="absolute top-1/2 left-0 w-full h-0.5 bg-gray-200 -translate-y-1/2" />
+      <div className="relative flex justify-between items-center">
+        {steps.map((step, index) => {
+          const stepNumber = index + 1;
+          const isClickable = canNavigateToStep(stepNumber);
+          const isActive = stepNumber === currentStep;
+          const isCompleted = stepNumber < currentStep;
+          
+          return (
             <div
+              key={step.title}
               className={cn(
-                "w-8 h-8 rounded-full flex items-center justify-center transition-colors",
-                stepNumber <= currentStep
-                  ? "bg-facebook text-white"
-                  : "bg-gray-200 text-gray-500",
-                isClickable && "hover:bg-facebook/90"
+                "flex flex-col items-center relative",
+                isClickable && "cursor-pointer group"
               )}
+              onClick={() => isClickable && onStepClick(stepNumber)}
             >
-              {stepNumber < currentStep ? (
-                <CheckIcon className="w-5 h-5" />
-              ) : (
-                stepNumber
-              )}
-            </div>
-            <span
-              className={cn(
-                "mt-2 text-sm",
-                stepNumber <= currentStep
-                  ? "text-facebook font-medium"
-                  : "text-gray-500",
-                isClickable && "hover:text-facebook/90"
-              )}
-            >
-              {step}
-            </span>
-            {index < steps.length - 1 && (
               <div
                 className={cn(
-                  "absolute top-4 left-1/2 w-full h-0.5 -z-10",
-                  stepNumber < currentStep ? "bg-facebook" : "bg-gray-200"
+                  "w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 z-10",
+                  isCompleted ? "bg-facebook text-white" :
+                  isActive ? "bg-facebook text-white" :
+                  "bg-white border-2 border-gray-200 text-gray-400",
+                  isClickable && "group-hover:border-facebook group-hover:text-facebook"
                 )}
-              />
-            )}
-          </div>
-        );
-      })}
+              >
+                {isCompleted ? (
+                  <CheckIcon className="w-5 h-5" />
+                ) : (
+                  stepNumber
+                )}
+              </div>
+              <div className="mt-3 text-center">
+                <p
+                  className={cn(
+                    "font-medium mb-1",
+                    (isActive || isCompleted) ? "text-facebook" : "text-gray-500"
+                  )}
+                >
+                  {step.title}
+                </p>
+                <p className="text-sm text-gray-500">
+                  {step.description}
+                </p>
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 };

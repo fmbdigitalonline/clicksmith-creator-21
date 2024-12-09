@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { BusinessIdea, TargetAudience, Hook } from "../AdWizard";
 import { useToast } from "@/components/ui/use-toast";
+import { ArrowLeft, Download, Facebook } from "lucide-react";
 
 const PreviewStep = ({
   businessIdea,
@@ -24,53 +25,66 @@ const PreviewStep = ({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
-        <h2 className="text-2xl font-semibold mb-4">Preview Your Ad</h2>
-        <p className="text-gray-600 mb-4">
-          Here's how your ad will look on Facebook.
+        <h2 className="text-2xl font-semibold mb-2">Preview Your Ad</h2>
+        <p className="text-gray-600">
+          Review how your ad will look on Facebook and make any final adjustments.
         </p>
       </div>
 
-      <Card className="border-2">
+      <Card className="border-2 overflow-hidden">
+        <div className="bg-gray-100 p-3 border-b flex items-center space-x-2">
+          <Facebook className="w-5 h-5 text-facebook" />
+          <span className="font-medium text-gray-700">Facebook News Feed Ad</span>
+        </div>
         <CardContent className="p-6">
-          <div className="aspect-video bg-gray-100 mb-4 rounded-lg flex items-center justify-center">
+          <div className="aspect-video bg-gradient-to-br from-gray-100 to-gray-50 mb-4 rounded-lg flex items-center justify-center">
             <p className="text-gray-500">Ad Image Preview</p>
           </div>
-          <h3 className="text-xl font-bold mb-2">{hook.text}</h3>
+          <h3 className="text-xl font-bold mb-2 text-gray-900">{hook.text}</h3>
           <p className="text-gray-600 mb-4">{businessIdea.valueProposition}</p>
-          <div className="bg-facebook text-white px-4 py-2 rounded-lg text-center">
+          <Button className="w-full bg-facebook hover:bg-facebook/90">
             Learn More
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card className="bg-gray-50 border-none">
+        <CardContent className="p-6">
+          <h4 className="font-medium mb-4 text-gray-900">Ad Details</h4>
+          <div className="space-y-4">
+            <div>
+              <h5 className="text-sm font-medium text-gray-700 mb-1">Target Audience</h5>
+              <p className="text-sm text-gray-600">{audience.name}</p>
+            </div>
+            <div>
+              <h5 className="text-sm font-medium text-gray-700 mb-1">Demographics</h5>
+              <p className="text-sm text-gray-600">{audience.demographics}</p>
+            </div>
+            <div>
+              <h5 className="text-sm font-medium text-gray-700 mb-1">Hook Type</h5>
+              <p className="text-sm text-gray-600">{hook.description}</p>
+            </div>
           </div>
         </CardContent>
       </Card>
 
-      <div className="bg-gray-50 p-4 rounded-lg">
-        <h4 className="font-medium mb-2">Ad Details</h4>
-        <ul className="space-y-2 text-sm text-gray-600">
-          <li>
-            <span className="font-medium">Target Audience:</span>{" "}
-            {audience.name}
-          </li>
-          <li>
-            <span className="font-medium">Demographics:</span>{" "}
-            {audience.demographics}
-          </li>
-          <li>
-            <span className="font-medium">Hook Type:</span> {hook.description}
-          </li>
-        </ul>
-      </div>
-
       <div className="flex justify-between">
-        <Button variant="outline" onClick={onBack}>
-          Back
+        <Button
+          variant="ghost"
+          onClick={onBack}
+          className="space-x-2"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>Back</span>
         </Button>
         <Button
-          className="bg-facebook hover:bg-facebook/90"
+          className="bg-facebook hover:bg-facebook/90 space-x-2"
           onClick={handleExport}
         >
-          Export Ad
+          <Download className="w-4 h-4" />
+          <span>Export Ad</span>
         </Button>
       </div>
     </div>
