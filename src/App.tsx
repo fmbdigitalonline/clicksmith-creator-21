@@ -5,7 +5,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import Navigation from "./components/Navigation";
+import { AppSidebar } from "./components/AppSidebar";
 import BreadcrumbNav from "./components/Breadcrumb";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
@@ -43,27 +45,36 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <div className="min-h-screen flex flex-col">
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Navigation />
-          <BreadcrumbNav />
-          <main className="flex-1">
-            <Routes>
-              <Route path="/login" element={<Login />} />
-              <Route
-                path="/"
-                element={
-                  <ProtectedRoute>
-                    <Index />
-                  </ProtectedRoute>
-                }
-              />
-            </Routes>
-          </main>
-        </BrowserRouter>
-      </div>
+      <SidebarProvider>
+        <div className="min-h-screen flex w-full">
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <div className="flex flex-col flex-1">
+              <Navigation />
+              <div className="flex flex-1">
+                <AppSidebar />
+                <div className="flex-1">
+                  <BreadcrumbNav />
+                  <main className="flex-1 p-4">
+                    <Routes>
+                      <Route path="/login" element={<Login />} />
+                      <Route
+                        path="/"
+                        element={
+                          <ProtectedRoute>
+                            <Index />
+                          </ProtectedRoute>
+                        }
+                      />
+                    </Routes>
+                  </main>
+                </div>
+              </div>
+            </div>
+          </BrowserRouter>
+        </div>
+      </SidebarProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );
