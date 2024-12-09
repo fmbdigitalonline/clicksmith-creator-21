@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { BusinessIdea, TargetAudience, Hook } from "../AdWizard";
+import { BusinessIdea, TargetAudience, AdHook } from "../AdWizard";
 import { useToast } from "@/components/ui/use-toast";
 import { ArrowLeft, Download, Facebook } from "lucide-react";
 
@@ -8,11 +8,10 @@ const PreviewStep = ({
   businessIdea,
   audience,
   hook,
-  onBack,
 }: {
   businessIdea: BusinessIdea;
   audience: TargetAudience;
-  hook: Hook;
+  hook: AdHook;
   onBack: () => void;
 }) => {
   const { toast } = useToast();
