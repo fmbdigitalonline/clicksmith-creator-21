@@ -7,12 +7,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { TargetAudience, Hook } from "../AdWizard";
+import { BusinessIdea, TargetAudience, AdHook } from "../AdWizard";
 import { MessageCircle, ArrowLeft, ArrowRight, Wand2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 
-const mockHooks: Hook[] = [
+const mockHooks: AdHook[] = [
   {
     text: "Transform Your Health Journey in Just 5 Minutes a Day!",
     description:
@@ -30,12 +30,14 @@ const mockHooks: Hook[] = [
 ];
 
 const HookStep = ({
-  audience,
+  businessIdea,
+  targetAudience,
   onNext,
   onBack,
 }: {
-  audience: TargetAudience;
-  onNext: (hook: Hook) => void;
+  businessIdea: BusinessIdea;
+  targetAudience: TargetAudience;
+  onNext: (hook: AdHook) => void;
   onBack: () => void;
 }) => {
   const [hooks, setHooks] = useState(mockHooks);
@@ -46,7 +48,7 @@ const HookStep = ({
     setIsGenerating(true);
     try {
       const { data, error } = await supabase.functions.invoke('generate-ad-content', {
-        body: { businessIdea: audience, audience: audience }
+        body: { businessIdea: businessIdea, audience: targetAudience }
       });
 
       if (error) throw error;

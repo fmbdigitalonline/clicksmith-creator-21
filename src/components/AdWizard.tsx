@@ -1,6 +1,10 @@
 import { useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
-import { useRouter } from "next/router";
+import { useNavigate } from "react-router-dom";
+import IdeaStep from "./steps/BusinessIdeaStep";
+import AudienceStep from "./steps/AudienceStep";
+import HookStep from "./steps/HookStep";
+import CompleteStep from "./steps/CompleteStep";
 
 export type BusinessIdea = {
   description: string;
@@ -21,7 +25,8 @@ export type TargetAudience = {
 };
 
 export type AdHook = {
-  content: string;
+  text: string;
+  description: string;
 };
 
 type Step = "idea" | "audience" | "hook" | "complete";
@@ -32,7 +37,7 @@ const AdWizard = () => {
   const [targetAudience, setTargetAudience] = useState<TargetAudience | null>(null);
   const [adHook, setAdHook] = useState<AdHook | null>(null);
   const { toast } = useToast();
-  const router = useRouter();
+  const navigate = useNavigate();
 
   const handleIdeaSubmit = (idea: BusinessIdea) => {
     setBusinessIdea(idea);
