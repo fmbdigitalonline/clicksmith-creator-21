@@ -31,7 +31,6 @@ export default {
         'ui': ['14px', { lineHeight: '1.4', fontWeight: '500' }],
       },
       colors: {
-        facebook: "#1877F2",
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
@@ -86,10 +85,10 @@ export default {
         },
         glow: {
           "0%, 100%": {
-            boxShadow: "0 0 10px rgba(139, 92, 246, 0.5)",
+            boxShadow: "0 0 10px rgba(0, 229, 255, 0.5)",
           },
           "50%": {
-            boxShadow: "0 0 20px rgba(139, 92, 246, 0.8)",
+            boxShadow: "0 0 20px rgba(0, 229, 255, 0.8)",
           },
         },
       },
@@ -101,7 +100,7 @@ export default {
       },
       backgroundImage: {
         "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
-        "gradient-glass": "linear-gradient(109.6deg, rgba(223,234,247,0.9) 11.2%, rgba(244,248,252,0.9) 91.1%)",
+        "gradient-glass": "linear-gradient(109.6deg, rgba(14,16,18,0.9) 11.2%, rgba(27,31,35,0.9) 91.1%)",
       },
     },
   },

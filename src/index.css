@@ -6,44 +6,35 @@
 
 @layer base {
   :root {
-    --background: 222 47% 11%;
-    --foreground: 213 31% 91%;
+    --background: 222 47% 7%;
+    --foreground: 220 14% 91%;
 
-    --card: 222 47% 13%;
-    --card-foreground: 213 31% 91%;
+    --card: 222 47% 9%;
+    --card-foreground: 220 14% 91%;
 
-    --popover: 222 47% 11%;
-    --popover-foreground: 213 31% 91%;
+    --popover: 222 47% 7%;
+    --popover-foreground: 220 14% 91%;
 
-    --primary: 263 85% 50%;
+    --primary: 191 100% 50%;
     --primary-foreground: 210 40% 98%;
 
-    --secondary: 222 47% 15%;
+    --secondary: 222 47% 11%;
     --secondary-foreground: 210 40% 98%;
 
-    --muted: 223 47% 20%;
+    --muted: 215 13% 32%;
     --muted-foreground: 215.4 16.3% 56.9%;
 
-    --accent: 263 85% 50%;
+    --accent: 269 74% 70%;
     --accent-foreground: 210 40% 98%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 263 85% 30%;
-    --input: 263 85% 30%;
-    --ring: 263 85% 50%;
+    --border: 215 13% 32%;
+    --input: 215 13% 32%;
+    --ring: 191 100% 50%;
 
     --radius: 1rem;
-
-    --sidebar-background: 222 47% 13%;
-    --sidebar-foreground: 213 31% 91%;
-    --sidebar-primary: 263 85% 50%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 222 47% 15%;
-    --sidebar-accent-foreground: 213 31% 91%;
-    --sidebar-border: 263 85% 30%;
-    --sidebar-ring: 263 85% 50%;
   }
 }
 
@@ -88,7 +79,7 @@
 
 @layer components {
   .glass {
-    @apply bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl;
+    @apply bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl;
   }
 
   .card-gradient {
@@ -100,15 +91,15 @@
   }
 
   .nav-item {
-    @apply relative px-4 py-2 rounded-lg transition-all duration-200 hover:bg-accent/10;
+    @apply relative px-4 py-2 rounded-lg transition-all duration-200 hover:bg-primary/10;
   }
 
   .nav-item.active {
-    @apply bg-accent/20 text-accent-foreground;
+    @apply bg-primary/20 text-primary-foreground;
   }
 
   .nav-item.active::before {
     content: '';
-    @apply absolute left-0 top-1/2 -translate-y-1/2 w-1 h-4 bg-accent rounded-r-full;
+    @apply absolute left-0 top-1/2 -translate-y-1/2 w-1 h-4 bg-primary rounded-r-full;
   }
 }
