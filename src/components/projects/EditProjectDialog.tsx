@@ -15,11 +15,6 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { supabase } from "@/integrations/supabase/client";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { useToast } from "@/hooks/use-toast";
 import {
   Select,
   SelectContent,
@@ -27,22 +22,29 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { supabase } from "@/integrations/supabase/client";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { useToast } from "@/hooks/use-toast";
 
 const projectSchema = z.object({
   title: z.string().min(1, "Title is required"),
   description: z.string().optional(),
   tags: z.string().optional(),
-  status: z.enum(["draft", "published"]),
+  status: z.string(),
 });
 
+interface Project {
+  id: string;
+  title: string;
+  description: string | null;
+  tags: string[];
+  status: string;
+}
+
 interface EditProjectDialogProps {
-  project: {
-    id: string;
-    title: string;
-    description: string | null;
-    status: string;
-    tags: string[];
-  };
+  project: Project;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
@@ -55,13 +57,14 @@ const EditProjectDialog = ({
   onSuccess,
 }: EditProjectDialogProps) => {
   const { toast } = useToast();
+
   const form = useForm<z.infer<typeof projectSchema>>({
     resolver: zodResolver(projectSchema),
     defaultValues: {
       title: project.title,
       description: project.description || "",
       tags: project.tags?.join(", ") || "",
-      status: project.status as "draft" | "published",
+      status: project.status,
     },
   });
 
@@ -162,12 +165,13 @@ const EditProjectDialog = ({
                   >
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select status" />
+                        <SelectValue placeholder="Select a status" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
                       <SelectItem value="draft">Draft</SelectItem>
-                      <SelectItem value="published">Published</SelectItem>
+                      <SelectItem value="in_progress">In Progress</SelectItem>
+                      <SelectItem value="completed">Completed</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />

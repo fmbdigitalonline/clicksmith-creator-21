@@ -1,16 +1,9 @@
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { supabase } from "@/integrations/supabase/client";
-import { Edit, Trash } from "lucide-react";
 import { useState } from "react";
-import EditProjectDialog from "./EditProjectDialog";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Edit2, Trash2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import {
   AlertDialog,
@@ -21,21 +14,24 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import EditProjectDialog from "./EditProjectDialog";
+
+interface Project {
+  id: string;
+  title: string;
+  description: string | null;
+  tags: string[];
+  status: string;
+}
 
 interface ProjectCardProps {
-  project: {
-    id: string;
-    title: string;
-    description: string | null;
-    status: string;
-    tags: string[];
-  };
+  project: Project;
   onUpdate: () => void;
 }
 
 const ProjectCard = ({ project, onUpdate }: ProjectCardProps) => {
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const { toast } = useToast();
 
@@ -65,64 +61,58 @@ const ProjectCard = ({ project, onUpdate }: ProjectCardProps) => {
     <>
       <Card>
         <CardHeader>
-          <CardTitle>{project.title}</CardTitle>
-          <CardDescription>{project.description}</CardDescription>
+          <CardTitle className="flex items-center justify-between">
+            <span>{project.title}</span>
+            <Badge variant="outline">{project.status}</Badge>
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-wrap gap-2">
-            {project.tags?.map((tag) => (
-              <span
-                key={tag}
-                className="rounded-full bg-secondary px-2 py-1 text-xs"
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
-          <div className="mt-2">
-            <span
-              className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
-                project.status === "draft"
-                  ? "bg-yellow-100 text-yellow-800"
-                  : "bg-green-100 text-green-800"
-              }`}
-            >
-              {project.status}
-            </span>
-          </div>
+          <p className="text-sm text-muted-foreground">
+            {project.description || "No description provided"}
+          </p>
+          {project.tags && project.tags.length > 0 && (
+            <div className="mt-4 flex flex-wrap gap-2">
+              {project.tags.map((tag) => (
+                <Badge key={tag} variant="secondary">
+                  {tag}
+                </Badge>
+              ))}
+            </div>
+          )}
         </CardContent>
-        <CardFooter className="justify-end space-x-2">
+        <CardFooter className="flex justify-end space-x-2">
           <Button
             variant="outline"
             size="icon"
             onClick={() => setIsEditOpen(true)}
           >
-            <Edit className="h-4 w-4" />
+            <Edit2 className="h-4 w-4" />
           </Button>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="outline" size="icon">
-                <Trash className="h-4 w-4" />
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This action cannot be undone. This will permanently delete your
-                  project and all its data.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDelete}>
-                  Delete
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setIsDeleteOpen(true)}
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
         </CardFooter>
       </Card>
+
+      <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete your
+              project and remove all associated data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <EditProjectDialog
         project={project}
