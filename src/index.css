@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -51,8 +53,36 @@
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans text-body;
     font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  h1 {
+    @apply text-h1 mb-6;
+  }
+
+  h2 {
+    @apply text-h2 mb-4;
+  }
+
+  h3 {
+    @apply text-h3 mb-3;
+  }
+
+  h4 {
+    @apply text-h4 mb-2;
+  }
+
+  p {
+    @apply text-body mb-4;
+  }
+
+  label, button {
+    @apply text-ui;
+  }
+
+  small {
+    @apply text-body-sm;
   }
 }
 
