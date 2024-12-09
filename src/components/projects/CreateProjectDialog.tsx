@@ -21,6 +21,8 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { ArrowLeft, Rocket } from "lucide-react";
 
 const projectSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -41,6 +43,9 @@ const CreateProjectDialog = ({
 }: CreateProjectDialogProps) => {
   const { toast } = useToast();
   const [userId, setUserId] = useState<string | null>(null);
+  const [showActions, setShowActions] = useState(false);
+  const [createdProjectId, setCreatedProjectId] = useState<string | null>(null);
+  const navigate = useNavigate();
   
   useEffect(() => {
     const getCurrentUser = async () => {
@@ -75,13 +80,13 @@ const CreateProjectDialog = ({
       ? values.tags.split(",").map((tag) => tag.trim())
       : [];
 
-    const { error } = await supabase.from("projects").insert({
+    const { data, error } = await supabase.from("projects").insert({
       title: values.title,
       description: values.description || null,
       tags,
       user_id: userId,
       status: "draft",
-    });
+    }).select();
 
     if (error) {
       toast({
@@ -96,8 +101,25 @@ const CreateProjectDialog = ({
       title: "Project created",
       description: "Your project has been created successfully.",
     });
+
+    if (data && data[0]) {
+      setCreatedProjectId(data[0].id);
+      setShowActions(true);
+    }
+    
     form.reset();
     onSuccess();
+  };
+
+  const handleGenerateAds = () => {
+    if (createdProjectId) {
+      navigate(`/ad-wizard/${createdProjectId}`);
+      onOpenChange(false);
+    }
+  };
+
+  const handleBackToProjects = () => {
+    onOpenChange(false);
   };
 
   return (
@@ -106,66 +128,93 @@ const CreateProjectDialog = ({
         <DialogHeader>
           <DialogTitle>Create New Project</DialogTitle>
         </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="title"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Title</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Project title" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Project description"
-                      {...field}
-                      rows={3}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="tags"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Tags</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="Enter tags separated by commas"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <div className="flex justify-end space-x-2">
+        {!showActions ? (
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="title"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Title</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Project title" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Project description"
+                        {...field}
+                        rows={3}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="tags"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Tags</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Enter tags separated by commas"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <div className="flex justify-end space-x-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => onOpenChange(false)}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit">Create Project</Button>
+              </div>
+            </form>
+          </Form>
+        ) : (
+          <div className="space-y-4">
+            <p className="text-center text-muted-foreground">
+              What would you like to do next?
+            </p>
+            <div className="flex flex-col gap-3">
               <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
+                onClick={handleGenerateAds}
+                className="w-full"
+                size="lg"
               >
-                Cancel
+                <Rocket className="mr-2" />
+                Generate Ads
               </Button>
-              <Button type="submit">Create Project</Button>
+              <Button
+                onClick={handleBackToProjects}
+                variant="outline"
+                className="w-full"
+                size="lg"
+              >
+                <ArrowLeft className="mr-2" />
+                Back to Projects
+              </Button>
             </div>
-          </form>
-        </Form>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );
