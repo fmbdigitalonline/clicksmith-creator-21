@@ -15,6 +15,7 @@ serve(async (req) => {
 
   try {
     const { type, businessIdea } = await req.json();
+    console.log('Request received:', { type, businessIdea });
 
     let prompt = '';
     if (type === 'audience') {
@@ -83,7 +84,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4',
         messages: [
           { 
             role: 'system', 
@@ -94,7 +95,7 @@ serve(async (req) => {
           { role: 'user', content: prompt }
         ],
         temperature: 0.7,
-        max_tokens: 500,
+        max_tokens: 1500,
       }),
     });
 
@@ -102,19 +103,35 @@ serve(async (req) => {
     console.log('OpenAI response:', data);
     
     if (data.error) {
+      console.error('OpenAI API error:', data.error);
       throw new Error(data.error.message);
     }
 
     const generatedContent = data.choices[0].message.content;
+    console.log('Generated content:', generatedContent);
 
     if (type === 'audience') {
       try {
         const cleanContent = generatedContent.trim();
+        console.log('Attempting to parse JSON:', cleanContent);
+        
         const audiences = JSON.parse(cleanContent);
         
         if (!Array.isArray(audiences) || audiences.length !== 3) {
+          console.error('Invalid audience format:', audiences);
           throw new Error('Invalid audience format: expected array of 3 items');
         }
+
+        // Validate each audience object has required fields
+        audiences.forEach((audience, index) => {
+          const requiredFields = ['name', 'description', 'painPoints', 'demographics', 'icp', 'coreMessage', 'positioning', 'marketingAngle', 'messagingApproach', 'marketingChannels'];
+          const missingFields = requiredFields.filter(field => !audience[field]);
+          
+          if (missingFields.length > 0) {
+            console.error(`Audience ${index} is missing required fields:`, missingFields);
+            throw new Error(`Audience ${index} is missing required fields: ${missingFields.join(', ')}`);
+          }
+        });
 
         return new Response(
           JSON.stringify({ audiences }),
@@ -122,7 +139,7 @@ serve(async (req) => {
         );
       } catch (error) {
         console.error('Error parsing audiences:', error, 'Raw content:', generatedContent);
-        throw new Error('Failed to parse generated audiences');
+        throw new Error(`Failed to parse generated audiences: ${error.message}`);
       }
     }
 
