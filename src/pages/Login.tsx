@@ -13,6 +13,10 @@ const Login = () => {
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session) {
+        toast({
+          title: "Welcome back!",
+          description: "You have successfully logged in.",
+        });
         navigate("/");
       }
     });
@@ -24,12 +28,12 @@ const Login = () => {
     }
 
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, [navigate, toast]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+    <div className="min-h-[calc(100vh-8rem)] flex items-center justify-center bg-gray-50/50 p-4">
       <Card className="w-full max-w-md p-6 space-y-4">
-        <h1 className="text-2xl font-bold text-center mb-6">Welcome to Ad Creator</h1>
+        <h1 className="text-2xl font-bold text-center mb-6">Welcome Back</h1>
         <Auth
           supabaseClient={supabase}
           appearance={{
