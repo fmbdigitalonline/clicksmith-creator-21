@@ -1,34 +1,10 @@
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { useToast } from "@/hooks/use-toast";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Rocket } from "lucide-react";
-
-const projectSchema = z.object({
-  title: z.string().min(1, "Title is required"),
-  description: z.string().optional(),
-  tags: z.string().optional(),
-});
+import { useToast } from "@/hooks/use-toast";
+import ProjectForm, { ProjectFormData } from "./ProjectForm";
+import ProjectActions from "./ProjectActions";
 
 interface CreateProjectDialogProps {
   open: boolean;
@@ -57,16 +33,7 @@ const CreateProjectDialog = ({
     getCurrentUser();
   }, []);
 
-  const form = useForm<z.infer<typeof projectSchema>>({
-    resolver: zodResolver(projectSchema),
-    defaultValues: {
-      title: "",
-      description: "",
-      tags: "",
-    },
-  });
-
-  const onSubmit = async (values: z.infer<typeof projectSchema>) => {
+  const handleSubmit = async (values: ProjectFormData) => {
     if (!userId) {
       toast({
         title: "Error creating project",
@@ -104,7 +71,6 @@ const CreateProjectDialog = ({
         title: "Project created",
         description: "Your project has been created successfully.",
       });
-      form.reset();
       onSuccess();
     }
   };
@@ -120,14 +86,12 @@ const CreateProjectDialog = ({
     onOpenChange(false);
   };
 
-  // Reset states when dialog is closed
   useEffect(() => {
     if (!open) {
       setShowActions(false);
       setCreatedProjectId(null);
-      form.reset();
     }
-  }, [open, form]);
+  }, [open]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -138,91 +102,15 @@ const CreateProjectDialog = ({
           </DialogTitle>
         </DialogHeader>
         {!showActions ? (
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="title"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Title</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Project title" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Description</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Project description"
-                        {...field}
-                        rows={3}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="tags"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Tags</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="Enter tags separated by commas"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <div className="flex justify-end space-x-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => onOpenChange(false)}
-                >
-                  Cancel
-                </Button>
-                <Button type="submit">Create Project</Button>
-              </div>
-            </form>
-          </Form>
+          <ProjectForm
+            onSubmit={handleSubmit}
+            onCancel={() => onOpenChange(false)}
+          />
         ) : (
-          <div className="space-y-4">
-            <p className="text-center text-muted-foreground">
-              What would you like to do next?
-            </p>
-            <div className="flex flex-col gap-3">
-              <Button
-                onClick={handleGenerateAds}
-                className="w-full"
-                size="lg"
-              >
-                <Rocket className="mr-2" />
-                Generate Ads
-              </Button>
-              <Button
-                onClick={handleBackToProjects}
-                variant="outline"
-                className="w-full"
-                size="lg"
-              >
-                <ArrowLeft className="mr-2" />
-                Back to Projects
-              </Button>
-            </div>
-          </div>
+          <ProjectActions
+            onGenerateAds={handleGenerateAds}
+            onBackToProjects={handleBackToProjects}
+          />
         )}
       </DialogContent>
     </Dialog>
