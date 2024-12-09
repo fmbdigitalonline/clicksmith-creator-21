@@ -105,7 +105,7 @@ const Login = () => {
               }
             }
           }}
-          onAuthError={handleError}
+          onError={handleError}
         />
       </Card>
     </div>
