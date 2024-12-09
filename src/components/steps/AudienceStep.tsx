@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -55,7 +55,7 @@ const AudienceStep = ({
   };
 
   // Generate audiences when component mounts if none exist
-  useState(() => {
+  useEffect(() => {
     if (audiences.length === 0) {
       generateAudiences();
     }

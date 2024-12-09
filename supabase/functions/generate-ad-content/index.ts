@@ -9,7 +9,6 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -23,19 +22,21 @@ serve(async (req) => {
       Business Description: ${businessIdea.description}
       Value Proposition: ${businessIdea.valueProposition}
 
-      For each audience, provide:
-      1. A name (short and descriptive)
-      2. A detailed description (2-3 sentences)
-      3. 3 specific pain points
-      4. Demographics information (age, income, location, etc.)
+      Return ONLY a valid JSON array with exactly 3 audience objects, each containing these fields:
+      - name (string): short, descriptive name
+      - description (string): 2-3 sentences about the audience
+      - painPoints (array of 3 strings): specific problems they face
+      - demographics (string): age, income, location info
 
-      Format the response as a JSON array with objects containing:
-      {
-        "name": "string",
-        "description": "string",
-        "painPoints": ["string", "string", "string"],
-        "demographics": "string"
-      }`;
+      Format the response as a valid JSON array like this:
+      [
+        {
+          "name": "Example Name",
+          "description": "Example description",
+          "painPoints": ["Point 1", "Point 2", "Point 3"],
+          "demographics": "Example demographics"
+        }
+      ]`;
     } else {
       // Original hook generation logic
       prompt = `Create 3 compelling Facebook ad hooks for the following business:
@@ -66,7 +67,7 @@ serve(async (req) => {
           { 
             role: 'system', 
             content: type === 'audience' 
-              ? 'You are an expert market research analyst who identifies and describes target audiences.'
+              ? 'You are a JSON-focused market research analyst. Only return valid JSON arrays containing audience objects.'
               : 'You are an expert Facebook ad copywriter who creates compelling, conversion-focused ad hooks.'
           },
           { role: 'user', content: prompt }
@@ -87,13 +88,20 @@ serve(async (req) => {
 
     if (type === 'audience') {
       try {
-        const audiences = JSON.parse(generatedContent);
+        // Try to parse the content, removing any extra whitespace or newlines
+        const cleanContent = generatedContent.trim();
+        const audiences = JSON.parse(cleanContent);
+        
+        if (!Array.isArray(audiences) || audiences.length !== 3) {
+          throw new Error('Invalid audience format: expected array of 3 items');
+        }
+
         return new Response(
           JSON.stringify({ audiences }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       } catch (error) {
-        console.error('Error parsing audiences:', error);
+        console.error('Error parsing audiences:', error, 'Raw content:', generatedContent);
         throw new Error('Failed to parse generated audiences');
       }
     }
