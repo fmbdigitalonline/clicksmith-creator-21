@@ -22,11 +22,26 @@ serve(async (req) => {
       Business Description: ${businessIdea.description}
       Value Proposition: ${businessIdea.valueProposition}
 
+      For each audience, provide:
+      1. Basic audience information
+      2. Ideal Customer Profile (ICP)
+      3. Core Message
+      4. Positioning Strategy
+      5. Marketing Angle
+      6. Messaging Approach
+      7. Core Marketing Channels
+
       Return ONLY a valid JSON array with exactly 3 audience objects, each containing these fields:
       - name (string): short, descriptive name
       - description (string): 2-3 sentences about the audience
       - painPoints (array of 3 strings): specific problems they face
       - demographics (string): age, income, location info
+      - icp (string): detailed ideal customer profile
+      - coreMessage (string): primary message that resonates with this audience
+      - positioning (string): how the product should be positioned
+      - marketingAngle (string): unique angle to approach this audience
+      - messagingApproach (string): tone and style of communication
+      - marketingChannels (array of strings): 2-3 most effective channels
 
       Format the response as a valid JSON array like this:
       [
@@ -34,7 +49,13 @@ serve(async (req) => {
           "name": "Example Name",
           "description": "Example description",
           "painPoints": ["Point 1", "Point 2", "Point 3"],
-          "demographics": "Example demographics"
+          "demographics": "Example demographics",
+          "icp": "Example ICP description",
+          "coreMessage": "Example core message",
+          "positioning": "Example positioning",
+          "marketingAngle": "Example marketing angle",
+          "messagingApproach": "Example messaging approach",
+          "marketingChannels": ["Channel 1", "Channel 2"]
         }
       ]`;
     } else {
@@ -88,7 +109,6 @@ serve(async (req) => {
 
     if (type === 'audience') {
       try {
-        // Try to parse the content, removing any extra whitespace or newlines
         const cleanContent = generatedContent.trim();
         const audiences = JSON.parse(cleanContent);
         

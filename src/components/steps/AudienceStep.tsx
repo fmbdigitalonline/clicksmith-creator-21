@@ -54,7 +54,6 @@ const AudienceStep = ({
     }
   };
 
-  // Generate audiences when component mounts if none exist
   useEffect(() => {
     if (audiences.length === 0) {
       generateAudiences();
@@ -89,7 +88,7 @@ const AudienceStep = ({
         </p>
       </div>
 
-      <div className="grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 md:gap-6 grid-cols-1 lg:grid-cols-3">
         {audiences.map((audience) => (
           <Card
             key={audience.name}
@@ -104,16 +103,50 @@ const AudienceStep = ({
               </div>
               <CardDescription>{audience.demographics}</CardDescription>
             </CardHeader>
-            <CardContent>
-              <p className="text-sm mb-4">{audience.description}</p>
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-facebook">Pain Points:</p>
-                <ul className="text-sm list-disc list-inside text-gray-600 space-y-1">
-                  {audience.painPoints.map((point) => (
-                    <li key={point}>{point}</li>
-                  ))}
-                </ul>
+            <CardContent className="space-y-4">
+              <div>
+                <p className="text-sm mb-2">{audience.description}</p>
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-facebook">Pain Points:</p>
+                  <ul className="text-sm list-disc list-inside text-gray-600 space-y-1">
+                    {audience.painPoints.map((point) => (
+                      <li key={point}>{point}</li>
+                    ))}
+                  </ul>
+                </div>
               </div>
+
+              <div className="space-y-3 pt-2 border-t">
+                <div>
+                  <p className="text-sm font-medium text-facebook">Ideal Customer Profile:</p>
+                  <p className="text-sm text-gray-600">{audience.icp}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-facebook">Core Message:</p>
+                  <p className="text-sm text-gray-600">{audience.coreMessage}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-facebook">Positioning:</p>
+                  <p className="text-sm text-gray-600">{audience.positioning}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-facebook">Marketing Angle:</p>
+                  <p className="text-sm text-gray-600">{audience.marketingAngle}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-facebook">Messaging Approach:</p>
+                  <p className="text-sm text-gray-600">{audience.messagingApproach}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-facebook">Marketing Channels:</p>
+                  <ul className="text-sm list-disc list-inside text-gray-600">
+                    {audience.marketingChannels.map((channel) => (
+                      <li key={channel}>{channel}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+
               <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
                 <ArrowRight className="w-5 h-5 text-facebook" />
               </div>
