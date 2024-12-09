@@ -44,7 +44,21 @@ const Login = () => {
       }
     });
 
-    return () => subscription.unsubscribe();
+    // Listen for auth errors
+    const authListener = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'USER_DELETED') {
+        toast({
+          variant: "destructive",
+          title: "Account Deleted",
+          description: "Your account has been successfully deleted.",
+        });
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+      authListener.data.subscription.unsubscribe();
+    };
   }, [navigate, toast]);
 
   return (
@@ -67,26 +81,32 @@ const Login = () => {
           }}
           providers={['google', 'github']}
           redirectTo={`${window.location.origin}/`}
-          onError={(error) => {
-            let errorMessage = "Something went wrong. Please try again.";
-            
-            if (error.message.includes("Email not confirmed")) {
-              errorMessage = "Please check your email and click the confirmation link to verify your account.";
-            } else if (error.message.includes("Invalid login credentials")) {
-              errorMessage = "The email or password you entered is incorrect. Please try again.";
-            } else if (error.message.includes("Email already registered")) {
-              errorMessage = "An account with this email already exists. Please try signing in instead.";
-            } else if (error.message.includes("Password")) {
-              errorMessage = "Your password must be at least 6 characters long.";
-            } else if (error.message.includes("rate limit")) {
-              errorMessage = "Too many attempts. Please wait a moment before trying again.";
-            }
+          view={(view) => {
+            // Handle different auth views and potential errors
+            if (view === 'sign_in' || view === 'sign_up') {
+              supabase.auth.onError((error) => {
+                let errorMessage = "Something went wrong. Please try again.";
+                
+                if (error.message.includes("Email not confirmed")) {
+                  errorMessage = "Please check your email and click the confirmation link to verify your account.";
+                } else if (error.message.includes("Invalid login credentials")) {
+                  errorMessage = "The email or password you entered is incorrect. Please try again.";
+                } else if (error.message.includes("Email already registered")) {
+                  errorMessage = "An account with this email already exists. Please try signing in instead.";
+                } else if (error.message.includes("Password")) {
+                  errorMessage = "Your password must be at least 6 characters long.";
+                } else if (error.message.includes("rate limit")) {
+                  errorMessage = "Too many attempts. Please wait a moment before trying again.";
+                }
 
-            toast({
-              variant: "destructive",
-              title: "Unable to Sign In",
-              description: errorMessage,
-            });
+                toast({
+                  variant: "destructive",
+                  title: "Unable to Sign In",
+                  description: errorMessage,
+                });
+              });
+            }
+            return view;
           }}
           localization={{
             variables: {
