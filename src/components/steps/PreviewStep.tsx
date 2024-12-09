@@ -72,12 +72,12 @@ const PreviewStep = ({
 
       <div className="flex justify-between">
         <Button
-          variant="ghost"
+          variant="outline"
           onClick={onBack}
           className="space-x-2"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>Back</span>
+          <span>Previous Step</span>
         </Button>
         <Button
           className="bg-facebook hover:bg-facebook/90 space-x-2"

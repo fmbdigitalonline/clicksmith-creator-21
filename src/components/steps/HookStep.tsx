@@ -7,7 +7,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { TargetAudience, Hook } from "../AdWizard";
-import { MessageCircle, ArrowLeft, ChevronRight } from "lucide-react";
+import { MessageCircle, ArrowLeft, ArrowRight } from "lucide-react";
 
 const mockHooks: Hook[] = [
   {
@@ -65,7 +65,7 @@ const HookStep = ({
                 {hook.description}
               </CardDescription>
               <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
-                <ChevronRight className="w-5 h-5 text-facebook" />
+                <ArrowRight className="w-5 h-5 text-facebook" />
               </div>
             </CardContent>
           </Card>
@@ -74,12 +74,12 @@ const HookStep = ({
 
       <div className="flex justify-between">
         <Button
-          variant="ghost"
+          variant="outline"
           onClick={onBack}
           className="space-x-2"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>Back</span>
+          <span>Previous Step</span>
         </Button>
       </div>
     </div>

@@ -7,7 +7,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { BusinessIdea, TargetAudience } from "../AdWizard";
-import { Users, ArrowLeft, ChevronRight } from "lucide-react";
+import { Users, ArrowLeft, ArrowRight } from "lucide-react";
 
 const mockAudiences: TargetAudience[] = [
   {
@@ -91,7 +91,7 @@ const AudienceStep = ({
                 </ul>
               </div>
               <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                <ChevronRight className="w-5 h-5 text-facebook" />
+                <ArrowRight className="w-5 h-5 text-facebook" />
               </div>
             </CardContent>
           </Card>
@@ -100,12 +100,12 @@ const AudienceStep = ({
 
       <div className="flex justify-between">
         <Button
-          variant="ghost"
+          variant="outline"
           onClick={onBack}
           className="space-x-2"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>Back</span>
+          <span>Previous Step</span>
         </Button>
       </div>
     </div>

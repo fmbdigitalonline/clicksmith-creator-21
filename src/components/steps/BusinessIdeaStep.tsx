@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { BusinessIdea } from "../AdWizard";
 import { useToast } from "@/components/ui/use-toast";
-import { Wand2, Lightbulb } from "lucide-react";
+import { Wand2, Lightbulb, ArrowRight } from "lucide-react";
 import { Card } from "@/components/ui/card";
 
 const BusinessIdeaStep = ({
@@ -72,8 +72,8 @@ const BusinessIdeaStep = ({
             className="bg-facebook hover:bg-facebook/90 text-white"
             size="lg"
           >
-            <Wand2 className="mr-2 h-5 w-5" />
             Next Step
+            <ArrowRight className="ml-2 h-5 w-5" />
           </Button>
         </div>
       </div>
