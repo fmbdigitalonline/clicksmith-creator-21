@@ -5,12 +5,13 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import Navigation from "./components/Navigation";
 import { AppSidebar } from "./components/AppSidebar";
 import BreadcrumbNav from "./components/Breadcrumb";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
+import AdWizard from "./components/AdWizard";
 
 const queryClient = new QueryClient();
 
@@ -64,6 +65,14 @@ const App = () => (
                         element={
                           <ProtectedRoute>
                             <Index />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/ad-wizard/:projectId"
+                        element={
+                          <ProtectedRoute>
+                            <AdWizard />
                           </ProtectedRoute>
                         }
                       />
