@@ -12,6 +12,10 @@ import BreadcrumbNav from "./components/Breadcrumb";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import AdWizard from "./components/AdWizard";
+import Projects from "./pages/Projects";
+import Documents from "./pages/Documents";
+import Notes from "./pages/Notes";
+import Settings from "./pages/Settings";
 
 const queryClient = new QueryClient();
 
@@ -77,12 +81,11 @@ const App = () => (
                             </ProtectedRoute>
                           }
                         />
-                        {/* Placeholder routes for navigation - implement these pages when needed */}
                         <Route
                           path="/projects"
                           element={
                             <ProtectedRoute>
-                              <Navigate to="/" replace />
+                              <Projects />
                             </ProtectedRoute>
                           }
                         />
@@ -90,7 +93,7 @@ const App = () => (
                           path="/documents"
                           element={
                             <ProtectedRoute>
-                              <Navigate to="/" replace />
+                              <Documents />
                             </ProtectedRoute>
                           }
                         />
@@ -98,7 +101,7 @@ const App = () => (
                           path="/notes"
                           element={
                             <ProtectedRoute>
-                              <Navigate to="/" replace />
+                              <Notes />
                             </ProtectedRoute>
                           }
                         />
@@ -106,7 +109,7 @@ const App = () => (
                           path="/settings"
                           element={
                             <ProtectedRoute>
-                              <Navigate to="/" replace />
+                              <Settings />
                             </ProtectedRoute>
                           }
                         />
