@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -7,7 +8,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { TargetAudience, Hook } from "../AdWizard";
-import { MessageCircle, ArrowLeft, ArrowRight } from "lucide-react";
+import { MessageCircle, ArrowLeft, ArrowRight, Wand2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/components/ui/use-toast";
 
 const mockHooks: Hook[] = [
   {
@@ -35,7 +38,43 @@ const HookStep = ({
   onNext: (hook: Hook) => void;
   onBack: () => void;
 }) => {
-  const hooks = mockHooks;
+  const [hooks, setHooks] = useState(mockHooks);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const { toast } = useToast();
+
+  const generateHooks = async () => {
+    setIsGenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-ad-content', {
+        body: { businessIdea: audience, audience: audience }
+      });
+
+      if (error) throw error;
+
+      // Parse the generated content and create hook objects
+      const generatedHooks = data.content.split('\n')
+        .filter((line: string) => line.trim().length > 0)
+        .map((hook: string) => ({
+          text: hook.replace(/^\d+\.\s*/, '').trim(),
+          description: "AI-generated hook based on your business and audience",
+        }));
+
+      setHooks(generatedHooks);
+      toast({
+        title: "Hooks Generated!",
+        description: "New ad hooks have been generated based on your business and audience.",
+      });
+    } catch (error) {
+      console.error('Error generating hooks:', error);
+      toast({
+        title: "Generation Failed",
+        description: "Failed to generate hooks. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   return (
     <div className="space-y-8">
@@ -47,6 +86,14 @@ const HookStep = ({
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Previous Step</span>
+        </Button>
+        <Button
+          onClick={generateHooks}
+          disabled={isGenerating}
+          className="bg-facebook hover:bg-facebook/90 text-white"
+        >
+          <Wand2 className="w-4 h-4 mr-2" />
+          {isGenerating ? "Generating..." : "Generate New Hooks"}
         </Button>
       </div>
 
