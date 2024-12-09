@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { BusinessIdea } from "../AdWizard";
 import { useToast } from "@/components/ui/use-toast";
+import { Wand2 } from "lucide-react";
 
 const BusinessIdeaStep = ({
   onNext,
@@ -48,7 +49,11 @@ const BusinessIdeaStep = ({
         />
       </div>
       <div className="flex justify-end">
-        <Button onClick={handleSubmit} className="bg-facebook hover:bg-facebook/90">
+        <Button 
+          onClick={handleSubmit} 
+          className="bg-facebook hover:bg-facebook/90"
+        >
+          <Wand2 className="mr-2 h-4 w-4" />
           Next Step
         </Button>
       </div>
