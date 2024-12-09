@@ -33,7 +33,7 @@ const WizardProgress = ({
 }: WizardProgressProps) => {
   return (
     <div className="relative">
-      <div className="absolute top-1/2 left-0 w-full h-0.5 bg-gray-200 -translate-y-1/2" />
+      <div className="absolute top-1/2 left-0 w-full h-0.5 bg-gray-100 -translate-y-1/2" />
       <div className="relative flex justify-between items-center">
         {steps.map((step, index) => {
           const stepNumber = index + 1;
@@ -52,24 +52,25 @@ const WizardProgress = ({
             >
               <div
                 className={cn(
-                  "w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 z-10",
-                  isCompleted ? "bg-facebook text-white" :
-                  isActive ? "bg-facebook text-white" :
+                  "w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 z-10",
+                  isCompleted ? "bg-facebook text-white shadow-lg" :
+                  isActive ? "bg-facebook text-white ring-4 ring-facebook/20" :
                   "bg-white border-2 border-gray-200 text-gray-400",
-                  isClickable && "group-hover:border-facebook group-hover:text-facebook"
+                  isClickable && !isActive && !isCompleted && "group-hover:border-facebook/50 group-hover:text-facebook"
                 )}
               >
                 {isCompleted ? (
-                  <CheckIcon className="w-5 h-5" />
+                  <CheckIcon className="w-6 h-6" />
                 ) : (
                   stepNumber
                 )}
               </div>
-              <div className="mt-3 text-center">
+              <div className="mt-4 text-center">
                 <p
                   className={cn(
-                    "font-medium mb-1",
-                    (isActive || isCompleted) ? "text-facebook" : "text-gray-500"
+                    "font-medium mb-1 transition-colors duration-200",
+                    (isActive || isCompleted) ? "text-facebook" : "text-gray-500",
+                    isClickable && !isActive && !isCompleted && "group-hover:text-facebook"
                   )}
                 >
                   {step.title}

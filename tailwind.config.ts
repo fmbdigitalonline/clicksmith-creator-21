@@ -18,19 +18,8 @@ export default {
       },
     },
     extend: {
-      fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
-      },
-      fontSize: {
-        'h1': ['32px', { lineHeight: '1.4', letterSpacing: '-0.02em', fontWeight: '700' }],
-        'h2': ['24px', { lineHeight: '1.4', letterSpacing: '-0.01em', fontWeight: '600' }],
-        'h3': ['20px', { lineHeight: '1.5', letterSpacing: '-0.01em', fontWeight: '600' }],
-        'h4': ['16px', { lineHeight: '1.5', fontWeight: '600' }],
-        'body': ['16px', { lineHeight: '1.6', fontWeight: '400' }],
-        'body-sm': ['14px', { lineHeight: '1.6', fontWeight: '400' }],
-        'ui': ['14px', { lineHeight: '1.4', fontWeight: '500' }],
-      },
       colors: {
+        facebook: "#1877F2",
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
@@ -64,6 +53,18 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+      },
+      fontFamily: {
+        sans: ['Inter', 'system-ui', 'sans-serif'],
+      },
+      fontSize: {
+        'h1': ['32px', { lineHeight: '1.4', letterSpacing: '-0.02em', fontWeight: '700' }],
+        'h2': ['24px', { lineHeight: '1.4', letterSpacing: '-0.01em', fontWeight: '600' }],
+        'h3': ['20px', { lineHeight: '1.5', letterSpacing: '-0.01em', fontWeight: '600' }],
+        'h4': ['16px', { lineHeight: '1.5', fontWeight: '600' }],
+        'body': ['16px', { lineHeight: '1.6', fontWeight: '400' }],
+        'body-sm': ['14px', { lineHeight: '1.6', fontWeight: '400' }],
+        'ui': ['14px', { lineHeight: '1.4', fontWeight: '500' }],
       },
       borderRadius: {
         lg: "var(--radius)",

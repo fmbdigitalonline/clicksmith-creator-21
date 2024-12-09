@@ -60,72 +60,74 @@ const AdWizard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
+    <div className="min-h-screen bg-gradient-radial from-white via-gray-50 to-gray-100">
+      <div className="container mx-auto px-4 py-8 max-w-5xl">
         <div className="flex items-center mb-8">
           <Button
             variant="ghost"
-            className="mr-4"
+            size="sm"
+            className="mr-4 text-gray-600 hover:text-gray-900"
             onClick={() => navigate("/projects")}
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Projects
           </Button>
-          <h1 className="text-3xl font-bold text-facebook">
+          <h1 className="text-h1 bg-gradient-to-r from-facebook to-blue-600 bg-clip-text text-transparent">
             Facebook Ad Generator
           </h1>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm p-6 mb-8">
-          <h2 className="text-xl font-semibold mb-4">How it works</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="flex items-start space-x-3">
-              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-facebook text-white flex items-center justify-center font-semibold">
+        <Card className="bg-gradient-glass backdrop-blur-sm shadow-lg p-6 mb-8 border-0">
+          <h2 className="text-h2 mb-6 text-gray-800">How it works</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="flex items-start space-x-4">
+              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-facebook/10 text-facebook flex items-center justify-center font-semibold">
                 1
               </div>
               <div>
-                <h3 className="font-medium mb-1">Describe Your Business</h3>
-                <p className="text-gray-600 text-sm">
-                  Tell us about your product or service
+                <h3 className="text-h3 text-gray-800 mb-2">Describe Your Business</h3>
+                <p className="text-body-sm text-gray-600">
+                  Tell us about your product or service and what makes it unique
                 </p>
               </div>
             </div>
-            <div className="flex items-start space-x-3">
-              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-facebook text-white flex items-center justify-center font-semibold">
+            <div className="flex items-start space-x-4">
+              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-facebook/10 text-facebook flex items-center justify-center font-semibold">
                 2
               </div>
               <div>
-                <h3 className="font-medium mb-1">Choose Your Audience</h3>
-                <p className="text-gray-600 text-sm">
-                  Select who you want to reach
+                <h3 className="text-h3 text-gray-800 mb-2">Choose Your Audience</h3>
+                <p className="text-body-sm text-gray-600">
+                  Define who you want to reach with your ads
                 </p>
               </div>
             </div>
-            <div className="flex items-start space-x-3">
-              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-facebook text-white flex items-center justify-center font-semibold">
+            <div className="flex items-start space-x-4">
+              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-facebook/10 text-facebook flex items-center justify-center font-semibold">
                 3
               </div>
               <div>
-                <h3 className="font-medium mb-1">Create Your Hook</h3>
-                <p className="text-gray-600 text-sm">
-                  Pick a compelling message
+                <h3 className="text-h3 text-gray-800 mb-2">Create Your Hook</h3>
+                <p className="text-body-sm text-gray-600">
+                  Craft a compelling message that resonates
                 </p>
               </div>
             </div>
           </div>
+        </Card>
+
+        <div className="mb-8">
+          <WizardProgress
+            currentStep={currentStep}
+            onStepClick={handleStepClick}
+            canNavigateToStep={canNavigateToStep}
+          />
         </div>
 
-        <WizardProgress
-          currentStep={currentStep}
-          onStepClick={handleStepClick}
-          canNavigateToStep={canNavigateToStep}
-        />
-
-        <Card className="mt-8 p-8 shadow-lg animate-fadeIn">
+        <Card className="bg-white shadow-lg border-0 p-8 animate-fadeIn">
           {currentStep === 1 && (
             <BusinessIdeaStep
               onNext={(idea) => {
-                console.log("Business idea submitted:", idea);
                 setBusinessIdea(idea);
                 nextStep();
               }}
@@ -135,7 +137,6 @@ const AdWizard = () => {
             <AudienceStep
               businessIdea={businessIdea}
               onNext={(audience) => {
-                console.log("Audience selected:", audience);
                 setSelectedAudience(audience);
                 nextStep();
               }}
@@ -146,7 +147,6 @@ const AdWizard = () => {
             <HookStep
               audience={selectedAudience}
               onNext={(hook) => {
-                console.log("Hook selected:", hook);
                 setSelectedHook(hook);
                 nextStep();
               }}
