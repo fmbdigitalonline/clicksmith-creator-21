@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -7,43 +8,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { BusinessIdea, TargetAudience } from "../AdWizard";
-import { Users, ArrowLeft, ArrowRight } from "lucide-react";
-
-const mockAudiences: TargetAudience[] = [
-  {
-    name: "Health-Conscious Professionals",
-    description:
-      "Busy professionals aged 25-40 who prioritize their health but struggle with maintaining healthy habits.",
-    painPoints: [
-      "Limited time for health tracking",
-      "Stress from work-life balance",
-      "Irregular eating habits",
-    ],
-    demographics: "Urban professionals, income $60k+, tech-savvy",
-  },
-  {
-    name: "Fitness Enthusiasts",
-    description:
-      "Active individuals who are passionate about fitness and looking to optimize their performance.",
-    painPoints: [
-      "Need for precise tracking",
-      "Performance optimization",
-      "Recovery monitoring",
-    ],
-    demographics: "Age 20-35, gym-goers, health-conscious",
-  },
-  {
-    name: "Health-Focused Parents",
-    description:
-      "Parents who want to ensure their family maintains healthy habits and stays hydrated.",
-    painPoints: [
-      "Family health management",
-      "Children's hydration",
-      "Busy schedule",
-    ],
-    demographics: "Parents aged 30-45, family-oriented, suburban",
-  },
-];
+import { Users, ArrowLeft, ArrowRight, Wand2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/components/ui/use-toast";
 
 const AudienceStep = ({
   businessIdea,
@@ -54,7 +21,45 @@ const AudienceStep = ({
   onNext: (audience: TargetAudience) => void;
   onBack: () => void;
 }) => {
-  const audiences = mockAudiences;
+  const [audiences, setAudiences] = useState<TargetAudience[]>([]);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const { toast } = useToast();
+
+  const generateAudiences = async () => {
+    setIsGenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-ad-content', {
+        body: { 
+          type: 'audience',
+          businessIdea: businessIdea
+        }
+      });
+
+      if (error) throw error;
+
+      setAudiences(data.audiences);
+      toast({
+        title: "Audiences Generated!",
+        description: "New target audiences have been generated based on your business idea.",
+      });
+    } catch (error) {
+      console.error('Error generating audiences:', error);
+      toast({
+        title: "Generation Failed",
+        description: "Failed to generate audiences. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  // Generate audiences when component mounts if none exist
+  useState(() => {
+    if (audiences.length === 0) {
+      generateAudiences();
+    }
+  }, []);
 
   return (
     <div className="space-y-8">
@@ -67,6 +72,14 @@ const AudienceStep = ({
           <ArrowLeft className="w-4 h-4" />
           <span>Previous Step</span>
         </Button>
+        <Button
+          onClick={generateAudiences}
+          disabled={isGenerating}
+          className="bg-facebook hover:bg-facebook/90 text-white"
+        >
+          <Wand2 className="w-4 h-4 mr-2" />
+          {isGenerating ? "Generating..." : "Generate New Audiences"}
+        </Button>
       </div>
 
       <div>
@@ -75,6 +88,14 @@ const AudienceStep = ({
           Select the audience that best matches your ideal customers.
         </p>
       </div>
+
+      {audiences.length === 0 && !isGenerating && (
+        <Card className="p-6 bg-gradient-to-br from-facebook/5 to-transparent">
+          <p className="text-center text-gray-600">
+            Click "Generate New Audiences" to get AI-generated audience suggestions based on your business idea.
+          </p>
+        </Card>
+      )}
 
       <div className="grid gap-6 md:grid-cols-3">
         {audiences.map((audience) => (

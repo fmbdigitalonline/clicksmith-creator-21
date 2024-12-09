@@ -9,27 +9,48 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { businessIdea, audience } = await req.json();
+    const { type, businessIdea } = await req.json();
 
-    const prompt = `Create 3 compelling Facebook ad hooks for the following business:
-    Business Description: ${businessIdea.description}
-    Value Proposition: ${businessIdea.valueProposition}
-    Target Audience: ${audience.description}
-    Pain Points: ${audience.painPoints.join(', ')}
-    
-    Each hook should be:
-    1. Attention-grabbing
-    2. Emotionally resonant with the target audience
-    3. Focused on benefits and solutions
-    4. Under 100 characters
-    5. Include a clear call to action
-    
-    Format each hook on a new line, numbered 1-3.`;
+    let prompt = '';
+    if (type === 'audience') {
+      prompt = `Generate 3 distinct target audiences for the following business:
+      Business Description: ${businessIdea.description}
+      Value Proposition: ${businessIdea.valueProposition}
+
+      For each audience, provide:
+      1. A name (short and descriptive)
+      2. A detailed description (2-3 sentences)
+      3. 3 specific pain points
+      4. Demographics information (age, income, location, etc.)
+
+      Format the response as a JSON array with objects containing:
+      {
+        "name": "string",
+        "description": "string",
+        "painPoints": ["string", "string", "string"],
+        "demographics": "string"
+      }`;
+    } else {
+      // Original hook generation logic
+      prompt = `Create 3 compelling Facebook ad hooks for the following business:
+      Business Description: ${businessIdea.description}
+      Value Proposition: ${businessIdea.valueProposition}
+      
+      Each hook should be:
+      1. Attention-grabbing
+      2. Emotionally resonant with the target audience
+      3. Focused on benefits and solutions
+      4. Under 100 characters
+      5. Include a clear call to action
+      
+      Format each hook on a new line, numbered 1-3.`;
+    }
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -42,12 +63,14 @@ serve(async (req) => {
         messages: [
           { 
             role: 'system', 
-            content: 'You are an expert Facebook ad copywriter who creates compelling, conversion-focused ad hooks.'
+            content: type === 'audience' 
+              ? 'You are an expert market research analyst who identifies and describes target audiences.'
+              : 'You are an expert Facebook ad copywriter who creates compelling, conversion-focused ad hooks.'
           },
           { role: 'user', content: prompt }
         ],
         temperature: 0.7,
-        max_tokens: 200,
+        max_tokens: 500,
       }),
     });
 
@@ -59,25 +82,30 @@ serve(async (req) => {
 
     const generatedContent = data.choices[0].message.content;
 
+    if (type === 'audience') {
+      try {
+        const audiences = JSON.parse(generatedContent);
+        return new Response(
+          JSON.stringify({ audiences }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      } catch (error) {
+        console.error('Error parsing audiences:', error);
+        throw new Error('Failed to parse generated audiences');
+      }
+    }
+
     return new Response(
       JSON.stringify({ content: generatedContent }),
-      { 
-        headers: { 
-          ...corsHeaders,
-          'Content-Type': 'application/json'
-        } 
-      }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error('Error:', error);
+    console.error('Error in generate-ad-content function:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
       { 
         status: 500,
-        headers: { 
-          ...corsHeaders,
-          'Content-Type': 'application/json'
-        }
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     );
   }
