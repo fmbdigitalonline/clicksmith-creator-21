@@ -52,6 +52,8 @@ serve(async (req) => {
       Format each hook on a new line, numbered 1-3.`;
     }
 
+    console.log('Sending request to OpenAI with prompt:', prompt);
+
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -75,6 +77,7 @@ serve(async (req) => {
     });
 
     const data = await response.json();
+    console.log('OpenAI response:', data);
     
     if (data.error) {
       throw new Error(data.error.message);
