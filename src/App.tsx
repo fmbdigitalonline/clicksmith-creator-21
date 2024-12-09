@@ -51,14 +51,14 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
-            <div className="flex flex-col flex-1">
+            <div className="flex flex-col w-full">
               <Navigation />
-              <div className="flex flex-1 pt-16"> {/* Added pt-16 to account for the fixed header height */}
+              <div className="flex h-[calc(100vh-4rem)] mt-16">
                 <AppSidebar />
-                <div className="flex-1 p-6">
-                  <div className="glass p-6 min-h-[calc(100vh-7rem)]">
+                <main className="flex-1 p-6 overflow-auto">
+                  <div className="glass p-6 min-h-[calc(100vh-8rem)]">
                     <BreadcrumbNav />
-                    <main className="mt-6">
+                    <div className="mt-6">
                       <Routes>
                         <Route path="/login" element={<Login />} />
                         <Route
@@ -78,9 +78,9 @@ const App = () => (
                           }
                         />
                       </Routes>
-                    </main>
+                    </div>
                   </div>
-                </div>
+                </main>
               </div>
             </div>
           </BrowserRouter>
