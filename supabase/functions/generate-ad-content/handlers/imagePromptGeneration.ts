@@ -1,5 +1,5 @@
 export async function handleImagePromptGeneration(businessIdea: any, targetAudience: any, campaign: any, openAIApiKey: string) {
-  const prompt = `Generate 10 different image prompts for an ad campaign based on the following information:
+  const prompt = `Generate 6 different image prompts for Facebook ads based on the following information:
 
 Business:
 ${JSON.stringify(businessIdea, null, 2)}
@@ -11,35 +11,16 @@ Campaign:
 ${JSON.stringify(campaign, null, 2)}
 
 Create prompts for both:
-1. Positive scenes where the prospect can see themselves succeeding
-2. Problem-related scenes the prospect can relate to
+1. Positive scenes showing the solution
+2. Problem-related scenes the audience can relate to
 
 Style Instructions:
-- Mix of ultra-realistic images and digital illustration (semi-realistic/comic style)
-- Main subject should be positioned on a side, not center
-- Clean, uncluttered composition with space for text
-- Vivid colors
+- Ultra-realistic, professional photography style
+- Clean composition with space for text
+- Vibrant, engaging colors
 - Maximum 2 people per image
-- Include "--ar 1:1" at the end of each prompt
-
-Return ONLY a valid JSON object with these fields:
-{
-  "formats": [
-    {
-      "format": "Facebook Feed",
-      "dimensions": {
-        "width": 1080,
-        "height": 1080
-      },
-      "imagePrompts": [
-        {
-          "name": "string (descriptive name)",
-          "prompt": "string (complete image prompt)"
-        }
-      ]
-    }
-  ]
-}`;
+- Emotional impact
+- High-end commercial look`;
 
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -48,16 +29,15 @@ Return ONLY a valid JSON object with these fields:
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'gpt-4',
+      model: 'gpt-4o',
       messages: [
         { 
           role: 'system', 
-          content: 'You are an expert at creating detailed, effective prompts for AI image generation that align with marketing campaigns.'
+          content: 'You are an expert at creating detailed prompts for AI image generation that align with marketing campaigns.'
         },
         { role: 'user', content: prompt }
       ],
       temperature: 0.7,
-      max_tokens: 2000,
     }),
   });
 
@@ -66,6 +46,36 @@ Return ONLY a valid JSON object with these fields:
     throw new Error(data.error.message);
   }
 
-  const formats = JSON.parse(data.choices[0].message.content.trim());
-  return formats;
+  const prompts = data.choices[0].message.content.split('\n').filter(Boolean);
+  
+  // Generate images using DALL-E
+  const images = await Promise.all(
+    prompts.slice(0, 6).map(async (prompt) => {
+      const imageResponse = await fetch('https://api.openai.com/v1/images/generations', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openAIApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: "dall-e-3",
+          prompt: prompt,
+          n: 1,
+          size: "1024x1024",
+        }),
+      });
+
+      const imageData = await imageResponse.json();
+      if (imageData.error) {
+        throw new Error(imageData.error.message);
+      }
+
+      return {
+        url: imageData.data[0].url,
+        prompt: prompt,
+      };
+    })
+  );
+
+  return { images };
 }

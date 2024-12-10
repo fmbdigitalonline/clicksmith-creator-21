@@ -6,6 +6,7 @@ import AudienceStep from "./steps/AudienceStep";
 import AudienceAnalysisStep from "./steps/AudienceAnalysisStep";
 import CampaignStep from "./steps/CampaignStep";
 import AdFormatStep from "./steps/AdFormatStep";
+import AdSizeStep from "./steps/AdSizeStep";
 import HookStep from "./steps/HookStep";
 import CompleteStep from "./steps/CompleteStep";
 import WizardHeader from "./wizard/WizardHeader";
@@ -16,6 +17,7 @@ import {
   MarketingCampaign,
   AdFormat,
   AdHook,
+  AdImage,
   Step,
 } from "@/types/adWizard";
 
@@ -25,6 +27,7 @@ const AdWizard = () => {
   const [targetAudience, setTargetAudience] = useState<TargetAudience | null>(null);
   const [audienceAnalysis, setAudienceAnalysis] = useState<AudienceAnalysis | null>(null);
   const [campaign, setCampaign] = useState<MarketingCampaign | null>(null);
+  const [adImages, setAdImages] = useState<AdImage[]>([]);
   const [adFormat, setAdFormat] = useState<AdFormat | null>(null);
   const [adHook, setAdHook] = useState<AdHook | null>(null);
   const [generatedHooks, setGeneratedHooks] = useState<AdHook[]>([]);
@@ -51,9 +54,13 @@ const AdWizard = () => {
     setCurrentStep("format");
   };
 
-  const handleFormatSelect = (format: AdFormat, hooks: AdHook[]) => {
+  const handleImagesGenerated = (images: AdImage[]) => {
+    setAdImages(images);
+    setCurrentStep("size");
+  };
+
+  const handleFormatSelect = (format: AdFormat) => {
     setAdFormat(format);
-    setGeneratedHooks(hooks);
     setCurrentStep("hook");
   };
 
@@ -80,8 +87,11 @@ const AdWizard = () => {
       case "format":
         setCurrentStep("campaign");
         break;
-      case "hook":
+      case "size":
         setCurrentStep("format");
+        break;
+      case "hook":
+        setCurrentStep("size");
         break;
       case "complete":
         setCurrentStep("hook");
@@ -96,6 +106,7 @@ const AdWizard = () => {
     setTargetAudience(null);
     setAudienceAnalysis(null);
     setCampaign(null);
+    setAdImages([]);
     setAdFormat(null);
     setAdHook(null);
     setGeneratedHooks([]);
@@ -145,6 +156,13 @@ const AdWizard = () => {
           businessIdea={businessIdea}
           targetAudience={targetAudience}
           campaign={campaign}
+          onNext={handleImagesGenerated}
+          onBack={handleBack}
+        />
+      )}
+
+      {currentStep === "size" && businessIdea && targetAudience && adImages.length > 0 && (
+        <AdSizeStep
           onNext={handleFormatSelect}
           onBack={handleBack}
         />
@@ -165,6 +183,8 @@ const AdWizard = () => {
           businessIdea={businessIdea}
           targetAudience={targetAudience}
           adHook={adHook}
+          adImages={adImages}
+          adFormat={adFormat}
           onStartOver={handleStartOver}
           onBack={handleBack}
         />

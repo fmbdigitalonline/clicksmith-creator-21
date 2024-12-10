@@ -36,10 +36,6 @@ export type AdFormat = {
     width: number;
     height: number;
   };
-  imagePrompts: Array<{
-    name: string;
-    prompt: string;
-  }>;
 };
 
 export type MarketingCampaign = {
@@ -51,4 +47,9 @@ export type MarketingCampaign = {
   headlines: string[];
 };
 
-export type Step = "idea" | "audience" | "analysis" | "campaign" | "format" | "hook" | "complete";
+export type AdImage = {
+  url: string;
+  prompt: string;
+};
+
+export type Step = "idea" | "audience" | "analysis" | "campaign" | "format" | "size" | "hook" | "complete";
