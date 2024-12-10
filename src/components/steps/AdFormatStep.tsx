@@ -5,6 +5,13 @@ import { BusinessIdea, TargetAudience, MarketingCampaign, AdImage } from "@/type
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
 
 interface AdFormatStepProps {
   businessIdea: BusinessIdea;
@@ -40,11 +47,10 @@ const AdFormatStep = ({
       if (error) throw error;
 
       setImages(data.images);
-      onNext(data.images);
       
       toast({
         title: "Images Generated!",
-        description: "AI images have been generated successfully.",
+        description: "AI images have been generated successfully. Review them and click 'Continue' when ready.",
       });
     } catch (error) {
       console.error('Error generating images:', error);
@@ -64,6 +70,10 @@ const AdFormatStep = ({
     }
   }, []);
 
+  const handleContinue = () => {
+    onNext(images);
+  };
+
   return (
     <div className="space-y-6 md:space-y-8">
       <div className="flex flex-col md:flex-row justify-between gap-4 mb-4">
@@ -75,12 +85,20 @@ const AdFormatStep = ({
           <ArrowLeft className="w-4 h-4" />
           <span>Previous Step</span>
         </Button>
+        {!isGenerating && images.length > 0 && (
+          <Button 
+            onClick={handleContinue}
+            className="space-x-2 w-full md:w-auto bg-facebook hover:bg-facebook/90"
+          >
+            <span>Continue</span>
+          </Button>
+        )}
       </div>
 
       <div>
-        <h2 className="text-xl md:text-2xl font-semibold mb-2">Generating Ad Images</h2>
-        <p className="text-gray-600">
-          We're using AI to create compelling visuals for your campaign.
+        <h2 className="text-xl md:text-2xl font-semibold mb-2">Generated Ad Images</h2>
+        <p className="text-gray-600 mb-6">
+          Review the AI-generated images for your campaign. You can use these in different ad formats.
         </p>
       </div>
 
@@ -91,13 +109,34 @@ const AdFormatStep = ({
             <p className="text-gray-600">Generating AI images for your campaign...</p>
           </div>
         </Card>
-      ) : (
-        <Card>
-          <CardContent className="p-6">
-            <p className="text-gray-600">Images generated successfully! Proceeding to next step...</p>
-          </CardContent>
+      ) : images.length > 0 ? (
+        <Card className="p-6">
+          <Carousel className="w-full max-w-3xl mx-auto">
+            <CarouselContent>
+              {images.map((image, index) => (
+                <CarouselItem key={index}>
+                  <div className="p-1">
+                    <Card>
+                      <CardContent className="flex aspect-square items-center justify-center p-6">
+                        <img
+                          src={image.url}
+                          alt={`Generated ad image ${index + 1}`}
+                          className="rounded-lg object-cover w-full h-full"
+                        />
+                      </CardContent>
+                    </Card>
+                    <p className="text-center text-sm text-gray-500 mt-2">
+                      Image {index + 1} of {images.length}
+                    </p>
+                  </div>
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+            <CarouselPrevious />
+            <CarouselNext />
+          </Carousel>
         </Card>
-      )}
+      ) : null}
     </div>
   );
 };
