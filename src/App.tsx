@@ -16,8 +16,6 @@ import AdWizard from "./components/AdWizard";
 import Projects from "./pages/Projects";
 import Settings from "./pages/Settings";
 
-const queryClient = new QueryClient();
-
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
 
@@ -46,69 +44,73 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
-const App = () => (
-  <CookiesProvider>
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <SidebarProvider>
-          <div className="min-h-screen flex w-full bg-gradient-radial from-background via-background to-secondary/20">
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <div className="flex flex-col w-full">
-                <Navigation />
-                <div className="flex flex-col md:flex-row h-[calc(100vh-4rem)] mt-16">
-                  <AppSidebar />
-                  <main className="flex-1 p-3 md:p-6 overflow-auto">
-                    <div className="glass p-4 md:p-6 min-h-[calc(100vh-8rem)]" role="main" aria-label="Main content">
-                      <BreadcrumbNav />
-                      <div className="mt-4 md:mt-6">
-                        <Routes>
-                          <Route path="/login" element={<Login />} />
-                          <Route
-                            path="/"
-                            element={
-                              <ProtectedRoute>
-                                <Index />
-                              </ProtectedRoute>
-                            }
-                          />
-                          <Route
-                            path="/ad-wizard/:projectId"
-                            element={
-                              <ProtectedRoute>
-                                <AdWizard />
-                              </ProtectedRoute>
-                            }
-                          />
-                          <Route
-                            path="/projects"
-                            element={
-                              <ProtectedRoute>
-                                <Projects />
-                              </ProtectedRoute>
-                            }
-                          />
-                          <Route
-                            path="/settings"
-                            element={
-                              <ProtectedRoute>
-                                <Settings />
-                              </ProtectedRoute>
-                            }
-                          />
-                        </Routes>
+const App = () => {
+  const [queryClient] = useState(() => new QueryClient());
+
+  return (
+    <CookiesProvider>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <SidebarProvider>
+            <div className="min-h-screen flex w-full bg-gradient-radial from-background via-background to-secondary/20">
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                <div className="flex flex-col w-full">
+                  <Navigation />
+                  <div className="flex flex-col md:flex-row h-[calc(100vh-4rem)] mt-16">
+                    <AppSidebar />
+                    <main className="flex-1 p-3 md:p-6 overflow-auto">
+                      <div className="glass p-4 md:p-6 min-h-[calc(100vh-8rem)]" role="main" aria-label="Main content">
+                        <BreadcrumbNav />
+                        <div className="mt-4 md:mt-6">
+                          <Routes>
+                            <Route path="/login" element={<Login />} />
+                            <Route
+                              path="/"
+                              element={
+                                <ProtectedRoute>
+                                  <Index />
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path="/ad-wizard/:projectId"
+                              element={
+                                <ProtectedRoute>
+                                  <AdWizard />
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path="/projects"
+                              element={
+                                <ProtectedRoute>
+                                  <Projects />
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path="/settings"
+                              element={
+                                <ProtectedRoute>
+                                  <Settings />
+                                </ProtectedRoute>
+                              }
+                            />
+                          </Routes>
+                        </div>
                       </div>
-                    </div>
-                  </main>
+                    </main>
+                  </div>
                 </div>
-              </div>
-            </BrowserRouter>
-          </div>
-        </SidebarProvider>
-      </TooltipProvider>
-    </QueryClientProvider>
-  </CookiesProvider>
-);
+              </BrowserRouter>
+            </div>
+          </SidebarProvider>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </CookiesProvider>
+  );
+};
 
 export default App;
