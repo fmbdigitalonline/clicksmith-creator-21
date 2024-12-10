@@ -12,35 +12,20 @@ import { MessageCircle, ArrowLeft, ArrowRight, Wand2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 
-const mockHooks: AdHook[] = [
-  {
-    text: "Transform Your Health Journey in Just 5 Minutes a Day!",
-    description:
-      "Emphasizes quick and easy implementation while promising significant results.",
-  },
-  {
-    text: "The Smart Way to Stay Hydrated - Your Personal Health Assistant",
-    description:
-      "Positions the product as an intelligent solution to a common problem.",
-  },
-  {
-    text: "Never Miss Your Health Goals Again - Start Your Journey Today!",
-    description: "Creates urgency and addresses the fear of failing health goals.",
-  },
-];
-
 const HookStep = ({
   businessIdea,
   targetAudience,
+  initialHooks,
   onNext,
   onBack,
 }: {
   businessIdea: BusinessIdea;
   targetAudience: TargetAudience;
+  initialHooks: AdHook[];
   onNext: (hook: AdHook) => void;
   onBack: () => void;
 }) => {
-  const [hooks, setHooks] = useState(mockHooks);
+  const [hooks, setHooks] = useState(initialHooks);
   const [isGenerating, setIsGenerating] = useState(false);
   const { toast } = useToast();
 

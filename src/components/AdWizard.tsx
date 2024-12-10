@@ -46,6 +46,7 @@ const AdWizard = () => {
   const [targetAudience, setTargetAudience] = useState<TargetAudience | null>(null);
   const [adFormat, setAdFormat] = useState<AdFormat | null>(null);
   const [adHook, setAdHook] = useState<AdHook | null>(null);
+  const [generatedHooks, setGeneratedHooks] = useState<AdHook[]>([]);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -59,8 +60,9 @@ const AdWizard = () => {
     setCurrentStep("format");
   };
 
-  const handleFormatSelect = (format: AdFormat) => {
+  const handleFormatSelect = (format: AdFormat, hooks: AdHook[]) => {
     setAdFormat(format);
+    setGeneratedHooks(hooks);
     setCurrentStep("hook");
   };
 
@@ -97,6 +99,7 @@ const AdWizard = () => {
     setTargetAudience(null);
     setAdFormat(null);
     setAdHook(null);
+    setGeneratedHooks([]);
     setCurrentStep("idea");
   };
 
@@ -136,6 +139,7 @@ const AdWizard = () => {
         <HookStep
           businessIdea={businessIdea}
           targetAudience={targetAudience}
+          initialHooks={generatedHooks}
           onNext={handleHookSelect}
           onBack={handleBack}
         />

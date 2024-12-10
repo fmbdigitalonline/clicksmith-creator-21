@@ -11,6 +11,7 @@ import {
 import { useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { AdHook } from "../AdWizard";
 
 export type AdFormat = {
   format: string;
@@ -31,7 +32,7 @@ const AD_FORMATS = [
 ];
 
 interface AdFormatStepProps {
-  onNext: (format: AdFormat) => void;
+  onNext: (format: AdFormat, hooks: AdHook[]) => void;
   onBack: () => void;
   businessIdea?: any;
   targetAudience?: any;
@@ -61,7 +62,6 @@ const AdFormatStep = ({ onNext, onBack, businessIdea, targetAudience }: AdFormat
 
     if (format) {
       try {
-        // First, save the format
         const formatData = {
           format: format.value,
           dimensions: {
@@ -70,8 +70,8 @@ const AdFormatStep = ({ onNext, onBack, businessIdea, targetAudience }: AdFormat
           },
         };
 
-        // Generate hooks in the background
-        await supabase.functions.invoke('generate-ad-content', {
+        // Generate hooks
+        const { data, error } = await supabase.functions.invoke('generate-ad-content', {
           body: { 
             businessIdea: businessIdea,
             audience: targetAudience,
@@ -79,8 +79,18 @@ const AdFormatStep = ({ onNext, onBack, businessIdea, targetAudience }: AdFormat
           }
         });
 
-        // Proceed to next step
-        onNext(formatData);
+        if (error) throw error;
+
+        // Parse the generated content and create hook objects
+        const generatedHooks = data.content.split('\n')
+          .filter((line: string) => line.trim().length > 0)
+          .map((hook: string) => ({
+            text: hook.replace(/^\d+\.\s*/, '').trim(),
+            description: "AI-generated hook based on your business and audience",
+          }));
+
+        // Proceed to next step with both format and hooks
+        onNext(formatData, generatedHooks);
       } catch (error) {
         console.error('Error generating hooks:', error);
         toast({
