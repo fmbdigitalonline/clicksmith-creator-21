@@ -11,8 +11,16 @@ const steps = [
     description: "Choose who to reach"
   },
   {
-    title: "Hook Selection",
+    title: "Audience Analysis",
+    description: "Deep audience insights"
+  },
+  {
+    title: "Marketing Hooks",
     description: "Create your message"
+  },
+  {
+    title: "Ad Format",
+    description: "Choose size & platform"
   },
   {
     title: "Ad Preview",

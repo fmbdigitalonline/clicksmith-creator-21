@@ -1,20 +1,17 @@
 import { useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
-import { useNavigate } from "react-router-dom";
 import IdeaStep from "./steps/BusinessIdeaStep";
 import AudienceStep from "./steps/AudienceStep";
 import AudienceAnalysisStep from "./steps/AudienceAnalysisStep";
-import CampaignStep from "./steps/CampaignStep";
-import AdFormatStep from "./steps/AdFormatStep";
-import AdSizeStep from "./steps/AdSizeStep";
 import HookStep from "./steps/HookStep";
+import AdSizeStep from "./steps/AdSizeStep";
 import CompleteStep from "./steps/CompleteStep";
 import WizardHeader from "./wizard/WizardHeader";
+import WizardProgress from "./WizardProgress";
 import {
   BusinessIdea,
   TargetAudience,
   AudienceAnalysis,
-  MarketingCampaign,
   AdFormat,
   AdHook,
   AdImage,
@@ -22,95 +19,68 @@ import {
 } from "@/types/adWizard";
 
 const AdWizard = () => {
-  const [currentStep, setCurrentStep] = useState<Step>("idea");
+  const [currentStep, setCurrentStep] = useState<number>(1);
   const [businessIdea, setBusinessIdea] = useState<BusinessIdea | null>(null);
   const [targetAudience, setTargetAudience] = useState<TargetAudience | null>(null);
   const [audienceAnalysis, setAudienceAnalysis] = useState<AudienceAnalysis | null>(null);
-  const [campaign, setCampaign] = useState<MarketingCampaign | null>(null);
-  const [adImages, setAdImages] = useState<AdImage[]>([]);
   const [adFormat, setAdFormat] = useState<AdFormat | null>(null);
   const [adHook, setAdHook] = useState<AdHook | null>(null);
-  const [generatedHooks, setGeneratedHooks] = useState<AdHook[]>([]);
+  const [adImages, setAdImages] = useState<AdImage[]>([]);
   const { toast } = useToast();
-  const navigate = useNavigate();
 
   const handleIdeaSubmit = (idea: BusinessIdea) => {
     setBusinessIdea(idea);
-    setCurrentStep("audience");
+    setCurrentStep(2);
   };
 
   const handleAudienceSelect = (audience: TargetAudience) => {
     setTargetAudience(audience);
-    setCurrentStep("analysis");
+    setCurrentStep(3);
   };
 
   const handleAnalysisComplete = (analysis: AudienceAnalysis) => {
     setAudienceAnalysis(analysis);
-    setCurrentStep("campaign");
-  };
-
-  const handleCampaignComplete = (campaignData: MarketingCampaign) => {
-    setCampaign(campaignData);
-    setCurrentStep("format");
-  };
-
-  const handleImagesGenerated = (images: AdImage[]) => {
-    setAdImages(images);
-    setCurrentStep("size");
-  };
-
-  const handleFormatSelect = (format: AdFormat) => {
-    setAdFormat(format);
-    setCurrentStep("hook");
+    setCurrentStep(4);
   };
 
   const handleHookSelect = (hook: AdHook) => {
     setAdHook(hook);
-    setCurrentStep("complete");
-    toast({
-      title: "Ad Creation Complete!",
-      description: "Your Facebook ad has been created successfully.",
-    });
+    setCurrentStep(5);
+  };
+
+  const handleFormatSelect = (format: AdFormat) => {
+    setAdFormat(format);
+    setCurrentStep(6);
+  };
+
+  const handleImagesGenerated = (images: AdImage[]) => {
+    setAdImages(images);
   };
 
   const handleBack = () => {
-    switch (currentStep) {
-      case "audience":
-        setCurrentStep("idea");
-        break;
-      case "analysis":
-        setCurrentStep("audience");
-        break;
-      case "campaign":
-        setCurrentStep("analysis");
-        break;
-      case "format":
-        setCurrentStep("campaign");
-        break;
-      case "size":
-        setCurrentStep("format");
-        break;
-      case "hook":
-        setCurrentStep("size");
-        break;
-      case "complete":
-        setCurrentStep("hook");
-        break;
-      default:
-        break;
-    }
+    setCurrentStep(prev => Math.max(1, prev - 1));
   };
 
   const handleStartOver = () => {
     setBusinessIdea(null);
     setTargetAudience(null);
     setAudienceAnalysis(null);
-    setCampaign(null);
-    setAdImages([]);
     setAdFormat(null);
     setAdHook(null);
-    setGeneratedHooks([]);
-    setCurrentStep("idea");
+    setAdImages([]);
+    setCurrentStep(1);
+  };
+
+  const canNavigateToStep = (step: number) => {
+    switch (step) {
+      case 1: return true;
+      case 2: return !!businessIdea;
+      case 3: return !!businessIdea && !!targetAudience;
+      case 4: return !!businessIdea && !!targetAudience && !!audienceAnalysis;
+      case 5: return !!businessIdea && !!targetAudience && !!audienceAnalysis && !!adHook;
+      case 6: return !!businessIdea && !!targetAudience && !!audienceAnalysis && !!adHook && !!adFormat;
+      default: return false;
+    }
   };
 
   return (
@@ -120,11 +90,19 @@ const AdWizard = () => {
         description="Create compelling Facebook ads in minutes with our AI-powered wizard."
       />
 
-      {currentStep === "idea" && (
+      <div className="mb-8">
+        <WizardProgress
+          currentStep={currentStep}
+          onStepClick={setCurrentStep}
+          canNavigateToStep={canNavigateToStep}
+        />
+      </div>
+
+      {currentStep === 1 && (
         <IdeaStep onNext={handleIdeaSubmit} />
       )}
 
-      {currentStep === "audience" && businessIdea && (
+      {currentStep === 2 && businessIdea && (
         <AudienceStep
           businessIdea={businessIdea}
           onNext={handleAudienceSelect}
@@ -132,7 +110,7 @@ const AdWizard = () => {
         />
       )}
 
-      {currentStep === "analysis" && businessIdea && targetAudience && (
+      {currentStep === 3 && businessIdea && targetAudience && (
         <AudienceAnalysisStep
           businessIdea={businessIdea}
           targetAudience={targetAudience}
@@ -141,50 +119,30 @@ const AdWizard = () => {
         />
       )}
 
-      {currentStep === "campaign" && businessIdea && targetAudience && audienceAnalysis && (
-        <CampaignStep
+      {currentStep === 4 && businessIdea && targetAudience && audienceAnalysis && (
+        <HookStep
           businessIdea={businessIdea}
           targetAudience={targetAudience}
-          audienceAnalysis={audienceAnalysis}
-          onNext={handleCampaignComplete}
+          onNext={handleHookSelect}
           onBack={handleBack}
         />
       )}
 
-      {currentStep === "format" && businessIdea && targetAudience && campaign && (
-        <AdFormatStep
-          businessIdea={businessIdea}
-          targetAudience={targetAudience}
-          campaign={campaign}
-          onNext={handleImagesGenerated}
-          onBack={handleBack}
-        />
-      )}
-
-      {currentStep === "size" && businessIdea && targetAudience && adImages.length > 0 && (
+      {currentStep === 5 && businessIdea && targetAudience && audienceAnalysis && adHook && (
         <AdSizeStep
           onNext={handleFormatSelect}
           onBack={handleBack}
         />
       )}
 
-      {currentStep === "hook" && businessIdea && targetAudience && adFormat && (
-        <HookStep
-          businessIdea={businessIdea}
-          targetAudience={targetAudience}
-          initialHooks={generatedHooks}
-          onNext={handleHookSelect}
-          onBack={handleBack}
-        />
-      )}
-
-      {currentStep === "complete" && businessIdea && targetAudience && adFormat && adHook && (
+      {currentStep === 6 && businessIdea && targetAudience && adFormat && adHook && (
         <CompleteStep
           businessIdea={businessIdea}
           targetAudience={targetAudience}
           adHook={adHook}
           adImages={adImages}
           adFormat={adFormat}
+          onImagesGenerated={handleImagesGenerated}
           onStartOver={handleStartOver}
           onBack={handleBack}
         />
