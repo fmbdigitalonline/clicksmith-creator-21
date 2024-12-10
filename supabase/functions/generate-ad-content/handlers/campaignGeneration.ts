@@ -11,10 +11,15 @@ export async function handleCampaignGeneration(businessIdea: any, targetAudience
   Audience Analysis:
   ${JSON.stringify(audienceAnalysis, null, 2)}
 
-  Generate:
+  Create a complete marketing campaign with:
   1. 10 Marketing angles with associated hooks
   2. 3 Ad copies (different versions: story-based, short impact, AIDA framework)
   3. 3 Headlines (6 words max)
+
+  Each marketing angle should be a brief, clear sentence explaining the approach.
+  Each hook should be short, concise, and impactful, directly addressing the target audience.
+  Ad copies should be general about the product benefits and work with any hook.
+  Headlines should be 6 words maximum, highlighting solutions/benefits.
 
   Return ONLY a valid JSON object with these fields:
   {
@@ -24,7 +29,12 @@ export async function handleCampaignGeneration(businessIdea: any, targetAudience
         "hook": "string (associated hook)"
       }
     ],
-    "adCopies": ["string", "string", "string"],
+    "adCopies": [
+      {
+        "type": "string (story|short|aida)",
+        "content": "string"
+      }
+    ],
     "headlines": ["string", "string", "string"]
   }`;
 
@@ -35,11 +45,11 @@ export async function handleCampaignGeneration(businessIdea: any, targetAudience
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'gpt-4',
+      model: 'gpt-4o',
       messages: [
         { 
           role: 'system', 
-          content: 'You are an expert marketing copywriter who creates compelling campaigns based on deep audience analysis.'
+          content: 'You are an expert marketing copywriter who creates compelling campaigns based on deep audience analysis. Focus on clear, impactful messaging that resonates with the target audience.'
         },
         { role: 'user', content: prompt }
       ],
@@ -53,6 +63,11 @@ export async function handleCampaignGeneration(businessIdea: any, targetAudience
     throw new Error(data.error.message);
   }
 
-  const campaign = JSON.parse(data.choices[0].message.content.trim());
-  return { campaign };
+  try {
+    const campaign = JSON.parse(data.choices[0].message.content.trim());
+    return { campaign };
+  } catch (error) {
+    console.error('Error parsing campaign:', error);
+    throw new Error('Failed to parse campaign data');
+  }
 }

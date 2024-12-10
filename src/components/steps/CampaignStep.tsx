@@ -142,8 +142,8 @@ const CampaignStep = ({
               <div className="space-y-4">
                 {campaign.adCopies.map((copy, index) => (
                   <div key={index} className="p-4 bg-gray-50 rounded-lg">
-                    <p className="font-medium text-facebook mb-2">Version {index + 1}</p>
-                    <p className="text-gray-700 whitespace-pre-line">{copy}</p>
+                    <p className="font-medium text-facebook mb-2">{copy.type === 'story' ? 'Story-based Version' : copy.type === 'short' ? 'Short Impact Version' : 'AIDA Framework Version'}</p>
+                    <p className="text-gray-700 whitespace-pre-line">{copy.content}</p>
                   </div>
                 ))}
               </div>
@@ -153,7 +153,7 @@ const CampaignStep = ({
           <Card>
             <CardHeader>
               <CardTitle>Headlines</CardTitle>
-              <CardDescription>Attention-grabbing headlines for your ads</CardDescription>
+              <CardDescription>Attention-grabbing headlines for your ads (6 words max)</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">

@@ -45,7 +45,10 @@ export type MarketingCampaign = {
     description: string;
     hook: string;
   }>;
-  adCopies: string[];
+  adCopies: Array<{
+    type: 'story' | 'short' | 'aida';
+    content: string;
+  }>;
   headlines: string[];
 };
 
