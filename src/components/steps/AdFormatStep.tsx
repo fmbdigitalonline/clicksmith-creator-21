@@ -22,13 +22,69 @@ export type AdFormat = {
 };
 
 const AD_FORMATS = [
-  { label: "Image Ad (Landscape)", value: "image_landscape", width: 1200, height: 628 },
-  { label: "Video Ad (Landscape)", value: "video_landscape", width: 1200, height: 628 },
-  { label: "Video Ad (Square)", value: "video_square", width: 1080, height: 1080 },
-  { label: "Video Ad (Vertical)", value: "video_vertical", width: 1080, height: 1920 },
-  { label: "Carousel Ad", value: "carousel", width: 1080, height: 1080 },
-  { label: "Stories Ad", value: "stories", width: 1080, height: 1920 },
-  { label: "Reels Ad", value: "reels", width: 1080, height: 1920 },
+  { 
+    label: "Facebook News Feed Image", 
+    value: "fb_feed_image", 
+    width: 1080, 
+    height: 1080,
+    description: "Single image ad optimized for Facebook News Feed (1:1 to 1.91:1 ratio supported)"
+  },
+  { 
+    label: "Instagram Feed Image", 
+    value: "ig_feed_image", 
+    width: 1080, 
+    height: 1080,
+    description: "Square image perfect for Instagram Feed (1:1 ratio)"
+  },
+  { 
+    label: "Facebook News Feed Video", 
+    value: "fb_feed_video", 
+    width: 1080, 
+    height: 1080,
+    description: "Video ad for Facebook Feed (1:1 ratio, 4:5 for mobile)"
+  },
+  { 
+    label: "Instagram Feed Video", 
+    value: "ig_feed_video", 
+    width: 1080, 
+    height: 1350,
+    description: "Video optimized for Instagram Feed (4:5 ratio)"
+  },
+  { 
+    label: "Facebook Video Feeds", 
+    value: "fb_video_feeds", 
+    width: 1080, 
+    height: 1350,
+    description: "Video for Facebook Feeds (4:5 ratio recommended)"
+  },
+  { 
+    label: "Meta Stories", 
+    value: "meta_stories", 
+    width: 1080, 
+    height: 1920,
+    description: "Full-screen vertical format for Stories (9:16 ratio)"
+  },
+  { 
+    label: "Meta Reels", 
+    value: "meta_reels", 
+    width: 1080, 
+    height: 1920,
+    description: "Vertical video format for Reels (9:16 ratio)"
+  },
+  { 
+    label: "Messenger Sponsored", 
+    value: "messenger_sponsored", 
+    width: 1200, 
+    height: 628,
+    description: "Sponsored messages for Messenger (1.91:1 ratio)"
+  },
+  { 
+    label: "Messenger Inbox", 
+    value: "messenger_inbox", 
+    width: 1080, 
+    height: 1080,
+    description: "Square format for Messenger inbox ads (1:1 ratio)"
+  }
 ];
 
 interface AdFormatStepProps {
@@ -124,16 +180,22 @@ const AdFormatStep = ({ onNext, onBack, businessIdea, targetAudience }: AdFormat
               <SelectContent>
                 {AD_FORMATS.map((format) => (
                   <SelectItem key={format.value} value={format.value}>
-                    {format.label} ({format.width}x{format.height})
+                    {format.label}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
 
-          <div className="text-sm text-gray-500">
-            <p>Your ad will be optimized for the selected format and dimensions.</p>
-          </div>
+          {selectedFormat && (
+            <div className="text-sm text-gray-500">
+              <p>{AD_FORMATS.find(f => f.value === selectedFormat)?.description}</p>
+              <p className="mt-2">
+                Dimensions: {AD_FORMATS.find(f => f.value === selectedFormat)?.width}x
+                {AD_FORMATS.find(f => f.value === selectedFormat)?.height}px
+              </p>
+            </div>
+          )}
         </div>
       </Card>
 
