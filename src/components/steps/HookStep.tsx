@@ -42,7 +42,7 @@ const HookStep = ({
 
       if (error) throw error;
 
-      setHooks(data.hooks);
+      setHooks(data.hooks || []);
       toast({
         title: "Hooks Generated!",
         description: "New ad hooks have been generated based on your business and audience.",
@@ -54,16 +54,24 @@ const HookStep = ({
         description: "Failed to generate hooks. Please try again.",
         variant: "destructive",
       });
+      setHooks([]);
     } finally {
       setIsGenerating(false);
     }
   };
 
   useEffect(() => {
-    if (hooks.length === 0) {
-      generateHooks();
-    }
+    generateHooks();
   }, []);
+
+  if (isGenerating && hooks.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12">
+        <Loader2 className="w-8 h-8 animate-spin text-facebook mb-4" />
+        <p className="text-gray-600">Generating marketing hooks...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 md:space-y-8">
@@ -98,29 +106,35 @@ const HookStep = ({
       </div>
 
       <div className="space-y-4">
-        {hooks.map((hook) => (
-          <Card
-            key={hook.text}
-            className="relative group cursor-pointer hover:shadow-lg transition-all duration-200 border-2 hover:border-facebook"
-            onClick={() => onNext(hook)}
-          >
-            <div className="absolute inset-0 bg-gradient-to-br from-facebook/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-xl" />
-            <CardHeader>
-              <div className="flex items-center space-x-3">
-                <MessageCircle className="w-5 h-5 text-facebook" />
-                <CardTitle className="text-lg">{hook.text}</CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <CardDescription className="text-base">
-                {hook.description}
-              </CardDescription>
-              <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
-                <ArrowRight className="w-5 h-5 text-facebook" />
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+        {hooks && hooks.length > 0 ? (
+          hooks.map((hook) => (
+            <Card
+              key={hook.text}
+              className="relative group cursor-pointer hover:shadow-lg transition-all duration-200 border-2 hover:border-facebook"
+              onClick={() => onNext(hook)}
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-facebook/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-xl" />
+              <CardHeader>
+                <div className="flex items-center space-x-3">
+                  <MessageCircle className="w-5 h-5 text-facebook" />
+                  <CardTitle className="text-lg">{hook.text}</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <CardDescription className="text-base">
+                  {hook.description}
+                </CardDescription>
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <ArrowRight className="w-5 h-5 text-facebook" />
+                </div>
+              </CardContent>
+            </Card>
+          ))
+        ) : (
+          <div className="text-center py-8">
+            <p className="text-gray-500">No hooks available. Try generating new ones.</p>
+          </div>
+        )}
       </div>
     </div>
   );
