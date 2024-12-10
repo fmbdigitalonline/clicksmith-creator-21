@@ -42,11 +42,15 @@ const HookStep = ({
 
       if (error) throw error;
 
-      setHooks(data.hooks || []);
-      toast({
-        title: "Hooks Generated!",
-        description: "New ad hooks have been generated based on your business and audience.",
-      });
+      if (data?.hooks && Array.isArray(data.hooks)) {
+        setHooks(data.hooks);
+        toast({
+          title: "Hooks Generated!",
+          description: "New ad hooks have been generated based on your business and audience.",
+        });
+      } else {
+        throw new Error('Invalid hooks data received');
+      }
     } catch (error) {
       console.error('Error generating hooks:', error);
       toast({

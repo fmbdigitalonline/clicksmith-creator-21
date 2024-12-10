@@ -2,15 +2,14 @@ export async function handleHookGeneration(businessIdea: any, targetAudience: an
   const prompt = `Create 3 compelling Facebook ad hooks for the following business:
   Business Description: ${businessIdea.description}
   Value Proposition: ${businessIdea.valueProposition}
+  Target Audience: ${targetAudience.name}
+  Audience Demographics: ${targetAudience.demographics}
   
-  Each hook should be:
-  1. Attention-grabbing
-  2. Emotionally resonant with the target audience
-  3. Focused on benefits and solutions
-  4. Under 100 characters
-  5. Include a clear call to action
+  For each hook, provide:
+  1. A short, attention-grabbing headline (under 100 characters)
+  2. A brief description explaining the hook's appeal
   
-  Format each hook on a new line, numbered 1-3.`;
+  Format the response as a JSON array with objects containing 'text' and 'description' fields.`;
 
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -19,11 +18,11 @@ export async function handleHookGeneration(businessIdea: any, targetAudience: an
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'gpt-4',
+      model: 'gpt-4o-mini',
       messages: [
         { 
           role: 'system', 
-          content: 'You are an expert Facebook ad copywriter who creates compelling, conversion-focused ad hooks.'
+          content: 'You are an expert Facebook ad copywriter. Return only valid JSON arrays containing hook objects with text and description fields.'
         },
         { role: 'user', content: prompt }
       ],
@@ -37,5 +36,20 @@ export async function handleHookGeneration(businessIdea: any, targetAudience: an
     throw new Error(data.error.message);
   }
 
-  return { content: data.choices[0].message.content };
+  try {
+    const content = data.choices[0].message.content;
+    const hooks = JSON.parse(content);
+    return { hooks };
+  } catch (error) {
+    console.error('Error parsing hooks:', error);
+    // Fallback to a simpler format if JSON parsing fails
+    const text = data.choices[0].message.content;
+    const defaultHooks = [
+      {
+        text: "Transform Your Business Today",
+        description: "A compelling call to action for immediate transformation"
+      }
+    ];
+    return { hooks: defaultHooks };
+  }
 }
