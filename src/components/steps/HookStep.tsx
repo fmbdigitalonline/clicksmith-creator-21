@@ -103,9 +103,9 @@ const HookStep = ({
       </div>
 
       <div>
-        <h2 className="text-xl md:text-2xl font-semibold mb-2">Choose Your Ad Hook</h2>
+        <h2 className="text-xl md:text-2xl font-semibold mb-2">Marketing Angles & Hooks</h2>
         <p className="text-gray-600">
-          Select a compelling message that will grab your audience's attention.
+          Select a compelling angle and hook combination that will grab your audience's attention.
         </p>
       </div>
 
@@ -121,13 +121,17 @@ const HookStep = ({
               <CardHeader>
                 <div className="flex items-center space-x-3">
                   <MessageCircle className="w-5 h-5 text-facebook" />
-                  <CardTitle className="text-lg">{hook.text}</CardTitle>
+                  <CardTitle className="text-lg">Marketing Angle {index + 1}</CardTitle>
                 </div>
-              </CardHeader>
-              <CardContent>
-                <CardDescription className="text-base">
+                <CardDescription className="text-base font-medium text-gray-700">
                   {hook.description}
                 </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <p className="text-facebook font-semibold mb-1">Hook:</p>
+                  <p className="text-gray-800">{hook.text}</p>
+                </div>
                 <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
                   <ArrowRight className="w-5 h-5 text-facebook" />
                 </div>
