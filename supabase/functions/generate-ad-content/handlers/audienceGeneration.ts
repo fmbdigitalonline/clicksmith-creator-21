@@ -22,33 +22,64 @@ export async function handleAudienceGeneration(businessIdea: any, openAIApiKey: 
   - positioning (string): how the product should be positioned
   - marketingAngle (string): unique angle to approach this audience
   - messagingApproach (string): tone and style of communication
-  - marketingChannels (array of strings): 2-3 most effective channels`;
+  - marketingChannels (array of strings): 2-3 most effective channels
 
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${openAIApiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      messages: [
-        { 
-          role: 'system', 
-          content: 'You are a JSON-focused market research analyst. Only return valid JSON arrays containing audience objects.'
-        },
-        { role: 'user', content: prompt }
-      ],
-      temperature: 0.7,
-      max_tokens: 2000,
-    }),
-  });
+  Format the response as a valid JSON array without any markdown formatting or code blocks.`;
 
-  const data = await response.json();
-  if (data.error) {
-    throw new Error(data.error.message);
+  try {
+    console.log('Sending request to OpenAI with prompt:', prompt);
+    
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openAIApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          { 
+            role: 'system', 
+            content: 'You are a JSON-focused market research analyst. Return only valid JSON arrays containing audience objects, without any markdown formatting or code blocks.'
+          },
+          { role: 'user', content: prompt }
+        ],
+        temperature: 0.7,
+        max_tokens: 2000,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error('OpenAI API error:', errorData);
+      throw new Error(`OpenAI API error: ${errorData}`);
+    }
+
+    const data = await response.json();
+    console.log('OpenAI response:', data);
+
+    if (!data.choices?.[0]?.message?.content) {
+      throw new Error('Invalid response format from OpenAI');
+    }
+
+    const content = data.choices[0].message.content.trim();
+    console.log('Raw content from OpenAI:', content);
+
+    try {
+      const audiences = JSON.parse(content);
+      console.log('Parsed audiences:', audiences);
+
+      if (!Array.isArray(audiences) || audiences.length !== 3) {
+        throw new Error('Invalid audience data format');
+      }
+
+      return { audiences };
+    } catch (parseError) {
+      console.error('JSON parsing error:', parseError);
+      throw new Error(`Failed to parse OpenAI response: ${parseError.message}`);
+    }
+  } catch (error) {
+    console.error('Error in handleAudienceGeneration:', error);
+    throw error;
   }
-
-  const audiences = JSON.parse(data.choices[0].message.content.trim());
-  return { audiences };
 }
