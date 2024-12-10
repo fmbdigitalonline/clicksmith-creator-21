@@ -5,9 +5,9 @@ import IdeaStep from "./steps/BusinessIdeaStep";
 import AudienceStep from "./steps/AudienceStep";
 import AudienceAnalysisStep from "./steps/AudienceAnalysisStep";
 import CampaignStep from "./steps/CampaignStep";
+import AdFormatStep from "./steps/AdFormatStep";
 import HookStep from "./steps/HookStep";
 import CompleteStep from "./steps/CompleteStep";
-import AdFormatStep from "./steps/AdFormatStep";
 
 export type BusinessIdea = {
   description: string;
@@ -47,6 +47,10 @@ export type AdFormat = {
     width: number;
     height: number;
   };
+  imagePrompts: Array<{
+    name: string;
+    prompt: string;
+  }>;
 };
 
 export type MarketingCampaign = {
@@ -189,6 +193,7 @@ const AdWizard = () => {
         <AdFormatStep
           businessIdea={businessIdea}
           targetAudience={targetAudience}
+          campaign={campaign}
           onNext={handleFormatSelect}
           onBack={handleBack}
         />
