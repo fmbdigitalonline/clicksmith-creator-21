@@ -22,9 +22,7 @@ export async function handleAudienceGeneration(businessIdea: any, openAIApiKey: 
   - positioning (string): how the product should be positioned
   - marketingAngle (string): unique angle to approach this audience
   - messagingApproach (string): tone and style of communication
-  - marketingChannels (array of strings): 2-3 most effective channels
-
-  Format the response as a valid JSON array without any markdown formatting or code blocks.`;
+  - marketingChannels (array of strings): 2-3 most effective channels`;
 
   try {
     console.log('Sending request to OpenAI with prompt:', prompt);
@@ -40,7 +38,7 @@ export async function handleAudienceGeneration(businessIdea: any, openAIApiKey: 
         messages: [
           { 
             role: 'system', 
-            content: 'You are a JSON-focused market research analyst. Return only valid JSON arrays containing audience objects, without any markdown formatting or code blocks.'
+            content: 'You are a market research analyst. Return ONLY a raw JSON array of audience objects. Do not include any markdown formatting, code blocks, or explanatory text.'
           },
           { role: 'user', content: prompt }
         ],
@@ -65,13 +63,38 @@ export async function handleAudienceGeneration(businessIdea: any, openAIApiKey: 
     const content = data.choices[0].message.content.trim();
     console.log('Raw content from OpenAI:', content);
 
+    // Remove any potential markdown formatting
+    const cleanContent = content
+      .replace(/```json\n?/g, '')
+      .replace(/```\n?/g, '')
+      .trim();
+
     try {
-      const audiences = JSON.parse(content);
+      const audiences = JSON.parse(cleanContent);
       console.log('Parsed audiences:', audiences);
 
       if (!Array.isArray(audiences) || audiences.length !== 3) {
         throw new Error('Invalid audience data format');
       }
+
+      // Validate the structure of each audience object
+      audiences.forEach((audience, index) => {
+        const requiredFields = [
+          'name', 'description', 'painPoints', 'demographics',
+          'icp', 'coreMessage', 'positioning', 'marketingAngle',
+          'messagingApproach', 'marketingChannels'
+        ];
+
+        requiredFields.forEach(field => {
+          if (!audience[field]) {
+            throw new Error(`Missing required field "${field}" in audience ${index + 1}`);
+          }
+        });
+
+        if (!Array.isArray(audience.painPoints) || !Array.isArray(audience.marketingChannels)) {
+          throw new Error(`Invalid array fields in audience ${index + 1}`);
+        }
+      });
 
       return { audiences };
     } catch (parseError) {
