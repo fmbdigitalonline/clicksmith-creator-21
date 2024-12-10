@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BusinessIdea, TargetAudience, AdHook } from "../AdWizard";
+import { BusinessIdea, TargetAudience, AdHook } from "@/types/adWizard";
 import { ArrowLeft, RotateCcw } from "lucide-react";
 
 const CompleteStep = ({

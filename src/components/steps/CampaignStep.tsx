@@ -7,19 +7,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { BusinessIdea, TargetAudience, AudienceAnalysis } from "../AdWizard";
+import { BusinessIdea, TargetAudience, AudienceAnalysis, MarketingCampaign } from "@/types/adWizard";
 import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
-
-interface MarketingCampaign {
-  angles: Array<{
-    description: string;
-    hook: string;
-  }>;
-  adCopies: string[];
-  headlines: string[];
-}
 
 interface CampaignStepProps {
   businessIdea: BusinessIdea;

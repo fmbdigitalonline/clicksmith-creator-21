@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { BusinessIdea } from "../AdWizard";
+import { BusinessIdea } from "@/types/adWizard";
 import { useToast } from "@/components/ui/use-toast";
 import { Wand2, Lightbulb, ArrowRight } from "lucide-react";
 import { Card } from "@/components/ui/card";

@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { BusinessIdea, TargetAudience, AdHook } from "../AdWizard";
+import { BusinessIdea, TargetAudience, AdHook } from "@/types/adWizard";
 import { useToast } from "@/components/ui/use-toast";
 import { ArrowLeft, Download, Facebook } from "lucide-react";
 

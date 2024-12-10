@@ -7,7 +7,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { BusinessIdea, TargetAudience } from "../AdWizard";
+import { BusinessIdea, TargetAudience, AudienceAnalysis } from "@/types/adWizard";
 import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
