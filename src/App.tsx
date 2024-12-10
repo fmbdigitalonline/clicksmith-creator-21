@@ -13,8 +13,6 @@ import Index from "./pages/Index";
 import Login from "./pages/Login";
 import AdWizard from "./components/AdWizard";
 import Projects from "./pages/Projects";
-import Documents from "./pages/Documents";
-import Notes from "./pages/Notes";
 import Settings from "./pages/Settings";
 
 const queryClient = new QueryClient();
@@ -86,22 +84,6 @@ const App = () => (
                           element={
                             <ProtectedRoute>
                               <Projects />
-                            </ProtectedRoute>
-                          }
-                        />
-                        <Route
-                          path="/documents"
-                          element={
-                            <ProtectedRoute>
-                              <Documents />
-                            </ProtectedRoute>
-                          }
-                        />
-                        <Route
-                          path="/notes"
-                          element={
-                            <ProtectedRoute>
-                              <Notes />
                             </ProtectedRoute>
                           }
                         />

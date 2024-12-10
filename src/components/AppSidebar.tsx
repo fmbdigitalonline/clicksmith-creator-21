@@ -2,8 +2,6 @@ import { Link, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
   FolderKanban,
-  FileText,
-  StickyNote,
   Settings,
   ChevronRight,
   PlusCircle,
@@ -30,16 +28,6 @@ const menuItems = [
     title: "Projects",
     icon: FolderKanban,
     url: "/projects",
-  },
-  {
-    title: "Documents",
-    icon: FileText,
-    url: "/documents",
-  },
-  {
-    title: "Notes",
-    icon: StickyNote,
-    url: "/notes",
   },
   {
     title: "Settings",
