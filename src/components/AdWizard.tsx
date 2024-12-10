@@ -8,61 +8,16 @@ import CampaignStep from "./steps/CampaignStep";
 import AdFormatStep from "./steps/AdFormatStep";
 import HookStep from "./steps/HookStep";
 import CompleteStep from "./steps/CompleteStep";
-
-export type BusinessIdea = {
-  description: string;
-  valueProposition: string;
-};
-
-export type TargetAudience = {
-  name: string;
-  description: string;
-  demographics: string;
-  painPoints: string[];
-  icp: string;
-  coreMessage: string;
-  positioning: string;
-  marketingAngle: string;
-  messagingApproach: string;
-  marketingChannels: string[];
-};
-
-export type AudienceAnalysis = {
-  expandedDefinition: string;
-  marketDesire: string;
-  awarenessLevel: string;
-  sophisticationLevel: string;
-  deepPainPoints: string[];
-  potentialObjections: string[];
-};
-
-export type AdHook = {
-  text: string;
-  description: string;
-};
-
-export type AdFormat = {
-  format: string;
-  dimensions: {
-    width: number;
-    height: number;
-  };
-  imagePrompts: Array<{
-    name: string;
-    prompt: string;
-  }>;
-};
-
-export type MarketingCampaign = {
-  angles: Array<{
-    description: string;
-    hook: string;
-  }>;
-  adCopies: string[];
-  headlines: string[];
-};
-
-type Step = "idea" | "audience" | "analysis" | "campaign" | "format" | "hook" | "complete";
+import WizardHeader from "./wizard/WizardHeader";
+import {
+  BusinessIdea,
+  TargetAudience,
+  AudienceAnalysis,
+  MarketingCampaign,
+  AdFormat,
+  AdHook,
+  Step,
+} from "@/types/adWizard";
 
 const AdWizard = () => {
   const [currentStep, setCurrentStep] = useState<Step>("idea");
@@ -149,14 +104,10 @@ const AdWizard = () => {
 
   return (
     <div className="container max-w-6xl mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl md:text-4xl font-bold mb-4">
-          Facebook Ad Generator
-        </h1>
-        <p className="text-gray-600">
-          Create compelling Facebook ads in minutes with our AI-powered wizard.
-        </p>
-      </div>
+      <WizardHeader
+        title="Facebook Ad Generator"
+        description="Create compelling Facebook ads in minutes with our AI-powered wizard."
+      />
 
       {currentStep === "idea" && (
         <IdeaStep onNext={handleIdeaSubmit} />
