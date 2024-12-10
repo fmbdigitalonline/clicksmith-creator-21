@@ -14,11 +14,47 @@ serve(async (req) => {
   }
 
   try {
-    const { type, businessIdea } = await req.json();
-    console.log('Request received:', { type, businessIdea });
+    const { type, businessIdea, targetAudience } = await req.json();
+    console.log('Request received:', { type, businessIdea, targetAudience });
 
     let prompt = '';
-    if (type === 'audience') {
+    if (type === 'audience_analysis') {
+      prompt = `Analyze the following target audience for a business:
+      Business Description: ${businessIdea.description}
+      Value Proposition: ${businessIdea.valueProposition}
+      
+      Target Audience:
+      Name: ${targetAudience.name}
+      Description: ${targetAudience.description}
+      Demographics: ${targetAudience.demographics}
+      Pain Points: ${targetAudience.painPoints.join(', ')}
+      ICP: ${targetAudience.icp}
+      Core Message: ${targetAudience.coreMessage}
+      
+      Provide a deep analysis following this structure:
+      
+      1. Expanded Definition:
+      (Define potential group of people struggling with a problem who want to achieve a goal)
+      
+      2. Market Analysis:
+      - Market Desire (deep desire from Breakthrough Advertising, not obvious product benefits)
+      - Awareness Level (familiarity with problem/solution/product + actionable advertising approach)
+      - Sophistication Level (familiarity with competing solutions + complexity of needs)
+      
+      3. Deep Pain Points (3 main problems)
+      
+      4. Potential Objections (3 main objections to buying)
+      
+      Return ONLY a valid JSON object with these fields:
+      {
+        "expandedDefinition": "string",
+        "marketDesire": "string",
+        "awarenessLevel": "string",
+        "sophisticationLevel": "string",
+        "deepPainPoints": ["string", "string", "string"],
+        "potentialObjections": ["string", "string", "string"]
+      }`;
+    } else if (type === 'audience') {
       prompt = `Generate 3 distinct target audiences for the following business:
       Business Description: ${businessIdea.description}
       Value Proposition: ${businessIdea.valueProposition}
@@ -60,7 +96,6 @@ serve(async (req) => {
         }
       ]`;
     } else {
-      // Original hook generation logic
       prompt = `Create 3 compelling Facebook ad hooks for the following business:
       Business Description: ${businessIdea.description}
       Value Proposition: ${businessIdea.valueProposition}
@@ -84,11 +119,13 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4',
         messages: [
           { 
             role: 'system', 
-            content: type === 'audience' 
+            content: type === 'audience_analysis'
+              ? 'You are an expert market researcher who provides deep audience analysis based on Eugene Schwartz\'s Breakthrough Advertising principles.'
+              : type === 'audience'
               ? 'You are a JSON-focused market research analyst. Only return valid JSON arrays containing audience objects.'
               : 'You are an expert Facebook ad copywriter who creates compelling, conversion-focused ad hooks.'
           },
@@ -110,7 +147,39 @@ serve(async (req) => {
     const generatedContent = data.choices[0].message.content;
     console.log('Generated content:', generatedContent);
 
-    if (type === 'audience') {
+    if (type === 'audience_analysis') {
+      try {
+        const cleanContent = generatedContent.trim();
+        console.log('Attempting to parse JSON:', cleanContent);
+        
+        const analysis = JSON.parse(cleanContent);
+        
+        // Validate the analysis object has all required fields
+        const requiredFields = ['expandedDefinition', 'marketDesire', 'awarenessLevel', 'sophisticationLevel', 'deepPainPoints', 'potentialObjections'];
+        const missingFields = requiredFields.filter(field => !analysis[field]);
+        
+        if (missingFields.length > 0) {
+          console.error('Analysis is missing required fields:', missingFields);
+          throw new Error(`Analysis is missing required fields: ${missingFields.join(', ')}`);
+        }
+
+        if (!Array.isArray(analysis.deepPainPoints) || analysis.deepPainPoints.length !== 3) {
+          throw new Error('Deep pain points must be an array of exactly 3 items');
+        }
+
+        if (!Array.isArray(analysis.potentialObjections) || analysis.potentialObjections.length !== 3) {
+          throw new Error('Potential objections must be an array of exactly 3 items');
+        }
+
+        return new Response(
+          JSON.stringify({ analysis }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      } catch (error) {
+        console.error('Error parsing analysis:', error, 'Raw content:', generatedContent);
+        throw new Error(`Failed to parse generated analysis: ${error.message}`);
+      }
+    } else if (type === 'audience') {
       try {
         const cleanContent = generatedContent.trim();
         console.log('Attempting to parse JSON:', cleanContent);

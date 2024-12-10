@@ -3,6 +3,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { useNavigate } from "react-router-dom";
 import IdeaStep from "./steps/BusinessIdeaStep";
 import AudienceStep from "./steps/AudienceStep";
+import AudienceAnalysisStep from "./steps/AudienceAnalysisStep";
 import HookStep from "./steps/HookStep";
 import CompleteStep from "./steps/CompleteStep";
 import AdFormatStep from "./steps/AdFormatStep";
@@ -25,6 +26,15 @@ export type TargetAudience = {
   marketingChannels: string[];
 };
 
+export type AudienceAnalysis = {
+  expandedDefinition: string;
+  marketDesire: string;
+  awarenessLevel: string;
+  sophisticationLevel: string;
+  deepPainPoints: string[];
+  potentialObjections: string[];
+};
+
 export type AdHook = {
   text: string;
   description: string;
@@ -38,12 +48,13 @@ export type AdFormat = {
   };
 };
 
-type Step = "idea" | "audience" | "format" | "hook" | "complete";
+type Step = "idea" | "audience" | "analysis" | "format" | "hook" | "complete";
 
 const AdWizard = () => {
   const [currentStep, setCurrentStep] = useState<Step>("idea");
   const [businessIdea, setBusinessIdea] = useState<BusinessIdea | null>(null);
   const [targetAudience, setTargetAudience] = useState<TargetAudience | null>(null);
+  const [audienceAnalysis, setAudienceAnalysis] = useState<AudienceAnalysis | null>(null);
   const [adFormat, setAdFormat] = useState<AdFormat | null>(null);
   const [adHook, setAdHook] = useState<AdHook | null>(null);
   const [generatedHooks, setGeneratedHooks] = useState<AdHook[]>([]);
@@ -57,6 +68,11 @@ const AdWizard = () => {
 
   const handleAudienceSelect = (audience: TargetAudience) => {
     setTargetAudience(audience);
+    setCurrentStep("analysis");
+  };
+
+  const handleAnalysisComplete = (analysis: AudienceAnalysis) => {
+    setAudienceAnalysis(analysis);
     setCurrentStep("format");
   };
 
@@ -80,8 +96,11 @@ const AdWizard = () => {
       case "audience":
         setCurrentStep("idea");
         break;
-      case "format":
+      case "analysis":
         setCurrentStep("audience");
+        break;
+      case "format":
+        setCurrentStep("analysis");
         break;
       case "hook":
         setCurrentStep("format");
@@ -97,6 +116,7 @@ const AdWizard = () => {
   const handleStartOver = () => {
     setBusinessIdea(null);
     setTargetAudience(null);
+    setAudienceAnalysis(null);
     setAdFormat(null);
     setAdHook(null);
     setGeneratedHooks([]);
@@ -126,7 +146,16 @@ const AdWizard = () => {
         />
       )}
 
-      {currentStep === "format" && businessIdea && targetAudience && (
+      {currentStep === "analysis" && businessIdea && targetAudience && (
+        <AudienceAnalysisStep
+          businessIdea={businessIdea}
+          targetAudience={targetAudience}
+          onNext={handleAnalysisComplete}
+          onBack={handleBack}
+        />
+      )}
+
+      {currentStep === "format" && businessIdea && targetAudience && audienceAnalysis && (
         <AdFormatStep
           businessIdea={businessIdea}
           targetAudience={targetAudience}
