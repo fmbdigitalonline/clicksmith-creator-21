@@ -18,12 +18,6 @@ Format your response as a valid JSON array with exactly 10 objects, each contain
 {
   "text": "The hook text",
   "description": "The marketing angle explanation"
-}
-
-Example of ONE object (you should generate 10):
-{
-  "text": "Hey gym buffs! Crush your PRs with personalized hydration.",
-  "description": "Appeal to fitness enthusiasts by focusing on performance enhancement"
 }`;
 
   try {
@@ -49,6 +43,12 @@ Example of ONE object (you should generate 10):
       }),
     });
 
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error('OpenAI API error:', errorData);
+      throw new Error(`OpenAI API error: ${response.status} ${errorData}`);
+    }
+
     const data = await response.json();
     console.log('OpenAI response:', data);
 
@@ -60,7 +60,14 @@ Example of ONE object (you should generate 10):
     console.log('Generated content:', content);
 
     try {
-      const hooks = JSON.parse(content);
+      let hooks;
+      // Sometimes the API returns the JSON string with extra text before or after
+      const jsonMatch = content.match(/\[[\s\S]*\]/);
+      if (jsonMatch) {
+        hooks = JSON.parse(jsonMatch[0]);
+      } else {
+        hooks = JSON.parse(content);
+      }
       
       if (!Array.isArray(hooks) || hooks.length !== 10) {
         throw new Error('Response must be an array with exactly 10 items');

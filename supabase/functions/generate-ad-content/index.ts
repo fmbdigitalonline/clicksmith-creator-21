@@ -7,6 +7,7 @@ import { handleHookGeneration } from './handlers/hookGeneration.ts';
 import { corsHeaders } from '../_shared/cors.ts';
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
@@ -30,11 +31,11 @@ serve(async (req) => {
       case 'campaign':
         result = await handleCampaignGeneration(businessIdea, targetAudience, audienceAnalysis, openAIApiKey);
         break;
-      case 'images':
-        result = await handleImagePromptGeneration(businessIdea, targetAudience, campaign, openAIApiKey);
-        break;
       case 'hooks':
         result = await handleHookGeneration(businessIdea, targetAudience, openAIApiKey);
+        break;
+      case 'images':
+        result = await handleImagePromptGeneration(businessIdea, targetAudience, campaign, openAIApiKey);
         break;
       default:
         throw new Error('Invalid generation type');
@@ -45,9 +46,12 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error('Error in generate-ad-content function:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 400,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return new Response(
+      JSON.stringify({ error: error.message }), 
+      { 
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    );
   }
 });
