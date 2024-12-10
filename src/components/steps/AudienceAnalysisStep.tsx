@@ -12,15 +12,6 @@ import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 
-interface AudienceAnalysis {
-  expandedDefinition: string;
-  marketDesire: string;
-  awarenessLevel: string;
-  sophisticationLevel: string;
-  deepPainPoints: string[];
-  potentialObjections: string[];
-}
-
 interface AudienceAnalysisStepProps {
   businessIdea: BusinessIdea;
   targetAudience: TargetAudience;
