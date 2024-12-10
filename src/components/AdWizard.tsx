@@ -125,6 +125,8 @@ const AdWizard = () => {
 
       {currentStep === "format" && businessIdea && targetAudience && (
         <AdFormatStep
+          businessIdea={businessIdea}
+          targetAudience={targetAudience}
           onNext={handleFormatSelect}
           onBack={handleBack}
         />

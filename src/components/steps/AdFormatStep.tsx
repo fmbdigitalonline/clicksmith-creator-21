@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -8,6 +8,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useState } from "react";
+import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 export type AdFormat = {
   format: string;
@@ -30,19 +33,64 @@ const AD_FORMATS = [
 interface AdFormatStepProps {
   onNext: (format: AdFormat) => void;
   onBack: () => void;
+  businessIdea?: any;
+  targetAudience?: any;
 }
 
-const AdFormatStep = ({ onNext, onBack }: AdFormatStepProps) => {
+const AdFormatStep = ({ onNext, onBack, businessIdea, targetAudience }: AdFormatStepProps) => {
+  const [selectedFormat, setSelectedFormat] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
+
   const handleFormatSelect = (value: string) => {
-    const format = AD_FORMATS.find((f) => f.value === value);
-    if (format) {
-      onNext({
-        format: format.value,
-        dimensions: {
-          width: format.width,
-          height: format.height,
-        },
+    setSelectedFormat(value);
+  };
+
+  const handleNext = async () => {
+    if (!selectedFormat) {
+      toast({
+        title: "Please select a format",
+        description: "You need to select an ad format before proceeding.",
+        variant: "destructive",
       });
+      return;
+    }
+
+    setIsLoading(true);
+    const format = AD_FORMATS.find((f) => f.value === selectedFormat);
+
+    if (format) {
+      try {
+        // First, save the format
+        const formatData = {
+          format: format.value,
+          dimensions: {
+            width: format.width,
+            height: format.height,
+          },
+        };
+
+        // Generate hooks in the background
+        await supabase.functions.invoke('generate-ad-content', {
+          body: { 
+            businessIdea: businessIdea,
+            audience: targetAudience,
+            format: formatData
+          }
+        });
+
+        // Proceed to next step
+        onNext(formatData);
+      } catch (error) {
+        console.error('Error generating hooks:', error);
+        toast({
+          title: "Error",
+          description: "There was an error generating ad hooks. Please try again.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -59,7 +107,7 @@ const AdFormatStep = ({ onNext, onBack }: AdFormatStepProps) => {
         <div className="space-y-4">
           <div className="space-y-2">
             <label className="text-sm font-medium">Ad Format</label>
-            <Select onValueChange={handleFormatSelect}>
+            <Select onValueChange={handleFormatSelect} value={selectedFormat || undefined}>
               <SelectTrigger>
                 <SelectValue placeholder="Select ad format" />
               </SelectTrigger>
@@ -83,6 +131,13 @@ const AdFormatStep = ({ onNext, onBack }: AdFormatStepProps) => {
         <Button variant="outline" onClick={onBack} className="space-x-2">
           <ArrowLeft className="w-4 h-4" />
           <span>Previous Step</span>
+        </Button>
+        <Button 
+          onClick={handleNext} 
+          disabled={!selectedFormat || isLoading}
+          className="bg-facebook hover:bg-facebook/90 text-white"
+        >
+          {isLoading ? "Generating..." : "Next Step"}
         </Button>
       </div>
     </div>
