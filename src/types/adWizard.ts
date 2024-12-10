@@ -36,6 +36,8 @@ export type AdFormat = {
     width: number;
     height: number;
   };
+  aspectRatio: string;
+  description: string;
 };
 
 export type MarketingCampaign = {
