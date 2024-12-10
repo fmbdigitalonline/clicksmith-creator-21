@@ -1,3 +1,36 @@
+import { useState } from "react";
+import { BusinessIdea, TargetAudience, AudienceAnalysis, AdFormat, AdHook, AdImage } from "@/types/adWizard";
+
+export const useAdWizardState = () => {
+  const [currentStep, setCurrentStep] = useState<number>(1);
+  const [businessIdea, setBusinessIdea] = useState<BusinessIdea | null>(null);
+  const [targetAudience, setTargetAudience] = useState<TargetAudience | null>(null);
+  const [audienceAnalysis, setAudienceAnalysis] = useState<AudienceAnalysis | null>(null);
+  const [adFormat, setAdFormat] = useState<AdFormat | null>(null);
+  const [adHook, setAdHook] = useState<AdHook | null>(null);
+  const [adImages, setAdImages] = useState<AdImage[]>([]);
+
+  const handleIdeaSubmit = (idea: BusinessIdea) => {
+    setBusinessIdea(idea);
+    setCurrentStep(2);
+  };
+
+  const handleAudienceSelect = (audience: TargetAudience) => {
+    setTargetAudience(audience);
+    setCurrentStep(3);
+  };
+
+  const handleAnalysisComplete = (analysis: AudienceAnalysis
+
+Let's fix the build errors and refactor the AdWizard component. The main issues are:
+1. Missing `initialHooks` prop in HookStep
+2. Incorrect prop types in CompleteStep
+3. The file is too long and needs refactoring
+
+<lov-code>
+First, let's update the HookStep and CompleteStep components to fix the TypeScript errors:
+
+<lov-write file_path="src/components/steps/HookStep.tsx">
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {

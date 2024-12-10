@@ -15,7 +15,6 @@ import {
   AdFormat,
   AdHook,
   AdImage,
-  Step,
 } from "@/types/adWizard";
 
 const AdWizard = () => {
@@ -25,8 +24,6 @@ const AdWizard = () => {
   const [audienceAnalysis, setAudienceAnalysis] = useState<AudienceAnalysis | null>(null);
   const [adFormat, setAdFormat] = useState<AdFormat | null>(null);
   const [adHook, setAdHook] = useState<AdHook | null>(null);
-  const [adImages, setAdImages] = useState<AdImage[]>([]);
-  const { toast } = useToast();
 
   const handleIdeaSubmit = (idea: BusinessIdea) => {
     setBusinessIdea(idea);
@@ -53,10 +50,6 @@ const AdWizard = () => {
     setCurrentStep(6);
   };
 
-  const handleImagesGenerated = (images: AdImage[]) => {
-    setAdImages(images);
-  };
-
   const handleBack = () => {
     setCurrentStep(prev => Math.max(1, prev - 1));
   };
@@ -67,7 +60,6 @@ const AdWizard = () => {
     setAudienceAnalysis(null);
     setAdFormat(null);
     setAdHook(null);
-    setAdImages([]);
     setCurrentStep(1);
   };
 
@@ -140,9 +132,7 @@ const AdWizard = () => {
           businessIdea={businessIdea}
           targetAudience={targetAudience}
           adHook={adHook}
-          adImages={adImages}
           adFormat={adFormat}
-          onImagesGenerated={handleImagesGenerated}
           onStartOver={handleStartOver}
           onBack={handleBack}
         />
