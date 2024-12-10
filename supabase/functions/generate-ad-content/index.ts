@@ -30,7 +30,7 @@ serve(async (req) => {
       case 'campaign':
         result = await handleCampaignGeneration(businessIdea, targetAudience, audienceAnalysis, openAIApiKey);
         break;
-      case 'image_prompts':
+      case 'images':
         result = await handleImagePromptGeneration(businessIdea, targetAudience, campaign, openAIApiKey);
         break;
       case 'hooks':
@@ -44,6 +44,7 @@ serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
+    console.error('Error in generate-ad-content function:', error);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
