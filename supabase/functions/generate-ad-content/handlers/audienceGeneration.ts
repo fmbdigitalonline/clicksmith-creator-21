@@ -1,30 +1,31 @@
 export async function handleAudienceGeneration(businessIdea: any, openAIApiKey: string) {
-  const prompt = `Generate 3 distinct target audiences for the following business:
+  const prompt = `As a market research professional, analyze this business and provide 3 potential target audiences:
   Business Description: ${businessIdea.description}
   Value Proposition: ${businessIdea.valueProposition}
 
-  For each audience, provide:
-  1. Basic audience information
-  2. Ideal Customer Profile (ICP)
-  3. Core Message
-  4. Positioning Strategy
-  5. Marketing Angle
-  6. Messaging Approach
-  7. Core Marketing Channels
+  For each audience, provide professional market research insights including:
+  1. Audience name and description
+  2. Demographic information
+  3. Key pain points (3 specific challenges)
+  4. Ideal Customer Profile (ICP)
+  5. Core messaging strategy
+  6. Market positioning
+  7. Marketing approach
+  8. Recommended channels
 
-  Return ONLY a valid JSON array with exactly 3 audience objects, each containing these fields:
-  - name (string): short, descriptive name
-  - description (string): 2-3 sentences about the audience
-  - painPoints (array of 3 strings): specific problems they face
-  - demographics (string): age, income, location info
-  - icp (string): detailed ideal customer profile
-  - coreMessage (string): primary message that resonates with this audience
-  - positioning (string): how the product should be positioned
-  - marketingAngle (string): unique angle to approach this audience
-  - messagingApproach (string): tone and style of communication
-  - marketingChannels (array of strings): 2-3 most effective channels
+  Return a JSON array with 3 audience objects containing:
+  - name (string): descriptive name
+  - description (string): professional audience description
+  - painPoints (array of 3 strings): key challenges
+  - demographics (string): demographic information
+  - icp (string): ideal customer profile
+  - coreMessage (string): primary value proposition
+  - positioning (string): market positioning
+  - marketingAngle (string): strategic approach
+  - messagingApproach (string): communication strategy
+  - marketingChannels (array of strings): recommended channels
 
-  IMPORTANT: Return ONLY the raw JSON array. Do not include any markdown formatting, code blocks, or explanatory text.`;
+  Format: Return only a raw JSON array starting with [ and ending with ]. No markdown or formatting.`;
 
   try {
     console.log('Sending request to OpenAI with prompt:', prompt);
@@ -40,7 +41,7 @@ export async function handleAudienceGeneration(businessIdea: any, openAIApiKey: 
         messages: [
           { 
             role: 'system', 
-            content: 'You are a market research analyst. You must return ONLY a raw JSON array. Do not include any markdown formatting, backticks, or code blocks. The response should start with [ and end with ].'
+            content: 'You are a professional market research analyst providing structured business insights. Return only raw JSON data.'
           },
           { role: 'user', content: prompt }
         ],
@@ -52,6 +53,12 @@ export async function handleAudienceGeneration(businessIdea: any, openAIApiKey: 
     if (!response.ok) {
       const errorData = await response.text();
       console.error('OpenAI API error:', errorData);
+      
+      // Handle safety system rejection specifically
+      if (errorData.includes('safety system')) {
+        throw new Error('Content filtered by safety system. Please revise your business description to use more professional language.');
+      }
+      
       throw new Error(`OpenAI API error: ${errorData}`);
     }
 
@@ -65,12 +72,12 @@ export async function handleAudienceGeneration(businessIdea: any, openAIApiKey: 
     const content = data.choices[0].message.content.trim();
     console.log('Raw content from OpenAI:', content);
 
-    // Ensure we're working with clean JSON
+    // Clean the JSON content
     const cleanContent = content
       .replace(/```json\n?/g, '')
       .replace(/```\n?/g, '')
-      .replace(/^[\s\n]*\[/, '[')  // Clean start of array
-      .replace(/\][\s\n]*$/, ']')  // Clean end of array
+      .replace(/^[\s\n]*\[/, '[')
+      .replace(/\][\s\n]*$/, ']')
       .trim();
 
     console.log('Cleaned content:', cleanContent);
