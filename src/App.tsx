@@ -2,47 +2,17 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { useState } from "react";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { CookiesProvider } from "react-cookie";
-import Navigation from "./components/Navigation";
-import { AppSidebar } from "./components/AppSidebar";
-import BreadcrumbNav from "./components/Breadcrumb";
+import { ProtectedRoute } from "./components/auth/ProtectedRoute";
+import { AppLayout } from "./components/layout/AppLayout";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import AdWizard from "./components/AdWizard";
 import Projects from "./pages/Projects";
 import Settings from "./pages/Settings";
-
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    // Check initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setIsAuthenticated(!!session);
-    });
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setIsAuthenticated(!!session);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  if (isAuthenticated === null) {
-    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
-  }
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-
-  return <>{children}</>;
-};
 
 const App = () => {
   const [queryClient] = useState(() => new QueryClient());
@@ -56,54 +26,49 @@ const App = () => {
               <Toaster />
               <Sonner />
               <BrowserRouter>
-                <div className="flex flex-col w-full">
-                  <Navigation />
-                  <div className="flex flex-col md:flex-row h-[calc(100vh-4rem)] mt-16">
-                    <AppSidebar />
-                    <main className="flex-1 p-3 md:p-6 overflow-auto">
-                      <div className="glass p-4 md:p-6 min-h-[calc(100vh-8rem)]" role="main" aria-label="Main content">
-                        <BreadcrumbNav />
-                        <div className="mt-4 md:mt-6">
-                          <Routes>
-                            <Route path="/login" element={<Login />} />
-                            <Route
-                              path="/"
-                              element={
-                                <ProtectedRoute>
-                                  <Index />
-                                </ProtectedRoute>
-                              }
-                            />
-                            <Route
-                              path="/ad-wizard/:projectId"
-                              element={
-                                <ProtectedRoute>
-                                  <AdWizard />
-                                </ProtectedRoute>
-                              }
-                            />
-                            <Route
-                              path="/projects"
-                              element={
-                                <ProtectedRoute>
-                                  <Projects />
-                                </ProtectedRoute>
-                              }
-                            />
-                            <Route
-                              path="/settings"
-                              element={
-                                <ProtectedRoute>
-                                  <Settings />
-                                </ProtectedRoute>
-                              }
-                            />
-                          </Routes>
-                        </div>
-                      </div>
-                    </main>
-                  </div>
-                </div>
+                <Routes>
+                  <Route path="/login" element={<Login />} />
+                  <Route
+                    path="/"
+                    element={
+                      <ProtectedRoute>
+                        <AppLayout>
+                          <Index />
+                        </AppLayout>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/ad-wizard/:projectId"
+                    element={
+                      <ProtectedRoute>
+                        <AppLayout>
+                          <AdWizard />
+                        </AppLayout>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/projects"
+                    element={
+                      <ProtectedRoute>
+                        <AppLayout>
+                          <Projects />
+                        </AppLayout>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/settings"
+                    element={
+                      <ProtectedRoute>
+                        <AppLayout>
+                          <Settings />
+                        </AppLayout>
+                      </ProtectedRoute>
+                    }
+                  />
+                </Routes>
               </BrowserRouter>
             </div>
           </SidebarProvider>
