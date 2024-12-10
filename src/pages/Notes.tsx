@@ -2,6 +2,9 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { StickyNote } from "lucide-react";
+import type { Database } from "@/integrations/supabase/types";
+
+type Note = Database['public']['Tables']['notes']['Row'];
 
 const Notes = () => {
   const { data: notes } = useQuery({
@@ -13,7 +16,7 @@ const Notes = () => {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return data;
+      return data as Note[];
     },
   });
 
