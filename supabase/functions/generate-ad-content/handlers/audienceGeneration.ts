@@ -22,7 +22,9 @@ export async function handleAudienceGeneration(businessIdea: any, openAIApiKey: 
   - positioning (string): how the product should be positioned
   - marketingAngle (string): unique angle to approach this audience
   - messagingApproach (string): tone and style of communication
-  - marketingChannels (array of strings): 2-3 most effective channels`;
+  - marketingChannels (array of strings): 2-3 most effective channels
+
+  IMPORTANT: Return ONLY the raw JSON array. Do not include any markdown formatting, code blocks, or explanatory text.`;
 
   try {
     console.log('Sending request to OpenAI with prompt:', prompt);
@@ -38,7 +40,7 @@ export async function handleAudienceGeneration(businessIdea: any, openAIApiKey: 
         messages: [
           { 
             role: 'system', 
-            content: 'You are a market research analyst. Return ONLY a raw JSON array of audience objects. Do not include any markdown formatting, code blocks, or explanatory text.'
+            content: 'You are a market research analyst. You must return ONLY a raw JSON array. Do not include any markdown formatting, backticks, or code blocks. The response should start with [ and end with ].'
           },
           { role: 'user', content: prompt }
         ],
@@ -63,18 +65,28 @@ export async function handleAudienceGeneration(businessIdea: any, openAIApiKey: 
     const content = data.choices[0].message.content.trim();
     console.log('Raw content from OpenAI:', content);
 
-    // Remove any potential markdown formatting
+    // Ensure we're working with clean JSON
     const cleanContent = content
       .replace(/```json\n?/g, '')
       .replace(/```\n?/g, '')
+      .replace(/^[\s\n]*\[/, '[')  // Clean start of array
+      .replace(/\][\s\n]*$/, ']')  // Clean end of array
       .trim();
+
+    console.log('Cleaned content:', cleanContent);
 
     try {
       const audiences = JSON.parse(cleanContent);
       console.log('Parsed audiences:', audiences);
 
-      if (!Array.isArray(audiences) || audiences.length !== 3) {
-        throw new Error('Invalid audience data format');
+      if (!Array.isArray(audiences)) {
+        console.error('Not an array:', audiences);
+        throw new Error('Response is not an array');
+      }
+
+      if (audiences.length !== 3) {
+        console.error('Wrong number of audiences:', audiences.length);
+        throw new Error('Expected exactly 3 audiences');
       }
 
       // Validate the structure of each audience object
@@ -87,18 +99,26 @@ export async function handleAudienceGeneration(businessIdea: any, openAIApiKey: 
 
         requiredFields.forEach(field => {
           if (!audience[field]) {
+            console.error(`Missing field "${field}" in audience ${index + 1}:`, audience);
             throw new Error(`Missing required field "${field}" in audience ${index + 1}`);
           }
         });
 
-        if (!Array.isArray(audience.painPoints) || !Array.isArray(audience.marketingChannels)) {
-          throw new Error(`Invalid array fields in audience ${index + 1}`);
+        if (!Array.isArray(audience.painPoints)) {
+          console.error('Invalid painPoints:', audience.painPoints);
+          throw new Error(`painPoints must be an array in audience ${index + 1}`);
+        }
+
+        if (!Array.isArray(audience.marketingChannels)) {
+          console.error('Invalid marketingChannels:', audience.marketingChannels);
+          throw new Error(`marketingChannels must be an array in audience ${index + 1}`);
         }
       });
 
       return { audiences };
     } catch (parseError) {
       console.error('JSON parsing error:', parseError);
+      console.error('Content that failed to parse:', cleanContent);
       throw new Error(`Failed to parse OpenAI response: ${parseError.message}`);
     }
   } catch (error) {
