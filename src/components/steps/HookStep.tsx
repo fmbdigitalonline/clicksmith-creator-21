@@ -111,9 +111,9 @@ const HookStep = ({
 
       <div className="space-y-4">
         {hooks && hooks.length > 0 ? (
-          hooks.map((hook) => (
+          hooks.map((hook, index) => (
             <Card
-              key={hook.text}
+              key={index}
               className="relative group cursor-pointer hover:shadow-lg transition-all duration-200 border-2 hover:border-facebook"
               onClick={() => onNext(hook)}
             >

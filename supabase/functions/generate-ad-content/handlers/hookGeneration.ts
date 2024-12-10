@@ -1,15 +1,36 @@
 export async function handleHookGeneration(businessIdea: any, targetAudience: any, openAIApiKey: string) {
-  const prompt = `Create 3 compelling Facebook ad hooks for the following business:
-  Business Description: ${businessIdea.description}
-  Value Proposition: ${businessIdea.valueProposition}
-  Target Audience: ${targetAudience.name}
-  Audience Demographics: ${targetAudience.demographics}
-  
-  For each hook, provide:
-  1. A short, attention-grabbing headline (under 100 characters)
-  2. A brief description explaining the hook's appeal
-  
-  Format the response as a JSON array with objects containing 'text' and 'description' fields.`;
+  const prompt = `Create compelling Facebook ad hooks based on this business and audience analysis:
+
+Business:
+Description: ${businessIdea.description}
+Value Proposition: ${businessIdea.valueProposition}
+
+Target Audience:
+Name: ${targetAudience.name}
+Description: ${targetAudience.description}
+Demographics: ${targetAudience.demographics}
+Pain Points: ${targetAudience.painPoints.join(', ')}
+ICP: ${targetAudience.icp}
+Core Message: ${targetAudience.coreMessage}
+
+Create 10 different marketing angles with associated hooks:
+
+Each marketing angle should be a brief, clear sentence explaining the approach.
+Each hook should be short, concise, and impactful, directly addressing the target audience.
+
+The hook should make the target audience stop and read the ad - it must be obvious it's for them!
+Hooks can be questions, statements, or commands.
+Include humor or emotion when appropriate.
+
+Format each pair as:
+Marketing Angle: [Brief explanation of the approach]
+Hook: [Short, impactful hook that addresses the audience]
+
+Return ONLY a valid JSON array with objects containing:
+{
+  "text": "The hook text",
+  "description": "The marketing angle explanation"
+}`;
 
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -18,38 +39,32 @@ export async function handleHookGeneration(businessIdea: any, targetAudience: an
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'gpt-4o-mini',
+      model: 'gpt-4o',
       messages: [
         { 
           role: 'system', 
-          content: 'You are an expert Facebook ad copywriter. Return only valid JSON arrays containing hook objects with text and description fields.'
+          content: 'You are an expert Facebook ad copywriter specializing in hooks that grab attention and speak directly to the target audience. Return only valid JSON arrays containing hook objects with text and description fields.'
         },
         { role: 'user', content: prompt }
       ],
-      temperature: 0.7,
-      max_tokens: 1500,
+      temperature: 0.8,
+      max_tokens: 2000,
     }),
   });
 
   const data = await response.json();
   if (data.error) {
+    console.error('Error generating hooks:', data.error);
     throw new Error(data.error.message);
   }
 
   try {
     const content = data.choices[0].message.content;
     const hooks = JSON.parse(content);
+    console.log('Generated hooks:', hooks);
     return { hooks };
   } catch (error) {
     console.error('Error parsing hooks:', error);
-    // Fallback to a simpler format if JSON parsing fails
-    const text = data.choices[0].message.content;
-    const defaultHooks = [
-      {
-        text: "Transform Your Business Today",
-        description: "A compelling call to action for immediate transformation"
-      }
-    ];
-    return { hooks: defaultHooks };
+    throw new Error('Failed to parse hook data');
   }
 }
