@@ -29,7 +29,7 @@ Style Instructions:
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'gpt-4o',
+      model: 'gpt-4o-mini',
       messages: [
         { 
           role: 'system', 
@@ -48,9 +48,11 @@ Style Instructions:
 
   const prompts = data.choices[0].message.content.split('\n').filter(Boolean);
   
-  // Generate images using DALL-E
+  // Generate images using DALL-E 2
   const images = await Promise.all(
     prompts.slice(0, 6).map(async (prompt) => {
+      console.log('Generating image for prompt:', prompt);
+      
       const imageResponse = await fetch('https://api.openai.com/v1/images/generations', {
         method: 'POST',
         headers: {
@@ -58,15 +60,17 @@ Style Instructions:
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: "dall-e-3",
+          model: "dall-e-2",
           prompt: prompt,
           n: 1,
           size: "1024x1024",
+          response_format: "url"
         }),
       });
 
       const imageData = await imageResponse.json();
       if (imageData.error) {
+        console.error('Error generating image:', imageData.error);
         throw new Error(imageData.error.message);
       }
 
