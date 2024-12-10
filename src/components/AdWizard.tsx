@@ -5,6 +5,7 @@ import IdeaStep from "./steps/BusinessIdeaStep";
 import AudienceStep from "./steps/AudienceStep";
 import HookStep from "./steps/HookStep";
 import CompleteStep from "./steps/CompleteStep";
+import AdFormatStep from "./steps/AdFormatStep";
 
 export type BusinessIdea = {
   description: string;
@@ -29,12 +30,21 @@ export type AdHook = {
   description: string;
 };
 
-type Step = "idea" | "audience" | "hook" | "complete";
+export type AdFormat = {
+  format: string;
+  dimensions: {
+    width: number;
+    height: number;
+  };
+};
+
+type Step = "idea" | "audience" | "format" | "hook" | "complete";
 
 const AdWizard = () => {
   const [currentStep, setCurrentStep] = useState<Step>("idea");
   const [businessIdea, setBusinessIdea] = useState<BusinessIdea | null>(null);
   const [targetAudience, setTargetAudience] = useState<TargetAudience | null>(null);
+  const [adFormat, setAdFormat] = useState<AdFormat | null>(null);
   const [adHook, setAdHook] = useState<AdHook | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -46,6 +56,11 @@ const AdWizard = () => {
 
   const handleAudienceSelect = (audience: TargetAudience) => {
     setTargetAudience(audience);
+    setCurrentStep("format");
+  };
+
+  const handleFormatSelect = (format: AdFormat) => {
+    setAdFormat(format);
     setCurrentStep("hook");
   };
 
@@ -63,8 +78,11 @@ const AdWizard = () => {
       case "audience":
         setCurrentStep("idea");
         break;
-      case "hook":
+      case "format":
         setCurrentStep("audience");
+        break;
+      case "hook":
+        setCurrentStep("format");
         break;
       case "complete":
         setCurrentStep("hook");
@@ -77,6 +95,7 @@ const AdWizard = () => {
   const handleStartOver = () => {
     setBusinessIdea(null);
     setTargetAudience(null);
+    setAdFormat(null);
     setAdHook(null);
     setCurrentStep("idea");
   };
@@ -104,7 +123,14 @@ const AdWizard = () => {
         />
       )}
 
-      {currentStep === "hook" && businessIdea && targetAudience && (
+      {currentStep === "format" && businessIdea && targetAudience && (
+        <AdFormatStep
+          onNext={handleFormatSelect}
+          onBack={handleBack}
+        />
+      )}
+
+      {currentStep === "hook" && businessIdea && targetAudience && adFormat && (
         <HookStep
           businessIdea={businessIdea}
           targetAudience={targetAudience}
@@ -113,7 +139,7 @@ const AdWizard = () => {
         />
       )}
 
-      {currentStep === "complete" && businessIdea && targetAudience && adHook && (
+      {currentStep === "complete" && businessIdea && targetAudience && adFormat && adHook && (
         <CompleteStep
           businessIdea={businessIdea}
           targetAudience={targetAudience}
