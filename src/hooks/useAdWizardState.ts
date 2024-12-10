@@ -20,143 +20,72 @@ export const useAdWizardState = () => {
     setCurrentStep(3);
   };
 
-  const handleAnalysisComplete = (analysis: AudienceAnalysis
+  const handleAnalysisComplete = (analysis: AudienceAnalysis) => {
+    setAudienceAnalysis(analysis);
+    setCurrentStep(4);
+  };
 
-Let's fix the build errors and refactor the AdWizard component. The main issues are:
-1. Missing `initialHooks` prop in HookStep
-2. Incorrect prop types in CompleteStep
-3. The file is too long and needs refactoring
+  const handleHookSelect = (hook: AdHook) => {
+    setAdHook(hook);
+    setCurrentStep(5);
+  };
 
-<lov-code>
-First, let's update the HookStep and CompleteStep components to fix the TypeScript errors:
+  const handleFormatSelect = (format: AdFormat) => {
+    setAdFormat(format);
+    setCurrentStep(6);
+  };
 
-<lov-write file_path="src/components/steps/HookStep.tsx">
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { BusinessIdea, TargetAudience, AdHook } from "@/types/adWizard";
-import { MessageCircle, ArrowLeft, ArrowRight, Wand2, Loader2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/components/ui/use-toast";
+  const handleBack = () => {
+    setCurrentStep(prev => Math.max(1, prev - 1));
+  };
 
-interface HookStepProps {
-  businessIdea: BusinessIdea;
-  targetAudience: TargetAudience;
-  onNext: (hook: AdHook) => void;
-  onBack: () => void;
-}
+  const handleStartOver = () => {
+    setBusinessIdea(null);
+    setTargetAudience(null);
+    setAudienceAnalysis(null);
+    setAdFormat(null);
+    setAdHook(null);
+    setAdImages([]);
+    setCurrentStep(1);
+  };
 
-const HookStep = ({
-  businessIdea,
-  targetAudience,
-  onNext,
-  onBack,
-}: HookStepProps) => {
-  const [hooks, setHooks] = useState<AdHook[]>([]);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const { toast } = useToast();
-
-  const generateHooks = async () => {
-    setIsGenerating(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('generate-ad-content', {
-        body: { 
-          type: 'hooks',
-          businessIdea,
-          targetAudience
-        }
-      });
-
-      if (error) throw error;
-
-      setHooks(data.hooks);
-      toast({
-        title: "Hooks Generated!",
-        description: "New ad hooks have been generated based on your business and audience.",
-      });
-    } catch (error) {
-      console.error('Error generating hooks:', error);
-      toast({
-        title: "Generation Failed",
-        description: "Failed to generate hooks. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsGenerating(false);
+  const canNavigateToStep = (step: number): boolean => {
+    switch (step) {
+      case 1:
+        return true;
+      case 2:
+        return !!businessIdea;
+      case 3:
+        return !!businessIdea && !!targetAudience;
+      case 4:
+        return !!businessIdea && !!targetAudience && !!audienceAnalysis;
+      case 5:
+        return !!businessIdea && !!targetAudience && !!audienceAnalysis && !!adHook;
+      case 6:
+        return !!businessIdea && !!targetAudience && !!audienceAnalysis && !!adHook && !!adFormat;
+      default:
+        return false;
     }
   };
 
-  useEffect(() => {
-    if (hooks.length === 0) {
-      generateHooks();
-    }
-  }, []);
-
-  return (
-    <div className="space-y-6 md:space-y-8">
-      <div className="flex flex-col md:flex-row justify-between gap-4 mb-4">
-        <Button
-          variant="outline"
-          onClick={onBack}
-          className="space-x-2 w-full md:w-auto"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span>Previous Step</span>
-        </Button>
-        <Button
-          onClick={generateHooks}
-          disabled={isGenerating}
-          className="bg-facebook hover:bg-facebook/90 text-white w-full md:w-auto"
-        >
-          {isGenerating ? (
-            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-          ) : (
-            <Wand2 className="w-4 h-4 mr-2" />
-          )}
-          {isGenerating ? "Generating..." : "Generate New Hooks"}
-        </Button>
-      </div>
-
-      <div>
-        <h2 className="text-xl md:text-2xl font-semibold mb-2">Choose Your Ad Hook</h2>
-        <p className="text-gray-600">
-          Select a compelling message that will grab your audience's attention.
-        </p>
-      </div>
-
-      <div className="space-y-4">
-        {hooks.map((hook) => (
-          <Card
-            key={hook.text}
-            className="relative group cursor-pointer hover:shadow-lg transition-all duration-200 border-2 hover:border-facebook"
-            onClick={() => onNext(hook)}
-          >
-            <div className="absolute inset-0 bg-gradient-to-br from-facebook/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-xl" />
-            <CardHeader>
-              <div className="flex items-center space-x-3">
-                <MessageCircle className="w-5 h-5 text-facebook" />
-                <CardTitle className="text-lg">{hook.text}</CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <CardDescription className="text-base">
-                {hook.description}
-              </CardDescription>
-              <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
-                <ArrowRight className="w-5 h-5 text-facebook" />
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    </div>
-  );
+  return {
+    currentStep,
+    businessIdea,
+    targetAudience,
+    audienceAnalysis,
+    adFormat,
+    adHook,
+    adImages,
+    setAdImages,
+    handleIdeaSubmit,
+    handleAudienceSelect,
+    handleAnalysisComplete,
+    handleHookSelect,
+    handleFormatSelect,
+    handleBack,
+    handleStartOver,
+    canNavigateToStep,
+  };
 };
 
-export default HookStep;
+export default useAdWizardState;
