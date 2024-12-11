@@ -1,4 +1,4 @@
-import { fal } from 'https://esm.sh/@fal-ai/client@1.2.1';
+import Replicate from 'replicate';
 import { BusinessIdea, TargetAudience, MarketingCampaign } from '../types.ts';
 
 const corsHeaders = {
@@ -26,21 +26,19 @@ export async function handleImagePromptGeneration(
       throw new Error('Campaign angles are required and must be a non-empty array');
     }
 
-    // Initialize FAL client
-    const falKeyId = Deno.env.get('FAL_KEY_ID');
-    const falKey = Deno.env.get('FAL_KEY');
+    // Initialize Replicate client
+    const replicateApiKey = Deno.env.get('REPLICATE_API_TOKEN');
     
-    if (!falKeyId || !falKey) {
-      console.error('FAL AI credentials missing');
+    if (!replicateApiKey) {
+      console.error('Replicate API token missing');
       throw new Error('Image generation service credentials not configured');
     }
 
-    console.log('Configuring FAL AI client with credentials');
-    fal.config({
-      credentials: `${falKeyId}:${falKey}`,
+    const replicate = new Replicate({
+      auth: replicateApiKey,
     });
 
-    console.log('FAL AI client configured successfully');
+    console.log('Replicate client configured successfully');
 
     // Generate images in parallel
     const imagePromises = Array(6).fill(null).map(async (_, index) => {
@@ -60,37 +58,31 @@ export async function handleImagePromptGeneration(
       console.log(`Generating image ${index + 1} with prompt:`, prompt);
 
       try {
-        const result = await fal.subscribe('fal-ai/flux-pro/v1/depth', {
-          input: {
-            prompt,
-            negative_prompt: "text, watermark, logo, low quality, blurry, distorted",
-            num_inference_steps: 50,
-            seed: Math.floor(Math.random() * 1000000),
-          },
-          logs: true,
-          onQueueUpdate: (update) => {
-            if (update.status === "IN_PROGRESS") {
-              update.logs.map((log) => log.message).forEach(console.log);
+        const output = await replicate.run(
+          "stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b",
+          {
+            input: {
+              prompt: prompt,
+              negative_prompt: "text, watermark, logo, low quality, blurry, distorted",
+              num_inference_steps: 50,
+              seed: Math.floor(Math.random() * 1000000),
             }
-          },
-        });
+          }
+        );
 
-        if (!result?.images?.[0]?.url) {
+        if (!output || !Array.isArray(output) || output.length === 0) {
           throw new Error(`Failed to generate image ${index + 1}`);
         }
 
         console.log(`Successfully generated image ${index + 1}`);
         
         return {
-          url: result.images[0].url,
+          url: output[0],
           prompt: prompt,
-          requestId: result.requestId
+          requestId: `replicate-${Date.now()}-${index}`
         };
       } catch (error) {
         console.error(`Error generating image ${index + 1}:`, error);
-        if (error.message.includes('Unauthorized')) {
-          throw new Error('Failed to authenticate with image generation service. Please check credentials.');
-        }
         throw error;
       }
     });
