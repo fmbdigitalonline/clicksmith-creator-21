@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { BusinessIdea, TargetAudience, AdHook, AdFormat, AdImage } from "@/types/adWizard";
-import { useToast } from "@/components/ui/use-toast";
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/components/ui/use-toast";
 import AdFeedbackForm from "./complete/AdFeedbackForm";
 import AdDetails from "./complete/AdDetails";
 import AdVariantGrid from "./complete/AdVariantGrid";
@@ -36,17 +37,28 @@ const CompleteStep = ({
   const generateImages = async () => {
     setIsGenerating(true);
     try {
+      console.log('Generating images with params:', { businessIdea, targetAudience, adHook });
+      
       const { data, error } = await supabase.functions.invoke('generate-ad-content', {
         body: { 
           type: 'images',
           businessIdea,
           targetAudience,
-          adHook,
-          adFormat
+          campaign: {
+            hook: adHook,
+            format: adFormat
+          }
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error generating images:', error);
+        throw error;
+      }
+
+      if (!data?.images) {
+        throw new Error('No images returned from generation');
+      }
 
       setAdImages(data.images);
       toast({
@@ -57,19 +69,13 @@ const CompleteStep = ({
       console.error('Error generating images:', error);
       toast({
         title: "Generation Failed",
-        description: "Failed to generate images. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to generate images. Please try again.",
         variant: "destructive",
       });
     } finally {
       setIsGenerating(false);
     }
   };
-
-  useEffect(() => {
-    if (adImages.length === 0) {
-      generateImages();
-    }
-  }, []);
 
   const handleSaveAndDownload = async () => {
     setIsSaving(true);
@@ -106,6 +112,12 @@ const CompleteStep = ({
       setIsSaving(false);
     }
   };
+
+  useEffect(() => {
+    if (adImages.length === 0) {
+      generateImages();
+    }
+  }, []);
 
   return (
     <div className="space-y-6 md:space-y-8">
