@@ -7,97 +7,61 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-export async function handleImagePromptGeneration(
+export async function generateImages(
   businessIdea: BusinessIdea,
   targetAudience: TargetAudience,
-  campaign: MarketingCampaign,
-  openAIApiKey: string
+  campaign: MarketingCampaign
 ) {
+  console.log('Starting image generation process...');
+  
   try {
-    console.log('Starting image generation with inputs:', { businessIdea, targetAudience, campaign });
-    
-    // Validate inputs
-    if (!businessIdea?.description) {
-      throw new Error('Business idea description is required');
-    }
-    if (!targetAudience?.demographics) {
-      throw new Error('Target audience demographics are required');
-    }
-    if (!campaign?.angles || !Array.isArray(campaign.angles) || campaign.angles.length === 0) {
-      throw new Error('Campaign angles are required and must be a non-empty array');
-    }
-
-    // Initialize Replicate client
-    const replicateApiKey = Deno.env.get('REPLICATE_API_TOKEN');
-    
-    if (!replicateApiKey) {
-      console.error('Replicate API token missing');
-      throw new Error('Image generation service credentials not configured');
-    }
-
     const replicate = new Replicate({
-      auth: replicateApiKey,
+      auth: Deno.env.get('REPLICATE_API_TOKEN'),
     });
 
-    console.log('Replicate client configured successfully');
+    // Create prompts based on business and campaign details
+    const prompts = [
+      `Create a compelling advertisement for ${businessIdea.name}. The ad should showcase ${businessIdea.description} and appeal to ${targetAudience.demographics}. Campaign focus: ${campaign.objective}`,
+      `Design a promotional image for ${businessIdea.name} targeting ${targetAudience.interests}. Highlight ${campaign.uniqueSellingPoint}`,
+      `Generate an engaging ad visual for ${businessIdea.name} that resonates with ${targetAudience.demographics}. Emphasize ${campaign.callToAction}`,
+    ];
+
+    console.log('Generated prompts:', prompts);
 
     // Generate images in parallel
-    const imagePromises = Array(6).fill(null).map(async (_, index) => {
-      const angleIndex = index % campaign.angles.length;
-      const angle = campaign.angles[angleIndex];
+    const imagePromises = prompts.map(async (prompt) => {
+      console.log('Starting generation for prompt:', prompt);
       
-      if (!angle?.description || !angle?.hook) {
-        throw new Error(`Invalid campaign angle at index ${angleIndex}`);
-      }
-
-      const prompt = `Professional Facebook ad showing: ${businessIdea.description}. 
-        Style: ${angle.description}. Message: ${angle.hook}. 
-        Target audience: ${targetAudience.demographics}. 
-        High quality, professional advertising photography, clean composition, 
-        well-lit, modern design, social media optimized`;
-
-      console.log(`Generating image ${index + 1} with prompt:`, prompt);
-
-      try {
-        const output = await replicate.run(
-          "black-forest-labs/flux-1.1-pro-ultra",
-          {
-            input: {
-              prompt: prompt,
-              negative_prompt: "text, watermark, logo, low quality, blurry, distorted",
-              aspect_ratio: "3:2",
-              num_inference_steps: 50,
-              seed: Math.floor(Math.random() * 1000000),
-            }
+      const output = await replicate.run(
+        "black-forest-labs/flux-1.1-pro-ultra",
+        {
+          input: {
+            prompt,
+            aspect_ratio: "3:2",
+            num_inference_steps: 50,
+            guidance_scale: 7.5,
           }
-        );
-
-        if (!output || !Array.isArray(output) || output.length === 0) {
-          throw new Error(`Failed to generate image ${index + 1}`);
         }
+      );
 
-        console.log(`Successfully generated image ${index + 1}`);
-        
-        return {
-          url: output[0],
-          prompt: prompt,
-          requestId: `replicate-${Date.now()}-${index}`
-        };
-      } catch (error) {
-        console.error(`Error generating image ${index + 1}:`, error);
-        throw error;
-      }
+      console.log('Generated image URL:', output);
+      
+      return {
+        url: output,
+        prompt: prompt,
+        metadata: {
+          model: "flux-1.1-pro-ultra",
+          provider: "replicate"
+        }
+      };
     });
 
     const images = await Promise.all(imagePromises);
     console.log('Successfully generated all images');
-
-    return {
-      images,
-      headers: corsHeaders,
-    };
+    
+    return images;
   } catch (error) {
-    console.error('Error in handleImagePromptGeneration:', error);
-    throw error;
+    console.error('Error generating images:', error);
+    throw new Error(`Failed to generate images: ${error.message}`);
   }
 }
