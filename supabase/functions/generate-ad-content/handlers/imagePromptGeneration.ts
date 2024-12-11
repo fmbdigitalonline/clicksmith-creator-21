@@ -41,7 +41,7 @@ Make it:
     const imagePromises = Array(6).fill(null).map(async () => {
       try {
         console.log('Generating image with prompt:', prompt);
-        const result = await fal.subscribe("fal-ai/sana", {
+        const result = await fal.subscribe("fal-ai/flux/dev", {
           input: {
             prompt: prompt,
           },
