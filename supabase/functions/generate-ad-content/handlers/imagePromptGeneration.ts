@@ -60,12 +60,18 @@ export async function handleImagePromptGeneration(
       console.log(`Generating image ${index + 1} with prompt:`, prompt);
 
       try {
-        const result = await fal.subscribe('fal-ai/fast-sdxl', {
+        const result = await fal.subscribe('fal-ai/flux-pro/v1/depth', {
           input: {
             prompt,
             negative_prompt: "text, watermark, logo, low quality, blurry, distorted",
             num_inference_steps: 50,
             seed: Math.floor(Math.random() * 1000000),
+          },
+          logs: true,
+          onQueueUpdate: (update) => {
+            if (update.status === "IN_PROGRESS") {
+              update.logs.map((log) => log.message).forEach(console.log);
+            }
           },
         });
 
@@ -78,6 +84,7 @@ export async function handleImagePromptGeneration(
         return {
           url: result.images[0].url,
           prompt: prompt,
+          requestId: result.requestId
         };
       } catch (error) {
         console.error(`Error generating image ${index + 1}:`, error);
