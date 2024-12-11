@@ -43,7 +43,7 @@ const Navigation = () => {
         <Link to="/" className="mr-6 flex items-center space-x-2">
           <FileText className="h-6 w-6 text-primary animate-pulse" />
           <span className="hidden font-bold sm:inline-block text-xl bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
-            Ad Generator
+            Business Validator
           </span>
         </Link>
 
