@@ -1,5 +1,5 @@
 import { fal } from 'https://esm.sh/@fal-ai/client@1.2.1';
-import { BusinessIdea, TargetAudience, MarketingCampaign } from '../types/adWizard';
+import { BusinessIdea, TargetAudience, MarketingCampaign } from '../types.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
