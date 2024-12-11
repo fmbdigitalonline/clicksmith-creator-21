@@ -10,7 +10,7 @@ const corsHeaders = {
 };
 
 export async function handleImagePromptGeneration(businessIdea: any, targetAudience: any, campaign: any) {
-  console.log('Starting fal.ai image generation...');
+  console.log('Starting fal.ai image generation with sana model...');
   
   if (!falApiKey || !falKeyId) {
     throw new Error('FAL_API_KEY and FAL_KEY_ID environment variables must be set');
@@ -47,13 +47,14 @@ Make it:
     const imagePromises = Array(6).fill(null).map(async () => {
       try {
         console.log('Generating image with prompt:', prompt);
-        const result = await fal.subscribe('fal-ai/fast-sdxl', {
+        const result = await fal.subscribe('fal-ai/sana', {
           input: {
             prompt: prompt,
-            image_size: "square_hd",
+            negative_prompt: "text, watermark, low quality, blurry, distorted",
+            image_size: "square",
             num_inference_steps: 50,
             guidance_scale: 7.5,
-            negative_prompt: "text, watermark, low quality, blurry, distorted",
+            enable_safety_checks: true,
           },
         });
 
