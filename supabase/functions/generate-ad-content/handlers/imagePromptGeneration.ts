@@ -1,11 +1,5 @@
-import { createClient } from 'npm:@supabase/supabase-js';
-import Replicate from 'npm:replicate';
 import { BusinessIdea, TargetAudience, MarketingCampaign } from '../types.ts';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import Replicate from 'npm:replicate';
 
 export async function generateImages(
   businessIdea: BusinessIdea,
