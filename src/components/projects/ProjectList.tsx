@@ -6,6 +6,14 @@ import ProjectCard from "./ProjectCard";
 import CreateProjectDialog from "./CreateProjectDialog";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { Database } from "@/integrations/supabase/types";
+
+type Project = Database['public']['Tables']['projects']['Row'] & {
+  business_idea: {
+    description: string;
+    valueProposition: string;
+  } | null;
+};
 
 const ProjectList = () => {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -28,7 +36,7 @@ const ProjectList = () => {
         return [];
       }
 
-      return data;
+      return data as Project[];
     },
   });
 
