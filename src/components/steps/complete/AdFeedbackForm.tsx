@@ -1,7 +1,6 @@
 import { Textarea } from "@/components/ui/textarea";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
-import { Star } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ThumbsUp, ThumbsDown } from "lucide-react";
 
 interface AdFeedbackFormProps {
   rating: string;
@@ -19,20 +18,24 @@ const AdFeedbackForm = ({
   return (
     <div>
       <h3 className="text-lg font-medium mb-4">Provide Feedback</h3>
-      <RadioGroup
-        value={rating}
-        onValueChange={onRatingChange}
-        className="flex space-x-4 mb-4"
-      >
-        {[1, 2, 3, 4, 5].map((value) => (
-          <div key={value} className="flex items-center space-x-2">
-            <RadioGroupItem value={value.toString()} id={`rating-${value}`} />
-            <Label htmlFor={`rating-${value}`} className="flex items-center gap-1">
-              {value} <Star className="w-4 h-4" />
-            </Label>
-          </div>
-        ))}
-      </RadioGroup>
+      <div className="flex space-x-4 mb-4">
+        <Button
+          variant={rating === "1" ? "default" : "outline"}
+          onClick={() => onRatingChange("1")}
+          className="flex-1"
+        >
+          <ThumbsUp className="w-4 h-4 mr-2" />
+          Like
+        </Button>
+        <Button
+          variant={rating === "0" ? "default" : "outline"}
+          onClick={() => onRatingChange("0")}
+          className="flex-1"
+        >
+          <ThumbsDown className="w-4 h-4 mr-2" />
+          Dislike
+        </Button>
+      </div>
       <Textarea
         placeholder="Share your thoughts about the generated ads..."
         value={feedback}
