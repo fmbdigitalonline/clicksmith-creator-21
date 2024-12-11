@@ -1,5 +1,5 @@
 export async function handleHookGeneration(businessIdea: any, targetAudience: any, openAIApiKey: string) {
-  const prompt = `Generate marketing angles and hooks for this business and target audience:
+  const prompt = `Generate compelling marketing angles and hooks for this business and target audience:
 
 Business:
 ${businessIdea.description}
@@ -14,16 +14,18 @@ Core Message: ${targetAudience.coreMessage}
 Deep Pain Points: ${targetAudience.audienceAnalysis?.deepPainPoints?.join(', ') || 'Not available'}
 
 Create exactly 10 different marketing angles and hooks, each specifically addressing one of the deep pain points identified in the audience analysis. Each hook should:
-1. Directly reference the pain point
-2. Connect it to the business's value proposition
-3. Create an emotional connection
+1. Have a clear marketing angle that resonates with the target audience
+2. Include a compelling hook that grabs attention
+3. Connect emotionally with the audience's pain points
 4. Include a clear call to action
 
 Format your response as a valid JSON array with exactly 10 objects, each containing:
 {
-  "text": "The hook text",
-  "description": "The marketing angle explanation"
-}`;
+  "text": "The actual hook text that will be shown in the ad",
+  "description": "A brief, compelling marketing angle that explains the emotional appeal"
+}
+
+Make sure each hook is written in a marketing voice, ready to be used in an ad, and focuses on benefits and solutions rather than explanations.`;
 
   try {
     console.log('Sending prompt to OpenAI:', prompt);
@@ -39,11 +41,11 @@ Format your response as a valid JSON array with exactly 10 objects, each contain
         messages: [
           {
             role: 'system',
-            content: 'You are a marketing expert that generates hooks and marketing angles based on deep audience insights and pain points.'
+            content: 'You are an expert marketing copywriter that creates compelling hooks and marketing angles that convert. You write in a persuasive, emotional, and benefit-focused style.'
           },
           { role: 'user', content: prompt }
         ],
-        temperature: 0.7,
+        temperature: 0.8,
         max_tokens: 2000,
       }),
     });
