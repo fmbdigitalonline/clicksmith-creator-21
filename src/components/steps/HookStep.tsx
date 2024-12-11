@@ -32,11 +32,17 @@ const HookStep = ({
   const generateHooks = async () => {
     setIsGenerating(true);
     try {
+      // Include audienceAnalysis in the targetAudience object
+      const enrichedTargetAudience = {
+        ...targetAudience,
+        audienceAnalysis: targetAudience.audienceAnalysis
+      };
+
       const { data, error } = await supabase.functions.invoke('generate-ad-content', {
         body: { 
           type: 'hooks',
           businessIdea,
-          targetAudience
+          targetAudience: enrichedTargetAudience
         }
       });
 
@@ -46,7 +52,7 @@ const HookStep = ({
         setHooks(data.hooks);
         toast({
           title: "Hooks Generated!",
-          description: "New ad hooks have been generated based on your business and audience.",
+          description: "New ad hooks have been generated based on your audience's deep pain points.",
         });
       } else {
         throw new Error('Invalid hooks data received');
@@ -72,7 +78,7 @@ const HookStep = ({
     return (
       <div className="flex flex-col items-center justify-center py-12">
         <Loader2 className="w-8 h-8 animate-spin text-facebook mb-4" />
-        <p className="text-gray-600">Generating marketing hooks...</p>
+        <p className="text-gray-600">Generating marketing hooks based on audience insights...</p>
       </div>
     );
   }
@@ -105,7 +111,7 @@ const HookStep = ({
       <div>
         <h2 className="text-xl md:text-2xl font-semibold mb-2">Marketing Angles & Hooks</h2>
         <p className="text-gray-600">
-          Select a compelling angle and hook combination that will grab your audience's attention.
+          Select a compelling angle and hook combination that addresses your audience's deep pain points.
         </p>
       </div>
 

@@ -11,8 +11,13 @@ Description: ${targetAudience.description}
 Demographics: ${targetAudience.demographics}
 Pain Points: ${targetAudience.painPoints.join(', ')}
 Core Message: ${targetAudience.coreMessage}
+Deep Pain Points: ${targetAudience.audienceAnalysis?.deepPainPoints?.join(', ') || 'Not available'}
 
-Create exactly 10 different marketing angles with associated hooks. Each marketing angle should be a brief, clear sentence explaining the approach, and each hook should be short, concise, and impactful, directly addressing the target audience.
+Create exactly 10 different marketing angles and hooks, each specifically addressing one of the deep pain points identified in the audience analysis. Each hook should:
+1. Directly reference the pain point
+2. Connect it to the business's value proposition
+3. Create an emotional connection
+4. Include a clear call to action
 
 Format your response as a valid JSON array with exactly 10 objects, each containing:
 {
@@ -34,7 +39,7 @@ Format your response as a valid JSON array with exactly 10 objects, each contain
         messages: [
           {
             role: 'system',
-            content: 'You are a marketing expert that generates hooks and marketing angles. Always return exactly 10 objects in a valid JSON array format.'
+            content: 'You are a marketing expert that generates hooks and marketing angles based on deep audience insights and pain points.'
           },
           { role: 'user', content: prompt }
         ],
