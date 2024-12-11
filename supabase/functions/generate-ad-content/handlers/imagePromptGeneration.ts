@@ -1,5 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
 
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
 export async function handleImagePromptGeneration(businessIdea: any, targetAudience: any, campaign: any, openAIApiKey: string) {
   console.log('Starting image prompt generation...');
   
@@ -64,38 +66,56 @@ Create exactly 6 different prompts that would work well for Facebook ads:
       throw new Error('Failed to generate exactly 6 prompts');
     }
 
-    // Generate images using DALL-E
-    console.log('Generating images with DALL-E...');
+    // Generate images using DALL-E with retry logic
+    const maxRetries = 3;
     const images = await Promise.all(
       prompts.map(async (prompt) => {
         console.log('Generating image for prompt:', prompt);
         
-        const imageResponse = await fetch('https://api.openai.com/v1/images/generations', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${openAIApiKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: "dall-e-2",
-            prompt: prompt,
-            n: 1,
-            size: "1024x1024",
-            response_format: "url"
-          }),
-        });
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+          try {
+            const imageResponse = await fetch('https://api.openai.com/v1/images/generations', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${openAIApiKey}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                model: "dall-e-2",
+                prompt: prompt,
+                n: 1,
+                size: "1024x1024",
+                response_format: "url"
+              }),
+            });
 
-        if (!imageResponse.ok) {
-          const error = await imageResponse.text();
-          console.error('DALL-E API error:', error);
-          throw new Error(`DALL-E API error: ${error}`);
+            if (!imageResponse.ok) {
+              const error = await imageResponse.text();
+              console.error(`DALL-E API error (attempt ${attempt}/${maxRetries}):`, error);
+              
+              if (attempt === maxRetries) {
+                throw new Error(`DALL-E API error after ${maxRetries} attempts: ${error}`);
+              }
+              
+              // Wait before retrying, with exponential backoff
+              await sleep(Math.pow(2, attempt) * 1000);
+              continue;
+            }
+
+            const imageData = await imageResponse.json();
+            console.log(`Successfully generated image on attempt ${attempt}`);
+            return {
+              url: imageData.data[0].url,
+              prompt: prompt,
+            };
+          } catch (error) {
+            if (attempt === maxRetries) {
+              throw error;
+            }
+            console.error(`Attempt ${attempt}/${maxRetries} failed:`, error);
+            await sleep(Math.pow(2, attempt) * 1000);
+          }
         }
-
-        const imageData = await imageResponse.json();
-        return {
-          url: imageData.data[0].url,
-          prompt: prompt,
-        };
       })
     );
 
