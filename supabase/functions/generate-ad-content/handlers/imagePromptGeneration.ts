@@ -89,18 +89,11 @@ Style requirements:
     const imagePromises = prompts.map(async (prompt) => {
       try {
         const output = await replicate.run(
-          "stability-ai/sdxl",
+          "black-forest-labs/flux-1.1-pro-ultra",
           {
             input: {
               prompt,
-              width: 1024,
-              height: 1024,
-              num_outputs: 1,
-              scheduler: "K_EULER",
-              num_inference_steps: 50,
-              guidance_scale: 7.5,
-              refine: "expert_ensemble_refiner",
-              high_noise_frac: 0.8,
+              aspect_ratio: "16:9", // Facebook ad aspect ratio
             }
           }
         );
@@ -108,7 +101,7 @@ Style requirements:
         console.log('Generated image URL:', output);
         
         return {
-          url: output[0],
+          url: output,
           prompt: prompt,
         };
       } catch (error) {
