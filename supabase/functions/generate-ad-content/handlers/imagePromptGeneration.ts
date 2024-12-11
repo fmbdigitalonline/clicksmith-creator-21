@@ -1,6 +1,5 @@
-import { createClient } from 'npm:@supabase/supabase-js';
-import Replicate from 'npm:replicate';
 import { BusinessIdea, TargetAudience, MarketingCampaign } from '../types.ts';
+import Replicate from 'npm:replicate';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -19,6 +18,10 @@ export async function generateImages(
       auth: Deno.env.get('REPLICATE_API_TOKEN'),
     });
 
+    if (!Deno.env.get('REPLICATE_API_TOKEN')) {
+      throw new Error('REPLICATE_API_TOKEN is not set');
+    }
+
     // Create prompts based on business and campaign details
     const prompts = [
       `Create a compelling advertisement for ${businessIdea.name}. The ad should showcase ${businessIdea.description} and appeal to ${targetAudience.demographics}. Campaign focus: ${campaign.objective}`,
@@ -33,11 +36,14 @@ export async function generateImages(
       console.log('Starting generation for prompt:', prompt);
       
       const output = await replicate.run(
-        "black-forest-labs/flux-1.1-pro-ultra",
+        "stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b",
         {
           input: {
             prompt,
-            aspect_ratio: "3:2",
+            width: 1024,
+            height: 1024,
+            num_outputs: 1,
+            scheduler: "K_EULER",
             num_inference_steps: 50,
             guidance_scale: 7.5,
           }
@@ -47,10 +53,10 @@ export async function generateImages(
       console.log('Generated image URL:', output);
       
       return {
-        url: output,
+        url: Array.isArray(output) ? output[0] : output,
         prompt: prompt,
         metadata: {
-          model: "flux-1.1-pro-ultra",
+          model: "sdxl",
           provider: "replicate"
         }
       };
