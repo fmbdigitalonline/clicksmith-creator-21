@@ -13,7 +13,7 @@ import StepNavigation from "./complete/StepNavigation";
 interface CompleteStepProps {
   businessIdea: BusinessIdea;
   targetAudience: TargetAudience;
-  adHook: AdHook;
+  adHooks: AdHook[];
   adFormat: AdFormat;
   onStartOver: () => void;
   onBack: () => void;
@@ -22,7 +22,7 @@ interface CompleteStepProps {
 const CompleteStep = ({
   businessIdea,
   targetAudience,
-  adHook,
+  adHooks,
   adFormat,
   onStartOver,
   onBack,
@@ -37,7 +37,7 @@ const CompleteStep = ({
   const generateImages = async () => {
     setIsGenerating(true);
     try {
-      console.log('Generating images with params:', { businessIdea, targetAudience, adHook });
+      console.log('Generating images with params:', { businessIdea, targetAudience, adHooks });
       
       const { data, error } = await supabase.functions.invoke('generate-ad-content', {
         body: { 
@@ -45,7 +45,7 @@ const CompleteStep = ({
           businessIdea,
           targetAudience,
           campaign: {
-            hook: adHook,
+            hooks: adHooks,
             format: adFormat
           }
         }
@@ -147,7 +147,7 @@ const CompleteStep = ({
         <>
           <AdVariantGrid
             adImages={adImages}
-            adHook={adHook}
+            adHooks={adHooks}
             businessIdea={businessIdea}
           />
 

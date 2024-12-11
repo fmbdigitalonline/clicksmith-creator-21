@@ -14,7 +14,6 @@ import {
   AudienceAnalysis,
   AdFormat,
   AdHook,
-  AdImage,
 } from "@/types/adWizard";
 
 const AdWizard = () => {
@@ -23,7 +22,7 @@ const AdWizard = () => {
   const [targetAudience, setTargetAudience] = useState<TargetAudience | null>(null);
   const [audienceAnalysis, setAudienceAnalysis] = useState<AudienceAnalysis | null>(null);
   const [adFormat, setAdFormat] = useState<AdFormat | null>(null);
-  const [adHook, setAdHook] = useState<AdHook | null>(null);
+  const [selectedHooks, setSelectedHooks] = useState<AdHook[]>([]);
 
   const handleIdeaSubmit = (idea: BusinessIdea) => {
     setBusinessIdea(idea);
@@ -40,8 +39,8 @@ const AdWizard = () => {
     setCurrentStep(4);
   };
 
-  const handleHookSelect = (hook: AdHook) => {
-    setAdHook(hook);
+  const handleHookSelect = (hooks: AdHook[]) => {
+    setSelectedHooks(hooks);
     setCurrentStep(5);
   };
 
@@ -59,7 +58,7 @@ const AdWizard = () => {
     setTargetAudience(null);
     setAudienceAnalysis(null);
     setAdFormat(null);
-    setAdHook(null);
+    setSelectedHooks([]);
     setCurrentStep(1);
   };
 
@@ -69,8 +68,8 @@ const AdWizard = () => {
       case 2: return !!businessIdea;
       case 3: return !!businessIdea && !!targetAudience;
       case 4: return !!businessIdea && !!targetAudience && !!audienceAnalysis;
-      case 5: return !!businessIdea && !!targetAudience && !!audienceAnalysis && !!adHook;
-      case 6: return !!businessIdea && !!targetAudience && !!audienceAnalysis && !!adHook && !!adFormat;
+      case 5: return !!businessIdea && !!targetAudience && !!audienceAnalysis && selectedHooks.length > 0;
+      case 6: return !!businessIdea && !!targetAudience && !!audienceAnalysis && selectedHooks.length > 0 && !!adFormat;
       default: return false;
     }
   };
@@ -120,18 +119,18 @@ const AdWizard = () => {
         />
       )}
 
-      {currentStep === 5 && businessIdea && targetAudience && audienceAnalysis && adHook && (
+      {currentStep === 5 && businessIdea && targetAudience && audienceAnalysis && selectedHooks.length > 0 && (
         <AdSizeStep
           onNext={handleFormatSelect}
           onBack={handleBack}
         />
       )}
 
-      {currentStep === 6 && businessIdea && targetAudience && adFormat && adHook && (
+      {currentStep === 6 && businessIdea && targetAudience && adFormat && selectedHooks.length > 0 && (
         <CompleteStep
           businessIdea={businessIdea}
           targetAudience={targetAudience}
-          adHook={adHook}
+          adHooks={selectedHooks}
           adFormat={adFormat}
           onStartOver={handleStartOver}
           onBack={handleBack}
