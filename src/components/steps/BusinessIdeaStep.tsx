@@ -41,15 +41,15 @@ const BusinessIdeaStep = ({
           className="bg-facebook hover:bg-facebook/90 text-white w-full md:w-auto"
           size="lg"
         >
-          Next Step
+          Analyze My Idea
           <ArrowRight className="ml-2 h-5 w-5" />
         </Button>
       </div>
 
       <div>
-        <h2 className="text-xl md:text-2xl font-semibold mb-2">Tell us about your business</h2>
+        <h2 className="text-xl md:text-2xl font-semibold mb-2">Describe Your Business Concept</h2>
         <p className="text-gray-600">
-          Describe your product or service, and we'll help you create compelling ads.
+          Share your business idea and we'll help you validate it through targeted market testing.
         </p>
       </div>
 
@@ -59,12 +59,12 @@ const BusinessIdeaStep = ({
             <Lightbulb className="w-6 h-6 text-facebook" />
           </div>
           <div>
-            <h3 className="font-medium mb-2">Tips for a great description:</h3>
+            <h3 className="font-medium mb-2">Tips for effective validation:</h3>
             <ul className="list-disc list-inside text-sm text-gray-600 space-y-1">
-              <li>Focus on the main benefits of your product/service</li>
-              <li>Mention what makes you unique</li>
-              <li>Include your target market</li>
-              <li>Keep it clear and concise</li>
+              <li>Describe your unique value proposition</li>
+              <li>Highlight the problem you're solving</li>
+              <li>Mention your initial target market hypothesis</li>
+              <li>Include any competitive advantages</li>
             </ul>
           </div>
         </div>
@@ -72,7 +72,7 @@ const BusinessIdeaStep = ({
 
       <div className="space-y-4">
         <Textarea
-          placeholder="e.g., I'm launching a mobile app that helps people track their daily water intake and stay hydrated. It features smart reminders, progress tracking, and personalized recommendations..."
+          placeholder="e.g., I'm developing a mobile app that helps small business owners automate their social media marketing. It uses AI to generate content and schedule posts based on industry trends..."
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           className="min-h-[150px] text-base"
