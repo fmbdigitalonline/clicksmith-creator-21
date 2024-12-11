@@ -14,6 +14,7 @@ export type TargetAudience = {
   marketingAngle: string;
   messagingApproach: string;
   marketingChannels: string[];
+  audienceAnalysis?: AudienceAnalysis;
 };
 
 export type AudienceAnalysis = {
