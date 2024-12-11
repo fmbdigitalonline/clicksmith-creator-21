@@ -24,9 +24,9 @@ export async function generateImages(
 
     // Create prompts based on business and campaign details
     const prompts = [
-      `Create a compelling advertisement for ${businessIdea.name}. The ad should showcase ${businessIdea.description} and appeal to ${targetAudience.demographics}. Campaign focus: ${campaign.objective}`,
-      `Design a promotional image for ${businessIdea.name} targeting ${targetAudience.interests}. Highlight ${campaign.uniqueSellingPoint}`,
-      `Generate an engaging ad visual for ${businessIdea.name} that resonates with ${targetAudience.demographics}. Emphasize ${campaign.callToAction}`,
+      `Create a compelling advertisement for ${businessIdea.description}. The ad should showcase ${businessIdea.valueProposition} and appeal to ${targetAudience.demographics}. Style: Modern, professional Facebook ad.`,
+      `Design a promotional Facebook ad for ${businessIdea.description} targeting ${targetAudience.painPoints.join(', ')}. Focus on: ${businessIdea.valueProposition}. Style: Clean, engaging social media ad.`,
+      `Generate an engaging Facebook ad visual that resonates with ${targetAudience.demographics}. Product: ${businessIdea.description}. Key message: ${businessIdea.valueProposition}. Style: Contemporary social media advertisement.`,
     ];
 
     console.log('Generated prompts:', prompts);
@@ -46,6 +46,7 @@ export async function generateImages(
             scheduler: "K_EULER",
             num_inference_steps: 50,
             guidance_scale: 7.5,
+            negative_prompt: "text, watermark, logo, label, poor quality, blurry, distorted"
           }
         }
       );
