@@ -1,12 +1,17 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import Replicate from 'https://esm.sh/replicate@0.25.1';
+import Replicate from 'replicate';
+import { BusinessIdea, TargetAudience, MarketingCampaign } from '../types';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-export async function handleImagePromptGeneration(businessIdea: any, targetAudience: any, campaign: any, openAIApiKey: string) {
+export async function handleImagePromptGeneration(
+  businessIdea: BusinessIdea,
+  targetAudience: TargetAudience,
+  campaign: MarketingCampaign,
+  openAIApiKey: string
+) {
   console.log('Starting image prompt generation with Replicate...');
   
   const replicateApiToken = Deno.env.get('REPLICATE_API_TOKEN');
