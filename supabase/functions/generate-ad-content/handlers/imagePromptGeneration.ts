@@ -32,7 +32,7 @@ Make it:
 
   try {
     // Initialize fal client with credentials
-    fal.config({
+    const falClient = new fal.Client({
       credentials: {
         keyId: falKeyId,
         keySecret: falApiKey,
@@ -43,7 +43,7 @@ Make it:
     const imagePromises = Array(6).fill(null).map(async () => {
       try {
         console.log('Generating image with prompt:', prompt);
-        const result = await fal.subscribe('fal-ai/sana', {
+        const result = await falClient.subscribe('fal-ai/sana', {
           input: {
             prompt: prompt,
             negative_prompt: "text, watermark, low quality, blurry, distorted",
