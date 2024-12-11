@@ -31,16 +31,18 @@ export async function handleImagePromptGeneration(
     const falKey = Deno.env.get('FAL_KEY');
     
     if (!falKeyId || !falKey) {
-      throw new Error('FAL AI credentials not configured');
+      console.error('FAL AI credentials missing');
+      throw new Error('Image generation service credentials not configured');
     }
 
+    console.log('Configuring FAL AI client with credentials');
     fal.config({
       credentials: `${falKeyId}:${falKey}`,
     });
 
-    console.log('FAL AI client configured');
+    console.log('FAL AI client configured successfully');
 
-    // Generate 6 images in parallel
+    // Generate images in parallel
     const imagePromises = Array(6).fill(null).map(async (_, index) => {
       const angleIndex = index % campaign.angles.length;
       const angle = campaign.angles[angleIndex];
@@ -79,6 +81,9 @@ export async function handleImagePromptGeneration(
         };
       } catch (error) {
         console.error(`Error generating image ${index + 1}:`, error);
+        if (error.message.includes('Unauthorized')) {
+          throw new Error('Failed to authenticate with image generation service. Please check credentials.');
+        }
         throw error;
       }
     });
