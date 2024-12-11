@@ -5,7 +5,6 @@ import { BusinessIdea, TargetAudience, AdHook, AdFormat, AdImage } from "@/types
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
-import AdFeedbackForm from "./complete/AdFeedbackForm";
 import AdDetails from "./complete/AdDetails";
 import AdVariantGrid from "./complete/AdVariantGrid";
 import StepNavigation from "./complete/StepNavigation";
@@ -29,9 +28,6 @@ const CompleteStep = ({
 }: CompleteStepProps) => {
   const [adImages, setAdImages] = useState<AdImage[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [rating, setRating] = useState<string>("");
-  const [feedback, setFeedback] = useState("");
-  const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
 
   const generateImages = async () => {
@@ -77,42 +73,6 @@ const CompleteStep = ({
     }
   };
 
-  const handleSaveAndDownload = async () => {
-    setIsSaving(true);
-    try {
-      const { error: feedbackError } = await supabase.from('ad_feedback').insert({
-        rating: parseInt(rating),
-        feedback,
-        saved_images: adImages
-      });
-
-      if (feedbackError) throw feedbackError;
-
-      adImages.forEach((image, index) => {
-        const link = document.createElement('a');
-        link.href = image.url;
-        link.download = `ad-variant-${index + 1}.jpg`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      });
-
-      toast({
-        title: "Success!",
-        description: "Your feedback has been saved and images downloaded.",
-      });
-    } catch (error) {
-      console.error('Error saving feedback:', error);
-      toast({
-        title: "Error",
-        description: "Failed to save feedback or download images.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
   useEffect(() => {
     if (adImages.length === 0) {
       generateImages();
@@ -124,15 +84,12 @@ const CompleteStep = ({
       <StepNavigation
         onBack={onBack}
         onStartOver={onStartOver}
-        onSaveAndDownload={handleSaveAndDownload}
-        disabled={adImages.length === 0 || !rating}
-        isSaving={isSaving}
       />
 
       <div>
         <h2 className="text-xl md:text-2xl font-semibold mb-2">Your Ad Variants</h2>
         <p className="text-gray-600">
-          Review your generated ad variants, provide feedback, and download them for use.
+          Review your generated ad variants, provide feedback, and save or download them for use.
         </p>
       </div>
 
@@ -152,13 +109,7 @@ const CompleteStep = ({
           />
 
           <Card className="bg-gray-50">
-            <div className="p-6 space-y-6">
-              <AdFeedbackForm
-                rating={rating}
-                feedback={feedback}
-                onRatingChange={setRating}
-                onFeedbackChange={setFeedback}
-              />
+            <div className="p-6">
               <AdDetails
                 adFormat={adFormat}
                 targetAudience={targetAudience}
