@@ -1,5 +1,38 @@
 import Replicate from 'https://esm.sh/replicate@0.25.1';
-import { BusinessIdea, TargetAudience, MarketingCampaign } from '../types';
+
+interface BusinessIdea {
+  description: string;
+  valueProposition: string;
+}
+
+interface TargetAudience {
+  name: string;
+  description: string;
+  demographics: string;
+  painPoints: string[];
+  icp: string;
+  coreMessage: string;
+  positioning: string;
+  marketingAngle: string;
+  messagingApproach: string;
+  marketingChannels: string[];
+}
+
+interface MarketingCampaign {
+  hooks: Array<{
+    text: string;
+    description: string;
+  }>;
+  format: {
+    format: string;
+    dimensions: {
+      width: number;
+      height: number;
+    };
+    aspectRatio: string;
+    description: string;
+  };
+}
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
