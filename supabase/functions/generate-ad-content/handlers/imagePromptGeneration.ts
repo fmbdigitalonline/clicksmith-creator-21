@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import * as fal from 'npm:@fal-ai/serverless-client';
+import { fal } from "npm:@fal-ai/serverless-client";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -28,7 +28,7 @@ Make it:
   console.log('Generated prompt:', prompt);
 
   try {
-    // Configure fal client
+    // Set up fal.ai credentials
     fal.config({
       credentials: {
         keyId: Deno.env.get('FAL_KEY_ID'),
@@ -48,6 +48,12 @@ Make it:
             num_inference_steps: 50,
             guidance_scale: 7.5,
             enable_safety_checks: true,
+          },
+          logs: true,
+          onQueueUpdate: (update) => {
+            if (update.status === "IN_PROGRESS") {
+              update.logs?.map((log) => log.message).forEach(console.log);
+            }
           },
         });
 
