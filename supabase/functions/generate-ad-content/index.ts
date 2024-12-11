@@ -23,9 +23,14 @@ serve(async (req) => {
 
     const { type, businessIdea, targetAudience, audienceAnalysis, campaign } = await req.json();
     const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+    const replicateApiToken = Deno.env.get('REPLICATE_API_TOKEN');
 
     if (!openAIApiKey) {
       throw new Error('OpenAI API key not found');
+    }
+
+    if (!replicateApiToken && type === 'images') {
+      throw new Error('Replicate API token not found');
     }
 
     if (!type) {
@@ -55,6 +60,7 @@ serve(async (req) => {
           throw new Error('Business idea and target audience are required for hook generation');
         result = await handleHookGeneration(businessIdea, targetAudience, openAIApiKey);
         break;
+      
       case 'images':
         if (!businessIdea || !targetAudience || !campaign) 
           throw new Error('Business idea, target audience, and campaign are required for image generation');
