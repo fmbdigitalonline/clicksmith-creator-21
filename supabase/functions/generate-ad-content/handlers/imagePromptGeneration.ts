@@ -56,7 +56,10 @@ export async function handleImagePromptGeneration(
     auth: replicateApiToken,
   });
 
-  const basePrompt = `Generate a professional Facebook ad image for this business:
+  const basePrompt = `Generate a professional Facebook ad image that captures this marketing message:
+${campaign.hooks.map(hook => hook.description).join('\n')}
+
+Business Context:
 ${businessIdea.description}
 Value Proposition: ${businessIdea.valueProposition}
 
@@ -75,15 +78,18 @@ Style requirements:
 - Negative prompt: text, words, letters, watermarks, logos`;
 
   try {
-    // Generate 6 different prompts with slight variations
-    const prompts = [
-      `${basePrompt}\nFocus on the main product/service, without any text or labels.`,
-      `${basePrompt}\nShow the target audience using the product/service, avoiding any text elements.`,
-      `${basePrompt}\nHighlight the key benefit or outcome, keeping the image clean without text.`,
-      `${basePrompt}\nCreate an emotional connection through lifestyle imagery, no text overlay.`,
-      `${basePrompt}\nDemonstrate the problem being solved, purely through visuals.`,
-      `${basePrompt}\nShowcase the unique selling proposition through imagery only.`,
-    ];
+    // Generate prompts based on each selected hook
+    const prompts = campaign.hooks.map(hook => {
+      return `${basePrompt}\nCreate a visual representation of this hook: "${hook.description}" without using any text, focusing on emotional and visual storytelling.`;
+    });
+
+    // If we have less than 6 prompts, add some variations
+    while (prompts.length < 6) {
+      const randomHook = campaign.hooks[Math.floor(Math.random() * campaign.hooks.length)];
+      prompts.push(
+        `${basePrompt}\nCreate an alternative visual interpretation of: "${randomHook.description}" focusing on the emotional impact and avoiding any text elements.`
+      );
+    }
 
     console.log('Generating images with prompts:', prompts);
 
