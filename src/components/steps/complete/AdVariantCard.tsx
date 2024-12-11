@@ -37,17 +37,21 @@ const AdVariantCard = ({ image, hook, index }: AdVariantCardProps) => {
         throw new Error('User must be logged in to save feedback');
       }
 
+      // Convert rating to number before saving
+      const numericRating = parseInt(rating, 10);
+      
       const { error: feedbackError } = await supabase
         .from('ad_feedback')
         .insert({
           user_id: user.id,
-          rating: parseInt(rating),
+          rating: numericRating,
           feedback,
           saved_images: [image]
         });
 
       if (feedbackError) throw feedbackError;
 
+      // Download image after successful save
       const link = document.createElement('a');
       link.href = image.url;
       link.download = `ad-variant-${index + 1}.jpg`;
