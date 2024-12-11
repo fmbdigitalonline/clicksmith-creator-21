@@ -2,9 +2,10 @@ import { useState } from "react";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Edit2, Trash2 } from "lucide-react";
+import { Edit2, Trash2, PlayCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,6 +24,13 @@ interface Project {
   description: string | null;
   tags: string[];
   status: string;
+  business_idea?: {
+    description: string;
+    valueProposition: string;
+  };
+  target_audience?: any;
+  audience_analysis?: any;
+  marketing_campaign?: any;
 }
 
 interface ProjectCardProps {
@@ -34,6 +42,7 @@ const ProjectCard = ({ project, onUpdate }: ProjectCardProps) => {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const handleDelete = async () => {
     const { error } = await supabase
@@ -57,18 +66,34 @@ const ProjectCard = ({ project, onUpdate }: ProjectCardProps) => {
     onUpdate();
   };
 
+  const getValidationProgress = () => {
+    let progress = 0;
+    if (project.business_idea) progress += 25;
+    if (project.target_audience) progress += 25;
+    if (project.audience_analysis) progress += 25;
+    if (project.marketing_campaign) progress += 25;
+    return progress;
+  };
+
+  const getStatusColor = () => {
+    const progress = getValidationProgress();
+    if (progress === 100) return "success";
+    if (progress > 50) return "warning";
+    return "secondary";
+  };
+
   return (
     <>
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <span>{project.title}</span>
-            <Badge variant="outline">{project.status}</Badge>
+            <Badge variant={getStatusColor()}>{`${getValidationProgress()}% Validated`}</Badge>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground">
-            {project.description || "No description provided"}
+          <p className="text-sm text-muted-foreground mb-4">
+            {project.business_idea?.description || project.description || "No description provided"}
           </p>
           {project.tags && project.tags.length > 0 && (
             <div className="mt-4 flex flex-wrap gap-2">
@@ -95,6 +120,14 @@ const ProjectCard = ({ project, onUpdate }: ProjectCardProps) => {
           >
             <Trash2 className="h-4 w-4" />
           </Button>
+          <Button
+            variant="default"
+            className="gap-2"
+            onClick={() => navigate(`/ad-wizard/${project.id}`)}
+          >
+            <PlayCircle className="h-4 w-4" />
+            Continue Validation
+          </Button>
         </CardFooter>
       </Card>
 
@@ -104,7 +137,7 @@ const ProjectCard = ({ project, onUpdate }: ProjectCardProps) => {
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
               This action cannot be undone. This will permanently delete your
-              project and remove all associated data.
+              validation project and remove all associated data.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -17,6 +17,7 @@ const projectSchema = z.object({
   title: z.string().min(1, "Title is required"),
   description: z.string().optional(),
   tags: z.string().optional(),
+  businessIdea: z.string().min(10, "Please provide more details about your business idea"),
 });
 
 export type ProjectFormData = z.infer<typeof projectSchema>;
@@ -33,6 +34,7 @@ const ProjectForm = ({ onSubmit, onCancel }: ProjectFormProps) => {
       title: "",
       description: "",
       tags: "",
+      businessIdea: "",
     },
   });
 
@@ -44,9 +46,26 @@ const ProjectForm = ({ onSubmit, onCancel }: ProjectFormProps) => {
           name="title"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Title</FormLabel>
+              <FormLabel>Project Title</FormLabel>
               <FormControl>
-                <Input placeholder="Project title" {...field} />
+                <Input placeholder="Enter a name for your validation project" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="businessIdea"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Business Idea</FormLabel>
+              <FormControl>
+                <Textarea
+                  placeholder="Describe your business idea in detail..."
+                  {...field}
+                  rows={4}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -57,10 +76,10 @@ const ProjectForm = ({ onSubmit, onCancel }: ProjectFormProps) => {
           name="description"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Description</FormLabel>
+              <FormLabel>Additional Notes</FormLabel>
               <FormControl>
                 <Textarea
-                  placeholder="Project description"
+                  placeholder="Any additional notes about your project"
                   {...field}
                   rows={3}
                 />

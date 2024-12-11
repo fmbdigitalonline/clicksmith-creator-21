@@ -53,6 +53,10 @@ const CreateProjectDialog = ({
       tags,
       user_id: userId,
       status: "draft",
+      business_idea: {
+        description: values.businessIdea,
+        valueProposition: `Enhanced version of: ${values.businessIdea}`,
+      },
     }).select();
 
     if (error) {
@@ -98,12 +102,12 @@ const CreateProjectDialog = ({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
-            {showActions ? "What's next?" : "Create New Project"}
+            {showActions ? "What's next?" : "Create New Validation Project"}
           </DialogTitle>
           <DialogDescription>
             {showActions 
               ? "Choose your next action for the project"
-              : "Create a new project to start generating ads"
+              : "Start validating your business idea through market testing"
             }
           </DialogDescription>
         </DialogHeader>
