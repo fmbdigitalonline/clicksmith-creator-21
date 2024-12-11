@@ -13,9 +13,20 @@ export async function handleImagePromptGeneration(
   openAIApiKey: string
 ) {
   try {
-    console.log('Starting image generation with FAL AI');
+    console.log('Starting image generation with inputs:', { businessIdea, targetAudience, campaign });
     
-    // Initialize FAL client with credentials from environment
+    // Validate inputs
+    if (!businessIdea?.description) {
+      throw new Error('Business idea description is required');
+    }
+    if (!targetAudience?.demographics) {
+      throw new Error('Target audience demographics are required');
+    }
+    if (!campaign?.angles || !Array.isArray(campaign.angles) || campaign.angles.length === 0) {
+      throw new Error('Campaign angles are required and must be a non-empty array');
+    }
+
+    // Initialize FAL client
     const falKeyId = Deno.env.get('FAL_KEY_ID');
     const falKey = Deno.env.get('FAL_KEY');
     
@@ -31,10 +42,15 @@ export async function handleImagePromptGeneration(
 
     // Generate 6 images in parallel
     const imagePromises = Array(6).fill(null).map(async (_, index) => {
-      const hook = campaign.angles[index % campaign.angles.length];
+      const angleIndex = index % campaign.angles.length;
+      const angle = campaign.angles[angleIndex];
       
+      if (!angle?.description || !angle?.hook) {
+        throw new Error(`Invalid campaign angle at index ${angleIndex}`);
+      }
+
       const prompt = `Professional Facebook ad showing: ${businessIdea.description}. 
-        Style: ${hook.description}. Message: ${hook.hook}. 
+        Style: ${angle.description}. Message: ${angle.hook}. 
         Target audience: ${targetAudience.demographics}. 
         High quality, professional advertising photography, clean composition, 
         well-lit, modern design, social media optimized`;
@@ -50,6 +66,10 @@ export async function handleImagePromptGeneration(
             seed: Math.floor(Math.random() * 1000000),
           },
         });
+
+        if (!result?.images?.[0]?.url) {
+          throw new Error(`Failed to generate image ${index + 1}`);
+        }
 
         console.log(`Successfully generated image ${index + 1}`);
         
