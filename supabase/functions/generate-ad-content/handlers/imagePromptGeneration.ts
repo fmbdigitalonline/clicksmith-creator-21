@@ -1,82 +1,75 @@
-import { fal } from 'https://esm.sh/@fal-ai/client@1.2.1';
+import { fal } from '@fal-ai/client';
+import { BusinessIdea, TargetAudience, MarketingCampaign } from '../types/adWizard';
 
-export async function handleImagePromptGeneration(businessIdea: any, targetAudience: any, campaign: any, openAIApiKey: string) {
-  console.log('Starting image prompt generation...');
-  
-  const prompt = `Generate a Facebook ad image based on this business:
-${businessIdea.description}
-Value Proposition: ${businessIdea.valueProposition}
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
 
-Target Audience:
-${targetAudience.name}
-${targetAudience.description}
-
-Make it:
-- Ultra-realistic, professional photography style
-- Clean composition with space for text overlay
-- Vibrant, engaging colors
-- Maximum 2 people per image
-- High-end commercial look
-- Perfect for Facebook ads`;
-
-  console.log('Generated prompt:', prompt);
-
+export async function handleImagePromptGeneration(
+  businessIdea: BusinessIdea,
+  targetAudience: TargetAudience,
+  campaign: MarketingCampaign,
+  openAIApiKey: string
+) {
   try {
-    // Configure fal client with both key ID and key
+    console.log('Starting image generation with FAL AI');
+    
+    // Initialize FAL client with credentials from environment
     const falKeyId = Deno.env.get('FAL_KEY_ID');
     const falKey = Deno.env.get('FAL_KEY');
-
+    
     if (!falKeyId || !falKey) {
-      throw new Error('FAL API credentials not found');
+      throw new Error('FAL AI credentials not configured');
     }
 
-    console.log('Configuring FAL client...');
-    
-    // Configure with proper credentials format
     fal.config({
       credentials: `${falKeyId}:${falKey}`,
     });
 
+    console.log('FAL AI client configured');
+
     // Generate 6 images in parallel
-    const imagePromises = Array(6).fill(null).map(async () => {
+    const imagePromises = Array(6).fill(null).map(async (_, index) => {
+      const hook = campaign.angles[index % campaign.angles.length];
+      
+      const prompt = `Professional Facebook ad showing: ${businessIdea.description}. 
+        Style: ${hook.description}. Message: ${hook.hook}. 
+        Target audience: ${targetAudience.demographics}. 
+        High quality, professional advertising photography, clean composition, 
+        well-lit, modern design, social media optimized`;
+
+      console.log(`Generating image ${index + 1} with prompt:`, prompt);
+
       try {
-        console.log('Generating image with prompt:', prompt);
-        const result = await fal.subscribe("fal-ai/flux/dev", {
+        const result = await fal.subscribe('fal-ai/fast-sdxl', {
           input: {
-            prompt: prompt,
-            image_size: "1024x1024",
+            prompt,
+            negative_prompt: "text, watermark, logo, low quality, blurry, distorted",
             num_inference_steps: 50,
             seed: Math.floor(Math.random() * 1000000),
           },
-          pollInterval: 5000,
-          logs: true,
-          onQueueUpdate: (update) => {
-            if (update.status === "IN_PROGRESS") {
-              console.log('Generation progress:', update);
-              update.logs.map((log) => log.message).forEach(console.log);
-            }
-          },
         });
 
-        console.log('Image generation result:', result);
-
-        // Extract the image URL from the result
-        const imageUrl = result.images?.[0]?.url;
-        if (!imageUrl) {
-          throw new Error('No image URL in response');
-        }
-
-        return { url: imageUrl, prompt };
+        console.log(`Successfully generated image ${index + 1}`);
+        
+        return {
+          url: result.images[0].url,
+          prompt: prompt,
+        };
       } catch (error) {
-        console.error('Error generating individual image:', error);
+        console.error(`Error generating image ${index + 1}:`, error);
         throw error;
       }
     });
 
     const images = await Promise.all(imagePromises);
-    console.log(`Successfully generated ${images.length} images`);
-    
-    return { images };
+    console.log('Successfully generated all images');
+
+    return {
+      images,
+      headers: corsHeaders,
+    };
   } catch (error) {
     console.error('Error in handleImagePromptGeneration:', error);
     throw error;
