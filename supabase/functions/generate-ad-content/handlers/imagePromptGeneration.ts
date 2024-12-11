@@ -1,4 +1,4 @@
-import { fal } from '@fal-ai/client';
+import { fal } from 'https://esm.sh/@fal-ai/client@1.2.1';
 import { BusinessIdea, TargetAudience, MarketingCampaign } from '../types/adWizard';
 
 const corsHeaders = {
