@@ -19,10 +19,12 @@ const AdVariantGrid = ({ adImages, adHook, businessIdea }: AdVariantGridProps) =
               className="object-cover w-full h-full"
             />
           </div>
-          <CardContent className="p-4">
-            <h3 className="font-medium text-lg mb-2">Variant {index + 1}</h3>
-            <p className="text-gray-600 text-sm mb-4">{adHook.text}</p>
-            <p className="text-gray-500 text-xs">{businessIdea.valueProposition}</p>
+          <CardContent className="p-4 space-y-3">
+            <h3 className="font-medium text-lg">Variant {index + 1}</h3>
+            <div className="space-y-2">
+              <p className="text-gray-800 font-medium">{adHook.description}</p>
+              <p className="text-facebook font-semibold">{adHook.text}</p>
+            </div>
           </CardContent>
         </Card>
       ))}
