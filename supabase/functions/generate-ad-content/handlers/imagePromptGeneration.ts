@@ -1,4 +1,4 @@
-import { fal } from '@fal-ai/client';
+import { fal } from 'https://esm.sh/@fal-ai/client@1.2.1';
 
 export async function handleImagePromptGeneration(businessIdea: any, targetAudience: any, campaign: any, openAIApiKey: string) {
   console.log('Starting image prompt generation...');
