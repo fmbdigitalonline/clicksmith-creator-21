@@ -19,13 +19,13 @@ Create exactly 10 different marketing angles and hooks, each specifically addres
 3. Connect emotionally with the audience's pain points
 4. Include a clear call to action
 
-Format your response as a valid JSON array with exactly 10 objects, each containing:
-{
-  "text": "The actual hook text that will be shown in the ad",
-  "description": "A brief, compelling marketing angle that explains the emotional appeal"
-}
-
-Make sure each hook is written in a marketing voice, ready to be used in an ad, and focuses on benefits and solutions rather than explanations.`;
+Return the response in this exact format, with exactly 10 items:
+[
+  {
+    "text": "The actual hook text that will be shown in the ad",
+    "description": "A brief, compelling marketing angle that explains the emotional appeal"
+  }
+]`;
 
   try {
     console.log('Sending prompt to OpenAI:', prompt);
@@ -41,7 +41,7 @@ Make sure each hook is written in a marketing voice, ready to be used in an ad, 
         messages: [
           {
             role: 'system',
-            content: 'You are an expert marketing copywriter that creates compelling hooks and marketing angles that convert. You write in a persuasive, emotional, and benefit-focused style.'
+            content: 'You are an expert marketing copywriter that creates compelling hooks and marketing angles that convert. You write in a persuasive, emotional, and benefit-focused style. Always return valid JSON arrays.'
           },
           { role: 'user', content: prompt }
         ],
@@ -63,18 +63,12 @@ Make sure each hook is written in a marketing voice, ready to be used in an ad, 
       throw new Error('Invalid response from OpenAI');
     }
 
-    const content = data.choices[0].message.content;
-    console.log('Generated content:', content);
-
     try {
-      let hooks;
-      // Sometimes the API returns the JSON string with extra text before or after
-      const jsonMatch = content.match(/\[[\s\S]*\]/);
-      if (jsonMatch) {
-        hooks = JSON.parse(jsonMatch[0]);
-      } else {
-        hooks = JSON.parse(content);
-      }
+      const content = data.choices[0].message.content.trim();
+      console.log('Raw content:', content);
+      
+      // Parse the JSON content directly
+      const hooks = JSON.parse(content);
       
       if (!Array.isArray(hooks) || hooks.length !== 10) {
         throw new Error('Response must be an array with exactly 10 items');
