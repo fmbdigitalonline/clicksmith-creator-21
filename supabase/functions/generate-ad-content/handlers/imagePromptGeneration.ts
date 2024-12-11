@@ -12,6 +12,10 @@ const corsHeaders = {
 export async function handleImagePromptGeneration(businessIdea: any, targetAudience: any, campaign: any) {
   console.log('Starting fal.ai image generation...');
   
+  if (!falApiKey || !falKeyId) {
+    throw new Error('FAL_API_KEY and FAL_KEY_ID environment variables must be set');
+  }
+
   const prompt = `Generate a Facebook ad image based on this business:
 ${businessIdea.description}
 Value Proposition: ${businessIdea.valueProposition}
@@ -53,14 +57,17 @@ Make it:
           },
         });
 
-        // The result contains a URL that we can use directly
+        if (!result?.images?.[0]?.url) {
+          throw new Error('No image URL in response');
+        }
+
         return { 
           url: result.images[0].url, 
           prompt 
         };
       } catch (error) {
         console.error('Error generating individual image:', error);
-        throw error;
+        throw new Error(`Failed to generate image: ${error.message}`);
       }
     });
 
@@ -70,6 +77,6 @@ Make it:
     return { images };
   } catch (error) {
     console.error('Error in handleImagePromptGeneration:', error);
-    throw error;
+    throw new Error(`Image generation failed: ${error.message}`);
   }
 }
