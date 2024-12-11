@@ -1,4 +1,4 @@
-import { Replicate } from 'replicate';
+import { Replicate } from 'https://esm.sh/replicate@0.25.1';
 import { BusinessIdea, TargetAudience, MarketingCampaign } from '../types.ts';
 
 const corsHeaders = {
