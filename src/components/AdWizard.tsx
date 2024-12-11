@@ -24,6 +24,7 @@ const AdWizard = () => {
     handleBack,
     handleStartOver,
     canNavigateToStep,
+    setCurrentStep,
   } = useAdWizardState();
 
   return (
