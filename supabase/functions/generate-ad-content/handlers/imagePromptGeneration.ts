@@ -1,4 +1,4 @@
-import { HfInference } from 'https://esm.sh/@huggingface/inference@2.3.2'
+import { fal } from '@fal-ai/client';
 
 export async function handleImagePromptGeneration(businessIdea: any, targetAudience: any, campaign: any, openAIApiKey: string) {
   console.log('Starting image prompt generation...');
@@ -22,23 +22,36 @@ Make it:
   console.log('Generated prompt:', prompt);
 
   try {
-    const hf = new HfInference(Deno.env.get('HUGGING_FACE_ACCESS_TOKEN'))
-    
+    // Configure fal client with API key
+    fal.config({
+      credentials: Deno.env.get('FAL_KEY'),
+    });
+
     // Generate 6 images in parallel
     const imagePromises = Array(6).fill(null).map(async () => {
       try {
         console.log('Generating image with prompt:', prompt);
-        const image = await hf.textToImage({
-          inputs: prompt,
-          model: 'black-forest-labs/FLUX.1-schnell',
+        const result = await fal.subscribe("fal-ai/sana", {
+          input: {
+            prompt: prompt,
+          },
+          logs: true,
+          onQueueUpdate: (update) => {
+            if (update.status === "IN_PROGRESS") {
+              update.logs.map((log) => log.message).forEach(console.log);
+            }
+          },
         });
 
-        // Convert blob to base64
-        const arrayBuffer = await image.arrayBuffer();
-        const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
-        const url = `data:image/png;base64,${base64}`;
+        console.log('Image generation result:', result);
 
-        return { url, prompt };
+        // Extract the image URL from the result
+        const imageUrl = result.images?.[0]?.url;
+        if (!imageUrl) {
+          throw new Error('No image URL in response');
+        }
+
+        return { url: imageUrl, prompt };
       } catch (error) {
         console.error('Error generating individual image:', error);
         throw error;
