@@ -35,21 +35,15 @@ const CompleteStep = ({
     try {
       console.log('Generating images with params:', { businessIdea, targetAudience, adHooks });
       
-      // Transform adHooks into the expected campaign.angles format
-      const campaign = {
-        angles: adHooks.map(hook => ({
-          description: hook.description,
-          hook: hook.text
-        })),
-        format: adFormat
-      };
-
       const { data, error } = await supabase.functions.invoke('generate-ad-content', {
         body: { 
           type: 'images',
           businessIdea,
           targetAudience,
-          campaign
+          campaign: {
+            hooks: adHooks,
+            format: adFormat
+          }
         }
       });
 
