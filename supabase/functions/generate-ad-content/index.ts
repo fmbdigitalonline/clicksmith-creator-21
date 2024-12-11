@@ -8,9 +8,13 @@ import { handleHookGeneration } from './handlers/hookGeneration.ts';
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Max-Age': '86400',
 };
 
 serve(async (req) => {
+  console.log('Received request:', req.method, req.url);
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -22,8 +26,9 @@ serve(async (req) => {
     }
 
     const { type, businessIdea, targetAudience, audienceAnalysis, campaign } = await req.json();
-    const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+    console.log('Processing request:', { type, businessIdea, targetAudience, audienceAnalysis, campaign });
 
+    const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
     if (!openAIApiKey) {
       throw new Error('OpenAI API key not found');
     }
@@ -31,9 +36,6 @@ serve(async (req) => {
     if (!type) {
       throw new Error('Type is required');
     }
-
-    console.log('Processing request of type:', type);
-    console.log('Request payload:', { type, businessIdea, targetAudience, audienceAnalysis, campaign });
 
     let result;
     switch (type) {
@@ -58,7 +60,7 @@ serve(async (req) => {
       case 'images':
         if (!businessIdea || !targetAudience || !campaign) 
           throw new Error('Business idea, target audience, and campaign are required for image generation');
-        result = await handleImagePromptGeneration(businessIdea, targetAudience, campaign, openAIApiKey);
+        result = await handleImagePromptGeneration(businessIdea, targetAudience, campaign);
         break;
       default:
         throw new Error('Invalid generation type');

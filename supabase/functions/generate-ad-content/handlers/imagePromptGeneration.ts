@@ -7,7 +7,8 @@ const corsHeaders = {
 };
 
 export async function handleImagePromptGeneration(businessIdea: any, targetAudience: any, campaign: any) {
-  console.log('Starting fal.ai image generation with sana model...');
+  console.log('Starting image generation with fal.ai...');
+  console.log('Inputs:', { businessIdea, targetAudience, campaign });
 
   const prompt = `Generate a Facebook ad image based on this business:
 ${businessIdea.description}
@@ -28,18 +29,27 @@ Make it:
   console.log('Generated prompt:', prompt);
 
   try {
+    const falKeyId = Deno.env.get('FAL_KEY_ID');
+    const falApiKey = Deno.env.get('FAL_API_KEY');
+
+    if (!falKeyId || !falApiKey) {
+      throw new Error('FAL.AI credentials not found');
+    }
+
     // Set up fal.ai credentials
     fal.config({
       credentials: {
-        keyId: Deno.env.get('FAL_KEY_ID'),
-        keySecret: Deno.env.get('FAL_API_KEY'),
+        keyId: falKeyId,
+        keySecret: falApiKey,
       },
     });
+
+    console.log('Configured fal.ai client, generating images...');
 
     // Generate 6 images in parallel
     const imagePromises = Array(6).fill(null).map(async () => {
       try {
-        console.log('Generating image with prompt:', prompt);
+        console.log('Starting individual image generation...');
         const result = await fal.subscribe('fal-ai/sana', {
           input: {
             prompt: prompt,
@@ -61,6 +71,7 @@ Make it:
           throw new Error('No image URL in response');
         }
 
+        console.log('Successfully generated image:', result.images[0].url);
         return { 
           url: result.images[0].url, 
           prompt 
