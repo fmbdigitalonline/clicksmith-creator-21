@@ -52,16 +52,25 @@ const AdVariantGrid = ({ adImages, adHooks, businessIdea }: AdVariantGridProps) 
 
     setSavingStates(prev => ({ ...prev, [index]: true }));
     try {
-      // Save feedback for this specific variant
-      const { error: feedbackError } = await supabase.from('ad_feedback').insert({
-        rating: parseInt(feedback.rating),
-        feedback: feedback.feedback,
-        saved_images: [adImages[index]] // Save only this specific variant
-      });
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error('User must be logged in to save feedback');
+      }
+
+      // First save the feedback
+      const { error: feedbackError } = await supabase
+        .from('ad_feedback')
+        .insert({
+          user_id: user.id,
+          rating: parseInt(feedback.rating),
+          feedback: feedback.feedback,
+          saved_images: [adImages[index]]
+        });
 
       if (feedbackError) throw feedbackError;
 
-      // Download the specific variant
+      // Then handle the download
       const link = document.createElement('a');
       link.href = adImages[index].url;
       link.download = `ad-variant-${index + 1}.jpg`;
@@ -77,7 +86,7 @@ const AdVariantGrid = ({ adImages, adHooks, businessIdea }: AdVariantGridProps) 
       console.error('Error saving feedback:', error);
       toast({
         title: "Error",
-        description: "Failed to save feedback or download image.",
+        description: error instanceof Error ? error.message : "Failed to save feedback or download image.",
         variant: "destructive",
       });
     } finally {
