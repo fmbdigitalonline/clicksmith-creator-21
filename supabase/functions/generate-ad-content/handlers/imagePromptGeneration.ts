@@ -59,11 +59,12 @@ export async function handleImagePromptGeneration(
 
       try {
         const output = await replicate.run(
-          "stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b",
+          "black-forest-labs/flux-1.1-pro-ultra",
           {
             input: {
               prompt: prompt,
               negative_prompt: "text, watermark, logo, low quality, blurry, distorted",
+              aspect_ratio: "3:2",
               num_inference_steps: 50,
               seed: Math.floor(Math.random() * 1000000),
             }
