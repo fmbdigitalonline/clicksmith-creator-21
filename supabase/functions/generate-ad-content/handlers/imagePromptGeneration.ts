@@ -44,10 +44,15 @@ Make it:
         const result = await fal.subscribe("fal-ai/flux/dev", {
           input: {
             prompt: prompt,
+            image_size: "1024x1024",
+            num_inference_steps: 50,
+            seed: Math.floor(Math.random() * 1000000),
           },
+          pollInterval: 5000,
           logs: true,
           onQueueUpdate: (update) => {
             if (update.status === "IN_PROGRESS") {
+              console.log('Generation progress:', update);
               update.logs.map((log) => log.message).forEach(console.log);
             }
           },
