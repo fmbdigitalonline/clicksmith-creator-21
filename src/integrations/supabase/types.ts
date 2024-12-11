@@ -159,6 +159,42 @@ export type Database = {
           },
         ]
       }
+      plans: {
+        Row: {
+          active: boolean | null
+          created_at: string
+          credits: number
+          description: string | null
+          features: Json | null
+          id: string
+          name: string
+          price: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean | null
+          created_at?: string
+          credits: number
+          description?: string | null
+          features?: Json | null
+          id?: string
+          name: string
+          price: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean | null
+          created_at?: string
+          credits?: number
+          description?: string | null
+          features?: Json | null
+          id?: string
+          name?: string
+          price?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -242,6 +278,50 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      subscriptions: {
+        Row: {
+          active: boolean | null
+          created_at: string
+          credits_remaining: number
+          current_period_end: string | null
+          current_period_start: string | null
+          id: string
+          plan_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean | null
+          created_at?: string
+          credits_remaining?: number
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          plan_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean | null
+          created_at?: string
+          credits_remaining?: number
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          plan_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

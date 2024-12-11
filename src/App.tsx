@@ -1,81 +1,58 @@
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { useState } from "react";
-import { SidebarProvider } from "@/components/ui/sidebar";
-import { CookiesProvider } from "react-cookie";
-import { ProtectedRoute } from "./components/auth/ProtectedRoute";
-import { AppLayout } from "./components/layout/AppLayout";
-import Index from "./pages/Index";
-import Login from "./pages/Login";
-import AdWizard from "./components/AdWizard";
-import Projects from "./pages/Projects";
-import Settings from "./pages/Settings";
+import { Toaster } from "@/components/ui/toaster";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { AppLayout } from "@/components/layout/AppLayout";
+import Login from "@/pages/Login";
+import Projects from "@/pages/Projects";
+import Settings from "@/pages/Settings";
+import AdWizard from "@/components/AdWizard";
+import Pricing from "@/pages/Pricing";
 
-const App = () => {
-  const [queryClient] = useState(() => new QueryClient());
+const queryClient = new QueryClient();
 
+function App() {
   return (
-    <CookiesProvider>
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <SidebarProvider>
-            <div className="min-h-screen flex w-full bg-gradient-radial from-background via-background to-secondary/20">
-              <Toaster />
-              <Sonner />
-              <BrowserRouter>
-                <Routes>
-                  <Route path="/login" element={<Login />} />
-                  <Route
-                    path="/"
-                    element={
-                      <ProtectedRoute>
-                        <AppLayout>
-                          <Index />
-                        </AppLayout>
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/ad-wizard/:projectId"
-                    element={
-                      <ProtectedRoute>
-                        <AppLayout>
-                          <AdWizard />
-                        </AppLayout>
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/projects"
-                    element={
-                      <ProtectedRoute>
-                        <AppLayout>
-                          <Projects />
-                        </AppLayout>
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/settings"
-                    element={
-                      <ProtectedRoute>
-                        <AppLayout>
-                          <Settings />
-                        </AppLayout>
-                      </ProtectedRoute>
-                    }
-                  />
-                </Routes>
-              </BrowserRouter>
-            </div>
-          </SidebarProvider>
-        </TooltipProvider>
-      </QueryClientProvider>
-    </CookiesProvider>
+    <QueryClientProvider client={queryClient}>
+      <Router>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/pricing" element={<Pricing />} />
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <Projects />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <Settings />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/ad-wizard/new"
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <AdWizard />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+        <Toaster />
+      </Router>
+    </QueryClientProvider>
   );
-};
+}
 
 export default App;
