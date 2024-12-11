@@ -1,5 +1,11 @@
 import { useState } from "react";
-import { BusinessIdea, TargetAudience, AudienceAnalysis, AdFormat, AdHook, AdImage } from "@/types/adWizard";
+import {
+  BusinessIdea,
+  TargetAudience,
+  AudienceAnalysis,
+  AdFormat,
+  AdHook
+} from "@/types/adWizard";
 
 export const useAdWizardState = () => {
   const [currentStep, setCurrentStep] = useState<number>(1);
@@ -7,8 +13,7 @@ export const useAdWizardState = () => {
   const [targetAudience, setTargetAudience] = useState<TargetAudience | null>(null);
   const [audienceAnalysis, setAudienceAnalysis] = useState<AudienceAnalysis | null>(null);
   const [adFormat, setAdFormat] = useState<AdFormat | null>(null);
-  const [adHook, setAdHook] = useState<AdHook | null>(null);
-  const [adImages, setAdImages] = useState<AdImage[]>([]);
+  const [selectedHooks, setSelectedHooks] = useState<AdHook[]>([]);
 
   const handleIdeaSubmit = (idea: BusinessIdea) => {
     setBusinessIdea(idea);
@@ -25,8 +30,8 @@ export const useAdWizardState = () => {
     setCurrentStep(4);
   };
 
-  const handleHookSelect = (hook: AdHook) => {
-    setAdHook(hook);
+  const handleHookSelect = (hooks: AdHook[]) => {
+    setSelectedHooks(hooks);
     setCurrentStep(5);
   };
 
@@ -44,8 +49,7 @@ export const useAdWizardState = () => {
     setTargetAudience(null);
     setAudienceAnalysis(null);
     setAdFormat(null);
-    setAdHook(null);
-    setAdImages([]);
+    setSelectedHooks([]);
     setCurrentStep(1);
   };
 
@@ -60,9 +64,9 @@ export const useAdWizardState = () => {
       case 4:
         return !!businessIdea && !!targetAudience && !!audienceAnalysis;
       case 5:
-        return !!businessIdea && !!targetAudience && !!audienceAnalysis && !!adHook;
+        return !!businessIdea && !!targetAudience && !!audienceAnalysis && selectedHooks.length > 0;
       case 6:
-        return !!businessIdea && !!targetAudience && !!audienceAnalysis && !!adHook && !!adFormat;
+        return !!businessIdea && !!targetAudience && !!audienceAnalysis && selectedHooks.length > 0 && !!adFormat;
       default:
         return false;
     }
@@ -74,9 +78,7 @@ export const useAdWizardState = () => {
     targetAudience,
     audienceAnalysis,
     adFormat,
-    adHook,
-    adImages,
-    setAdImages,
+    selectedHooks,
     handleIdeaSubmit,
     handleAudienceSelect,
     handleAnalysisComplete,
@@ -85,6 +87,7 @@ export const useAdWizardState = () => {
     handleBack,
     handleStartOver,
     canNavigateToStep,
+    setCurrentStep,
   };
 };
 
