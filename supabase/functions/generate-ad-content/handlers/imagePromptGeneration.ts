@@ -35,7 +35,7 @@ Make it:
   console.log('Generated prompt:', prompt);
 
   try {
-    // Initialize fal client
+    // Initialize fal client with credentials
     fal.config({
       credentials: {
         keyId: falKeyId,
