@@ -1,8 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import * as fal from 'npm:@fal-ai/serverless-client';
 
-const falApiKey = Deno.env.get('FAL_API_KEY');
-const falKeyId = Deno.env.get('FAL_KEY_ID');
+const falApiKey = "fal_key_QEwGNGVLyDVWbPsGFbEYJQ";
+const falKeyId = "fal_key_QEwGNGVLyDVWbPsGFbEYJQ";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -11,10 +11,6 @@ const corsHeaders = {
 
 export async function handleImagePromptGeneration(businessIdea: any, targetAudience: any, campaign: any) {
   console.log('Starting fal.ai image generation with sana model...');
-  
-  if (!falApiKey || !falKeyId) {
-    throw new Error('FAL_API_KEY and FAL_KEY_ID environment variables must be set');
-  }
 
   const prompt = `Generate a Facebook ad image based on this business:
 ${businessIdea.description}
