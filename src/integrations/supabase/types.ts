@@ -193,11 +193,16 @@ export type Database = {
         Row: {
           ad_dimensions: Json | null
           ad_format: string | null
+          audience_analysis: Json | null
+          business_idea: Json | null
           created_at: string
           description: string | null
           id: string
+          marketing_campaign: Json | null
+          selected_hooks: Json | null
           status: string | null
           tags: string[] | null
+          target_audience: Json | null
           title: string
           updated_at: string
           user_id: string
@@ -205,11 +210,16 @@ export type Database = {
         Insert: {
           ad_dimensions?: Json | null
           ad_format?: string | null
+          audience_analysis?: Json | null
+          business_idea?: Json | null
           created_at?: string
           description?: string | null
           id?: string
+          marketing_campaign?: Json | null
+          selected_hooks?: Json | null
           status?: string | null
           tags?: string[] | null
+          target_audience?: Json | null
           title: string
           updated_at?: string
           user_id: string
@@ -217,11 +227,16 @@ export type Database = {
         Update: {
           ad_dimensions?: Json | null
           ad_format?: string | null
+          audience_analysis?: Json | null
+          business_idea?: Json | null
           created_at?: string
           description?: string | null
           id?: string
+          marketing_campaign?: Json | null
+          selected_hooks?: Json | null
           status?: string | null
           tags?: string[] | null
+          target_audience?: Json | null
           title?: string
           updated_at?: string
           user_id?: string

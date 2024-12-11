@@ -75,11 +75,11 @@ const ProjectCard = ({ project, onUpdate }: ProjectCardProps) => {
     return progress;
   };
 
-  const getStatusColor = () => {
+  const getStatusVariant = () => {
     const progress = getValidationProgress();
-    if (progress === 100) return "success";
-    if (progress > 50) return "warning";
-    return "secondary";
+    if (progress === 100) return "default";
+    if (progress > 50) return "secondary";
+    return "outline";
   };
 
   return (
@@ -88,7 +88,7 @@ const ProjectCard = ({ project, onUpdate }: ProjectCardProps) => {
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <span>{project.title}</span>
-            <Badge variant={getStatusColor()}>{`${getValidationProgress()}% Validated`}</Badge>
+            <Badge variant={getStatusVariant()}>{`${getValidationProgress()}% Validated`}</Badge>
           </CardTitle>
         </CardHeader>
         <CardContent>
