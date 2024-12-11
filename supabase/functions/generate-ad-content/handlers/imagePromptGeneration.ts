@@ -56,7 +56,7 @@ export async function handleImagePromptGeneration(
     auth: replicateApiToken,
   });
 
-  const basePrompt = `Generate a professional Facebook ad image that captures this marketing message:
+  const basePrompt = `Create a professional Facebook ad image that visually represents this concept:
 ${campaign.hooks.map(hook => hook.description).join('\n')}
 
 Business Context:
@@ -69,25 +69,27 @@ ${targetAudience.description}
 
 Style requirements:
 - Ultra-realistic, professional photography style
-- Clean composition with plenty of empty space for text to be added later
-- NO text, words, or letters in the image
+- Clean composition with plenty of empty space
+- Absolutely NO text, words, letters, or symbols of any kind
 - Vibrant, engaging colors
 - Maximum 2 people per image
 - High-end commercial look
 - Perfect for Facebook ads
-- Negative prompt: text, words, letters, watermarks, logos`;
+`;
+
+  const strongNegativePrompt = "text, words, letters, numbers, symbols, watermarks, logos, labels, signs, writing, typography, fonts, characters, alphabets, digits, punctuation marks";
 
   try {
     // Generate prompts based on each selected hook
     const prompts = campaign.hooks.map(hook => {
-      return `${basePrompt}\nCreate a visual representation of this hook: "${hook.description}" without using any text, focusing on emotional and visual storytelling.`;
+      return `${basePrompt}\nCreate a purely visual representation that captures this message: "${hook.description}" using only imagery and emotional storytelling, with absolutely no text elements.`;
     });
 
     // If we have less than 6 prompts, add some variations
     while (prompts.length < 6) {
       const randomHook = campaign.hooks[Math.floor(Math.random() * campaign.hooks.length)];
       prompts.push(
-        `${basePrompt}\nCreate an alternative visual interpretation of: "${randomHook.description}" focusing on the emotional impact and avoiding any text elements.`
+        `${basePrompt}\nCreate an alternative visual interpretation focusing purely on the emotional impact of: "${randomHook.description}" using only imagery, no text or symbols.`
       );
     }
 
@@ -101,7 +103,7 @@ Style requirements:
           {
             input: {
               prompt,
-              negative_prompt: "text, words, letters, watermarks, logos, labels, signs",
+              negative_prompt: strongNegativePrompt,
               num_inference_steps: 50,
               guidance_scale: 7.5,
             }
