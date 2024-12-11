@@ -19,7 +19,7 @@ Create exactly 10 different marketing angles and hooks, each specifically addres
 3. Connect emotionally with the audience's pain points
 4. Include a clear call to action
 
-Return the response in this exact format, with exactly 10 items:
+Return ONLY a JSON array with exactly 10 items in this format:
 [
   {
     "text": "The actual hook text that will be shown in the ad",
@@ -41,7 +41,7 @@ Return the response in this exact format, with exactly 10 items:
         messages: [
           {
             role: 'system',
-            content: 'You are an expert marketing copywriter that creates compelling hooks and marketing angles that convert. You write in a persuasive, emotional, and benefit-focused style. Always return valid JSON arrays.'
+            content: 'You are an expert marketing copywriter that creates compelling hooks and marketing angles that convert. You write in a persuasive, emotional, and benefit-focused style. Return ONLY raw JSON arrays without any markdown formatting.'
           },
           { role: 'user', content: prompt }
         ],
@@ -67,8 +67,12 @@ Return the response in this exact format, with exactly 10 items:
       const content = data.choices[0].message.content.trim();
       console.log('Raw content:', content);
       
-      // Parse the JSON content directly
-      const hooks = JSON.parse(content);
+      // Remove any markdown formatting if present
+      const jsonContent = content.replace(/```json\n|\n```|```/g, '').trim();
+      console.log('Cleaned content:', jsonContent);
+      
+      // Parse the JSON content
+      const hooks = JSON.parse(jsonContent);
       
       if (!Array.isArray(hooks) || hooks.length !== 10) {
         throw new Error('Response must be an array with exactly 10 items');
