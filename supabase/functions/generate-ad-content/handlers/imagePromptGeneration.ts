@@ -1,9 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import * as fal from 'npm:@fal-ai/serverless-client';
 
-const falApiKey = "fal_key_QEwGNGVLyDVWbPsGFbEYJQ";
-const falKeyId = "fal_key_QEwGNGVLyDVWbPsGFbEYJQ";
-
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -31,11 +28,11 @@ Make it:
   console.log('Generated prompt:', prompt);
 
   try {
-    // Initialize fal client with credentials
-    const falClient = new fal.Client({
+    // Configure fal client
+    fal.config({
       credentials: {
-        keyId: falKeyId,
-        keySecret: falApiKey,
+        keyId: Deno.env.get('FAL_KEY_ID'),
+        keySecret: Deno.env.get('FAL_API_KEY'),
       },
     });
 
@@ -43,7 +40,7 @@ Make it:
     const imagePromises = Array(6).fill(null).map(async () => {
       try {
         console.log('Generating image with prompt:', prompt);
-        const result = await falClient.subscribe('fal-ai/sana', {
+        const result = await fal.subscribe('fal-ai/sana', {
           input: {
             prompt: prompt,
             negative_prompt: "text, watermark, low quality, blurry, distorted",
