@@ -1,56 +1,61 @@
-import { HfInference } from 'https://esm.sh/@huggingface/inference@2.3.2'
+import { Replicate } from 'replicate';
+import { BusinessIdea, TargetAudience, MarketingCampaign } from '../types.ts';
 
-export async function handleImagePromptGeneration(businessIdea: any, targetAudience: any, campaign: any, openAIApiKey: string) {
-  console.log('Starting image prompt generation...');
-  
-  const prompt = `Generate a Facebook ad image based on this business:
-${businessIdea.description}
-Value Proposition: ${businessIdea.valueProposition}
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
 
-Target Audience:
-${targetAudience.name}
-${targetAudience.description}
-
-Make it:
-- Ultra-realistic, professional photography style
-- Clean composition with space for text overlay
-- Vibrant, engaging colors
-- Maximum 2 people per image
-- High-end commercial look
-- Perfect for Facebook ads`;
-
-  console.log('Generated prompt:', prompt);
-
+export async function handleImagePromptGeneration(
+  businessIdea: BusinessIdea,
+  targetAudience: TargetAudience,
+  campaign: MarketingCampaign,
+  apiKey: string
+) {
   try {
-    const hf = new HfInference(Deno.env.get('HUGGING_FACE_ACCESS_TOKEN'))
+    console.log('Starting image generation with inputs:', { businessIdea, targetAudience, campaign });
     
-    // Generate 6 images in parallel
-    const imagePromises = Array(6).fill(null).map(async () => {
-      try {
-        console.log('Generating image with prompt:', prompt);
-        const image = await hf.textToImage({
-          inputs: prompt,
-          model: 'black-forest-labs/FLUX.1-schnell',
-        });
-
-        // Convert blob to base64
-        const arrayBuffer = await image.arrayBuffer();
-        const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
-        const url = `data:image/png;base64,${base64}`;
-
-        return { url, prompt };
-      } catch (error) {
-        console.error('Error generating individual image:', error);
-        throw error;
-      }
+    const replicate = new Replicate({
+      auth: Deno.env.get("REPLICATE_API_TOKEN"),
     });
 
-    const images = await Promise.all(imagePromises);
-    console.log(`Successfully generated ${images.length} images`);
-    
-    return { images };
+    // Create a detailed prompt based on the business and campaign details
+    const prompt = `Create a Facebook ad image for ${businessIdea.name}. 
+    The business is about ${businessIdea.description}. 
+    The target audience is ${targetAudience.description}. 
+    Campaign goal: ${campaign.objective}. 
+    Style: Professional, modern, and engaging Facebook ad.
+    Make it visually appealing and suitable for social media advertising.`;
+
+    console.log('Generated prompt:', prompt);
+
+    const output = await replicate.run(
+      "stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b",
+      {
+        input: {
+          prompt: prompt,
+          negative_prompt: "text, watermark, low quality, blurry",
+          width: 1200,
+          height: 628,
+          num_outputs: 4
+        }
+      }
+    );
+
+    console.log('Generated images:', output);
+
+    // Transform the output into the expected format
+    const images = Array.isArray(output) ? output.map((url: string) => ({
+      url,
+      width: 1200,
+      height: 628
+    })) : [];
+
+    return {
+      images
+    };
   } catch (error) {
-    console.error('Error in handleImagePromptGeneration:', error);
-    throw error;
+    console.error('Error in image generation:', error);
+    throw new Error(`Failed to generate images: ${error.message}`);
   }
 }
