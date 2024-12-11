@@ -22,9 +22,19 @@ Make it:
   console.log('Generated prompt:', prompt);
 
   try {
-    // Configure fal client with API key
+    // Configure fal client with both key ID and key
+    const falKeyId = Deno.env.get('FAL_KEY_ID');
+    const falKey = Deno.env.get('FAL_KEY');
+
+    if (!falKeyId || !falKey) {
+      throw new Error('FAL API credentials not found');
+    }
+
+    console.log('Configuring FAL client...');
+    
+    // Configure with proper credentials format
     fal.config({
-      credentials: Deno.env.get('FAL_KEY'),
+      credentials: `${falKeyId}:${falKey}`,
     });
 
     // Generate 6 images in parallel
