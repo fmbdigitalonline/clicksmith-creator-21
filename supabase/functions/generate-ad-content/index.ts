@@ -23,7 +23,6 @@ serve(async (req) => {
 
     const { type, businessIdea, targetAudience, audienceAnalysis, campaign } = await req.json();
     const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
-    const replicateApiToken = Deno.env.get('REPLICATE_API_TOKEN');
 
     if (!openAIApiKey) {
       throw new Error('OpenAI API key not found');
@@ -31,10 +30,6 @@ serve(async (req) => {
 
     if (!type) {
       throw new Error('Type is required');
-    }
-
-    if (type === 'images' && !replicateApiToken) {
-      throw new Error('Replicate API token not found');
     }
 
     console.log('Processing request of type:', type);
