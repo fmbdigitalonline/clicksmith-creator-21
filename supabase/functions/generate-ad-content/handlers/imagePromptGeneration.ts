@@ -1,4 +1,5 @@
-import Replicate from 'replicate';
+import { createClient } from 'npm:@supabase/supabase-js';
+import Replicate from 'npm:replicate';
 import { BusinessIdea, TargetAudience, MarketingCampaign } from '../types.ts';
 
 const corsHeaders = {
