@@ -5,9 +5,10 @@ interface AdVariantGridProps {
   adImages: AdImage[];
   adHooks: AdHook[];
   businessIdea: BusinessIdea;
+  onCreateProject: () => void;
 }
 
-const AdVariantGrid = ({ adImages, adHooks }: AdVariantGridProps) => {
+const AdVariantGrid = ({ adImages, adHooks, onCreateProject }: AdVariantGridProps) => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       {adImages.map((image, index) => {
@@ -18,6 +19,7 @@ const AdVariantGrid = ({ adImages, adHooks }: AdVariantGridProps) => {
             image={image}
             hook={hook}
             index={index}
+            onCreateProject={onCreateProject}
           />
         );
       })}
