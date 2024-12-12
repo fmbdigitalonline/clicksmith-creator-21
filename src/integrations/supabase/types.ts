@@ -323,6 +323,42 @@ export type Database = {
           },
         ]
       }
+      wizard_progress: {
+        Row: {
+          ad_format: Json | null
+          audience_analysis: Json | null
+          business_idea: Json | null
+          created_at: string
+          id: string
+          selected_hooks: Json | null
+          target_audience: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ad_format?: Json | null
+          audience_analysis?: Json | null
+          business_idea?: Json | null
+          created_at?: string
+          id?: string
+          selected_hooks?: Json | null
+          target_audience?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ad_format?: Json | null
+          audience_analysis?: Json | null
+          business_idea?: Json | null
+          created_at?: string
+          id?: string
+          selected_hooks?: Json | null
+          target_audience?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
