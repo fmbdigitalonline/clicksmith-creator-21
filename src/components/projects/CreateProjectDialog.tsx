@@ -8,8 +8,9 @@ import ProjectActions from "./ProjectActions";
 interface CreateProjectDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSuccess: () => void;
+  onSuccess: (projectId: string) => void;
   onStartAdWizard?: (projectId?: string) => void;
+  initialBusinessIdea?: string;
 }
 
 const CreateProjectDialog = ({
@@ -17,6 +18,7 @@ const CreateProjectDialog = ({
   onOpenChange,
   onSuccess,
   onStartAdWizard,
+  initialBusinessIdea,
 }: CreateProjectDialogProps) => {
   const { toast } = useToast();
   const [userId, setUserId] = useState<string | null>(null);
@@ -75,7 +77,7 @@ const CreateProjectDialog = ({
         title: "Project created",
         description: "Your project has been created successfully.",
       });
-      onSuccess();
+      onSuccess(data[0].id);
     }
   };
 
@@ -115,6 +117,7 @@ const CreateProjectDialog = ({
           <ProjectForm
             onSubmit={handleSubmit}
             onCancel={() => onOpenChange(false)}
+            initialBusinessIdea={initialBusinessIdea}
           />
         ) : (
           <ProjectActions

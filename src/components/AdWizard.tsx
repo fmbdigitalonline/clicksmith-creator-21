@@ -7,8 +7,14 @@ import AdSizeStep from "./steps/AdSizeStep";
 import CompleteStep from "./steps/CompleteStep";
 import WizardHeader from "./wizard/WizardHeader";
 import WizardProgress from "./WizardProgress";
+import { useState } from "react";
+import CreateProjectDialog from "./projects/CreateProjectDialog";
+import { useNavigate } from "react-router-dom";
 
 const AdWizard = () => {
+  const [showCreateProject, setShowCreateProject] = useState(false);
+  const navigate = useNavigate();
+  
   const {
     currentStep,
     businessIdea,
@@ -26,6 +32,15 @@ const AdWizard = () => {
     canNavigateToStep,
     setCurrentStep,
   } = useAdWizardState();
+
+  const handleCreateProject = () => {
+    setShowCreateProject(true);
+  };
+
+  const handleProjectCreated = (projectId: string) => {
+    setShowCreateProject(false);
+    navigate(`/ad-wizard/${projectId}`);
+  };
 
   return (
     <div className="container max-w-6xl mx-auto px-4 py-8">
@@ -87,8 +102,16 @@ const AdWizard = () => {
           adFormat={adFormat}
           onStartOver={handleStartOver}
           onBack={handleBack}
+          onCreateProject={handleCreateProject}
         />
       )}
+
+      <CreateProjectDialog
+        open={showCreateProject}
+        onOpenChange={setShowCreateProject}
+        onSuccess={handleProjectCreated}
+        initialBusinessIdea={businessIdea?.description}
+      />
     </div>
   );
 };

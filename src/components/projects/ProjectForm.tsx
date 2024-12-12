@@ -25,16 +25,17 @@ export type ProjectFormData = z.infer<typeof projectSchema>;
 interface ProjectFormProps {
   onSubmit: (values: ProjectFormData) => void;
   onCancel: () => void;
+  initialBusinessIdea?: string;
 }
 
-const ProjectForm = ({ onSubmit, onCancel }: ProjectFormProps) => {
+const ProjectForm = ({ onSubmit, onCancel, initialBusinessIdea }: ProjectFormProps) => {
   const form = useForm<ProjectFormData>({
     resolver: zodResolver(projectSchema),
     defaultValues: {
       title: "",
       description: "",
       tags: "",
-      businessIdea: "",
+      businessIdea: initialBusinessIdea || "",
     },
   });
 

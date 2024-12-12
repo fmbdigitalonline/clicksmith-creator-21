@@ -1,6 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
+import { Download, Save } from "lucide-react";
 import { AdHook, AdImage } from "@/types/adWizard";
 import AdFeedbackForm from "./AdFeedbackForm";
 import { useState } from "react";
@@ -11,9 +11,10 @@ interface AdVariantCardProps {
   image: AdImage;
   hook: AdHook;
   index: number;
+  onCreateProject?: () => void;
 }
 
-const AdVariantCard = ({ image, hook, index }: AdVariantCardProps) => {
+const AdVariantCard = ({ image, hook, index, onCreateProject }: AdVariantCardProps) => {
   const [isSaving, setSaving] = useState(false);
   const [rating, setRating] = useState("");
   const [feedback, setFeedback] = useState("");
@@ -35,6 +36,20 @@ const AdVariantCard = ({ image, hook, index }: AdVariantCardProps) => {
       
       if (!user) {
         throw new Error('User must be logged in to save feedback');
+      }
+
+      // If no project is selected, prompt to create one
+      if (!onCreateProject) {
+        toast({
+          title: "No Project Selected",
+          description: "Please create a project to save your ad.",
+          action: (
+            <Button variant="outline" onClick={onCreateProject}>
+              Create Project
+            </Button>
+          ),
+        });
+        return;
       }
 
       // Convert rating to number before saving
@@ -108,7 +123,7 @@ const AdVariantCard = ({ image, hook, index }: AdVariantCardProps) => {
               "Saving..."
             ) : (
               <>
-                <Download className="w-4 h-4 mr-2" />
+                <Save className="w-4 h-4 mr-2" />
                 Save & Download
               </>
             )}
