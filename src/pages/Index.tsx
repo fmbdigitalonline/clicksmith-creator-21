@@ -6,6 +6,14 @@ import { useNavigate } from "react-router-dom";
 const Index = () => {
   const navigate = useNavigate();
 
+  const handleStartAdWizard = (projectId?: string) => {
+    if (projectId) {
+      navigate(`/ad-wizard/${projectId}`);
+    } else {
+      navigate("/ad-wizard/new");
+    }
+  };
+
   return (
     <div className="container mx-auto py-6">
       <div className="flex flex-col gap-8">
@@ -16,14 +24,14 @@ const Index = () => {
           </p>
           <Button 
             size="lg" 
-            onClick={() => navigate("/ad-wizard/new")}
+            onClick={() => handleStartAdWizard()}
             className="mt-4 gap-2"
           >
             <Wand2 className="h-5 w-5" />
             Start Validation Wizard
           </Button>
         </div>
-        <ProjectList />
+        <ProjectList onStartAdWizard={handleStartAdWizard} />
       </div>
     </div>
   );

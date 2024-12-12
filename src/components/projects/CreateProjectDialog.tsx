@@ -1,7 +1,6 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import ProjectForm, { ProjectFormData } from "./ProjectForm";
 import ProjectActions from "./ProjectActions";
@@ -10,18 +9,19 @@ interface CreateProjectDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
+  onStartAdWizard?: (projectId?: string) => void;
 }
 
 const CreateProjectDialog = ({
   open,
   onOpenChange,
   onSuccess,
+  onStartAdWizard,
 }: CreateProjectDialogProps) => {
   const { toast } = useToast();
   const [userId, setUserId] = useState<string | null>(null);
   const [showActions, setShowActions] = useState(false);
   const [createdProjectId, setCreatedProjectId] = useState<string | null>(null);
-  const navigate = useNavigate();
   
   useEffect(() => {
     const getCurrentUser = async () => {
@@ -80,8 +80,8 @@ const CreateProjectDialog = ({
   };
 
   const handleGenerateAds = () => {
-    if (createdProjectId) {
-      navigate(`/ad-wizard/${createdProjectId}`);
+    if (createdProjectId && onStartAdWizard) {
+      onStartAdWizard(createdProjectId);
       onOpenChange(false);
     }
   };
