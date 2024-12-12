@@ -12,10 +12,10 @@ interface AdVariantCardProps {
   hook: AdHook;
   index: number;
   onCreateProject?: () => void;
+  isSaving?: boolean;
 }
 
-const AdVariantCard = ({ image, hook, index, onCreateProject }: AdVariantCardProps) => {
-  const [isSaving, setSaving] = useState(false);
+const AdVariantCard = ({ image, hook, index, onCreateProject, isSaving }: AdVariantCardProps) => {
   const [rating, setRating] = useState("");
   const [feedback, setFeedback] = useState("");
   const { toast } = useToast();
@@ -30,7 +30,6 @@ const AdVariantCard = ({ image, hook, index, onCreateProject }: AdVariantCardPro
       return;
     }
 
-    setSaving(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       
@@ -85,8 +84,6 @@ const AdVariantCard = ({ image, hook, index, onCreateProject }: AdVariantCardPro
         description: error instanceof Error ? error.message : "Failed to save feedback or download image.",
         variant: "destructive",
       });
-    } finally {
-      setSaving(false);
     }
   };
 

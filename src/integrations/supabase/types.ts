@@ -233,6 +233,7 @@ export type Database = {
           business_idea: Json | null
           created_at: string
           description: string | null
+          generated_ads: Json | null
           id: string
           marketing_campaign: Json | null
           selected_hooks: Json | null
@@ -250,6 +251,7 @@ export type Database = {
           business_idea?: Json | null
           created_at?: string
           description?: string | null
+          generated_ads?: Json | null
           id?: string
           marketing_campaign?: Json | null
           selected_hooks?: Json | null
@@ -267,6 +269,7 @@ export type Database = {
           business_idea?: Json | null
           created_at?: string
           description?: string | null
+          generated_ads?: Json | null
           id?: string
           marketing_campaign?: Json | null
           selected_hooks?: Json | null
