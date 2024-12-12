@@ -5,6 +5,14 @@ import { Home, Settings, CreditCard } from "lucide-react";
 
 const Navigation = () => {
   const location = useLocation();
+  const currentPath = location.pathname;
+  
+  const isActive = (path: string) => {
+    if (path === "/") {
+      return currentPath === "/" || currentPath === "/projects";
+    }
+    return currentPath === path;
+  };
   
   return (
     <nav className="fixed top-0 left-0 right-0 h-16 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50">
@@ -20,7 +28,7 @@ const Navigation = () => {
               asChild
               className={cn(
                 "gap-2",
-                location.pathname === "/" && "bg-accent"
+                isActive("/") && "bg-accent"
               )}
             >
               <Link to="/">
@@ -34,7 +42,7 @@ const Navigation = () => {
               asChild
               className={cn(
                 "gap-2",
-                location.pathname === "/pricing" && "bg-accent"
+                isActive("/pricing") && "bg-accent"
               )}
             >
               <Link to="/pricing">
@@ -48,7 +56,7 @@ const Navigation = () => {
               asChild
               className={cn(
                 "gap-2",
-                location.pathname === "/settings" && "bg-accent"
+                isActive("/settings") && "bg-accent"
               )}
             >
               <Link to="/settings">

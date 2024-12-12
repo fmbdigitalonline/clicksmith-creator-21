@@ -38,6 +38,14 @@ const menuItems = [
 
 export function AppSidebar() {
   const location = useLocation();
+  const currentPath = location.pathname;
+
+  const isActive = (path: string) => {
+    if (path === "/") {
+      return currentPath === "/" || currentPath === "/projects";
+    }
+    return currentPath === path;
+  };
 
   return (
     <Sidebar>
@@ -56,13 +64,13 @@ export function AppSidebar() {
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild
-                    isActive={location.pathname === item.url}
+                    isActive={isActive(item.url)}
                     tooltip={item.title}
                   >
                     <Link to={item.url} className="flex items-center gap-2">
                       <item.icon className="h-4 w-4" />
                       <span>{item.title}</span>
-                      {location.pathname === item.url && (
+                      {isActive(item.url) && (
                         <ChevronRight className="ml-auto h-4 w-4" />
                       )}
                     </Link>
