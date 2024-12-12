@@ -16,6 +16,7 @@ interface CompleteStepProps {
   adFormat: AdFormat;
   onStartOver: () => void;
   onBack: () => void;
+  onCreateProject: () => void;
 }
 
 const CompleteStep = ({
@@ -25,6 +26,7 @@ const CompleteStep = ({
   adFormat,
   onStartOver,
   onBack,
+  onCreateProject,
 }: CompleteStepProps) => {
   const [adImages, setAdImages] = useState<AdImage[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -106,6 +108,7 @@ const CompleteStep = ({
             adImages={adImages}
             adHooks={adHooks}
             businessIdea={businessIdea}
+            onCreateProject={onCreateProject}
           />
 
           <Card className="bg-gray-50">
