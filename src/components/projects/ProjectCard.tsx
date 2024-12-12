@@ -5,7 +5,6 @@ import { Badge } from "@/components/ui/badge";
 import { Edit2, Trash2, PlayCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useNavigate } from "react-router-dom";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,13 +35,13 @@ interface Project {
 interface ProjectCardProps {
   project: Project;
   onUpdate: () => void;
+  onStartAdWizard: () => void;
 }
 
-const ProjectCard = ({ project, onUpdate }: ProjectCardProps) => {
+const ProjectCard = ({ project, onUpdate, onStartAdWizard }: ProjectCardProps) => {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const { toast } = useToast();
-  const navigate = useNavigate();
 
   const handleDelete = async () => {
     const { error } = await supabase
@@ -123,10 +122,10 @@ const ProjectCard = ({ project, onUpdate }: ProjectCardProps) => {
           <Button
             variant="default"
             className="gap-2"
-            onClick={() => navigate(`/ad-wizard/${project.id}`)}
+            onClick={onStartAdWizard}
           >
             <PlayCircle className="h-4 w-4" />
-            Continue Validation
+            {project.marketing_campaign ? "View Campaign" : "Create Campaign"}
           </Button>
         </CardFooter>
       </Card>

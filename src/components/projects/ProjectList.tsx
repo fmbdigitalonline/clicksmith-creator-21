@@ -15,7 +15,11 @@ type Project = Database['public']['Tables']['projects']['Row'] & {
   } | null;
 };
 
-const ProjectList = () => {
+interface ProjectListProps {
+  onStartAdWizard: (projectId?: string) => void;
+}
+
+const ProjectList = ({ onStartAdWizard }: ProjectListProps) => {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const { toast } = useToast();
 
@@ -40,18 +44,32 @@ const ProjectList = () => {
     },
   });
 
+  const handleCreateProject = () => {
+    setIsCreateOpen(true);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-3xl font-bold tracking-tight">Your Projects</h2>
-        <Button onClick={() => setIsCreateOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" /> New Project
-        </Button>
+        <div className="space-x-4">
+          <Button onClick={() => onStartAdWizard()}>
+            <Plus className="mr-2 h-4 w-4" /> New Ad Campaign
+          </Button>
+          <Button onClick={handleCreateProject} variant="outline">
+            <Plus className="mr-2 h-4 w-4" /> New Project
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {projects?.map((project) => (
-          <ProjectCard key={project.id} project={project} onUpdate={refetch} />
+          <ProjectCard 
+            key={project.id} 
+            project={project} 
+            onUpdate={refetch}
+            onStartAdWizard={() => onStartAdWizard(project.id)} 
+          />
         ))}
       </div>
 
@@ -62,6 +80,7 @@ const ProjectList = () => {
           refetch();
           setIsCreateOpen(false);
         }}
+        onStartAdWizard={onStartAdWizard}
       />
     </div>
   );
