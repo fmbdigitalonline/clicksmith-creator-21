@@ -8,6 +8,7 @@ import {
 } from "@/types/adWizard";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
+import { useWizardStorage } from "./wizard/useWizardStorage";
 
 export const useAdWizardState = () => {
   const [currentStep, setCurrentStep] = useState<number>(1);
@@ -17,111 +18,68 @@ export const useAdWizardState = () => {
   const [adFormat, setAdFormat] = useState<AdFormat | null>(null);
   const [selectedHooks, setSelectedHooks] = useState<AdHook[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  
   const { toast } = useToast();
+  const { loadProgress, saveProgress, clearProgress } = useWizardStorage();
 
-  // Load saved progress when component mounts
   useEffect(() => {
-    loadSavedProgress();
-  }, []);
+    const init = async () => {
+      try {
+        const progress = await loadProgress();
+        if (progress) {
+          if (progress.businessIdea) setBusinessIdea(progress.businessIdea);
+          if (progress.targetAudience) setTargetAudience(progress.targetAudience);
+          if (progress.audienceAnalysis) setAudienceAnalysis(progress.audienceAnalysis);
+          if (progress.selectedHooks) setSelectedHooks(progress.selectedHooks);
+          if (progress.adFormat) setAdFormat(progress.adFormat);
 
-  const loadSavedProgress = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
+          // Set the appropriate step based on the loaded data
+          let step = 1;
+          if (progress.businessIdea) step = 2;
+          if (progress.targetAudience) step = 3;
+          if (progress.audienceAnalysis) step = 4;
+          if (progress.selectedHooks?.length > 0) step = 5;
+          if (progress.adFormat) step = 6;
+          setCurrentStep(step);
+        }
+      } catch (error) {
+        console.error('Error initializing:', error);
+      } finally {
         setIsLoading(false);
-        return;
       }
+    };
 
-      const { data, error } = await supabase
-        .from('wizard_progress')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
-
-      if (error && error.code !== 'PGRST116') {
-        console.error('Error loading progress:', error);
-        return;
-      }
-
-      if (data) {
-        if (data.business_idea) setBusinessIdea(data.business_idea);
-        if (data.target_audience) setTargetAudience(data.target_audience);
-        if (data.audience_analysis) setAudienceAnalysis(data.audience_analysis);
-        if (data.selected_hooks) setSelectedHooks(data.selected_hooks);
-        if (data.ad_format) setAdFormat(data.ad_format);
-
-        // Set the appropriate step based on the loaded data
-        let step = 1;
-        if (data.business_idea) step = 2;
-        if (data.target_audience) step = 3;
-        if (data.audience_analysis) step = 4;
-        if (data.selected_hooks?.length > 0) step = 5;
-        if (data.ad_format) step = 6;
-        setCurrentStep(step);
-      }
-    } catch (error) {
-      console.error('Error loading progress:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const saveProgress = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
-      const { error } = await supabase
-        .from('wizard_progress')
-        .upsert({
-          user_id: session.user.id,
-          business_idea: businessIdea,
-          target_audience: targetAudience,
-          audience_analysis: audienceAnalysis,
-          selected_hooks: selectedHooks,
-          ad_format: adFormat,
-        });
-
-      if (error) throw error;
-    } catch (error) {
-      console.error('Error saving progress:', error);
-      toast({
-        title: "Error",
-        description: "Failed to save your progress. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
+    init();
+  }, []);
 
   const handleIdeaSubmit = async (idea: BusinessIdea) => {
     setBusinessIdea(idea);
     setCurrentStep(2);
-    await saveProgress();
+    await saveProgress({ businessIdea: idea });
   };
 
   const handleAudienceSelect = async (audience: TargetAudience) => {
     setTargetAudience(audience);
     setCurrentStep(3);
-    await saveProgress();
+    await saveProgress({ targetAudience: audience });
   };
 
   const handleAnalysisComplete = async (analysis: AudienceAnalysis) => {
     setAudienceAnalysis(analysis);
     setCurrentStep(4);
-    await saveProgress();
+    await saveProgress({ audienceAnalysis: analysis });
   };
 
   const handleHookSelect = async (hooks: AdHook[]) => {
     setSelectedHooks(hooks);
     setCurrentStep(5);
-    await saveProgress();
+    await saveProgress({ selectedHooks: hooks });
   };
 
   const handleFormatSelect = async (format: AdFormat) => {
     setAdFormat(format);
     setCurrentStep(6);
-    await saveProgress();
+    await saveProgress({ adFormat: format });
   };
 
   const handleBack = () => {
@@ -132,13 +90,7 @@ export const useAdWizardState = () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        // Delete all progress records for this user
-        const { error } = await supabase
-          .from('wizard_progress')
-          .delete()
-          .eq('user_id', session.user.id);
-
-        if (error) throw error;
+        await clearProgress(session.user.id);
       }
 
       // Reset all state
