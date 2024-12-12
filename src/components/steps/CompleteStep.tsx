@@ -1,13 +1,13 @@
 import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { BusinessIdea, TargetAudience, AdHook, AdFormat, AdImage } from "@/types/adWizard";
-import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import AdDetails from "./complete/AdDetails";
 import AdVariantGrid from "./complete/AdVariantGrid";
 import StepNavigation from "./complete/StepNavigation";
+import LoadingState from "./complete/LoadingState";
+import Header from "./complete/Header";
 
 interface CompleteStepProps {
   businessIdea: BusinessIdea;
@@ -35,8 +35,6 @@ const CompleteStep = ({
   const generateImages = async () => {
     setIsGenerating(true);
     try {
-      console.log('Generating images with params:', { businessIdea, targetAudience, adHooks });
-      
       const { data, error } = await supabase.functions.invoke('generate-ad-content', {
         body: { 
           type: 'images',
@@ -49,14 +47,8 @@ const CompleteStep = ({
         }
       });
 
-      if (error) {
-        console.error('Error generating images:', error);
-        throw error;
-      }
-
-      if (!data?.images) {
-        throw new Error('No images returned from generation');
-      }
+      if (error) throw error;
+      if (!data?.images) throw new Error('No images returned from generation');
 
       setAdImages(data.images);
       toast({
@@ -88,20 +80,13 @@ const CompleteStep = ({
         onStartOver={onStartOver}
       />
 
-      <div>
-        <h2 className="text-xl md:text-2xl font-semibold mb-2">Your Ad Variants</h2>
-        <p className="text-gray-600">
-          Review your generated ad variants, provide feedback, and save or download them for use.
-        </p>
-      </div>
+      <Header
+        title="Your Ad Variants"
+        description="Review your generated ad variants, provide feedback, and save or download them for use."
+      />
 
       {isGenerating ? (
-        <Card className="p-8">
-          <div className="flex flex-col items-center justify-center space-y-4">
-            <Loader2 className="w-8 h-8 animate-spin text-facebook" />
-            <p className="text-gray-600">Generating your ad variants...</p>
-          </div>
-        </Card>
+        <LoadingState />
       ) : (
         <>
           <AdVariantGrid
