@@ -31,7 +31,6 @@ const CompleteStep = ({
 }: CompleteStepProps) => {
   const [adImages, setAdImages] = useState<AdImage[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
   const { projectId } = useParams();
 
@@ -57,7 +56,7 @@ const CompleteStep = ({
       
       // If we have a project ID, save the generated ads
       if (projectId) {
-        await saveGeneratedAds(data.images);
+        await saveToProject(data.images);
       }
 
       toast({
@@ -76,8 +75,7 @@ const CompleteStep = ({
     }
   };
 
-  const saveGeneratedAds = async (images: AdImage[]) => {
-    setIsSaving(true);
+  const saveToProject = async (images: AdImage[]) => {
     try {
       const { error } = await supabase
         .from('projects')
@@ -93,18 +91,16 @@ const CompleteStep = ({
       if (error) throw error;
 
       toast({
-        title: "Ads Saved",
+        title: "Project Updated",
         description: "Your generated ads have been saved to the project.",
       });
     } catch (error) {
-      console.error('Error saving ads:', error);
+      console.error('Error saving to project:', error);
       toast({
         title: "Save Failed",
-        description: "Failed to save the generated ads. Please try again.",
+        description: "Failed to save the generated ads to project. Please try again.",
         variant: "destructive",
       });
-    } finally {
-      setIsSaving(false);
     }
   };
 
@@ -135,7 +131,6 @@ const CompleteStep = ({
             adHooks={adHooks}
             businessIdea={businessIdea}
             onCreateProject={onCreateProject}
-            isSaving={isSaving}
           />
 
           <Card className="bg-gray-50">

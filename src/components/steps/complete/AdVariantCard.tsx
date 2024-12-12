@@ -1,9 +1,9 @@
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Download, Save } from "lucide-react";
 import { AdHook, AdImage } from "@/types/adWizard";
 import AdFeedbackForm from "./AdFeedbackForm";
-import { useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -12,12 +12,12 @@ interface AdVariantCardProps {
   hook: AdHook;
   index: number;
   onCreateProject?: () => void;
-  isSaving?: boolean;
 }
 
-const AdVariantCard = ({ image, hook, index, onCreateProject, isSaving }: AdVariantCardProps) => {
+const AdVariantCard = ({ image, hook, index, onCreateProject }: AdVariantCardProps) => {
   const [rating, setRating] = useState("");
   const [feedback, setFeedback] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
 
   const handleSaveAndDownload = async () => {
@@ -30,6 +30,7 @@ const AdVariantCard = ({ image, hook, index, onCreateProject, isSaving }: AdVari
       return;
     }
 
+    setIsSaving(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       
@@ -84,6 +85,8 @@ const AdVariantCard = ({ image, hook, index, onCreateProject, isSaving }: AdVari
         description: error instanceof Error ? error.message : "Failed to save feedback or download image.",
         variant: "destructive",
       });
+    } finally {
+      setIsSaving(false);
     }
   };
 
