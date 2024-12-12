@@ -10,8 +10,6 @@ import WizardProgress from "./WizardProgress";
 import { useState } from "react";
 import CreateProjectDialog from "./projects/CreateProjectDialog";
 import { useNavigate } from "react-router-dom";
-import { Card } from "./ui/card";
-import { Loader2 } from "lucide-react";
 
 const AdWizard = () => {
   const [showCreateProject, setShowCreateProject] = useState(false);
@@ -24,7 +22,6 @@ const AdWizard = () => {
     audienceAnalysis,
     adFormat,
     selectedHooks,
-    isLoading,
     handleIdeaSubmit,
     handleAudienceSelect,
     handleAnalysisComplete,
@@ -44,19 +41,6 @@ const AdWizard = () => {
     setShowCreateProject(false);
     navigate(`/ad-wizard/${projectId}`);
   };
-
-  if (isLoading) {
-    return (
-      <div className="container max-w-6xl mx-auto px-4 py-8">
-        <Card className="p-8">
-          <div className="flex flex-col items-center justify-center space-y-4">
-            <Loader2 className="w-8 h-8 animate-spin text-facebook" />
-            <p className="text-gray-600">Loading your progress...</p>
-          </div>
-        </Card>
-      </div>
-    );
-  }
 
   return (
     <div className="container max-w-6xl mx-auto px-4 py-8">
