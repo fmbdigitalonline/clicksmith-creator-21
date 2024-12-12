@@ -1,9 +1,9 @@
-import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Download, Save } from "lucide-react";
 import { AdHook, AdImage } from "@/types/adWizard";
 import AdFeedbackForm from "./AdFeedbackForm";
+import { useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -15,9 +15,9 @@ interface AdVariantCardProps {
 }
 
 const AdVariantCard = ({ image, hook, index, onCreateProject }: AdVariantCardProps) => {
+  const [isSaving, setSaving] = useState(false);
   const [rating, setRating] = useState("");
   const [feedback, setFeedback] = useState("");
-  const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
 
   const handleSaveAndDownload = async () => {
@@ -30,7 +30,7 @@ const AdVariantCard = ({ image, hook, index, onCreateProject }: AdVariantCardPro
       return;
     }
 
-    setIsSaving(true);
+    setSaving(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       
@@ -86,7 +86,7 @@ const AdVariantCard = ({ image, hook, index, onCreateProject }: AdVariantCardPro
         variant: "destructive",
       });
     } finally {
-      setIsSaving(false);
+      setSaving(false);
     }
   };
 

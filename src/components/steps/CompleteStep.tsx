@@ -8,7 +8,6 @@ import AdVariantGrid from "./complete/AdVariantGrid";
 import StepNavigation from "./complete/StepNavigation";
 import LoadingState from "./complete/LoadingState";
 import Header from "./complete/Header";
-import { useParams } from "react-router-dom";
 
 interface CompleteStepProps {
   businessIdea: BusinessIdea;
@@ -32,7 +31,6 @@ const CompleteStep = ({
   const [adImages, setAdImages] = useState<AdImage[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const { toast } = useToast();
-  const { projectId } = useParams();
 
   const generateImages = async () => {
     setIsGenerating(true);
@@ -53,12 +51,6 @@ const CompleteStep = ({
       if (!data?.images) throw new Error('No images returned from generation');
 
       setAdImages(data.images);
-      
-      // If we have a project ID, save the generated ads
-      if (projectId) {
-        await saveToProject(data.images);
-      }
-
       toast({
         title: "Images Generated!",
         description: "Your ad images have been generated successfully.",
@@ -72,35 +64,6 @@ const CompleteStep = ({
       });
     } finally {
       setIsGenerating(false);
-    }
-  };
-
-  const saveToProject = async (images: AdImage[]) => {
-    try {
-      const { error } = await supabase
-        .from('projects')
-        .update({
-          generated_ads: {
-            images,
-            hooks: adHooks,
-            format: adFormat
-          }
-        })
-        .eq('id', projectId);
-
-      if (error) throw error;
-
-      toast({
-        title: "Project Updated",
-        description: "Your generated ads have been saved to the project.",
-      });
-    } catch (error) {
-      console.error('Error saving to project:', error);
-      toast({
-        title: "Save Failed",
-        description: "Failed to save the generated ads to project. Please try again.",
-        variant: "destructive",
-      });
     }
   };
 

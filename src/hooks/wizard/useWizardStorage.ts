@@ -13,20 +13,15 @@ export const useWizardStorage = () => {
       const { data, error } = await supabase
         .from('wizard_progress')
         .select('*')
-        .eq('user_id', session.user.id)
         .order('created_at', { ascending: false })
-        .limit(1);
+        .limit(1)
+        .single();
 
-      if (error) {
+      if (error && error.code !== 'PGRST116') {
         throw error;
       }
 
-      // If no data is found, return null instead of throwing an error
-      if (!data || data.length === 0) {
-        return null;
-      }
-
-      return parseWizardProgress(data[0]);
+      return data ? parseWizardProgress(data) : null;
     } catch (error) {
       console.error('Error loading progress:', error);
       toast({
