@@ -50,6 +50,36 @@ export type Database = {
           },
         ]
       }
+      credit_operations: {
+        Row: {
+          created_at: string
+          credits_amount: number
+          error_message: string | null
+          id: string
+          operation_type: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          credits_amount: number
+          error_message?: string | null
+          id?: string
+          operation_type: string
+          status: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          credits_amount?: number
+          error_message?: string | null
+          id?: string
+          operation_type?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       documents: {
         Row: {
           content: string | null
@@ -370,7 +400,37 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      check_user_credits: {
+        Args: {
+          user_id: string
+          required_credits: number
+        }
+        Returns: {
+          has_credits: boolean
+          error_message: string
+        }[]
+      }
+      deduct_user_credits: {
+        Args: {
+          user_id: string
+          credits_to_deduct: number
+        }
+        Returns: {
+          success: boolean
+          message: string
+          credits_remaining: number
+        }[]
+      }
+      log_credit_operation: {
+        Args: {
+          p_user_id: string
+          p_operation_type: string
+          p_credits_amount: number
+          p_status: string
+          p_error_message?: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

@@ -4,21 +4,47 @@ import { handleAudienceAnalysis } from './handlers/audienceAnalysis.ts';
 import { handleCampaignGeneration } from './handlers/campaignGeneration.ts';
 import { handleImagePromptGeneration } from './handlers/imagePromptGeneration.ts';
 import { handleHookGeneration } from './handlers/hookGeneration.ts';
+import { createClient } from '@supabase/supabase-js';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const CREDITS_REQUIRED = {
+  audience: 1,
+  audience_analysis: 2,
+  campaign: 3,
+  hooks: 2,
+  images: 5,
+};
+
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
   try {
-    if (!req.body) {
-      throw new Error('Request body is required');
+    // Get the JWT token from the request headers
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      throw new Error('No authorization header');
+    }
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    if (!supabaseUrl || !supabaseServiceKey) {
+      throw new Error('Missing environment variables');
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Get the user ID from the JWT token
+    const { data: { user }, error: userError } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
+    
+    if (userError || !user) {
+      throw new Error('Invalid user token');
     }
 
     const { type, businessIdea, targetAudience, audienceAnalysis, campaign } = await req.json();
@@ -37,9 +63,26 @@ serve(async (req) => {
       throw new Error('Type is required');
     }
 
-    console.log('Processing request of type:', type);
-    console.log('Request payload:', { type, businessIdea, targetAudience, audienceAnalysis, campaign });
+    const creditsRequired = CREDITS_REQUIRED[type];
+    if (!creditsRequired) {
+      throw new Error('Invalid generation type');
+    }
 
+    // Check if user has enough credits
+    const { data: creditCheck, error: creditCheckError } = await supabase.rpc(
+      'check_user_credits',
+      { user_id: user.id, required_credits: creditsRequired }
+    );
+
+    if (creditCheckError) {
+      throw new Error(`Credit check failed: ${creditCheckError.message}`);
+    }
+
+    if (!creditCheck.has_credits) {
+      throw new Error(creditCheck.error_message || 'Insufficient credits');
+    }
+
+    // Process the request based on type
     let result;
     switch (type) {
       case 'audience':
@@ -60,7 +103,6 @@ serve(async (req) => {
           throw new Error('Business idea and target audience are required for hook generation');
         result = await handleHookGeneration(businessIdea, targetAudience, openAIApiKey);
         break;
-      
       case 'images':
         if (!businessIdea || !targetAudience || !campaign) 
           throw new Error('Business idea, target audience, and campaign are required for image generation');
@@ -68,6 +110,16 @@ serve(async (req) => {
         break;
       default:
         throw new Error('Invalid generation type');
+    }
+
+    // Deduct credits after successful generation
+    const { data: deductResult, error: deductError } = await supabase.rpc(
+      'deduct_user_credits',
+      { user_id: user.id, credits_to_deduct: creditsRequired }
+    );
+
+    if (deductError || !deductResult.success) {
+      throw new Error(`Failed to deduct credits: ${deductError?.message || deductResult.message}`);
     }
 
     return new Response(JSON.stringify(result), {
