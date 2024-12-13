@@ -4,7 +4,7 @@ import { handleAudienceAnalysis } from './handlers/audienceAnalysis.ts';
 import { handleCampaignGeneration } from './handlers/campaignGeneration.ts';
 import { handleImagePromptGeneration } from './handlers/imagePromptGeneration.ts';
 import { handleHookGeneration } from './handlers/hookGeneration.ts';
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
