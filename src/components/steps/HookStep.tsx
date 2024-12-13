@@ -1,17 +1,11 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
 import { BusinessIdea, TargetAudience, AdHook } from "@/types/adWizard";
-import { MessageCircle, ArrowLeft, ArrowRight, Wand2, Loader2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Wand2, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
+import LoadingState from "./hooks/LoadingState";
+import HookCard from "./hooks/HookCard";
 
 interface HookStepProps {
   businessIdea: BusinessIdea;
@@ -47,7 +41,18 @@ const HookStep = ({
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        // Check if it's an insufficient credits error
+        if (error.message?.includes('Insufficient credits')) {
+          toast({
+            title: "Insufficient Credits",
+            description: "You don't have enough credits to generate hooks. Please purchase more credits to continue.",
+            variant: "destructive",
+          });
+          return;
+        }
+        throw error;
+      }
 
       if (data?.hooks && Array.isArray(data.hooks)) {
         setHooks(data.hooks);
@@ -63,7 +68,7 @@ const HookStep = ({
       console.error('Error generating hooks:', error);
       toast({
         title: "Generation Failed",
-        description: "Failed to generate hooks. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to generate hooks. Please try again.",
         variant: "destructive",
       });
       setHooks([]);
@@ -98,15 +103,6 @@ const HookStep = ({
     }
     onNext(selectedHooks);
   };
-
-  if (isGenerating && hooks.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 animate-spin text-facebook mb-4" />
-        <p className="text-gray-600">Generating marketing hooks based on audience insights...</p>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6 md:space-y-8">
@@ -151,52 +147,27 @@ const HookStep = ({
         </p>
       </div>
 
-      <div className="space-y-4">
-        {hooks && hooks.length > 0 ? (
-          hooks.map((hook, index) => {
-            const isSelected = selectedHooks.some(h => h.text === hook.text);
-            return (
-              <Card
+      {isGenerating && hooks.length === 0 ? (
+        <LoadingState />
+      ) : (
+        <div className="space-y-4">
+          {hooks && hooks.length > 0 ? (
+            hooks.map((hook, index) => (
+              <HookCard
                 key={index}
-                className={`relative group cursor-pointer transition-all duration-200 ${
-                  isSelected ? 'border-facebook ring-1 ring-facebook' : 'hover:border-facebook/50'
-                }`}
-                onClick={() => toggleHookSelection(hook)}
-              >
-                <div className={`absolute inset-0 bg-gradient-to-br from-facebook/5 to-transparent transition-opacity duration-200 rounded-xl ${
-                  isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-50'
-                }`} />
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <MessageCircle className="w-5 h-5 text-facebook" />
-                      <CardTitle className="text-lg">Marketing Angle {index + 1}</CardTitle>
-                    </div>
-                    <Checkbox
-                      checked={isSelected}
-                      onCheckedChange={() => toggleHookSelection(hook)}
-                      className="data-[state=checked]:bg-facebook data-[state=checked]:border-facebook"
-                    />
-                  </div>
-                  <CardDescription className="text-base font-medium text-gray-700">
-                    {hook.description}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <p className="text-facebook font-semibold mb-1">Hook:</p>
-                    <p className="text-gray-800">{hook.text}</p>
-                  </div>
-                </CardContent>
-              </Card>
-            )
-          })
-        ) : (
-          <div className="text-center py-8">
-            <p className="text-gray-500">No hooks available. Try generating new ones.</p>
-          </div>
-        )}
-      </div>
+                hook={hook}
+                index={index}
+                isSelected={selectedHooks.some(h => h.text === hook.text)}
+                onToggle={toggleHookSelection}
+              />
+            ))
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-gray-500">No hooks available. Try generating new ones.</p>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
