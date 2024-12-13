@@ -47,6 +47,8 @@ serve(async (req) => {
       throw new Error('Invalid user token');
     }
 
+    console.log('Processing request for user:', user.id);
+
     const { type, businessIdea, targetAudience, audienceAnalysis, campaign } = await req.json();
     const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
     const replicateApiToken = Deno.env.get('REPLICATE_API_TOKEN');
@@ -68,6 +70,8 @@ serve(async (req) => {
       throw new Error('Invalid generation type');
     }
 
+    console.log('Checking credits for operation type:', type, 'requiring credits:', creditsRequired);
+
     // Check if user has enough credits
     const { data: creditCheck, error: creditCheckError } = await supabase.rpc(
       'check_user_credits',
@@ -75,8 +79,11 @@ serve(async (req) => {
     );
 
     if (creditCheckError) {
+      console.error('Credit check error:', creditCheckError);
       throw new Error(`Credit check failed: ${creditCheckError.message}`);
     }
+
+    console.log('Credit check result:', creditCheck);
 
     if (!creditCheck.has_credits) {
       throw new Error(creditCheck.error_message || 'Insufficient credits');
@@ -112,6 +119,8 @@ serve(async (req) => {
         throw new Error('Invalid generation type');
     }
 
+    console.log('Operation successful, deducting credits');
+
     // Deduct credits after successful generation
     const { data: deductResult, error: deductError } = await supabase.rpc(
       'deduct_user_credits',
@@ -119,8 +128,11 @@ serve(async (req) => {
     );
 
     if (deductError || !deductResult.success) {
+      console.error('Credit deduction error:', deductError || deductResult.message);
       throw new Error(`Failed to deduct credits: ${deductError?.message || deductResult.message}`);
     }
+
+    console.log('Credits deducted successfully');
 
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
