@@ -72,10 +72,13 @@ serve(async (req) => {
 
     console.log('Checking credits for operation type:', type, 'requiring credits:', creditsRequired);
 
-    // Check if user has enough credits
+    // Check if user has enough credits - using explicit table reference
     const { data: creditCheck, error: creditCheckError } = await supabase.rpc(
       'check_user_credits',
-      { user_id: user.id, required_credits: creditsRequired }
+      { 
+        user_id: user.id, 
+        required_credits: creditsRequired 
+      }
     );
 
     if (creditCheckError) {
@@ -85,8 +88,8 @@ serve(async (req) => {
 
     console.log('Credit check result:', creditCheck);
 
-    if (!creditCheck.has_credits) {
-      throw new Error(creditCheck.error_message || 'Insufficient credits');
+    if (!creditCheck[0].has_credits) {
+      throw new Error(creditCheck[0].error_message || 'Insufficient credits');
     }
 
     // Process the request based on type
@@ -124,7 +127,10 @@ serve(async (req) => {
     // Deduct credits after successful generation
     const { data: deductResult, error: deductError } = await supabase.rpc(
       'deduct_user_credits',
-      { user_id: user.id, credits_to_deduct: creditsRequired }
+      { 
+        user_id: user.id, 
+        credits_to_deduct: creditsRequired 
+      }
     );
 
     if (deductError || !deductResult.success) {

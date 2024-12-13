@@ -142,6 +142,30 @@ export type Database = {
         }
         Relationships: []
       }
+      free_tier_usage: {
+        Row: {
+          created_at: string
+          generations_used: number | null
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          generations_used?: number | null
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          generations_used?: number | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       notes: {
         Row: {
           content: string | null
