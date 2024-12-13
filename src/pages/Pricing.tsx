@@ -44,6 +44,15 @@ const Pricing = () => {
         return;
       }
 
+      if (!plan.stripe_price_id) {
+        toast({
+          title: "Configuration error",
+          description: "This plan is not properly configured. Please try another plan or contact support.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: { priceId: plan.stripe_price_id }
       });
