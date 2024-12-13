@@ -233,6 +233,7 @@ export type Database = {
           business_idea: Json | null
           created_at: string
           description: string | null
+          generated_ads: Json | null
           id: string
           marketing_campaign: Json | null
           selected_hooks: Json | null
@@ -250,6 +251,7 @@ export type Database = {
           business_idea?: Json | null
           created_at?: string
           description?: string | null
+          generated_ads?: Json | null
           id?: string
           marketing_campaign?: Json | null
           selected_hooks?: Json | null
@@ -267,6 +269,7 @@ export type Database = {
           business_idea?: Json | null
           created_at?: string
           description?: string | null
+          generated_ads?: Json | null
           id?: string
           marketing_campaign?: Json | null
           selected_hooks?: Json | null
@@ -322,6 +325,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      wizard_progress: {
+        Row: {
+          ad_format: Json | null
+          audience_analysis: Json | null
+          business_idea: Json | null
+          created_at: string
+          id: string
+          selected_hooks: Json | null
+          target_audience: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ad_format?: Json | null
+          audience_analysis?: Json | null
+          business_idea?: Json | null
+          created_at?: string
+          id?: string
+          selected_hooks?: Json | null
+          target_audience?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ad_format?: Json | null
+          audience_analysis?: Json | null
+          business_idea?: Json | null
+          created_at?: string
+          id?: string
+          selected_hooks?: Json | null
+          target_audience?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
     }
     Views: {
