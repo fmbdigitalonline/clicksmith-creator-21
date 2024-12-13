@@ -12,6 +12,7 @@ interface Plan {
   credits: number;
   description: string;
   features: string[];
+  stripe_price_id: string;
 }
 
 const Pricing = () => {
@@ -30,7 +31,7 @@ const Pricing = () => {
     }
   });
 
-  const handleSubscribe = async (planId: string) => {
+  const handleSubscribe = async (plan: Plan) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       
@@ -43,27 +44,22 @@ const Pricing = () => {
         return;
       }
 
-      const { error } = await supabase
-        .from('subscriptions')
-        .insert([
-          {
-            user_id: user.id,
-            plan_id: planId,
-            current_period_start: new Date().toISOString(),
-            current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
-          }
-        ]);
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        body: { priceId: plan.stripe_price_id }
+      });
 
       if (error) throw error;
 
-      toast({
-        title: "Success!",
-        description: "You have successfully subscribed to the plan",
-      });
+      if (data?.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error('No checkout URL received');
+      }
     } catch (error) {
+      console.error('Checkout error:', error);
       toast({
         title: "Error",
-        description: "Failed to subscribe to the plan. Please try again.",
+        description: "Failed to start checkout process. Please try again.",
         variant: "destructive",
       });
     }
@@ -123,7 +119,7 @@ const Pricing = () => {
             <CardFooter>
               <Button 
                 className="w-full"
-                onClick={() => handleSubscribe(plan.id)}
+                onClick={() => handleSubscribe(plan)}
               >
                 Subscribe Now
               </Button>
