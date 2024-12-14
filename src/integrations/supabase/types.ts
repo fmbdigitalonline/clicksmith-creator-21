@@ -436,13 +436,13 @@ export type Database = {
       }
       deduct_user_credits: {
         Args: {
-          p_user_id: string
+          input_user_id: string
           credits_to_deduct: number
         }
         Returns: {
           success: boolean
-          message: string
-          credits_remaining: number
+          current_credits: number
+          error_message: string
         }[]
       }
       log_credit_operation: {

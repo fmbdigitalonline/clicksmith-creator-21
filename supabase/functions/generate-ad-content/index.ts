@@ -124,11 +124,11 @@ serve(async (req) => {
 
     console.log('Operation successful, deducting credits');
 
-    // Deduct credits after successful generation
+    // Deduct credits after successful generation using the correct parameter names
     const { data: deductResult, error: deductError } = await supabase.rpc(
       'deduct_user_credits',
       { 
-        p_user_id: user.id,
+        input_user_id: user.id,
         credits_to_deduct: creditsRequired 
       }
     );
@@ -138,9 +138,9 @@ serve(async (req) => {
       throw new Error(`Failed to deduct credits: ${deductError.message}`);
     }
 
-    if (!deductResult.success) {
-      console.error('Credit deduction failed:', deductResult.message);
-      throw new Error(`Failed to deduct credits: ${deductResult.message}`);
+    if (!deductResult[0].success) {
+      console.error('Credit deduction failed:', deductResult[0].error_message);
+      throw new Error(`Failed to deduct credits: ${deductResult[0].error_message}`);
     }
 
     console.log('Credits deducted successfully');
