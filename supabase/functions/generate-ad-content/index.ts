@@ -72,11 +72,11 @@ serve(async (req) => {
 
     console.log('Checking credits for operation type:', type, 'requiring credits:', creditsRequired);
 
-    // Check if user has enough credits - using explicit table reference
+    // Check if user has enough credits using the updated function call
     const { data: creditCheck, error: creditCheckError } = await supabase.rpc(
       'check_user_credits',
       { 
-        user_id: user.id, 
+        p_user_id: user.id,  // Updated parameter name to match the function
         required_credits: creditsRequired 
       }
     );
@@ -124,11 +124,11 @@ serve(async (req) => {
 
     console.log('Operation successful, deducting credits');
 
-    // Deduct credits after successful generation
+    // Deduct credits after successful generation using the updated parameter name
     const { data: deductResult, error: deductError } = await supabase.rpc(
       'deduct_user_credits',
       { 
-        user_id: user.id, 
+        p_user_id: user.id,  // Updated parameter name to match the function
         credits_to_deduct: creditsRequired 
       }
     );
