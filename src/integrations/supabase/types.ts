@@ -426,7 +426,7 @@ export type Database = {
     Functions: {
       check_user_credits: {
         Args: {
-          user_id: string
+          p_user_id: string
           required_credits: number
         }
         Returns: {
@@ -436,7 +436,7 @@ export type Database = {
       }
       deduct_user_credits: {
         Args: {
-          user_id: string
+          p_user_id: string
           credits_to_deduct: number
         }
         Returns: {
