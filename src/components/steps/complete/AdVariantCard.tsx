@@ -20,6 +20,28 @@ const AdVariantCard = ({ image, hook, index, onCreateProject }: AdVariantCardPro
   const [feedback, setFeedback] = useState("");
   const { toast } = useToast();
 
+  const downloadImage = async (imageUrl: string, filename: string) => {
+    try {
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading image:', error);
+      toast({
+        title: "Download Failed",
+        description: "Failed to download the image. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleSaveAndDownload = async () => {
     if (!rating) {
       toast({
@@ -66,13 +88,8 @@ const AdVariantCard = ({ image, hook, index, onCreateProject }: AdVariantCardPro
 
       if (feedbackError) throw feedbackError;
 
-      // Download image after successful save
-      const link = document.createElement('a');
-      link.href = image.url;
-      link.download = `ad-variant-${index + 1}.jpg`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      // Download the image after successful save
+      await downloadImage(image.url, `ad-variant-${index + 1}.jpg`);
 
       toast({
         title: "Success!",
@@ -102,8 +119,14 @@ const AdVariantCard = ({ image, hook, index, onCreateProject }: AdVariantCardPro
       <CardContent className="p-4 space-y-4">
         <h3 className="font-medium text-lg">Variant {index + 1}</h3>
         <div className="space-y-2">
-          <p className="text-gray-800 font-medium">{hook.description}</p>
-          <p className="text-facebook font-semibold">{hook.text}</p>
+          <div className="bg-gray-50 p-3 rounded-lg">
+            <p className="text-sm font-medium text-gray-600 mb-1">Marketing Angle:</p>
+            <p className="text-gray-800">{hook.description}</p>
+          </div>
+          <div className="bg-facebook/5 p-3 rounded-lg">
+            <p className="text-sm font-medium text-facebook mb-1">Ad Copy:</p>
+            <p className="text-gray-800 font-medium">{hook.text}</p>
+          </div>
         </div>
 
         <div className="space-y-4 pt-4 border-t">

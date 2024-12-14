@@ -13,17 +13,15 @@ Pain Points: ${targetAudience.painPoints.join(', ')}
 Core Message: ${targetAudience.coreMessage}
 Deep Pain Points: ${targetAudience.audienceAnalysis?.deepPainPoints?.join(', ') || 'Not available'}
 
-Create exactly 10 different marketing angles and hooks, each specifically addressing one of the deep pain points identified in the audience analysis. Each hook should:
-1. Have a clear marketing angle that resonates with the target audience
-2. Include a compelling hook that grabs attention
-3. Connect emotionally with the audience's pain points
-4. Include a clear call to action
+Create exactly 10 different marketing angles and hooks, each specifically addressing one of the deep pain points identified in the audience analysis. For each:
+1. Marketing Angle: Write a clear, actionable marketing strategy that explains HOW we will position the product (e.g. "Position the product as a time-saving solution for busy professionals")
+2. Hook: Write the actual ad copy that implements this angle (should be attention-grabbing and emotionally resonant)
 
 Return ONLY a JSON array with exactly 10 items in this format:
 [
   {
     "text": "The actual hook text that will be shown in the ad",
-    "description": "A brief, compelling marketing angle that explains the emotional appeal"
+    "description": "The marketing angle/strategy explanation"
   }
 ]`;
 
@@ -41,7 +39,7 @@ Return ONLY a JSON array with exactly 10 items in this format:
         messages: [
           {
             role: 'system',
-            content: 'You are an expert marketing copywriter that creates compelling hooks and marketing angles that convert. You write in a persuasive, emotional, and benefit-focused style. Return ONLY raw JSON arrays without any markdown formatting.'
+            content: 'You are an expert marketing strategist that creates compelling marketing angles and hooks that convert. You write in a persuasive, emotional, and benefit-focused style. Return ONLY raw JSON arrays without any markdown formatting.'
           },
           { role: 'user', content: prompt }
         ],
@@ -67,18 +65,15 @@ Return ONLY a JSON array with exactly 10 items in this format:
       const content = data.choices[0].message.content.trim();
       console.log('Raw content:', content);
       
-      // Remove any markdown formatting if present
       const jsonContent = content.replace(/```json\n|\n```|```/g, '').trim();
       console.log('Cleaned content:', jsonContent);
       
-      // Parse the JSON content
       const hooks = JSON.parse(jsonContent);
       
       if (!Array.isArray(hooks) || hooks.length !== 10) {
         throw new Error('Response must be an array with exactly 10 items');
       }
 
-      // Validate each hook object has the required structure
       hooks.forEach((hook, index) => {
         if (!hook.text || !hook.description) {
           throw new Error(`Hook at index ${index} is missing required fields`);
