@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 interface Plan {
   id: string;
@@ -18,6 +19,7 @@ interface Plan {
 
 const Pricing = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(0);
   const plansPerPage = 3;
   
@@ -107,6 +109,16 @@ const Pricing = () => {
 
   return (
     <div className="container mx-auto py-12 px-4">
+      <div className="mb-8">
+        <Button
+          variant="ghost"
+          onClick={() => navigate('/projects')}
+          className="flex items-center gap-2"
+        >
+          <ChevronLeft className="h-4 w-4" />
+          Back to Dashboard
+        </Button>
+      </div>
       <div className="text-center mb-12">
         <h1 className="text-4xl font-bold mb-4">Simple, Transparent Pricing</h1>
         <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
