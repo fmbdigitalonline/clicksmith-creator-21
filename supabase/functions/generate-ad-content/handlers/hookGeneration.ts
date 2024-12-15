@@ -1,5 +1,5 @@
 export async function handleHookGeneration(businessIdea: any, targetAudience: any, openAIApiKey: string) {
-  const prompt = `Create strategic marketing angles and hooks for this business and target audience:
+  const prompt = `Create a marketing campaign for this business and target audience:
 
 Business:
 ${businessIdea.description}
@@ -12,34 +12,41 @@ Demographics: ${targetAudience.demographics}
 Pain Points: ${targetAudience.painPoints.join(', ')}
 Core Message: ${targetAudience.coreMessage}
 Deep Pain Points: ${targetAudience.audienceAnalysis?.deepPainPoints?.join(', ') || 'Not available'}
+Potential Objections: ${targetAudience.audienceAnalysis?.potentialObjections?.join(', ') || 'Not available'}
 
-Create exactly 10 different marketing angles and hooks. Each marketing angle must be a specific strategic positioning approach, NOT a description of the hook or features.
+Think step by step:
+1. Analyze the deep pain points and potential objections
+2. Create different marketing angles to approach the target audience
+3. Create hooks that match each marketing angle
+4. Ensure hooks are short, concise, and impactful
+5. Make it obvious the ad is for the target audience
 
-Marketing Angle Examples:
-❌ BAD: "Highlights the benefits of our software for restaurant owners"
-✅ GOOD: "Position as the premium done-for-you solution for overwhelmed owners"
+Marketing Angle Definition:
+- An approach to deliver messages about an offer to potential customers
+- Should be a short, brief, and clear sentence explaining the angle
+- All angles should be different from one another
 
-❌ BAD: "Shows how the product saves money and ensures compliance"
-✅ GOOD: "Position as the all-in-one cost-reducer for budget-conscious owners"
-
-❌ BAD: "Explains the time-saving features of our platform"
-✅ GOOD: "Position as the 5-minute setup solution for time-strapped managers"
-
-Each marketing angle MUST:
-1. Start with an action verb (Position, Frame, Present, etc.)
-2. Include a clear strategic direction (as the, like a, etc.)
-3. Target a specific audience pain point
-4. NOT describe the hook or features
-
-The hook should be the actual ad copy that implements this strategic angle.
+Hook Guidelines:
+- Address a specific marketing angle
+- Very short, concise, and impactful
+- Call out the target audience directly or through shared knowledge
+- Can be questions, statements, or commands
+- Can use humor or emotion when appropriate
+- Must make the audience stop and read
 
 Return ONLY a JSON array with exactly 10 items in this format:
 [
   {
     "text": "The actual hook text that will be shown in the ad",
-    "description": "Position as the [strategic approach] for [specific audience segment]"
+    "description": "The marketing angle explanation"
   }
-]`;
+]
+
+Hook Examples:
+"Hey, gym buffs! Crush your PRs with personalized hydration."
+"Slip your way to a healthier you, effortlessly."
+"Non-brain fog is real. Stay hydrated, stay on top of your game."
+"Thirst is your trail buddy's worst enemy. Outsmart it with every adventure."`;
 
   try {
     console.log('Sending prompt to OpenAI:', prompt);
@@ -55,7 +62,7 @@ Return ONLY a JSON array with exactly 10 items in this format:
         messages: [
           {
             role: 'system',
-            content: 'You are an expert marketing strategist that creates strategic positioning angles. You focus on HOW to position the product, not what features to highlight. Every marketing angle must start with an action verb and include a strategic direction. Return ONLY raw JSON arrays without any markdown formatting.'
+            content: 'You are an expert marketing strategist that creates compelling marketing angles and hooks based on deep audience analysis. Focus on creating angles that address specific pain points and hooks that make the target audience stop and read. Return ONLY raw JSON arrays without any markdown formatting.'
           },
           { role: 'user', content: prompt }
         ],
@@ -93,13 +100,6 @@ Return ONLY a JSON array with exactly 10 items in this format:
       hooks.forEach((hook, index) => {
         if (!hook.text || !hook.description) {
           throw new Error(`Hook at index ${index} is missing required fields`);
-        }
-        
-        // Validate marketing angle format
-        if (!hook.description.toLowerCase().startsWith('position') && 
-            !hook.description.toLowerCase().startsWith('frame') && 
-            !hook.description.toLowerCase().startsWith('present')) {
-          throw new Error(`Marketing angle at index ${index} must start with an action verb`);
         }
       });
 
