@@ -15,38 +15,47 @@ Deep Pain Points: ${targetAudience.audienceAnalysis?.deepPainPoints?.join(', ') 
 Potential Objections: ${targetAudience.audienceAnalysis?.potentialObjections?.join(', ') || 'Not available'}
 
 Think step by step:
-1. Analyze the deep pain points and potential objections
-2. Create different marketing angles to approach the target audience
-3. Create hooks that match each marketing angle
-4. Ensure hooks are short, concise, and impactful
-5. Make it obvious the ad is for the target audience
+1. Summarize the conversation for yourself
+2. Use the results from the audience analysis deep pain points and potential objections
+3. Think of 10 different marketing angles to approach the target audience
+4. Think of 10 different Hooks to use in ads for each marketing angle
+5. Think of 3 different ad copies
+6. Think of 3 different headlines
+7. Generate your answer
 
-Marketing Angle Definition:
-- An approach to deliver messages about an offer to potential customers
-- Should be a short, brief, and clear sentence explaining the angle
-- All angles should be different from one another
+Marketing angle Definition:
+A marketing angle is an approach taken to deliver your messages about an offer to your potential customers.
+Just write a short brief and clear sentence to explain the angle.
+All angles should be different from one another.
 
-Hook Guidelines:
-- Address a specific marketing angle
-- Very short, concise, and impactful
-- Call out the target audience directly or through shared knowledge
+Hooks Guidelines:
+- Every hook should address a specific marketing angle
+- Very short, concise and impactful
+- Call out the target audience either obviously or through shared knowledge
+- Goal is to make the audience stop and read
 - Can be questions, statements, or commands
 - Can use humor or emotion when appropriate
-- Must make the audience stop and read
+- Must make it obvious the ad is for them
 
-Return ONLY a JSON array with exactly 10 items in this format:
+Ad Copy Guidelines:
+Create 3 different versions:
+1. "Younder story": Longer, storytelling-based
+2. "Short impact": One impactful sentence
+3. "AIDA version": Middle-length with bullet points
+
+Headline Guidelines:
+- Maximum 6 words
+- Straight to the point
+- Highlight solution, product, or feature
+- Based on market awareness/sophistication
+
+Return ONLY a valid JSON array with exactly 10 items in this format:
 [
   {
     "text": "The actual hook text that will be shown in the ad",
     "description": "The marketing angle explanation"
   }
-]
-
-Hook Examples:
-"Hey, gym buffs! Crush your PRs with personalized hydration."
-"Slip your way to a healthier you, effortlessly."
-"Non-brain fog is real. Stay hydrated, stay on top of your game."
-"Thirst is your trail buddy's worst enemy. Outsmart it with every adventure."`;
+]`;
 
   try {
     console.log('Sending prompt to OpenAI:', prompt);
