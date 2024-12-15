@@ -1,5 +1,5 @@
 export async function handleHookGeneration(businessIdea: any, targetAudience: any, openAIApiKey: string) {
-  const prompt = `Generate compelling marketing angles and hooks for this business and target audience:
+  const prompt = `Create marketing angles and hooks for this business and target audience:
 
 Business:
 ${businessIdea.description}
@@ -13,15 +13,29 @@ Pain Points: ${targetAudience.painPoints.join(', ')}
 Core Message: ${targetAudience.coreMessage}
 Deep Pain Points: ${targetAudience.audienceAnalysis?.deepPainPoints?.join(', ') || 'Not available'}
 
-Create exactly 10 different marketing angles and hooks, each specifically addressing one of the deep pain points identified in the audience analysis. For each:
-1. Marketing Angle: Write a clear, actionable marketing strategy that explains HOW we will position the product (e.g. "Position the product as a time-saving solution for busy professionals")
-2. Hook: Write the actual ad copy that implements this angle (should be attention-grabbing and emotionally resonant)
+Create exactly 10 different marketing angles and hooks, where:
+
+1. Marketing Angle: A specific strategic approach to position the product/service that addresses a specific pain point. 
+Examples of good marketing angles:
+- "Position as the quick-start solution for overwhelmed beginners"
+- "Highlight the cost-saving benefits for budget-conscious professionals"
+- "Focus on the premium quality for perfectionists"
+- "Emphasize the time-saving automation for busy professionals"
+
+2. Hook: The actual compelling ad copy that implements this angle.
+
+Each marketing angle should:
+- Be a clear strategic direction
+- Target a specific pain point
+- Explain HOW we will position the product
+- Be actionable and specific
+- NOT be a description of the hook itself
 
 Return ONLY a JSON array with exactly 10 items in this format:
 [
   {
     "text": "The actual hook text that will be shown in the ad",
-    "description": "The marketing angle/strategy explanation"
+    "description": "The strategic marketing angle (not a description of the hook)"
   }
 ]`;
 
@@ -39,7 +53,7 @@ Return ONLY a JSON array with exactly 10 items in this format:
         messages: [
           {
             role: 'system',
-            content: 'You are an expert marketing strategist that creates compelling marketing angles and hooks that convert. You write in a persuasive, emotional, and benefit-focused style. Return ONLY raw JSON arrays without any markdown formatting.'
+            content: 'You are an expert marketing strategist that creates strategic marketing angles and compelling hooks. Marketing angles should be strategic approaches to positioning, not descriptions of hooks. Return ONLY raw JSON arrays without any markdown formatting.'
           },
           { role: 'user', content: prompt }
         ],
