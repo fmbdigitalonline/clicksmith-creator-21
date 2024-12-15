@@ -1,5 +1,5 @@
 export async function handleHookGeneration(businessIdea: any, targetAudience: any, openAIApiKey: string) {
-  const prompt = `Create marketing angles and hooks for this business and target audience:
+  const prompt = `Create strategic marketing angles and hooks for this business and target audience:
 
 Business:
 ${businessIdea.description}
@@ -13,29 +13,31 @@ Pain Points: ${targetAudience.painPoints.join(', ')}
 Core Message: ${targetAudience.coreMessage}
 Deep Pain Points: ${targetAudience.audienceAnalysis?.deepPainPoints?.join(', ') || 'Not available'}
 
-Create exactly 10 different marketing angles and hooks, where:
+Create exactly 10 different marketing angles and hooks. Each marketing angle must be a specific strategic positioning approach, NOT a description of the hook or features.
 
-1. Marketing Angle: A specific strategic approach to position the product/service that addresses a specific pain point. 
-Examples of good marketing angles:
-- "Position as the quick-start solution for overwhelmed beginners"
-- "Highlight the cost-saving benefits for budget-conscious professionals"
-- "Focus on the premium quality for perfectionists"
-- "Emphasize the time-saving automation for busy professionals"
+Marketing Angle Examples:
+❌ BAD: "Highlights the benefits of our software for restaurant owners"
+✅ GOOD: "Position as the premium done-for-you solution for overwhelmed owners"
 
-2. Hook: The actual compelling ad copy that implements this angle.
+❌ BAD: "Shows how the product saves money and ensures compliance"
+✅ GOOD: "Position as the all-in-one cost-reducer for budget-conscious owners"
 
-Each marketing angle should:
-- Be a clear strategic direction
-- Target a specific pain point
-- Explain HOW we will position the product
-- Be actionable and specific
-- NOT be a description of the hook itself
+❌ BAD: "Explains the time-saving features of our platform"
+✅ GOOD: "Position as the 5-minute setup solution for time-strapped managers"
+
+Each marketing angle MUST:
+1. Start with an action verb (Position, Frame, Present, etc.)
+2. Include a clear strategic direction (as the, like a, etc.)
+3. Target a specific audience pain point
+4. NOT describe the hook or features
+
+The hook should be the actual ad copy that implements this strategic angle.
 
 Return ONLY a JSON array with exactly 10 items in this format:
 [
   {
     "text": "The actual hook text that will be shown in the ad",
-    "description": "The strategic marketing angle (not a description of the hook)"
+    "description": "Position as the [strategic approach] for [specific audience segment]"
   }
 ]`;
 
@@ -53,7 +55,7 @@ Return ONLY a JSON array with exactly 10 items in this format:
         messages: [
           {
             role: 'system',
-            content: 'You are an expert marketing strategist that creates strategic marketing angles and compelling hooks. Marketing angles should be strategic approaches to positioning, not descriptions of hooks. Return ONLY raw JSON arrays without any markdown formatting.'
+            content: 'You are an expert marketing strategist that creates strategic positioning angles. You focus on HOW to position the product, not what features to highlight. Every marketing angle must start with an action verb and include a strategic direction. Return ONLY raw JSON arrays without any markdown formatting.'
           },
           { role: 'user', content: prompt }
         ],
@@ -91,6 +93,13 @@ Return ONLY a JSON array with exactly 10 items in this format:
       hooks.forEach((hook, index) => {
         if (!hook.text || !hook.description) {
           throw new Error(`Hook at index ${index} is missing required fields`);
+        }
+        
+        // Validate marketing angle format
+        if (!hook.description.toLowerCase().startsWith('position') && 
+            !hook.description.toLowerCase().startsWith('frame') && 
+            !hook.description.toLowerCase().startsWith('present')) {
+          throw new Error(`Marketing angle at index ${index} must start with an action verb`);
         }
       });
 
