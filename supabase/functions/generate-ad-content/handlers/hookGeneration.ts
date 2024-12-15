@@ -14,14 +14,45 @@ Core Message: ${targetAudience.coreMessage}
 Deep Pain Points: ${targetAudience.audienceAnalysis?.deepPainPoints?.join(', ') || 'Not available'}
 Potential Objections: ${targetAudience.audienceAnalysis?.potentialObjections?.join(', ') || 'Not available'}
 
-Think step by step:
-1. Summarize the conversation for yourself
-2. Use the results from the audience analysis deep pain points and potential objections
-3. Think of 10 different marketing angles to approach the target audience
-4. Think of 10 different Hooks to use in ads for each marketing angle
-5. Think of 3 different ad copies
-6. Think of 3 different headlines
-7. Generate your answer
+Title: Ad campaign for ${businessIdea.description}
+
+[Target audience]
+${targetAudience.name}
+
+Specific
+[Marketing angle 1]
+[Hook 1]
+[Marketing angle 2]
+[Hook 2]
+[Marketing angle 3]
+[Hook 3]
+[Marketing angle 4]
+[Hook 4]
+[Marketing angle 5]
+[Hook 5]
+[Marketing angle 6]
+[Hook 6]
+[Marketing angle 7]
+[Hook 7]
+[Marketing angle 8]
+[Hook 8]
+[Marketing angle 9]
+[Hook 9]
+[Marketing angle 10]
+[Hook 10]
+
+General
+[Ad copies]
+[Ad copy 1 - Younder story]
+[Ad copy 2 - Short impact]
+[Ad copy 3 - AIDA version]
+
+[Headlines]
+[Headline 1]
+[Headline 2]
+[Headline 3]
+
+Follow these guidelines:
 
 Marketing angle Definition:
 A marketing angle is an approach taken to deliver your messages about an offer to your potential customers.
