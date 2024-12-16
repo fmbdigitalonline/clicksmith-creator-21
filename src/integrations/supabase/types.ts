@@ -213,6 +213,33 @@ export type Database = {
           },
         ]
       }
+      onboarding: {
+        Row: {
+          completed: boolean | null
+          created_at: string
+          id: string
+          steps_completed: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed?: boolean | null
+          created_at?: string
+          id?: string
+          steps_completed?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed?: boolean | null
+          created_at?: string
+          id?: string
+          steps_completed?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       plans: {
         Row: {
           active: boolean | null

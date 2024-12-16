@@ -3,6 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { SidebarProvider } from "@/components/ui/sidebar";
+import { OnboardingDialog } from "@/components/onboarding/OnboardingDialog";
 import Login from "@/pages/Login";
 import Projects from "@/pages/Projects";
 import Settings from "@/pages/Settings";
@@ -62,6 +63,7 @@ function App() {
             />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
+          <OnboardingDialog />
           <Toaster />
         </Router>
       </SidebarProvider>
