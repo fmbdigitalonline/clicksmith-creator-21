@@ -2,6 +2,7 @@ import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Home, Settings, CreditCard } from "lucide-react";
+import CreditDisplay from "./CreditDisplay";
 
 const Navigation = () => {
   const location = useLocation();
@@ -22,6 +23,7 @@ const Navigation = () => {
             AdWizard
           </Link>
           <div className="flex items-center gap-4">
+            <CreditDisplay />
             <Button
               variant="ghost"
               size="sm"
