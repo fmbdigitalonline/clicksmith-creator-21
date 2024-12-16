@@ -11,14 +11,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const CREDITS_REQUIRED = {
-  audience: 1,
-  audience_analysis: 2,
-  campaign: 3,
-  hooks: 2,
-  images: 5,
-};
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -65,33 +57,6 @@ serve(async (req) => {
       throw new Error('Type is required');
     }
 
-    const creditsRequired = CREDITS_REQUIRED[type];
-    if (!creditsRequired) {
-      throw new Error('Invalid generation type');
-    }
-
-    console.log('Checking credits for operation type:', type, 'requiring credits:', creditsRequired);
-
-    // Check if user has enough credits using the updated function call
-    const { data: creditCheck, error: creditCheckError } = await supabase.rpc(
-      'check_user_credits',
-      { 
-        p_user_id: user.id,
-        required_credits: creditsRequired 
-      }
-    );
-
-    if (creditCheckError) {
-      console.error('Credit check error:', creditCheckError);
-      throw new Error(`Credit check failed: ${creditCheckError.message}`);
-    }
-
-    console.log('Credit check result:', creditCheck);
-
-    if (!creditCheck[0].has_credits) {
-      throw new Error(creditCheck[0].error_message || 'Insufficient credits');
-    }
-
     // Process the request based on type
     let result;
     try {
@@ -123,34 +88,10 @@ serve(async (req) => {
           throw new Error('Invalid generation type');
       }
 
-      // Only deduct credits after successful generation
-      console.log('Operation successful, deducting credits');
-
-      const { data: deductResult, error: deductError } = await supabase.rpc(
-        'deduct_user_credits',
-        { 
-          input_user_id: user.id,
-          credits_to_deduct: creditsRequired 
-        }
-      );
-
-      if (deductError) {
-        console.error('Credit deduction error:', deductError);
-        throw new Error(`Failed to deduct credits: ${deductError.message}`);
-      }
-
-      if (!deductResult[0].success) {
-        console.error('Credit deduction failed:', deductResult[0].error_message);
-        throw new Error(`Failed to deduct credits: ${deductResult[0].error_message}`);
-      }
-
-      console.log('Credits deducted successfully');
-
       return new Response(JSON.stringify(result), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     } catch (error) {
-      // If generation fails, we don't want to deduct credits
       console.error('Generation error:', error);
       throw error;
     }
