@@ -54,21 +54,39 @@ const AdSizeStep = ({ onNext, onBack }: AdSizeStepProps) => {
     }
   };
 
-  const adFormats: { id: AdFormat; title: string; description: string }[] = [
+  const adFormats: { id: string; title: string; description: string; format: AdFormat }[] = [
     {
-      id: "image_landscape",
+      id: "landscape",
       title: "Landscape Image",
       description: "1200 x 628px - Best for Facebook feed ads",
+      format: {
+        format: "image_landscape",
+        dimensions: { width: 1200, height: 628 },
+        aspectRatio: "1.91:1",
+        description: "Best for Facebook feed ads"
+      }
     },
     {
-      id: "image_square",
+      id: "square",
       title: "Square Image",
       description: "1080 x 1080px - Great for Instagram feed",
+      format: {
+        format: "image_square",
+        dimensions: { width: 1080, height: 1080 },
+        aspectRatio: "1:1",
+        description: "Great for Instagram feed"
+      }
     },
     {
-      id: "image_story",
+      id: "story",
       title: "Story Image",
       description: "1080 x 1920px - Perfect for Stories and Reels",
+      format: {
+        format: "image_story",
+        dimensions: { width: 1080, height: 1920 },
+        aspectRatio: "9:16",
+        description: "Perfect for Stories and Reels"
+      }
     },
   ];
 
@@ -104,11 +122,11 @@ const AdSizeStep = ({ onNext, onBack }: AdSizeStepProps) => {
           <Card
             key={format.id}
             className={`p-6 cursor-pointer transition-all ${
-              selectedFormat === format.id
+              selectedFormat?.format === format.format.format
                 ? "ring-2 ring-facebook"
                 : "hover:border-facebook/50"
             }`}
-            onClick={() => setSelectedFormat(format.id)}
+            onClick={() => setSelectedFormat(format.format)}
           >
             <h3 className="font-semibold mb-2">{format.title}</h3>
             <p className="text-sm text-gray-600">{format.description}</p>
