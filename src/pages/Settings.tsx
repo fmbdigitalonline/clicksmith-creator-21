@@ -2,12 +2,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { User } from "@supabase/supabase-js";
 import { useNavigate } from "react-router-dom";
+import { Settings2, Bell, Shield, User as UserIcon, CreditCard } from "lucide-react";
 
 interface Subscription {
   id: string;
@@ -22,15 +25,44 @@ interface Subscription {
   };
 }
 
+interface Profile {
+  full_name: string | null;
+  username: string | null;
+  email_notifications: boolean;
+  marketing_emails: boolean;
+}
+
 const Settings = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<Profile>({
+    full_name: "",
+    username: "",
+    email_notifications: true,
+    marketing_emails: false,
+  });
 
   useEffect(() => {
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       setUser(user);
+      
+      if (user) {
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+          
+        if (profileData) {
+          setProfile(prev => ({
+            ...prev,
+            full_name: profileData.full_name,
+            username: profileData.username,
+          }));
+        }
+      }
     };
     
     getUser();
@@ -58,6 +90,44 @@ const Settings = () => {
     },
     enabled: !!user,
   });
+
+  const handleProfileUpdate = async () => {
+    if (!user) return;
+
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        full_name: profile.full_name,
+        username: profile.username,
+      })
+      .eq('id', user.id);
+
+    if (error) {
+      toast({
+        title: "Error updating profile",
+        description: error.message,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    toast({
+      title: "Profile updated",
+      description: "Your profile has been updated successfully.",
+    });
+  };
+
+  const handleNotificationUpdate = async (key: 'email_notifications' | 'marketing_emails') => {
+    setProfile(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }));
+
+    toast({
+      title: "Preferences updated",
+      description: "Your notification preferences have been saved.",
+    });
+  };
 
   const handleManageSubscription = async () => {
     try {
@@ -97,13 +167,38 @@ const Settings = () => {
 
   return (
     <div className="container mx-auto py-6">
-      <h2 className="text-3xl font-bold tracking-tight mb-6">Settings</h2>
+      <div className="flex items-center gap-2 mb-6">
+        <Settings2 className="h-8 w-8" />
+        <h2 className="text-3xl font-bold tracking-tight">Settings</h2>
+      </div>
+      
       <div className="grid gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>Profile Settings</CardTitle>
+            <div className="flex items-center gap-2">
+              <UserIcon className="h-5 w-5" />
+              <CardTitle>Profile Settings</CardTitle>
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="fullName">Full Name</Label>
+              <Input
+                id="fullName"
+                value={profile.full_name || ""}
+                onChange={(e) => setProfile(prev => ({ ...prev, full_name: e.target.value }))}
+                placeholder="Enter your full name"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="username">Username</Label>
+              <Input
+                id="username"
+                value={profile.username || ""}
+                onChange={(e) => setProfile(prev => ({ ...prev, username: e.target.value }))}
+                placeholder="Choose a username"
+              />
+            </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -113,15 +208,54 @@ const Settings = () => {
                 disabled
               />
             </div>
-            <Button variant="destructive" onClick={handleSignOut}>
-              Sign Out
+            <Button onClick={handleProfileUpdate}>
+              Save Profile
             </Button>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Subscription</CardTitle>
+            <div className="flex items-center gap-2">
+              <Bell className="h-5 w-5" />
+              <CardTitle>Notification Preferences</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label>Email Notifications</Label>
+                <p className="text-sm text-muted-foreground">
+                  Receive email updates about your projects
+                </p>
+              </div>
+              <Switch
+                checked={profile.email_notifications}
+                onCheckedChange={() => handleNotificationUpdate('email_notifications')}
+              />
+            </div>
+            <Separator />
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label>Marketing Emails</Label>
+                <p className="text-sm text-muted-foreground">
+                  Receive news and promotional emails
+                </p>
+              </div>
+              <Switch
+                checked={profile.marketing_emails}
+                onCheckedChange={() => handleNotificationUpdate('marketing_emails')}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <CreditCard className="h-5 w-5" />
+              <CardTitle>Subscription</CardTitle>
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
             {isLoadingSubscription ? (
@@ -154,6 +288,20 @@ const Settings = () => {
                 </Button>
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Shield className="h-5 w-5" />
+              <CardTitle>Security</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Button variant="destructive" onClick={handleSignOut}>
+              Sign Out
+            </Button>
           </CardContent>
         </Card>
       </div>
