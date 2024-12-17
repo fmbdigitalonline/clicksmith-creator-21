@@ -39,24 +39,69 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+function sanitizePrompt(prompt: string): string {
+  // Remove any potentially problematic content
+  const sanitized = prompt
+    .replace(/[^\w\s,.!?()-]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  
+  // Ensure minimum length
+  if (sanitized.length < 20) {
+    throw new Error('Prompt is too short after sanitization');
+  }
+  
+  return sanitized;
+}
+
+function validateBusinessContext(businessIdea: BusinessIdea): void {
+  if (!businessIdea.description || businessIdea.description.length < 10) {
+    throw new Error('Business description is too vague or missing');
+  }
+  
+  if (!businessIdea.valueProposition || businessIdea.valueProposition.length < 10) {
+    throw new Error('Value proposition is too vague or missing');
+  }
+}
+
+function transformPrompt(prompt: string, attempt: number): string {
+  const variations = [
+    (p: string) => `Professional business image showing: ${p}`,
+    (p: string) => `Corporate style visualization of: ${p}`,
+    (p: string) => `Modern business representation depicting: ${p}`,
+    (p: string) => `Clean, minimal business scene showing: ${p}`,
+  ];
+  
+  // Use different variations based on retry attempt
+  const variationIndex = attempt % variations.length;
+  return variations[variationIndex](prompt);
+}
+
 export async function handleImagePromptGeneration(
   businessIdea: BusinessIdea,
   targetAudience: TargetAudience,
   campaign: MarketingCampaign,
   openAIApiKey: string
 ) {
-  console.log('Starting image prompt generation with Replicate...');
-  
-  const replicateApiToken = Deno.env.get('REPLICATE_API_TOKEN');
-  if (!replicateApiToken) {
-    throw new Error('REPLICATE_API_TOKEN is required');
-  }
-
-  const replicate = new Replicate({
-    auth: replicateApiToken,
+  console.log('Starting image prompt generation with business context:', {
+    businessType: businessIdea.description,
+    audience: targetAudience.name,
+    campaignType: campaign.hooks[0]?.description
   });
+  
+  try {
+    validateBusinessContext(businessIdea);
+    
+    const replicateApiToken = Deno.env.get('REPLICATE_API_TOKEN');
+    if (!replicateApiToken) {
+      throw new Error('REPLICATE_API_TOKEN is required');
+    }
 
-  const basePrompt = `Create a professional, business-appropriate Facebook advertisement image that represents:
+    const replicate = new Replicate({
+      auth: replicateApiToken,
+    });
+
+    const basePrompt = `Create a professional, business-appropriate Facebook advertisement image that represents:
 ${campaign.hooks.map(hook => hook.description).join('\n')}
 
 Business Context:
@@ -82,25 +127,24 @@ Style requirements:
 - Focus on professional business imagery
 `;
 
-  const strongNegativePrompt = "text, words, letters, numbers, symbols, watermarks, logos, labels, signs, writing, typography, fonts, characters, alphabets, digits, punctuation marks, nsfw, nudity, violence, gore, weapons, drugs, inappropriate content, offensive content, controversial content, suggestive content, unsafe content, adult content, explicit content";
+    const strongNegativePrompt = "text, words, letters, numbers, symbols, watermarks, logos, labels, signs, writing, typography, fonts, characters, alphabets, digits, punctuation marks, nsfw, nudity, violence, gore, weapons, drugs, inappropriate content, offensive content, controversial content, suggestive content, unsafe content, adult content, explicit content";
 
-  try {
-    // Generate prompts based on each selected hook
+    // Generate prompts based on each selected hook with fallback variations
     const prompts = campaign.hooks.map(hook => {
-      return `${basePrompt}\nCreate a purely business-focused visual representation that captures this message: "${hook.description}" using only professional business imagery.`;
+      const baseHookPrompt = `${basePrompt}\nCreate a purely business-focused visual representation that captures this message: "${hook.description}" using only professional business imagery.`;
+      return sanitizePrompt(baseHookPrompt);
     });
 
     // If we have less than 6 prompts, add some variations
     while (prompts.length < 6) {
       const randomHook = campaign.hooks[Math.floor(Math.random() * campaign.hooks.length)];
-      prompts.push(
-        `${basePrompt}\nCreate an alternative business-appropriate visual interpretation focusing on: "${randomHook.description}" using only professional imagery.`
-      );
+      const variationPrompt = `${basePrompt}\nCreate an alternative business-appropriate visual interpretation focusing on: "${randomHook.description}" using only professional imagery.`;
+      prompts.push(sanitizePrompt(variationPrompt));
     }
 
-    console.log('Starting image generation with prompts:', prompts);
+    console.log('Starting image generation with validated prompts:', prompts);
 
-    // Generate all images in parallel with retry logic
+    // Generate all images in parallel with enhanced retry logic
     const imagePromises = prompts.map(async (prompt, index) => {
       const maxRetries = 3;
       let attempt = 0;
@@ -109,10 +153,14 @@ Style requirements:
         try {
           console.log(`Attempting to generate image ${index + 1}, attempt ${attempt + 1}`);
           
+          // Transform prompt based on retry attempt
+          const transformedPrompt = transformPrompt(prompt, attempt);
+          console.log(`Using transformed prompt: ${transformedPrompt}`);
+          
           const prediction = await replicate.predictions.create({
             version: "b0c6eeefcefc40a997fa1787500782b6a7a9a99ae40f79d71e2c83daf7be5d13",
             input: {
-              prompt,
+              prompt: transformedPrompt,
               negative_prompt: strongNegativePrompt,
               width: campaign.format.dimensions.width,
               height: campaign.format.dimensions.height,
@@ -126,19 +174,26 @@ Style requirements:
 
           console.log(`Prediction created for image ${index + 1}:`, prediction);
 
-          // Wait for the prediction to complete with timeout
+          // Wait for the prediction to complete with timeout and status monitoring
           const maxWaitTime = 60000; // 60 seconds
           const startTime = Date.now();
           let result;
+          let lastStatus = '';
 
           while (!result && Date.now() - startTime < maxWaitTime) {
             result = await replicate.predictions.get(prediction.id);
+            
+            if (result.status !== lastStatus) {
+              console.log(`Image ${index + 1} status updated to: ${result.status}`);
+              lastStatus = result.status;
+            }
+            
             if (result.status === "succeeded") {
               break;
             } else if (result.status === "failed") {
               throw new Error(`Prediction failed: ${result.error}`);
             }
-            // Wait a bit before checking again
+            
             await new Promise(resolve => setTimeout(resolve, 2000));
           }
 
@@ -165,7 +220,7 @@ Style requirements:
           
           return {
             url: imageUrl,
-            prompt: prompt,
+            prompt: transformedPrompt,
           };
         } catch (error) {
           attempt++;
