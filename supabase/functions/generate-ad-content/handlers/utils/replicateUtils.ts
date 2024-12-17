@@ -26,26 +26,36 @@ export async function generateWithReplicate(
 
     console.log('Prediction created:', prediction);
 
-    const maxWaitTime = 60000;
+    const maxWaitTime = 120000; // Increased to 2 minutes
+    const pollInterval = 3000; // Poll every 3 seconds
     const startTime = Date.now();
     let result;
     let lastStatus = '';
 
     while (!result && Date.now() - startTime < maxWaitTime) {
-      result = await replicate.predictions.get(prediction.id);
-      
-      if (result.status !== lastStatus) {
-        console.log(`Generation status updated to: ${result.status}`);
-        lastStatus = result.status;
+      try {
+        result = await replicate.predictions.get(prediction.id);
+        
+        if (result.status !== lastStatus) {
+          console.log(`Generation status updated to: ${result.status}`);
+          lastStatus = result.status;
+        }
+        
+        if (result.status === "succeeded") {
+          break;
+        } else if (result.status === "failed") {
+          throw new Error(`Prediction failed: ${result.error}`);
+        } else if (result.status === "canceled") {
+          throw new Error('Image generation was canceled');
+        }
+        
+        // Wait before polling again
+        await new Promise(resolve => setTimeout(resolve, pollInterval));
+      } catch (pollError) {
+        console.error('Error polling prediction status:', pollError);
+        // Continue polling even if we get a temporary error
+        await new Promise(resolve => setTimeout(resolve, pollInterval));
       }
-      
-      if (result.status === "succeeded") {
-        break;
-      } else if (result.status === "failed") {
-        throw new Error(`Prediction failed: ${result.error}`);
-      }
-      
-      await new Promise(resolve => setTimeout(resolve, 2000));
     }
 
     if (!result || result.status !== "succeeded") {
