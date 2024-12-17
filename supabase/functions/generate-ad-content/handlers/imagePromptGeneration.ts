@@ -56,7 +56,7 @@ export async function handleImagePromptGeneration(
     auth: replicateApiToken,
   });
 
-  const basePrompt = `Create a professional Facebook ad image that visually represents this concept:
+  const basePrompt = `Create a professional, safe-for-work Facebook ad image that visually represents this concept:
 ${campaign.hooks.map(hook => hook.description).join('\n')}
 
 Business Context:
@@ -75,9 +75,12 @@ Style requirements:
 - Maximum 2 people per image
 - High-end commercial look
 - Perfect for Facebook ads
+- Safe for work, professional business content only
+- No controversial or sensitive content
+- Appropriate for all audiences
 `;
 
-  const strongNegativePrompt = "text, words, letters, numbers, symbols, watermarks, logos, labels, signs, writing, typography, fonts, characters, alphabets, digits, punctuation marks";
+  const strongNegativePrompt = "text, words, letters, numbers, symbols, watermarks, logos, labels, signs, writing, typography, fonts, characters, alphabets, digits, punctuation marks, nsfw, nudity, violence, gore, weapons, drugs, inappropriate content, offensive content";
 
   try {
     // Generate prompts based on each selected hook
@@ -95,39 +98,60 @@ Style requirements:
 
     console.log('Generating images with prompts:', prompts);
 
-    // Generate all images in parallel
-    const imagePromises = prompts.map(async (prompt) => {
-      try {
-        const output = await replicate.run(
-          "bytedance/sdxl-lightning-4step:5599ed30703defd1d160a25a63321b4dec97101d98b4674bcc56e41f62f35637",
-          {
-            input: {
-              prompt,
-              negative_prompt: strongNegativePrompt,
-              num_inference_steps: 4,
-              guidance_scale: 7.5,
-              width: campaign.format.dimensions.width,
-              height: campaign.format.dimensions.height,
+    // Generate all images in parallel with retry logic
+    const imagePromises = prompts.map(async (prompt, index) => {
+      const maxRetries = 3;
+      let attempt = 0;
+      
+      while (attempt < maxRetries) {
+        try {
+          console.log(`Attempting to generate image ${index + 1}, attempt ${attempt + 1}`);
+          const output = await replicate.run(
+            "bytedance/sdxl-lightning-4step:5599ed30703defd1d160a25a63321b4dec97101d98b4674bcc56e41f62f35637",
+            {
+              input: {
+                prompt,
+                negative_prompt: strongNegativePrompt,
+                num_inference_steps: 4,
+                guidance_scale: 7.5,
+                width: campaign.format.dimensions.width,
+                height: campaign.format.dimensions.height,
+              }
             }
-          }
-        );
+          );
 
-        console.log('Generated image URL:', output);
-        
-        return {
-          url: output[0],
-          prompt: prompt,
-        };
-      } catch (error) {
-        console.error('Error generating individual image:', error);
-        throw error;
+          console.log(`Successfully generated image ${index + 1}`);
+          
+          return {
+            url: output[0],
+            prompt: prompt,
+          };
+        } catch (error) {
+          attempt++;
+          console.error(`Error generating image ${index + 1}, attempt ${attempt}:`, error);
+          
+          if (error.message?.includes('NSFW content detected') || attempt === maxRetries) {
+            throw error;
+          }
+          
+          // Wait before retrying
+          await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+        }
       }
     });
 
-    const images = await Promise.all(imagePromises);
-    console.log(`Successfully generated ${images.length} images`);
-    
-    return { images };
+    try {
+      const images = await Promise.all(imagePromises);
+      console.log(`Successfully generated ${images.length} images`);
+      
+      return { images };
+    } catch (error) {
+      console.error('Error in image generation batch:', error);
+      if (error.message?.includes('NSFW content detected')) {
+        throw new Error('NSFW content detected. Please try again with a different prompt or contact support if the issue persists.');
+      }
+      throw error;
+    }
   } catch (error) {
     console.error('Error in handleImagePromptGeneration:', error);
     throw error;
