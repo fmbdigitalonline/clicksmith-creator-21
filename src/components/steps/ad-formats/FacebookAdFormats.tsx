@@ -44,6 +44,30 @@ const FacebookAdFormats = ({ selectedFormat, onFormatSelect }: FacebookAdFormats
         platform: "facebook" as const
       }
     },
+    {
+      id: "carousel",
+      title: "Carousel Image",
+      description: "1080 x 1080px - For multi-image carousel ads",
+      format: {
+        format: "facebook_carousel",
+        dimensions: { width: 1080, height: 1080 },
+        aspectRatio: "1:1",
+        description: "For multi-image carousel ads",
+        platform: "facebook" as const
+      }
+    },
+    {
+      id: "collection",
+      title: "Collection Cover",
+      description: "1200 x 628px - For collection ad covers",
+      format: {
+        format: "facebook_collection",
+        dimensions: { width: 1200, height: 628 },
+        aspectRatio: "1.91:1",
+        description: "For collection ad covers",
+        platform: "facebook" as const
+      }
+    }
   ];
 
   return (
