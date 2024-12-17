@@ -78,9 +78,11 @@ Style requirements:
 - Strictly business-focused content
 - Safe for work, professional content only
 - Conservative and appropriate for all audiences
+- No text or typography elements
+- Focus on professional business imagery
 `;
 
-  const strongNegativePrompt = "text, words, letters, numbers, symbols, watermarks, logos, labels, signs, writing, typography, fonts, characters, alphabets, digits, punctuation marks, nsfw, nudity, violence, gore, weapons, drugs, inappropriate content, offensive content, controversial content, suggestive content, unsafe content";
+  const strongNegativePrompt = "text, words, letters, numbers, symbols, watermarks, logos, labels, signs, writing, typography, fonts, characters, alphabets, digits, punctuation marks, nsfw, nudity, violence, gore, weapons, drugs, inappropriate content, offensive content, controversial content, suggestive content, unsafe content, adult content, explicit content";
 
   try {
     // Generate prompts based on each selected hook
@@ -115,13 +117,20 @@ Style requirements:
                 width: campaign.format.dimensions.width,
                 height: campaign.format.dimensions.height,
                 steps: 30,
-                guidance_scale: 8.5,
+                guidance_scale: 7.5,
                 apply_watermark: false,
                 high_noise_frac: 0.8,
                 safety_checker: true,
+                num_outputs: 1,
+                scheduler: "DPMSolverMultistep",
+                seed: Math.floor(Math.random() * 1000000)
               }
             }
           );
+
+          if (!output || !output[0]) {
+            throw new Error('No output received from image generation');
+          }
 
           console.log(`Successfully generated image ${index + 1}`);
           
@@ -134,7 +143,7 @@ Style requirements:
           console.error(`Error generating image ${index + 1}, attempt ${attempt}:`, error);
           
           if (attempt === maxRetries) {
-            throw new Error('Failed to generate appropriate image after multiple attempts. Please try again with different business context.');
+            throw new Error('Failed to generate appropriate business image after multiple attempts. Please try again with a different business context.');
           }
           
           // Wait before retrying with increasing delay
@@ -150,7 +159,7 @@ Style requirements:
       return { images };
     } catch (error) {
       console.error('Error in image generation batch:', error);
-      throw new Error('Failed to generate appropriate business images. Please try adjusting your business description or contact support.');
+      throw new Error('Failed to generate appropriate business images. Please try adjusting your business description.');
     }
   } catch (error) {
     console.error('Error in handleImagePromptGeneration:', error);
