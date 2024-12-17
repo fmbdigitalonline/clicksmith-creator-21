@@ -99,13 +99,15 @@ Style requirements:
     const imagePromises = prompts.map(async (prompt) => {
       try {
         const output = await replicate.run(
-          "black-forest-labs/flux-1.1-pro-ultra",
+          "bytedance/sdxl-lightning-4step",
           {
             input: {
               prompt,
               negative_prompt: strongNegativePrompt,
-              num_inference_steps: 50,
+              num_inference_steps: 4,
               guidance_scale: 7.5,
+              width: campaign.format.dimensions.width,
+              height: campaign.format.dimensions.height,
             }
           }
         );
@@ -113,7 +115,7 @@ Style requirements:
         console.log('Generated image URL:', output);
         
         return {
-          url: output,
+          url: output[0],
           prompt: prompt,
         };
       } catch (error) {
