@@ -99,12 +99,12 @@ Style requirements:
     const imagePromises = prompts.map(async (prompt) => {
       try {
         const output = await replicate.run(
-          "stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b",
+          "bytedance/sdxl-lightning-4step:5599ed30703defd1d160a25a63321b4dec97101d98b4674bcc56e41f62f35637",
           {
             input: {
               prompt,
               negative_prompt: strongNegativePrompt,
-              num_inference_steps: 30,
+              num_inference_steps: 4,
               guidance_scale: 7.5,
               width: campaign.format.dimensions.width,
               height: campaign.format.dimensions.height,
