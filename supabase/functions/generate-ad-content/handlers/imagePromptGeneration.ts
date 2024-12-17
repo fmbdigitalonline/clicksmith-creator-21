@@ -108,34 +108,31 @@ Style requirements:
       while (attempt < maxRetries) {
         try {
           console.log(`Attempting to generate image ${index + 1}, attempt ${attempt + 1}`);
-          const output = await replicate.run(
-            "ideogram-ai/ideogram-v2:f4e6f15c9c0b0c6d5b3e0d5b3e0d5b3e0d5b3e0d5b3e0d5b3e0d5b3e0d5b3",
-            {
-              input: {
-                prompt,
-                negative_prompt: strongNegativePrompt,
-                width: campaign.format.dimensions.width,
-                height: campaign.format.dimensions.height,
-                steps: 30,
-                guidance_scale: 7.5,
-                apply_watermark: false,
-                high_noise_frac: 0.8,
-                safety_checker: true,
-                num_outputs: 1,
-                scheduler: "DPMSolverMultistep",
-                seed: Math.floor(Math.random() * 1000000)
-              }
+          
+          const prediction = await replicate.predictions.create({
+            version: "b0c6eeefcefc40a997fa1787500782b6a7a9a99ae40f79d71e2c83daf7be5d13",
+            input: {
+              prompt,
+              negative_prompt: strongNegativePrompt,
+              width: campaign.format.dimensions.width,
+              height: campaign.format.dimensions.height,
+              aspect_ratio: "16:9",
+              style_type: "None",
+              magic_prompt_option: "Auto"
             }
-          );
+          });
 
-          if (!output || !output[0]) {
+          // Wait for the prediction to complete
+          const result = await replicate.wait(prediction);
+
+          if (!result?.output) {
             throw new Error('No output received from image generation');
           }
 
           console.log(`Successfully generated image ${index + 1}`);
           
           return {
-            url: output[0],
+            url: result.output,
             prompt: prompt,
           };
         } catch (error) {
