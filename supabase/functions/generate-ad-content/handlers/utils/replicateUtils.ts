@@ -8,18 +8,19 @@ export async function generateWithReplicate(
   console.log('Starting image generation with Replicate:', { prompt, dimensions });
 
   try {
+    // Using a stable and public model version from Stability AI
     const prediction = await replicate.predictions.create({
-      version: "b0c6eeefcefc40a997fa1787500782b6a7a9a99ae40f79d71e2c83daf7be5d13",
+      version: "39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b",
       input: {
-        prompt,
+        prompt: prompt,
         negative_prompt: "text, words, letters, numbers, symbols, watermarks, logos, labels, signs, writing, typography, fonts, characters, alphabets, digits, punctuation marks, nsfw, nudity, violence, gore, weapons, drugs, inappropriate content, offensive content, controversial content, suggestive content, unsafe content, adult content, explicit content",
         width: dimensions.width,
         height: dimensions.height,
-        scheduler: "K_EULER",
+        num_outputs: 1,
+        scheduler: "DPMSolver++",
         num_inference_steps: 50,
         guidance_scale: 7.5,
-        num_outputs: 1,
-        seed: Math.floor(Math.random() * 1000000)
+        prompt_strength: 0.8,
       }
     });
 
