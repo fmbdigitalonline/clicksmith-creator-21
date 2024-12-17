@@ -56,7 +56,7 @@ export async function handleImagePromptGeneration(
     auth: replicateApiToken,
   });
 
-  const basePrompt = `Create a professional, safe-for-work Facebook ad image that visually represents this concept:
+  const basePrompt = `Create a professional, business-appropriate Facebook advertisement image that represents:
 ${campaign.hooks.map(hook => hook.description).join('\n')}
 
 Business Context:
@@ -68,31 +68,31 @@ ${targetAudience.name}
 ${targetAudience.description}
 
 Style requirements:
-- Ultra-realistic, professional photography style
-- Clean composition with plenty of empty space
-- Absolutely NO text, words, letters, or symbols of any kind
-- Vibrant, engaging colors
+- Professional corporate photography style
+- Clean, minimal composition
+- Bright, well-lit scenes
+- Business-appropriate attire and settings
+- Professional office or business environment
 - Maximum 2 people per image
 - High-end commercial look
-- Perfect for Facebook ads
-- Safe for work, professional business content only
-- No controversial or sensitive content
-- Appropriate for all audiences
+- Strictly business-focused content
+- Safe for work, professional content only
+- Conservative and appropriate for all audiences
 `;
 
-  const strongNegativePrompt = "text, words, letters, numbers, symbols, watermarks, logos, labels, signs, writing, typography, fonts, characters, alphabets, digits, punctuation marks, nsfw, nudity, violence, gore, weapons, drugs, inappropriate content, offensive content";
+  const strongNegativePrompt = "text, words, letters, numbers, symbols, watermarks, logos, labels, signs, writing, typography, fonts, characters, alphabets, digits, punctuation marks, nsfw, nudity, violence, gore, weapons, drugs, inappropriate content, offensive content, controversial content, suggestive content, unsafe content";
 
   try {
     // Generate prompts based on each selected hook
     const prompts = campaign.hooks.map(hook => {
-      return `${basePrompt}\nCreate a purely visual representation that captures this message: "${hook.description}" using only imagery and emotional storytelling, with absolutely no text elements.`;
+      return `${basePrompt}\nCreate a purely business-focused visual representation that captures this message: "${hook.description}" using only professional business imagery.`;
     });
 
     // If we have less than 6 prompts, add some variations
     while (prompts.length < 6) {
       const randomHook = campaign.hooks[Math.floor(Math.random() * campaign.hooks.length)];
       prompts.push(
-        `${basePrompt}\nCreate an alternative visual interpretation focusing purely on the emotional impact of: "${randomHook.description}" using only imagery, no text or symbols.`
+        `${basePrompt}\nCreate an alternative business-appropriate visual interpretation focusing on: "${randomHook.description}" using only professional imagery.`
       );
     }
 
@@ -113,9 +113,10 @@ Style requirements:
                 prompt,
                 negative_prompt: strongNegativePrompt,
                 num_inference_steps: 4,
-                guidance_scale: 7.5,
+                guidance_scale: 8.5,
                 width: campaign.format.dimensions.width,
                 height: campaign.format.dimensions.height,
+                safety_checker: true,
               }
             }
           );
@@ -130,11 +131,11 @@ Style requirements:
           attempt++;
           console.error(`Error generating image ${index + 1}, attempt ${attempt}:`, error);
           
-          if (error.message?.includes('NSFW content detected') || attempt === maxRetries) {
-            throw error;
+          if (attempt === maxRetries) {
+            throw new Error('Failed to generate appropriate image after multiple attempts. Please try again with different business context.');
           }
           
-          // Wait before retrying
+          // Wait before retrying with increasing delay
           await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
         }
       }
@@ -147,10 +148,7 @@ Style requirements:
       return { images };
     } catch (error) {
       console.error('Error in image generation batch:', error);
-      if (error.message?.includes('NSFW content detected')) {
-        throw new Error('NSFW content detected. Please try again with a different prompt or contact support if the issue persists.');
-      }
-      throw error;
+      throw new Error('Failed to generate appropriate business images. Please try adjusting your business description or contact support.');
     }
   } catch (error) {
     console.error('Error in handleImagePromptGeneration:', error);
