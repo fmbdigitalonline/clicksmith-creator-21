@@ -17,7 +17,7 @@ export async function generateWithReplicate(
         width: dimensions.width,
         height: dimensions.height,
         num_outputs: 1,
-        scheduler: "DPMSolver++",
+        scheduler: "DPMSolverMultistep",
         num_inference_steps: 50,
         guidance_scale: 7.5,
         prompt_strength: 0.8,
