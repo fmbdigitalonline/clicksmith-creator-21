@@ -98,7 +98,7 @@ Style requirements:
       );
     }
 
-    console.log('Generating images with prompts:', prompts);
+    console.log('Starting image generation with prompts:', prompts);
 
     // Generate all images in parallel with retry logic
     const imagePromises = prompts.map(async (prompt, index) => {
@@ -116,18 +116,39 @@ Style requirements:
               negative_prompt: strongNegativePrompt,
               width: campaign.format.dimensions.width,
               height: campaign.format.dimensions.height,
-              aspect_ratio: "16:9",
-              style_type: "None",
-              magic_prompt_option: "Auto",
+              scheduler: "K_EULER",
+              num_inference_steps: 50,
+              guidance_scale: 7.5,
+              num_outputs: 1,
               seed: Math.floor(Math.random() * 1000000)
             }
           });
 
-          // Wait for the prediction to complete
-          const result = await replicate.wait(prediction);
-          console.log('Replicate API Response:', result);
+          console.log(`Prediction created for image ${index + 1}:`, prediction);
 
-          if (!result?.output) {
+          // Wait for the prediction to complete with timeout
+          const maxWaitTime = 60000; // 60 seconds
+          const startTime = Date.now();
+          let result;
+
+          while (!result && Date.now() - startTime < maxWaitTime) {
+            result = await replicate.predictions.get(prediction.id);
+            if (result.status === "succeeded") {
+              break;
+            } else if (result.status === "failed") {
+              throw new Error(`Prediction failed: ${result.error}`);
+            }
+            // Wait a bit before checking again
+            await new Promise(resolve => setTimeout(resolve, 2000));
+          }
+
+          if (!result || result.status !== "succeeded") {
+            throw new Error('Image generation timed out or failed');
+          }
+
+          console.log(`Generation result for image ${index + 1}:`, result);
+
+          if (!result.output) {
             console.error('No output in result:', result);
             throw new Error('No output received from image generation');
           }
@@ -155,7 +176,7 @@ Style requirements:
           }
           
           // Wait before retrying with increasing delay
-          await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+          await new Promise(resolve => setTimeout(resolve, 2000 * attempt));
         }
       }
     });
