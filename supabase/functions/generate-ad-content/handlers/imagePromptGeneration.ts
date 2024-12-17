@@ -75,7 +75,7 @@ Style requirements:
 - Professional office or business environment
 - Maximum 2 people per image
 - High-end commercial look
-- Strictly business-focused content
+- Business-focused content
 - Safe for work, professional content only
 - Conservative and appropriate for all audiences
 - No text or typography elements
@@ -118,21 +118,32 @@ Style requirements:
               height: campaign.format.dimensions.height,
               aspect_ratio: "16:9",
               style_type: "None",
-              magic_prompt_option: "Auto"
+              magic_prompt_option: "Auto",
+              seed: Math.floor(Math.random() * 1000000)
             }
           });
 
           // Wait for the prediction to complete
           const result = await replicate.wait(prediction);
+          console.log('Replicate API Response:', result);
 
           if (!result?.output) {
+            console.error('No output in result:', result);
             throw new Error('No output received from image generation');
           }
 
-          console.log(`Successfully generated image ${index + 1}`);
+          // Handle both string and array outputs
+          const imageUrl = Array.isArray(result.output) ? result.output[0] : result.output;
+          
+          if (!imageUrl) {
+            console.error('No valid image URL in output:', result.output);
+            throw new Error('No valid image URL in output');
+          }
+
+          console.log(`Successfully generated image ${index + 1} with URL:`, imageUrl);
           
           return {
-            url: result.output,
+            url: imageUrl,
             prompt: prompt,
           };
         } catch (error) {
