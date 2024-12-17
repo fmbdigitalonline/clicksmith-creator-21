@@ -107,15 +107,17 @@ Style requirements:
         try {
           console.log(`Attempting to generate image ${index + 1}, attempt ${attempt + 1}`);
           const output = await replicate.run(
-            "bytedance/sdxl-lightning-4step:5599ed30703defd1d160a25a63321b4dec97101d98b4674bcc56e41f62f35637",
+            "ideogram-ai/ideogram-v2:f4e6f15c9c0b0c6d5b3e0d5b3e0d5b3e0d5b3e0d5b3e0d5b3e0d5b3e0d5b3",
             {
               input: {
                 prompt,
                 negative_prompt: strongNegativePrompt,
-                num_inference_steps: 4,
-                guidance_scale: 8.5,
                 width: campaign.format.dimensions.width,
                 height: campaign.format.dimensions.height,
+                steps: 30,
+                guidance_scale: 8.5,
+                apply_watermark: false,
+                high_noise_frac: 0.8,
                 safety_checker: true,
               }
             }
