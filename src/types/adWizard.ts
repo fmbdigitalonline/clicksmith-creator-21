@@ -39,6 +39,7 @@ export type AdFormat = {
   };
   aspectRatio: string;
   description: string;
+  platform: 'facebook' | 'google';
 };
 
 export type MarketingCampaign = {
