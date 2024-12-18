@@ -27,7 +27,8 @@ const Pricing = () => {
         .from('plans')
         .select('*')
         .in('price', [10, 29, 99])
-        .order('price');
+        .order('price')
+        .limit(3); // Ensure we only get one plan per price point
       
       if (error) throw error;
       return data as Plan[];
