@@ -1,4 +1,4 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   FolderKanban,
@@ -10,8 +10,8 @@ import {
   Sidebar,
   SidebarContent,
   SidebarGroup,
-  SidebarGroupContent,
   SidebarGroupLabel,
+  SidebarGroupContent,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
@@ -38,6 +38,7 @@ const menuItems = [
 
 export function AppSidebar() {
   const location = useLocation();
+  const navigate = useNavigate();
   const currentPath = location.pathname;
 
   const isActive = (path: string) => {
@@ -47,13 +48,20 @@ export function AppSidebar() {
     return currentPath === path;
   };
 
+  const handleStartClick = () => {
+    navigate("/ad-wizard/new");
+  };
+
   return (
     <Sidebar>
       <SidebarContent>
         <div className="px-4 py-4">
-          <Button className="w-full bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary">
+          <Button 
+            className="w-full bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary"
+            onClick={handleStartClick}
+          >
             <PlusCircle className="mr-2 h-4 w-4" />
-            New Project
+            Start
           </Button>
         </div>
         <SidebarGroup>

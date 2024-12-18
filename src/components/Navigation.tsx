@@ -1,11 +1,12 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Home, Settings, CreditCard } from "lucide-react";
+import { Home, Settings, CreditCard, PlusCircle } from "lucide-react";
 import CreditDisplay from "./CreditDisplay";
 
 const Navigation = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const currentPath = location.pathname;
   
   const isActive = (path: string) => {
@@ -13,6 +14,10 @@ const Navigation = () => {
       return currentPath === "/" || currentPath === "/projects";
     }
     return currentPath === path;
+  };
+
+  const handleStartClick = () => {
+    navigate("/ad-wizard/new");
   };
   
   return (
@@ -24,6 +29,15 @@ const Navigation = () => {
           </Link>
           <div className="flex items-center gap-4">
             <CreditDisplay />
+            <Button
+              variant="default"
+              size="sm"
+              onClick={handleStartClick}
+              className="gap-2"
+            >
+              <PlusCircle className="h-4 w-4" />
+              <span>Start</span>
+            </Button>
             <Button
               variant="ghost"
               size="sm"
