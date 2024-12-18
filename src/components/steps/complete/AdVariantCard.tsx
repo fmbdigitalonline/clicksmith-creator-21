@@ -72,7 +72,7 @@ const AdVariantCard = ({ image, hook, index, onCreateProject }: AdVariantCardPro
 
         if (projectError) throw projectError;
 
-        const existingAds = project.generated_ads || [];
+        const existingAds = project?.generated_ads || [];
         const newAd = {
           image,
           hook,
