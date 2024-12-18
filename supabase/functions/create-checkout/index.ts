@@ -84,7 +84,6 @@ serve(async (req) => {
       ],
       mode: 'subscription',
       subscription_data: {
-        trial_period_days: null,
         metadata: {
           supabaseUid: user.id,
           planId: planData.id,
