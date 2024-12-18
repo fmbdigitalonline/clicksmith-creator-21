@@ -3,7 +3,6 @@ import {
   BusinessIdea,
   TargetAudience,
   AudienceAnalysis,
-  AdFormat,
   AdHook
 } from "@/types/adWizard";
 
@@ -12,7 +11,6 @@ export const useAdWizardState = () => {
   const [businessIdea, setBusinessIdea] = useState<BusinessIdea | null>(null);
   const [targetAudience, setTargetAudience] = useState<TargetAudience | null>(null);
   const [audienceAnalysis, setAudienceAnalysis] = useState<AudienceAnalysis | null>(null);
-  const [adFormat, setAdFormat] = useState<AdFormat | null>(null);
   const [selectedHooks, setSelectedHooks] = useState<AdHook[]>([]);
 
   const handleIdeaSubmit = (idea: BusinessIdea) => {
@@ -35,11 +33,6 @@ export const useAdWizardState = () => {
     setCurrentStep(5);
   };
 
-  const handleFormatSelect = (format: AdFormat) => {
-    setAdFormat(format);
-    setCurrentStep(6);
-  };
-
   const handleBack = () => {
     setCurrentStep(prev => Math.max(1, prev - 1));
   };
@@ -48,7 +41,6 @@ export const useAdWizardState = () => {
     setBusinessIdea(null);
     setTargetAudience(null);
     setAudienceAnalysis(null);
-    setAdFormat(null);
     setSelectedHooks([]);
     setCurrentStep(1);
   };
@@ -65,8 +57,6 @@ export const useAdWizardState = () => {
         return !!businessIdea && !!targetAudience && !!audienceAnalysis;
       case 5:
         return !!businessIdea && !!targetAudience && !!audienceAnalysis && selectedHooks.length > 0;
-      case 6:
-        return !!businessIdea && !!targetAudience && !!audienceAnalysis && selectedHooks.length > 0 && !!adFormat;
       default:
         return false;
     }
@@ -77,13 +67,11 @@ export const useAdWizardState = () => {
     businessIdea,
     targetAudience,
     audienceAnalysis,
-    adFormat,
     selectedHooks,
     handleIdeaSubmit,
     handleAudienceSelect,
     handleAnalysisComplete,
     handleHookSelect,
-    handleFormatSelect,
     handleBack,
     handleStartOver,
     canNavigateToStep,

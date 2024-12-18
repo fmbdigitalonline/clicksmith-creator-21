@@ -3,14 +3,12 @@ import IdeaStep from "./steps/BusinessIdeaStep";
 import AudienceStep from "./steps/AudienceStep";
 import AudienceAnalysisStep from "./steps/AudienceAnalysisStep";
 import HookStep from "./steps/HookStep";
-import AdSizeStep from "./steps/AdSizeStep";
-import CompleteStep from "./steps/CompleteStep";
+import AdGalleryStep from "./steps/AdGalleryStep";
 import WizardHeader from "./wizard/WizardHeader";
 import WizardProgress from "./WizardProgress";
 import { useState } from "react";
 import CreateProjectDialog from "./projects/CreateProjectDialog";
 import { useNavigate } from "react-router-dom";
-import AdGalleryStep from "./steps/AdGalleryStep";
 
 const AdWizard = () => {
   const [showCreateProject, setShowCreateProject] = useState(false);
@@ -21,13 +19,11 @@ const AdWizard = () => {
     businessIdea,
     targetAudience,
     audienceAnalysis,
-    adFormat,
     selectedHooks,
     handleIdeaSubmit,
     handleAudienceSelect,
     handleAnalysisComplete,
     handleHookSelect,
-    handleFormatSelect,
     handleBack,
     handleStartOver,
     canNavigateToStep,
@@ -88,19 +84,11 @@ const AdWizard = () => {
         />
       )}
 
-      {currentStep === 5 && businessIdea && targetAudience && audienceAnalysis && selectedHooks.length > 0 && (
-        <AdSizeStep
-          onNext={handleFormatSelect}
-          onBack={handleBack}
-        />
-      )}
-
-      {currentStep === 6 && businessIdea && targetAudience && adFormat && selectedHooks.length > 0 && (
+      {currentStep === 5 && businessIdea && targetAudience && selectedHooks.length > 0 && (
         <AdGalleryStep
           businessIdea={businessIdea}
           targetAudience={targetAudience}
           adHooks={selectedHooks}
-          adFormat={adFormat}
           onStartOver={handleStartOver}
           onBack={handleBack}
           onCreateProject={handleCreateProject}

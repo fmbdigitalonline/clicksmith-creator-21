@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
-import { BusinessIdea, TargetAudience, AdHook, AdFormat } from "@/types/adWizard";
+import { BusinessIdea, TargetAudience, AdHook } from "@/types/adWizard";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -13,7 +13,6 @@ interface AdGalleryStepProps {
   businessIdea: BusinessIdea;
   targetAudience: TargetAudience;
   adHooks: AdHook[];
-  adFormat: AdFormat;
   onStartOver: () => void;
   onBack: () => void;
   onCreateProject: () => void;
@@ -23,7 +22,6 @@ const AdGalleryStep = ({
   businessIdea,
   targetAudience,
   adHooks,
-  adFormat,
   onStartOver,
   onBack,
   onCreateProject,
@@ -43,9 +41,27 @@ const AdGalleryStep = ({
           targetAudience,
           campaign: {
             hooks: adHooks,
-            format: adFormat,
             specs: {
-              facebook: facebookAdSpecs
+              facebook: facebookAdSpecs,
+              google: {
+                commonSizes: [
+                  { width: 250, height: 250, label: "Square" },
+                  { width: 200, height: 200, label: "Small Square" },
+                  { width: 468, height: 60, label: "Banner" },
+                  { width: 728, height: 90, label: "Leaderboard" },
+                  { width: 300, height: 250, label: "Inline Rectangle" },
+                  { width: 336, height: 280, label: "Large Rectangle" },
+                  { width: 120, height: 600, label: "Skyscraper" },
+                  { width: 160, height: 600, label: "Wide Skyscraper" },
+                  { width: 300, height: 600, label: "Half-Page Ad" },
+                  { width: 970, height: 90, label: "Large Leaderboard" }
+                ],
+                mobileCommonSizes: [
+                  { width: 300, height: 50, label: "Mobile Banner" },
+                  { width: 320, height: 50, label: "Mobile Banner" },
+                  { width: 320, height: 100, label: "Large Mobile Banner" }
+                ]
+              }
             }
           }
         }
@@ -53,36 +69,7 @@ const AdGalleryStep = ({
 
       if (error) throw error;
 
-      // Transform the variants to include all Facebook ad sizes
-      const transformedVariants = data.variants.map((variant: any) => {
-        if (variant.platform === 'facebook') {
-          return [
-            // Square format (1:1)
-            {
-              ...variant,
-              size: {
-                width: 1440,
-                height: 1440,
-                label: "Square Feed Ad"
-              },
-              specs: facebookAdSpecs.imageAds
-            },
-            // Portrait format (4:5)
-            {
-              ...variant,
-              size: {
-                width: 1440,
-                height: 1800,
-                label: "Portrait Feed Ad"
-              },
-              specs: facebookAdSpecs.imageAds
-            }
-          ];
-        }
-        return variant;
-      }).flat();
-
-      setAdVariants(transformedVariants);
+      setAdVariants(data.variants);
       
       toast({
         title: "Ads Generated!",
