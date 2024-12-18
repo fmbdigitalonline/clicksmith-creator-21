@@ -17,6 +17,7 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
         if (error) {
           console.error("Session error:", error);
           setIsAuthenticated(false);
+          navigate('/login', { replace: true });
           toast({
             title: "Session Error",
             description: "Please sign in again",
@@ -25,10 +26,17 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
           return;
         }
 
-        setIsAuthenticated(!!session);
+        if (!session) {
+          setIsAuthenticated(false);
+          navigate('/login', { replace: true });
+          return;
+        }
+
+        setIsAuthenticated(true);
       } catch (error) {
         console.error("Auth error:", error);
         setIsAuthenticated(false);
+        navigate('/login', { replace: true });
       } finally {
         setIsLoading(false);
       }
@@ -41,9 +49,9 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log("Auth state changed:", event);
       
-      if (event === 'SIGNED_OUT') {
+      if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
         setIsAuthenticated(false);
-        navigate('/login');
+        navigate('/login', { replace: true });
         toast({
           title: "Signed Out",
           description: "You have been signed out",
