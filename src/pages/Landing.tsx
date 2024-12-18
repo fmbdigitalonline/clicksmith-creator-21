@@ -1,94 +1,158 @@
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
-import { ArrowRight, CheckCircle2, Target, Zap, LineChart, Shield, Rocket } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { 
+  Target, 
+  Rocket, 
+  DollarSign, 
+  Clock, 
+  ChartBar, 
+  Lightbulb,
+  Check
+} from "lucide-react";
 
 const Landing = () => {
+  const navigate = useNavigate();
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted">
+    <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
       {/* Hero Section */}
-      <header className="container mx-auto px-4 py-16 text-center">
-        <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent animate-fade-in">
-          Validate Your Business Idea with Confidence
-        </h1>
-        <p className="text-xl md:text-2xl text-muted-foreground mb-8 max-w-3xl mx-auto animate-fade-in">
-          Test your business concept against real audiences before investing time and resources. Get data-driven insights to make informed decisions.
-        </p>
-        <div className="flex gap-4 justify-center animate-fade-in">
-          <Link to="/login">
-            <Button size="lg" className="gap-2">
-              Start Validating <ArrowRight className="h-5 w-5" />
-            </Button>
-          </Link>
-          <Link to="/pricing">
-            <Button size="lg" variant="outline">
-              View Pricing
-            </Button>
-          </Link>
-        </div>
-      </header>
-
-      {/* Features Grid */}
-      <section className="container mx-auto px-4 py-16">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          <FeatureCard
-            icon={Target}
-            title="Early Market Validation"
-            description="Test your ideas against real audiences before investing significant resources. Get immediate feedback on what works."
-          />
-          <FeatureCard
-            icon={CheckCircle2}
-            title="Target Audience Clarity"
-            description="Define your ideal customer profile with precision. Make data-driven decisions about your market positioning."
-          />
-          <FeatureCard
-            icon={Zap}
-            title="Efficient Testing"
-            description="Launch micro-campaigns on Google, Facebook, and TikTok to quickly gauge market interest and refine your approach."
-          />
-          <FeatureCard
-            icon={LineChart}
-            title="Actionable Insights"
-            description="Get measurable feedback from real marketing campaigns to guide your product development and marketing strategy."
-          />
-          <FeatureCard
-            icon={Shield}
-            title="Reduced Risk"
-            description="Minimize financial and operational risks by validating interest before full product development."
-          />
-          <FeatureCard
-            icon={Rocket}
-            title="Faster Time-to-Market"
-            description="Move forward confidently with clear feedback and insights, bringing your offering to market efficiently."
-          />
-        </div>
-      </section>
-
-      {/* Call to Action */}
-      <section className="container mx-auto px-4 py-16 text-center">
-        <div className="bg-gradient-glass rounded-lg p-8 shadow-lg max-w-4xl mx-auto">
-          <h2 className="text-3xl font-bold mb-4">Ready to Validate Your Idea?</h2>
-          <p className="text-lg text-muted-foreground mb-6">
-            Don't rely on guesswork. Get the tools and insights you need to make informed decisions about your business idea.
+      <div className="container mx-auto px-4 py-16 md:py-24">
+        <div className="max-w-4xl mx-auto text-center space-y-6">
+          <h1 className="text-4xl md:text-6xl font-bold text-gray-900 animate-fade-in">
+            Ready to validate your business idea?
+          </h1>
+          <p className="text-xl md:text-2xl text-gray-600 animate-fade-in delay-100">
+            Stop guessing. Start knowing. Test your concept with real audiences before investing time and money.
           </p>
-          <Link to="/login">
-            <Button size="lg" className="gap-2">
-              Start Now <ArrowRight className="h-5 w-5" />
-            </Button>
-          </Link>
+          <Button 
+            onClick={() => navigate("/ad-wizard/new")}
+            size="lg"
+            className="bg-facebook hover:bg-facebook/90 text-white text-lg px-8 py-6 h-auto animate-fade-in delay-200"
+          >
+            Validate Your Idea Now
+          </Button>
         </div>
-      </section>
+      </div>
+
+      {/* Questions Section */}
+      <div className="bg-white py-16 md:py-24">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto space-y-16">
+            <div className="grid gap-8 md:grid-cols-2">
+              {/* Question Cards */}
+              <QuestionCard
+                icon={<Target className="w-8 h-8 text-facebook" />}
+                question="Who will actually buy your product?"
+                answer="Stop guessing about your target market. Get data-driven insights about your ideal customers and what makes them tick."
+              />
+              <QuestionCard
+                icon={<DollarSign className="w-8 h-8 text-facebook" />}
+                question="Are you building something people will pay for?"
+                answer="Test market demand before investing heavily in development. Save time and money by validating first."
+              />
+              <QuestionCard
+                icon={<Clock className="w-8 h-8 text-facebook" />}
+                question="How long until you know if your idea works?"
+                answer="Get real market feedback in days, not months. Quick iterations mean faster path to product-market fit."
+              />
+              <QuestionCard
+                icon={<ChartBar className="w-8 h-8 text-facebook" />}
+                question="What messaging resonates with your audience?"
+                answer="Discover exactly what hooks and value propositions capture your audience's attention through real-world testing."
+              />
+            </div>
+
+            {/* Benefits Section */}
+            <div className="space-y-8 text-center">
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
+                Why Validate First?
+              </h2>
+              <div className="grid gap-6 md:grid-cols-3">
+                <BenefitCard
+                  icon={<Lightbulb className="w-6 h-6 text-facebook" />}
+                  title="Test Fast"
+                  description="Launch micro-campaigns across multiple platforms in minutes"
+                />
+                <BenefitCard
+                  icon={<Rocket className="w-6 h-6 text-facebook" />}
+                  title="Learn Quick"
+                  description="Get actionable insights about what resonates with your audience"
+                />
+                <BenefitCard
+                  icon={<Check className="w-6 h-6 text-facebook" />}
+                  title="Build Smart"
+                  description="Move forward with confidence, backed by real market data"
+                />
+              </div>
+            </div>
+
+            {/* Final CTA */}
+            <div className="text-center space-y-6 bg-gray-50 p-8 rounded-2xl">
+              <h2 className="text-2xl md:text-3xl font-bold text-gray-900">
+                Ready to validate your business idea?
+              </h2>
+              <p className="text-gray-600">
+                Join entrepreneurs who are building products people actually want.
+              </p>
+              <Button
+                onClick={() => navigate("/ad-wizard/new")}
+                size="lg"
+                className="bg-facebook hover:bg-facebook/90 text-white"
+              >
+                Start Validating Now
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
 
-const FeatureCard = ({ icon: Icon, title, description }: { icon: any; title: string; description: string }) => {
-  return (
-    <div className="p-6 rounded-lg bg-gradient-glass shadow-lg hover:shadow-xl transition-shadow animate-fade-in">
-      <Icon className="h-12 w-12 text-primary mb-4" />
-      <h3 className="text-xl font-semibold mb-2">{title}</h3>
-      <p className="text-muted-foreground">{description}</p>
+const QuestionCard = ({ 
+  icon, 
+  question, 
+  answer 
+}: { 
+  icon: React.ReactNode;
+  question: string;
+  answer: string;
+}) => (
+  <div className="p-6 bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-200">
+    <div className="space-y-4">
+      <div className="inline-block p-2 bg-gray-50 rounded-lg">
+        {icon}
+      </div>
+      <h3 className="text-xl font-semibold text-gray-900">
+        {question}
+      </h3>
+      <p className="text-gray-600">
+        {answer}
+      </p>
     </div>
-  );
-};
+  </div>
+);
+
+const BenefitCard = ({ 
+  icon, 
+  title, 
+  description 
+}: { 
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+}) => (
+  <div className="space-y-2">
+    <div className="inline-block p-2 bg-gray-50 rounded-lg">
+      {icon}
+    </div>
+    <h3 className="font-semibold text-gray-900">
+      {title}
+    </h3>
+    <p className="text-gray-600 text-sm">
+      {description}
+    </p>
+  </div>
+);
 
 export default Landing;
