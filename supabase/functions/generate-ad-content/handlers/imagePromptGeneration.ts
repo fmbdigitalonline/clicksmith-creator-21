@@ -59,28 +59,46 @@ export async function handleImagePromptGeneration(
 
     // Generate prompts based on each selected hook with fallback variations
     const prompts = campaign.hooks.map(hook => {
-      const hookPrompt = `Create a photorealistic, high-quality commercial photograph that represents: "${hook.description}". 
-The image must be:
-- Photorealistic, not illustrated or drawn
-- Professional quality, like a commercial stock photo
-- Well-lit with natural lighting
-- Sharp and clear, with high resolution
-- Featuring real people or real products (not illustrations)
-- In a real-world business setting
-- Using professional photography techniques
-- Suitable for professional advertising
+      const hookPrompt = `Create a hyper-realistic commercial photograph for a professional advertising campaign. The photograph should represent: "${hook.description}"
+
+STRICT REQUIREMENTS:
+- Must be an actual photograph, absolutely NO illustrations, drawings, or artificial-looking images
+- Ultra-realistic, professional commercial photography quality
+- Natural, studio-quality lighting with proper shadows and highlights
+- Crystal clear focus and professional camera quality
+- Real human subjects (when applicable) in authentic business settings
+- Real products and environments (no CGI or artificial elements)
+- Composition following rule of thirds and professional photography principles
+- Color grading matching high-end advertising campaigns
+- Depth of field appropriate for commercial photography
 
 Business Context: ${businessIdea.description}
 Value Proposition: ${businessIdea.valueProposition}
-Target Audience: ${targetAudience.description}`;
+Target Audience: ${targetAudience.description}
+
+Additional Photography Specifications:
+- Use professional DSLR camera quality
+- Shoot in RAW format equivalent
+- Maintain perfect exposure
+- Ensure proper white balance
+- Include subtle bokeh effects where appropriate
+- Maintain sharp focus on key subjects
+- Use professional color grading
+- Include natural environmental lighting`;
       return sanitizePrompt(hookPrompt);
     });
 
     // If we have less than 6 prompts, add some variations
     while (prompts.length < 6) {
       const randomHook = campaign.hooks[Math.floor(Math.random() * campaign.hooks.length)];
-      const variationPrompt = `Create a different photorealistic commercial photograph focusing on: "${randomHook.description}". 
-Must be a professional quality photograph, not an illustration or drawing.
+      const variationPrompt = `Create a different ultra-realistic commercial photograph focusing on: "${randomHook.description}".
+MUST BE:
+- A real photograph, not an illustration or digital art
+- Professional commercial photography quality
+- Natural studio lighting
+- Real people and real environments
+- Sharp focus and high resolution
+
 Business Context: ${businessIdea.description}
 Target Audience: ${targetAudience.description}`;
       prompts.push(sanitizePrompt(variationPrompt));
