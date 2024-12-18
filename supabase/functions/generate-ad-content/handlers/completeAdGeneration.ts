@@ -1,5 +1,24 @@
-import { BusinessIdea, TargetAudience, MarketingCampaign } from '../types.ts';
-import { HfInference } from 'https://esm.sh/@huggingface/inference@2.3.2';
+import { BusinessIdea, TargetAudience, MarketingCampaign, AdSize } from '../types.ts';
+
+const adSpecs = {
+  commonSizes: [
+    { width: 250, height: 250, label: "Square" },
+    { width: 200, height: 200, label: "Small Square" },
+    { width: 468, height: 60, label: "Banner" },
+    { width: 728, height: 90, label: "Leaderboard" },
+    { width: 300, height: 250, label: "Inline Rectangle" },
+    { width: 336, height: 280, label: "Large Rectangle" },
+    { width: 120, height: 600, label: "Skyscraper" },
+    { width: 160, height: 600, label: "Wide Skyscraper" },
+    { width: 300, height: 600, label: "Half-Page Ad" },
+    { width: 970, height: 90, label: "Large Leaderboard" }
+  ],
+  mobileCommonSizes: [
+    { width: 300, height: 50, label: "Mobile Banner" },
+    { width: 320, height: 50, label: "Mobile Banner" },
+    { width: 320, height: 100, label: "Large Mobile Banner" }
+  ]
+};
 
 export async function handleCompleteAdGeneration(
   businessIdea: BusinessIdea,
@@ -8,7 +27,7 @@ export async function handleCompleteAdGeneration(
   openAIApiKey: string
 ) {
   try {
-    // Generate one main high-quality image using Hugging Face
+    // Generate one main high-quality image
     const imagePrompt = `Create a professional advertisement image for:
     ${businessIdea.description}
     Target audience: ${targetAudience.description}
@@ -16,21 +35,28 @@ export async function handleCompleteAdGeneration(
     Requirements: High resolution, vibrant colors, clear focal point
     Minimum width: 1500px for responsive scaling`;
 
-    const hf = new HfInference(Deno.env.get('HUGGING_FACE_ACCESS_TOKEN'));
-    
-    const image = await hf.textToImage({
-      inputs: imagePrompt,
-      model: 'black-forest-labs/FLUX.1-schnell',
-      parameters: {
-        negative_prompt: "illustration, drawing, cartoon, anime, sketch, painting, digital art, rendered, artificial, fake",
-      }
+    const imageResponse = await fetch('https://api.openai.com/v1/images/generations', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openAIApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: "dall-e-3",
+        prompt: imagePrompt,
+        n: 1,
+        size: "1024x1024",
+        quality: "hd",
+      }),
     });
 
-    // Convert the blob to a base64 string
-    const arrayBuffer = await image.arrayBuffer();
-    const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+    const imageData = await imageResponse.json();
+    if (!imageData.data?.[0]?.url) {
+      throw new Error('Failed to generate image');
+    }
+
     const mainImage = {
-      url: `data:image/png;base64,${base64}`,
+      url: imageData.data[0].url,
       prompt: imagePrompt,
     };
 
@@ -38,38 +64,44 @@ export async function handleCompleteAdGeneration(
     const variants = [];
 
     // Add desktop ad variants
-    campaign.hooks.forEach(hook => {
+    adSpecs.commonSizes.forEach(size => {
       // Facebook variants
-      variants.push({
-        platform: 'facebook',
-        image: mainImage,
-        size: { width: 1200, height: 628, label: "Facebook Feed" },
-        headline: hook.text,
-        description: `${businessIdea.valueProposition} - Perfect for ${targetAudience.name}`,
-        callToAction: 'Learn More',
+      campaign.hooks.forEach(hook => {
+        variants.push({
+          platform: 'facebook',
+          image: mainImage,
+          size: size,
+          headline: hook.text,
+          description: `${businessIdea.valueProposition} - Perfect for ${targetAudience.name}`,
+          callToAction: 'Learn More',
+        });
       });
 
       // Google variants
-      variants.push({
-        platform: 'google',
-        image: mainImage,
-        size: { width: 300, height: 250, label: "Medium Rectangle" },
-        headline: hook.text.substring(0, 30) + (hook.text.length > 30 ? '...' : ''),
-        description: businessIdea.valueProposition.substring(0, 90) + (businessIdea.valueProposition.length > 90 ? '...' : ''),
-        callToAction: 'Learn More',
+      campaign.hooks.forEach(hook => {
+        variants.push({
+          platform: 'google',
+          image: mainImage,
+          size: size,
+          headline: hook.text.substring(0, 30) + (hook.text.length > 30 ? '...' : ''),
+          description: businessIdea.valueProposition.substring(0, 90) + (businessIdea.valueProposition.length > 90 ? '...' : ''),
+          callToAction: 'Learn More',
+        });
       });
     });
 
     // Add mobile ad variants
-    campaign.hooks.forEach(hook => {
-      variants.push({
-        platform: 'facebook',
-        image: mainImage,
-        size: { width: 320, height: 100, label: "Mobile Banner" },
-        headline: hook.text.substring(0, 25) + (hook.text.length > 25 ? '...' : ''),
-        description: businessIdea.valueProposition.substring(0, 70) + (businessIdea.valueProposition.length > 70 ? '...' : ''),
-        callToAction: 'Learn More',
-        isMobile: true,
+    adSpecs.mobileCommonSizes.forEach(size => {
+      campaign.hooks.forEach(hook => {
+        variants.push({
+          platform: 'facebook',
+          image: mainImage,
+          size: size,
+          headline: hook.text.substring(0, 25) + (hook.text.length > 25 ? '...' : ''),
+          description: businessIdea.valueProposition.substring(0, 70) + (businessIdea.valueProposition.length > 70 ? '...' : ''),
+          callToAction: 'Learn More',
+          isMobile: true,
+        });
       });
     });
 

@@ -1,4 +1,0 @@
-project_id = "xorlfvflpihtafugltni"
-
-[functions.generate-ad-content]
-verify_jwt = true
