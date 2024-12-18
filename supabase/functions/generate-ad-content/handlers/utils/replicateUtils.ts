@@ -11,16 +11,16 @@ export async function generateWithReplicate(
     // Calculate aspect ratio based on dimensions
     const aspectRatio = `${dimensions.width}:${dimensions.height}`;
     
-    // Create prediction with the new model
+    // Create prediction with FLUX 1.1 Pro in raw mode for more authentic results
     const prediction = await replicate.predictions.create({
       version: "2a966a1cdd9c20e8d63dbd562e7c8a1f4c78e62e6c5b042d44ba12a2c758b07f",
       input: {
-        raw: false,
+        raw: true, // Enable raw mode for more authentic results
         prompt: prompt,
         aspect_ratio: aspectRatio,
         output_format: "jpg",
         safety_tolerance: 2,
-        image_prompt_strength: 0.1
+        image_prompt_strength: 0.8 // Increased for better prompt adherence while maintaining authenticity
       }
     });
 
