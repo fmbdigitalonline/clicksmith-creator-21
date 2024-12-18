@@ -20,7 +20,7 @@ export async function handleCompleteAdGeneration(
     
     const image = await hf.textToImage({
       inputs: imagePrompt,
-      model: 'black-forest-labs/flux-1.1-pro-ultra',
+      model: 'black-forest-labs/FLUX.1-schnell',
       parameters: {
         negative_prompt: "illustration, drawing, cartoon, anime, sketch, painting, digital art, rendered, artificial, fake",
       }
