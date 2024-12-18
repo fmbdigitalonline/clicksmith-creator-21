@@ -1,4 +1,4 @@
-import { BusinessIdea, TargetAudience, MarketingCampaign } from '../types';
+import { BusinessIdea, TargetAudience, MarketingCampaign } from '../types.ts';
 
 export async function handleCompleteAdGeneration(
   businessIdea: BusinessIdea,
