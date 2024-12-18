@@ -19,6 +19,8 @@ serve(async (req) => {
       throw new Error('Price ID is required');
     }
 
+    console.log('Received price ID:', priceId);
+
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
@@ -32,11 +34,21 @@ serve(async (req) => {
       throw new Error('User email not found');
     }
 
+    console.log('Creating Stripe instance...');
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
       apiVersion: '2023-10-16',
     });
 
+    // Verify the price exists in Stripe
+    try {
+      await stripe.prices.retrieve(priceId);
+    } catch (error) {
+      console.error('Invalid price ID:', error);
+      throw new Error(`Invalid price ID: ${priceId}`);
+    }
+
     // Check if customer exists
+    console.log('Checking for existing customer...');
     const customers = await stripe.customers.list({
       email: user.email,
       limit: 1,
@@ -46,6 +58,7 @@ serve(async (req) => {
 
     // Create customer if doesn't exist
     if (!customerId) {
+      console.log('Creating new customer...');
       const customer = await stripe.customers.create({
         email: user.email,
         metadata: {
@@ -56,6 +69,7 @@ serve(async (req) => {
     }
 
     // Create checkout session
+    console.log('Creating checkout session...');
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       line_items: [
@@ -72,6 +86,7 @@ serve(async (req) => {
       },
     });
 
+    console.log('Checkout session created successfully');
     return new Response(
       JSON.stringify({ url: session.url }),
       { 
