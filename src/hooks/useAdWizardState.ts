@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import {
   BusinessIdea,
   TargetAudience,
@@ -13,39 +13,39 @@ export const useAdWizardState = () => {
   const [audienceAnalysis, setAudienceAnalysis] = useState<AudienceAnalysis | null>(null);
   const [selectedHooks, setSelectedHooks] = useState<AdHook[]>([]);
 
-  const handleIdeaSubmit = (idea: BusinessIdea) => {
+  const handleIdeaSubmit = useCallback((idea: BusinessIdea) => {
     setBusinessIdea(idea);
     setCurrentStep(2);
-  };
+  }, []);
 
-  const handleAudienceSelect = (audience: TargetAudience) => {
+  const handleAudienceSelect = useCallback((audience: TargetAudience) => {
     setTargetAudience(audience);
     setCurrentStep(3);
-  };
+  }, []);
 
-  const handleAnalysisComplete = (analysis: AudienceAnalysis) => {
+  const handleAnalysisComplete = useCallback((analysis: AudienceAnalysis) => {
     setAudienceAnalysis(analysis);
     setCurrentStep(4);
-  };
+  }, []);
 
-  const handleHookSelect = (hooks: AdHook[]) => {
+  const handleHookSelect = useCallback((hooks: AdHook[]) => {
     setSelectedHooks(hooks);
     setCurrentStep(5);
-  };
+  }, []);
 
-  const handleBack = () => {
+  const handleBack = useCallback(() => {
     setCurrentStep(prev => Math.max(1, prev - 1));
-  };
+  }, []);
 
-  const handleStartOver = () => {
+  const handleStartOver = useCallback(() => {
     setBusinessIdea(null);
     setTargetAudience(null);
     setAudienceAnalysis(null);
     setSelectedHooks([]);
     setCurrentStep(1);
-  };
+  }, []);
 
-  const canNavigateToStep = (step: number): boolean => {
+  const canNavigateToStep = useCallback((step: number): boolean => {
     switch (step) {
       case 1:
         return true;
@@ -60,7 +60,7 @@ export const useAdWizardState = () => {
       default:
         return false;
     }
-  };
+  }, [businessIdea, targetAudience, audienceAnalysis, selectedHooks]);
 
   return {
     currentStep,
