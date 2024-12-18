@@ -17,28 +17,30 @@ export function buildBasePrompt(
   targetAudience: TargetAudience,
   campaign: MarketingCampaign
 ): string {
-  return `Create a professional, business-appropriate Facebook advertisement image that represents:
+  return `Create a hyper-realistic commercial photograph for a professional advertising campaign. The photograph should represent:
 ${campaign.hooks.map(hook => hook.description).join('\n')}
 
-Business Context:
-${businessIdea.description}
+STRICT REQUIREMENTS:
+- Must be an actual photograph, absolutely NO illustrations, drawings, or artificial-looking images
+- Ultra-realistic, professional commercial photography quality
+- Natural, studio-quality lighting with proper shadows and highlights
+- Crystal clear focus and professional camera quality
+- Real human subjects (when applicable) in authentic business settings
+- Real products and environments (no CGI or artificial elements)
+- Composition following rule of thirds and professional photography principles
+- Color grading matching high-end advertising campaigns
+
+Business Context: ${businessIdea.description}
 Value Proposition: ${businessIdea.valueProposition}
+Target Audience: ${targetAudience.description}
 
-Target Audience:
-${targetAudience.name}
-${targetAudience.description}
-
-Style requirements:
-- Professional corporate photography style
-- Clean, minimal composition
-- Bright, well-lit scenes
-- Business-appropriate attire and settings
-- Professional office or business environment
-- Maximum 2 people per image
-- High-end commercial look
-- Business-focused content
-- Safe for work, professional content only
-- Conservative and appropriate for all audiences
-- No text or typography elements
-- Focus on professional business imagery`;
+Additional Photography Specifications:
+- Use professional DSLR camera quality
+- Shoot in RAW format equivalent
+- Maintain perfect exposure
+- Ensure proper white balance
+- Include subtle bokeh effects where appropriate
+- Maintain sharp focus on key subjects
+- Use professional color grading
+- Include natural environmental lighting`;
 }
