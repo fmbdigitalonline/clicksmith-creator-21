@@ -5,6 +5,12 @@ import { Download, Save } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
+interface AdSize {
+  width: number;
+  height: number;
+  label: string;
+}
+
 interface AdPreviewCardProps {
   variant: {
     platform: string;
@@ -12,9 +18,11 @@ interface AdPreviewCardProps {
       url: string;
       prompt: string;
     };
+    size: AdSize;
     headline: string;
     description: string;
     callToAction: string;
+    isMobile?: boolean;
   };
   onCreateProject: () => void;
 }
@@ -32,7 +40,6 @@ const AdPreviewCard = ({ variant, onCreateProject }: AdPreviewCardProps) => {
         throw new Error('User must be logged in to save ad');
       }
 
-      // If no project is selected, prompt to create one
       if (!onCreateProject) {
         toast({
           title: "No Project Selected",
@@ -52,7 +59,7 @@ const AdPreviewCard = ({ variant, onCreateProject }: AdPreviewCardProps) => {
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `${variant.platform}-ad.jpg`;
+      link.download = `${variant.platform}-ad-${variant.size.width}x${variant.size.height}.jpg`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -60,7 +67,7 @@ const AdPreviewCard = ({ variant, onCreateProject }: AdPreviewCardProps) => {
 
       toast({
         title: "Success!",
-        description: "Your ad has been saved and the image downloaded.",
+        description: `Your ${variant.size.label} ad has been saved and downloaded.`,
       });
     } catch (error) {
       console.error('Error saving ad:', error);
@@ -74,9 +81,11 @@ const AdPreviewCard = ({ variant, onCreateProject }: AdPreviewCardProps) => {
     }
   };
 
+  const aspectRatio = `${variant.size.width} / ${variant.size.height}`;
+
   return (
     <Card className="overflow-hidden">
-      <div className="aspect-video relative">
+      <div style={{ aspectRatio }} className="relative">
         <img
           src={variant.image.url}
           alt={variant.headline}
@@ -85,9 +94,16 @@ const AdPreviewCard = ({ variant, onCreateProject }: AdPreviewCardProps) => {
       </div>
       <CardContent className="p-4 space-y-4">
         <div className="space-y-2">
-          <h3 className="font-medium text-lg">{variant.headline}</h3>
+          <div className="flex items-center justify-between">
+            <h3 className="font-medium text-lg">{variant.headline}</h3>
+            <span className="text-sm text-gray-500">{variant.size.label}</span>
+          </div>
           <p className="text-gray-600">{variant.description}</p>
           <p className="text-facebook font-medium">{variant.callToAction}</p>
+          <p className="text-sm text-gray-500">
+            {variant.size.width}x{variant.size.height}
+            {variant.isMobile && " (Mobile)"}
+          </p>
         </div>
 
         <Button
