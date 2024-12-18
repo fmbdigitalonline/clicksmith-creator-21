@@ -10,6 +10,7 @@ import WizardProgress from "./WizardProgress";
 import { useState } from "react";
 import CreateProjectDialog from "./projects/CreateProjectDialog";
 import { useNavigate } from "react-router-dom";
+import AdGalleryStep from "./steps/AdGalleryStep";
 
 const AdWizard = () => {
   const [showCreateProject, setShowCreateProject] = useState(false);
@@ -95,7 +96,7 @@ const AdWizard = () => {
       )}
 
       {currentStep === 6 && businessIdea && targetAudience && adFormat && selectedHooks.length > 0 && (
-        <CompleteStep
+        <AdGalleryStep
           businessIdea={businessIdea}
           targetAudience={targetAudience}
           adHooks={selectedHooks}
