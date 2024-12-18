@@ -6,6 +6,7 @@ import AdFeedbackForm from "./AdFeedbackForm";
 import { useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useParams } from "react-router-dom";
 
 interface AdVariantCardProps {
   image: AdImage;
@@ -19,6 +20,7 @@ const AdVariantCard = ({ image, hook, index, onCreateProject }: AdVariantCardPro
   const [rating, setRating] = useState("");
   const [feedback, setFeedback] = useState("");
   const { toast } = useToast();
+  const { projectId } = useParams();
 
   const downloadImage = async (imageUrl: string, filename: string) => {
     try {
@@ -60,8 +62,40 @@ const AdVariantCard = ({ image, hook, index, onCreateProject }: AdVariantCardPro
         throw new Error('User must be logged in to save feedback');
       }
 
-      // If no project is selected, prompt to create one
-      if (!onCreateProject) {
+      // If we have a projectId, save the ad to the project
+      if (projectId) {
+        const { data: project, error: projectError } = await supabase
+          .from('projects')
+          .select('generated_ads')
+          .eq('id', projectId)
+          .single();
+
+        if (projectError) throw projectError;
+
+        const existingAds = project.generated_ads || [];
+        const newAd = {
+          image,
+          hook,
+          rating: parseInt(rating, 10),
+          feedback,
+          savedAt: new Date().toISOString()
+        };
+
+        const { error: updateError } = await supabase
+          .from('projects')
+          .update({
+            generated_ads: [...existingAds, newAd]
+          })
+          .eq('id', projectId);
+
+        if (updateError) throw updateError;
+
+        toast({
+          title: "Success!",
+          description: "Ad saved to project successfully.",
+        });
+      } else if (onCreateProject) {
+        // If no project selected, prompt to create one
         toast({
           title: "No Project Selected",
           description: "Please create a project to save your ad.",
@@ -74,14 +108,13 @@ const AdVariantCard = ({ image, hook, index, onCreateProject }: AdVariantCardPro
         return;
       }
 
-      // Convert rating to number before saving
-      const numericRating = parseInt(rating, 10);
-      
+      // Save feedback
       const { error: feedbackError } = await supabase
         .from('ad_feedback')
         .insert({
           user_id: user.id,
-          rating: numericRating,
+          project_id: projectId,
+          rating: parseInt(rating, 10),
           feedback,
           saved_images: [image]
         });
@@ -93,7 +126,9 @@ const AdVariantCard = ({ image, hook, index, onCreateProject }: AdVariantCardPro
 
       toast({
         title: "Success!",
-        description: "Your feedback has been saved and image downloaded.",
+        description: projectId 
+          ? "Your feedback has been saved, ad added to project, and image downloaded."
+          : "Your feedback has been saved and image downloaded.",
       });
     } catch (error) {
       console.error('Error saving feedback:', error);
