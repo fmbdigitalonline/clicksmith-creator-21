@@ -25,7 +25,7 @@ const Navigation = () => {
       <div className="container h-full">
         <div className="flex h-full items-center justify-between">
           <Link to="/" className="font-semibold">
-            AdWizard
+            Viable
           </Link>
           <div className="flex items-center gap-4">
             <CreditDisplay />
