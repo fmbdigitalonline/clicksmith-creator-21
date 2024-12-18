@@ -5,12 +5,6 @@ import { Download, Save } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
-interface AdSize {
-  width: number;
-  height: number;
-  label: string;
-}
-
 interface AdPreviewCardProps {
   variant: {
     platform: string;
@@ -18,11 +12,24 @@ interface AdPreviewCardProps {
       url: string;
       prompt: string;
     };
-    size: AdSize;
+    size: {
+      width: number;
+      height: number;
+      label: string;
+    };
+    specs?: {
+      designRecommendations?: {
+        fileTypes: string[];
+        aspectRatios: string;
+      };
+      textRecommendations?: {
+        primaryTextLength: string;
+        headlineLength: string;
+      };
+    };
     headline: string;
     description: string;
     callToAction: string;
-    isMobile?: boolean;
   };
   onCreateProject: () => void;
 }
@@ -81,11 +88,15 @@ const AdPreviewCard = ({ variant, onCreateProject }: AdPreviewCardProps) => {
     }
   };
 
-  const aspectRatio = `${variant.size.width} / ${variant.size.height}`;
-
   return (
     <Card className="overflow-hidden">
-      <div style={{ aspectRatio }} className="relative">
+      <div 
+        style={{ 
+          aspectRatio: `${variant.size.width} / ${variant.size.height}`,
+          maxHeight: '400px'
+        }} 
+        className="relative"
+      >
         <img
           src={variant.image.url}
           alt={variant.headline}
@@ -100,10 +111,15 @@ const AdPreviewCard = ({ variant, onCreateProject }: AdPreviewCardProps) => {
           </div>
           <p className="text-gray-600">{variant.description}</p>
           <p className="text-facebook font-medium">{variant.callToAction}</p>
-          <p className="text-sm text-gray-500">
-            {variant.size.width}x{variant.size.height}
-            {variant.isMobile && " (Mobile)"}
-          </p>
+          <div className="text-sm text-gray-500 space-y-1">
+            <p>Size: {variant.size.width}x{variant.size.height}</p>
+            {variant.specs?.designRecommendations && (
+              <>
+                <p>Format: {variant.specs.designRecommendations.fileTypes.join(", ")}</p>
+                <p>Aspect Ratio: {variant.specs.designRecommendations.aspectRatios}</p>
+              </>
+            )}
+          </div>
         </div>
 
         <Button

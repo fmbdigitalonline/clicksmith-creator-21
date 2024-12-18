@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import StepNavigation from "./complete/StepNavigation";
 import LoadingState from "./complete/LoadingState";
 import AdPreviewCard from "./gallery/AdPreviewCard";
+import { facebookAdSpecs } from "@/types/facebookAdSpecs";
 
 interface AdGalleryStepProps {
   businessIdea: BusinessIdea;
@@ -42,14 +43,47 @@ const AdGalleryStep = ({
           targetAudience,
           campaign: {
             hooks: adHooks,
-            format: adFormat
+            format: adFormat,
+            specs: {
+              facebook: facebookAdSpecs
+            }
           }
         }
       });
 
       if (error) throw error;
 
-      setAdVariants(data.variants);
+      // Transform the variants to include all Facebook ad sizes
+      const transformedVariants = data.variants.map((variant: any) => {
+        if (variant.platform === 'facebook') {
+          return [
+            // Square format (1:1)
+            {
+              ...variant,
+              size: {
+                width: 1440,
+                height: 1440,
+                label: "Square Feed Ad"
+              },
+              specs: facebookAdSpecs.imageAds
+            },
+            // Portrait format (4:5)
+            {
+              ...variant,
+              size: {
+                width: 1440,
+                height: 1800,
+                label: "Portrait Feed Ad"
+              },
+              specs: facebookAdSpecs.imageAds
+            }
+          ];
+        }
+        return variant;
+      }).flat();
+
+      setAdVariants(transformedVariants);
+      
       toast({
         title: "Ads Generated!",
         description: "Your ad variants have been generated successfully.",
@@ -82,7 +116,7 @@ const AdGalleryStep = ({
       <div>
         <h2 className="text-xl md:text-2xl font-semibold mb-2">Your Ad Gallery</h2>
         <p className="text-gray-600 mb-6">
-          Review your generated ad variants for different platforms. Select and customize them for your campaign.
+          Review your generated ad variants optimized for different platforms and formats.
         </p>
       </div>
 
@@ -102,7 +136,7 @@ const AdGalleryStep = ({
                   .filter(variant => variant.platform === 'facebook')
                   .map((variant, index) => (
                     <AdPreviewCard
-                      key={index}
+                      key={`${index}-${variant.size.label}`}
                       variant={variant}
                       onCreateProject={onCreateProject}
                     />
