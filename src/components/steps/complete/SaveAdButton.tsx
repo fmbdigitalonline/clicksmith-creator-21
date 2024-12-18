@@ -71,10 +71,18 @@ export const SaveAdButton = ({
           savedAt: new Date().toISOString()
         };
 
+        const jsonAds: SavedAdJson[] = [...existingAds, newAd].map(ad => ({
+          image: ad.image as Json,
+          hook: ad.hook as Json,
+          rating: ad.rating as Json,
+          feedback: ad.feedback as Json,
+          savedAt: ad.savedAt as Json,
+        }));
+
         const { error: updateError } = await supabase
           .from('projects')
           .update({
-            generated_ads: [...existingAds, newAd]
+            generated_ads: jsonAds
           })
           .eq('id', projectId);
 

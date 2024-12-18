@@ -3,6 +3,8 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
+type AuthEvent = 'SIGNED_IN' | 'SIGNED_OUT' | 'USER_DELETED' | 'TOKEN_REFRESHED' | 'USER_UPDATED';
+
 export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -32,7 +34,16 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
           return;
         }
 
-        setIsAuthenticated(true);
+        // Refresh token if needed
+        const { data: { user }, error: refreshError } = await supabase.auth.refreshSession();
+        if (refreshError) {
+          console.error("Token refresh error:", refreshError);
+          setIsAuthenticated(false);
+          navigate('/login', { replace: true });
+          return;
+        }
+
+        setIsAuthenticated(!!user);
       } catch (error) {
         console.error("Auth error:", error);
         setIsAuthenticated(false);
@@ -49,18 +60,28 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log("Auth state changed:", event);
       
-      if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
-        setIsAuthenticated(false);
-        navigate('/login', { replace: true });
-        toast({
-          title: "Signed Out",
-          description: "You have been signed out",
-        });
-      } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        setIsAuthenticated(true);
-      } else if (event === 'USER_UPDATED') {
-        setIsAuthenticated(!!session);
-      }
+      const handleAuthEvent = (event: AuthEvent) => {
+        switch (event) {
+          case 'SIGNED_OUT':
+          case 'USER_DELETED':
+            setIsAuthenticated(false);
+            navigate('/login', { replace: true });
+            toast({
+              title: "Signed Out",
+              description: "You have been signed out",
+            });
+            break;
+          case 'SIGNED_IN':
+          case 'TOKEN_REFRESHED':
+            setIsAuthenticated(true);
+            break;
+          case 'USER_UPDATED':
+            setIsAuthenticated(!!session);
+            break;
+        }
+      };
+
+      handleAuthEvent(event as AuthEvent);
     });
 
     return () => {
