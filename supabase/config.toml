@@ -21,11 +21,3 @@ enabled = true
 
 [auth]
 enabled = true
-
-[[functions]]
-name = "create-checkout"
-verify_jwt = true
-
-[[functions]]
-name = "webhook"
-verify_jwt = false
