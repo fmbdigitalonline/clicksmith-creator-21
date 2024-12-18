@@ -9,6 +9,7 @@ import Projects from "@/pages/Projects";
 import Settings from "@/pages/Settings";
 import Pricing from "@/pages/Pricing";
 import AdWizard from "@/components/AdWizard";
+import Landing from "@/pages/Landing";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const queryClient = new QueryClient();
@@ -19,10 +20,11 @@ function App() {
       <SidebarProvider>
         <Router>
           <Routes>
+            <Route path="/" element={<Landing />} />
             <Route path="/login" element={<Login />} />
             <Route path="/pricing" element={<Pricing />} />
             <Route
-              path="/"
+              path="/dashboard"
               element={
                 <ProtectedRoute>
                   <AppLayout>
@@ -61,7 +63,6 @@ function App() {
                 </ProtectedRoute>
               }
             />
-            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
           <OnboardingDialog />
           <Toaster />
