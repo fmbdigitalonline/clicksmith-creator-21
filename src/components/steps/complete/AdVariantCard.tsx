@@ -8,6 +8,14 @@ import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useParams } from "react-router-dom";
 
+interface SavedAd {
+  image: AdImage;
+  hook: AdHook;
+  rating: number;
+  feedback: string;
+  savedAt: string;
+}
+
 interface AdVariantCardProps {
   image: AdImage;
   hook: AdHook;
@@ -72,8 +80,8 @@ const AdVariantCard = ({ image, hook, index, onCreateProject }: AdVariantCardPro
 
         if (projectError) throw projectError;
 
-        const existingAds = project?.generated_ads || [];
-        const newAd = {
+        const existingAds: SavedAd[] = (project?.generated_ads as SavedAd[]) || [];
+        const newAd: SavedAd = {
           image,
           hook,
           rating: parseInt(rating, 10),
