@@ -1,20 +1,9 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Download, Save } from "lucide-react";
 import { AdHook, AdImage } from "@/types/adWizard";
 import AdFeedbackForm from "./AdFeedbackForm";
 import { useState } from "react";
-import { useToast } from "@/components/ui/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { useParams } from "react-router-dom";
-
-interface SavedAd {
-  image: AdImage;
-  hook: AdHook;
-  rating: number;
-  feedback: string;
-  savedAt: string;
-}
+import { SaveAdButton } from "./SaveAdButton";
 
 interface AdVariantCardProps {
   image: AdImage;
@@ -24,129 +13,24 @@ interface AdVariantCardProps {
 }
 
 const AdVariantCard = ({ image, hook, index, onCreateProject }: AdVariantCardProps) => {
-  const [isSaving, setSaving] = useState(false);
   const [rating, setRating] = useState("");
   const [feedback, setFeedback] = useState("");
-  const { toast } = useToast();
   const { projectId } = useParams();
 
-  const downloadImage = async (imageUrl: string, filename: string) => {
+  const handleDownload = async () => {
     try {
-      const response = await fetch(imageUrl);
+      const response = await fetch(image.url);
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = filename;
+      link.download = `ad-variant-${index + 1}.jpg`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Error downloading image:', error);
-      toast({
-        title: "Download Failed",
-        description: "Failed to download the image. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleSaveAndDownload = async () => {
-    if (!rating) {
-      toast({
-        title: "Rating Required",
-        description: "Please provide a rating before saving.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setSaving(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        throw new Error('User must be logged in to save feedback');
-      }
-
-      // If we have a projectId, save the ad to the project
-      if (projectId) {
-        const { data: project, error: projectError } = await supabase
-          .from('projects')
-          .select('generated_ads')
-          .eq('id', projectId)
-          .single();
-
-        if (projectError) throw projectError;
-
-        const existingAds: SavedAd[] = (project?.generated_ads as SavedAd[]) || [];
-        const newAd: SavedAd = {
-          image,
-          hook,
-          rating: parseInt(rating, 10),
-          feedback,
-          savedAt: new Date().toISOString()
-        };
-
-        const { error: updateError } = await supabase
-          .from('projects')
-          .update({
-            generated_ads: [...existingAds, newAd]
-          })
-          .eq('id', projectId);
-
-        if (updateError) throw updateError;
-
-        toast({
-          title: "Success!",
-          description: "Ad saved to project successfully.",
-        });
-      } else if (onCreateProject) {
-        // If no project selected, prompt to create one
-        toast({
-          title: "No Project Selected",
-          description: "Please create a project to save your ad.",
-          action: (
-            <Button variant="outline" onClick={onCreateProject}>
-              Create Project
-            </Button>
-          ),
-        });
-        return;
-      }
-
-      // Save feedback
-      const { error: feedbackError } = await supabase
-        .from('ad_feedback')
-        .insert({
-          user_id: user.id,
-          project_id: projectId,
-          rating: parseInt(rating, 10),
-          feedback,
-          saved_images: [image]
-        });
-
-      if (feedbackError) throw feedbackError;
-
-      // Download the image after successful save
-      await downloadImage(image.url, `ad-variant-${index + 1}.jpg`);
-
-      toast({
-        title: "Success!",
-        description: projectId 
-          ? "Your feedback has been saved, ad added to project, and image downloaded."
-          : "Your feedback has been saved and image downloaded.",
-      });
-    } catch (error) {
-      console.error('Error saving feedback:', error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to save feedback or download image.",
-        variant: "destructive",
-      });
-    } finally {
-      setSaving(false);
     }
   };
 
@@ -180,20 +64,15 @@ const AdVariantCard = ({ image, hook, index, onCreateProject }: AdVariantCardPro
             onFeedbackChange={setFeedback}
           />
 
-          <Button
-            onClick={handleSaveAndDownload}
-            className="w-full bg-facebook hover:bg-facebook/90"
-            disabled={isSaving}
-          >
-            {isSaving ? (
-              "Saving..."
-            ) : (
-              <>
-                <Save className="w-4 h-4 mr-2" />
-                Save & Download
-              </>
-            )}
-          </Button>
+          <SaveAdButton
+            image={image}
+            hook={hook}
+            rating={rating}
+            feedback={feedback}
+            projectId={projectId}
+            onCreateProject={onCreateProject}
+            onSaveSuccess={handleDownload}
+          />
         </div>
       </CardContent>
     </Card>
