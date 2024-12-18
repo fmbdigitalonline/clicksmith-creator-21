@@ -1,10 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Check, ChevronLeft, ChevronRight } from "lucide-react";
+import { Check, ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 interface Plan {
@@ -20,8 +19,6 @@ interface Plan {
 const Pricing = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const [currentPage, setCurrentPage] = useState(0);
-  const plansPerPage = 3;
   
   const { data: plans, isLoading, error } = useQuery({
     queryKey: ['plans'],
@@ -29,6 +26,7 @@ const Pricing = () => {
       const { data, error } = await supabase
         .from('plans')
         .select('*')
+        .in('price', [10, 29, 99])
         .order('price');
       
       if (error) throw error;
@@ -95,18 +93,6 @@ const Pricing = () => {
     );
   }
 
-  const totalPages = plans ? Math.ceil(plans.length / plansPerPage) : 0;
-  const startIndex = currentPage * plansPerPage;
-  const visiblePlans = plans?.slice(startIndex, startIndex + plansPerPage);
-
-  const handlePrevPage = () => {
-    setCurrentPage((prev) => Math.max(0, prev - 1));
-  };
-
-  const handleNextPage = () => {
-    setCurrentPage((prev) => Math.min(totalPages - 1, prev + 1));
-  };
-
   return (
     <div className="container mx-auto py-12 px-4">
       <div className="mb-8">
@@ -127,7 +113,7 @@ const Pricing = () => {
       </div>
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
-        {visiblePlans?.map((plan) => (
+        {plans?.map((plan) => (
           <Card key={plan.id} className="flex flex-col">
             <CardHeader>
               <CardTitle className="text-2xl capitalize">{plan.name}</CardTitle>
@@ -163,32 +149,6 @@ const Pricing = () => {
           </Card>
         ))}
       </div>
-
-      {totalPages > 1 && (
-        <div className="flex justify-center items-center gap-4 mt-8">
-          <Button
-            variant="outline"
-            onClick={handlePrevPage}
-            disabled={currentPage === 0}
-            className="flex items-center gap-2"
-          >
-            <ChevronLeft className="h-4 w-4" />
-            Previous
-          </Button>
-          <span className="text-sm text-muted-foreground">
-            Page {currentPage + 1} of {totalPages}
-          </span>
-          <Button
-            variant="outline"
-            onClick={handleNextPage}
-            disabled={currentPage === totalPages - 1}
-            className="flex items-center gap-2"
-          >
-            Next
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
-      )}
     </div>
   );
 };
