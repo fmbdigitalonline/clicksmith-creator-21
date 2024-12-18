@@ -7,7 +7,11 @@ import {
   Clock, 
   ChartBar, 
   Lightbulb,
-  Check
+  Check,
+  ArrowRight,
+  MessageSquare,
+  User,
+  Star
 } from "lucide-react";
 
 const Landing = () => {
@@ -34,74 +38,125 @@ const Landing = () => {
         </div>
       </div>
 
-      {/* Questions Section */}
+      {/* How It Works Section */}
       <div className="bg-white py-16 md:py-24">
         <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto space-y-16">
-            <div className="grid gap-8 md:grid-cols-2">
-              {/* Question Cards */}
-              <QuestionCard
-                icon={<Target className="w-8 h-8 text-facebook" />}
-                question="Who will actually buy your product?"
-                answer="Stop guessing about your target market. Get data-driven insights about your ideal customers and what makes them tick."
-              />
-              <QuestionCard
-                icon={<DollarSign className="w-8 h-8 text-facebook" />}
-                question="Are you building something people will pay for?"
-                answer="Test market demand before investing heavily in development. Save time and money by validating first."
-              />
-              <QuestionCard
-                icon={<Clock className="w-8 h-8 text-facebook" />}
-                question="How long until you know if your idea works?"
-                answer="Get real market feedback in days, not months. Quick iterations mean faster path to product-market fit."
-              />
-              <QuestionCard
-                icon={<ChartBar className="w-8 h-8 text-facebook" />}
-                question="What messaging resonates with your audience?"
-                answer="Discover exactly what hooks and value propositions capture your audience's attention through real-world testing."
-              />
-            </div>
-
-            {/* Benefits Section */}
-            <div className="space-y-8 text-center">
+          <div className="max-w-4xl mx-auto space-y-12">
+            <div className="text-center space-y-4">
               <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
-                Why Validate First?
+                How It Works
               </h2>
-              <div className="grid gap-6 md:grid-cols-3">
-                <BenefitCard
-                  icon={<Lightbulb className="w-6 h-6 text-facebook" />}
-                  title="Test Fast"
-                  description="Launch micro-campaigns across multiple platforms in minutes"
-                />
-                <BenefitCard
-                  icon={<Rocket className="w-6 h-6 text-facebook" />}
-                  title="Learn Quick"
-                  description="Get actionable insights about what resonates with your audience"
-                />
-                <BenefitCard
-                  icon={<Check className="w-6 h-6 text-facebook" />}
-                  title="Build Smart"
-                  description="Move forward with confidence, backed by real market data"
-                />
-              </div>
-            </div>
-
-            {/* Final CTA */}
-            <div className="text-center space-y-6 bg-gray-50 p-8 rounded-2xl">
-              <h2 className="text-2xl md:text-3xl font-bold text-gray-900">
-                Ready to validate your business idea?
-              </h2>
-              <p className="text-gray-600">
-                Join entrepreneurs who are building products people actually want.
+              <p className="text-xl text-gray-600">
+                Three simple steps to validate your business idea
               </p>
-              <Button
-                onClick={() => navigate("/ad-wizard/new")}
-                size="lg"
-                className="bg-facebook hover:bg-facebook/90 text-white"
-              >
-                Start Validating Now
-              </Button>
             </div>
+            
+            <div className="grid gap-8 md:grid-cols-3">
+              <StepCard
+                icon={<Lightbulb className="w-8 h-8 text-facebook" />}
+                step="1"
+                title="Share Your Idea"
+                description="Start with your concept or product proposition. We'll help you refine it for testing."
+              />
+              <StepCard
+                icon={<Target className="w-8 h-8 text-facebook" />}
+                step="2"
+                title="Get Audience Insights"
+                description="We'll help you identify your ideal customers and craft messaging that resonates."
+              />
+              <StepCard
+                icon={<ChartBar className="w-8 h-8 text-facebook" />}
+                step="3"
+                title="Generate & Test Ads"
+                description="Get ready-to-use ads for multiple platforms and start collecting real market data."
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Testimonials Section */}
+      <div className="bg-gray-50 py-16 md:py-24">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto space-y-12">
+            <div className="text-center space-y-4">
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
+                What Founders Say
+              </h2>
+              <p className="text-xl text-gray-600">
+                Join entrepreneurs who are building products people actually want
+              </p>
+            </div>
+            
+            <div className="grid gap-8 md:grid-cols-2">
+              <TestimonialCard
+                quote="This platform saved us months of development time by helping us validate our idea before building."
+                author="Sarah Chen"
+                role="Founder, TechStart"
+                rating={5}
+              />
+              <TestimonialCard
+                quote="The audience insights helped us pivot our messaging and find our perfect market fit."
+                author="Michael Rodriguez"
+                role="CEO, MarketFit"
+                rating={5}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Features Section */}
+      <div className="bg-white py-16 md:py-24">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto space-y-12">
+            <div className="text-center space-y-4">
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
+                Why Choose Our Platform
+              </h2>
+              <p className="text-xl text-gray-600">
+                Everything you need to validate your business idea
+              </p>
+            </div>
+            
+            <div className="grid gap-8 md:grid-cols-3">
+              <FeatureCard
+                icon={<Clock className="w-6 h-6 text-facebook" />}
+                title="Save Time"
+                description="Get validation results in days, not months"
+              />
+              <FeatureCard
+                icon={<DollarSign className="w-6 h-6 text-facebook" />}
+                title="Reduce Risk"
+                description="Test before investing heavily in development"
+              />
+              <FeatureCard
+                icon={<Rocket className="w-6 h-6 text-facebook" />}
+                title="Launch Confidently"
+                description="Move forward with data-backed decisions"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Final CTA */}
+      <div className="bg-gray-50 py-16 md:py-24">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto text-center space-y-8">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
+              Ready to validate your idea?
+            </h2>
+            <p className="text-xl text-gray-600">
+              Join entrepreneurs who are building products people actually want
+            </p>
+            <Button
+              onClick={() => navigate("/ad-wizard/new")}
+              size="lg"
+              className="bg-facebook hover:bg-facebook/90 text-white text-lg px-8 py-6 h-auto"
+            >
+              Start Validating Now
+            </Button>
           </div>
         </div>
       </div>
@@ -109,49 +164,78 @@ const Landing = () => {
   );
 };
 
-const QuestionCard = ({ 
-  icon, 
-  question, 
-  answer 
-}: { 
+const StepCard = ({ icon, step, title, description }: { 
   icon: React.ReactNode;
-  question: string;
-  answer: string;
+  step: string;
+  title: string;
+  description: string;
+}) => (
+  <div className="relative p-6 bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-200">
+    <div className="space-y-4">
+      <div className="flex items-center space-x-4">
+        <div className="inline-block p-2 bg-gray-50 rounded-lg">
+          {icon}
+        </div>
+        <div className="h-8 w-8 flex items-center justify-center bg-facebook text-white rounded-full font-semibold">
+          {step}
+        </div>
+      </div>
+      <h3 className="text-xl font-semibold text-gray-900">
+        {title}
+      </h3>
+      <p className="text-gray-600">
+        {description}
+      </p>
+    </div>
+    <ArrowRight className="absolute right-4 bottom-4 w-5 h-5 text-facebook opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+  </div>
+);
+
+const TestimonialCard = ({ quote, author, role, rating }: {
+  quote: string;
+  author: string;
+  role: string;
+  rating: number;
+}) => (
+  <div className="p-6 bg-white rounded-xl shadow-sm border border-gray-100">
+    <div className="space-y-4">
+      <div className="flex space-x-1">
+        {[...Array(rating)].map((_, i) => (
+          <Star key={i} className="w-5 h-5 text-yellow-400 fill-current" />
+        ))}
+      </div>
+      <div className="flex space-x-2 items-start">
+        <MessageSquare className="w-5 h-5 text-facebook mt-1" />
+        <p className="text-gray-600 italic">"{quote}"</p>
+      </div>
+      <div className="flex items-center space-x-3">
+        <User className="w-5 h-5 text-gray-400" />
+        <div>
+          <p className="font-semibold text-gray-900">{author}</p>
+          <p className="text-sm text-gray-600">{role}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+const FeatureCard = ({ icon, title, description }: {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
 }) => (
   <div className="p-6 bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-200">
     <div className="space-y-4">
       <div className="inline-block p-2 bg-gray-50 rounded-lg">
         {icon}
       </div>
-      <h3 className="text-xl font-semibold text-gray-900">
-        {question}
+      <h3 className="text-lg font-semibold text-gray-900">
+        {title}
       </h3>
       <p className="text-gray-600">
-        {answer}
+        {description}
       </p>
     </div>
-  </div>
-);
-
-const BenefitCard = ({ 
-  icon, 
-  title, 
-  description 
-}: { 
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-}) => (
-  <div className="space-y-2">
-    <div className="inline-block p-2 bg-gray-50 rounded-lg">
-      {icon}
-    </div>
-    <h3 className="font-semibold text-gray-900">
-      {title}
-    </h3>
-    <p className="text-gray-600 text-sm">
-      {description}
-    </p>
   </div>
 );
 
