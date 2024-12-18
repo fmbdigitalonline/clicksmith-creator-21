@@ -26,6 +26,18 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
     );
 
+    // Verify the price exists in our database
+    const { data: planData, error: planError } = await supabaseClient
+      .from('plans')
+      .select('*')
+      .eq('stripe_price_id', priceId)
+      .single();
+
+    if (planError || !planData) {
+      console.error('Plan not found:', planError);
+      throw new Error(`Invalid price ID: ${priceId}`);
+    }
+
     const authHeader = req.headers.get('Authorization')!;
     const token = authHeader.replace('Bearer ', '');
     const { data: { user } } = await supabaseClient.auth.getUser(token);
@@ -38,14 +50,6 @@ serve(async (req) => {
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
       apiVersion: '2023-10-16',
     });
-
-    // Verify the price exists in Stripe
-    try {
-      await stripe.prices.retrieve(priceId);
-    } catch (error) {
-      console.error('Invalid price ID:', error);
-      throw new Error(`Invalid price ID: ${priceId}`);
-    }
 
     // Check if customer exists
     console.log('Checking for existing customer...');
@@ -83,6 +87,7 @@ serve(async (req) => {
       cancel_url: `${req.headers.get('origin')}/pricing`,
       metadata: {
         supabaseUid: user.id,
+        planId: planData.id,
       },
     });
 
