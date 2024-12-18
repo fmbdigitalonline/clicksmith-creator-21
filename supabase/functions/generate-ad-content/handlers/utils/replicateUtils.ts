@@ -8,25 +8,25 @@ export async function generateWithReplicate(
   console.log('Starting image generation with Replicate:', { prompt, dimensions });
 
   try {
-    // Using a stable and public model version from Stability AI
+    // Calculate aspect ratio based on dimensions
+    const aspectRatio = `${dimensions.width}:${dimensions.height}`;
+    
+    // Create prediction with the new model
     const prediction = await replicate.predictions.create({
-      version: "39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b",
+      version: "2a966a1cdd9c20e8d63dbd562e7c8a1f4c78e62e6c5b042d44ba12a2c758b07f",
       input: {
+        raw: false,
         prompt: prompt,
-        negative_prompt: "text, words, letters, numbers, symbols, watermarks, logos, labels, signs, writing, typography, fonts, characters, alphabets, digits, punctuation marks, nsfw, nudity, violence, gore, weapons, drugs, inappropriate content, offensive content, controversial content, suggestive content, unsafe content, adult content, explicit content",
-        width: dimensions.width,
-        height: dimensions.height,
-        num_outputs: 1,
-        scheduler: "DPMSolverMultistep",
-        num_inference_steps: 50,
-        guidance_scale: 7.5,
-        prompt_strength: 0.8,
+        aspect_ratio: aspectRatio,
+        output_format: "jpg",
+        safety_tolerance: 2,
+        image_prompt_strength: 0.1
       }
     });
 
     console.log('Prediction created:', prediction);
 
-    const maxWaitTime = 180000; // Increased to 3 minutes
+    const maxWaitTime = 180000; // 3 minutes
     const pollInterval = 5000; // Poll every 5 seconds
     const startTime = Date.now();
     let result;
@@ -57,7 +57,6 @@ export async function generateWithReplicate(
           throw new Error('Image generation was canceled');
         }
         
-        // Wait before polling again
         await new Promise(resolve => setTimeout(resolve, pollInterval));
       } catch (pollError) {
         console.error('Error polling prediction status:', pollError);
