@@ -59,14 +59,30 @@ export async function handleImagePromptGeneration(
 
     // Generate prompts based on each selected hook with fallback variations
     const prompts = campaign.hooks.map(hook => {
-      const hookPrompt = `${basePrompt}\nCreate a purely business-focused visual representation that captures this message: "${hook.description}" using only professional business imagery.`;
+      const hookPrompt = `Create a photorealistic, high-quality commercial photograph that represents: "${hook.description}". 
+The image must be:
+- Photorealistic, not illustrated or drawn
+- Professional quality, like a commercial stock photo
+- Well-lit with natural lighting
+- Sharp and clear, with high resolution
+- Featuring real people or real products (not illustrations)
+- In a real-world business setting
+- Using professional photography techniques
+- Suitable for professional advertising
+
+Business Context: ${businessIdea.description}
+Value Proposition: ${businessIdea.valueProposition}
+Target Audience: ${targetAudience.description}`;
       return sanitizePrompt(hookPrompt);
     });
 
     // If we have less than 6 prompts, add some variations
     while (prompts.length < 6) {
       const randomHook = campaign.hooks[Math.floor(Math.random() * campaign.hooks.length)];
-      const variationPrompt = `${basePrompt}\nCreate an alternative business-appropriate visual interpretation focusing on: "${randomHook.description}" using only professional imagery.`;
+      const variationPrompt = `Create a different photorealistic commercial photograph focusing on: "${randomHook.description}". 
+Must be a professional quality photograph, not an illustration or drawing.
+Business Context: ${businessIdea.description}
+Target Audience: ${targetAudience.description}`;
       prompts.push(sanitizePrompt(variationPrompt));
     }
 
