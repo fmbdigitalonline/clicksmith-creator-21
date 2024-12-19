@@ -81,7 +81,7 @@ const AdGalleryStep = ({
       }
 
       console.log('Generated ad variants:', data);
-      setAdVariants(data.variants || []);
+      setAdVariants(data.variants);
       
       toast({
         title: `${videoAdsEnabled ? 'Video Ads' : 'Image Ads'} Generated!`,
@@ -104,34 +104,6 @@ const AdGalleryStep = ({
       generateAds();
     }
   }, [videoAdsEnabled]);
-
-  const renderAdGrid = (variants: any[]) => {
-    const formatGroups = variants.reduce((acc: any, variant: any) => {
-      const format = variant.size.label || variant.format;
-      if (!acc[format]) {
-        acc[format] = [];
-      }
-      acc[format].push(variant);
-      return acc;
-    }, {});
-
-    return Object.entries(formatGroups).map(([format, variants]: [string, any]) => (
-      <div key={format} className="space-y-4">
-        <h3 className="text-lg font-semibold text-gray-800 mt-6">{format}</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {variants.map((variant: any, index: number) => (
-            <div key={`${format}-${index}`} className="flex flex-col h-full">
-              <AdPreviewCard
-                variant={variant}
-                onCreateProject={onCreateProject}
-                isVideo={videoAdsEnabled}
-              />
-            </div>
-          ))}
-        </div>
-      </div>
-    ));
-  };
 
   return (
     <div className="space-y-6 md:space-y-8">
@@ -158,11 +130,33 @@ const AdGalleryStep = ({
             </TabsList>
             
             <TabsContent value="facebook" className="space-y-4">
-              {renderAdGrid(adVariants.filter(variant => variant.platform === 'facebook'))}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {adVariants
+                  .filter(variant => variant.platform === 'facebook')
+                  .map((variant, index) => (
+                    <AdPreviewCard
+                      key={`${index}-${variant.size.label}`}
+                      variant={variant}
+                      onCreateProject={onCreateProject}
+                      isVideo={videoAdsEnabled}
+                    />
+                  ))}
+              </div>
             </TabsContent>
 
             <TabsContent value="google" className="space-y-4">
-              {renderAdGrid(adVariants.filter(variant => variant.platform === 'google'))}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {adVariants
+                  .filter(variant => variant.platform === 'google')
+                  .map((variant, index) => (
+                    <AdPreviewCard
+                      key={index}
+                      variant={variant}
+                      onCreateProject={onCreateProject}
+                      isVideo={videoAdsEnabled}
+                    />
+                  ))}
+              </div>
             </TabsContent>
           </Tabs>
         </div>

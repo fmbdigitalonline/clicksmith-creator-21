@@ -17,7 +17,6 @@ interface AdPreviewCardProps {
       height: number;
       label: string;
     };
-    format?: string;
     specs?: {
       designRecommendations?: {
         fileTypes: string[];
@@ -73,6 +72,7 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewC
         return;
       }
 
+      // Download the image/video
       const response = await fetch(variant.image.url);
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
@@ -86,7 +86,7 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewC
 
       toast({
         title: "Success!",
-        description: `Your ${variant.format || variant.size.label} ${isVideo ? 'video' : 'ad'} has been saved and downloaded.`,
+        description: `Your ${variant.size.label} ${isVideo ? 'video' : 'ad'} has been saved and downloaded.`,
       });
     } catch (error) {
       console.error('Error saving ad:', error);
@@ -100,21 +100,20 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewC
     }
   };
 
-  const aspectRatioClass = () => {
-    const ratio = variant.size.height / variant.size.width;
-    if (ratio === 1) return "aspect-square";
-    if (ratio > 1) return "aspect-[9/16]";
-    return "aspect-video";
-  };
-
   return (
-    <Card className="h-full flex flex-col">
-      <div className={`relative overflow-hidden ${aspectRatioClass()}`}>
+    <Card className="overflow-hidden">
+      <div 
+        style={{ 
+          aspectRatio: `${variant.size.width} / ${variant.size.height}`,
+          maxHeight: '400px'
+        }} 
+        className="relative group"
+      >
         {isVideo ? (
           <>
             <video
               src={variant.image.url}
-              className="w-full h-full object-cover"
+              className="object-cover w-full h-full cursor-pointer"
               playsInline
               preload="metadata"
               onClick={(e) => handleVideoPlayPause(e.currentTarget)}
@@ -138,17 +137,17 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewC
           <img
             src={variant.image.url}
             alt={variant.headline}
-            className="w-full h-full object-cover"
+            className="object-cover w-full h-full"
           />
         )}
       </div>
-      <CardContent className="p-4 space-y-4 flex-grow flex flex-col justify-between">
+      <CardContent className="p-4 space-y-4">
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <h3 className="font-medium text-lg line-clamp-1">{variant.headline}</h3>
-            <span className="text-sm text-gray-500">{variant.format || variant.size.label}</span>
+            <h3 className="font-medium text-lg">{variant.headline}</h3>
+            <span className="text-sm text-gray-500">{variant.size.label}</span>
           </div>
-          <p className="text-gray-600 line-clamp-2">{variant.description}</p>
+          <p className="text-gray-600">{variant.description}</p>
           <p className="text-facebook font-medium">{variant.callToAction}</p>
           <div className="text-sm text-gray-500 space-y-1">
             <p>Size: {variant.size.width}x{variant.size.height}</p>
@@ -158,12 +157,15 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewC
                 <p>Aspect Ratio: {variant.specs.designRecommendations.aspectRatios}</p>
               </>
             )}
+            {isVideo && (
+              <p>Type: Video Ad</p>
+            )}
           </div>
         </div>
 
         <Button
           onClick={handleSaveAndDownload}
-          className="w-full bg-facebook hover:bg-facebook/90 mt-4"
+          className="w-full bg-facebook hover:bg-facebook/90"
           disabled={isSaving}
         >
           {isSaving ? (
