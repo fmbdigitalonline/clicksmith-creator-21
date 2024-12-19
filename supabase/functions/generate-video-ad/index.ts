@@ -11,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { businessIdea, targetAudience, hook, size } = await req.json();
+    const { businessIdea, targetAudience, hook, format } = await req.json();
     
     const replicateApiToken = Deno.env.get('REPLICATE_API_TOKEN');
     if (!replicateApiToken) {
@@ -26,11 +26,12 @@ serve(async (req) => {
       Style: Modern, professional video advertisement
       Must include: Dynamic visuals, smooth transitions
       Video requirements: High quality, clear message, compelling visuals
-      Video dimensions: ${size.width}x${size.height}`;
+      Format: ${format.description}
+      Dimensions: ${format.dimensions.width}x${format.dimensions.height}`;
 
     console.log('Starting video generation with prompt:', prompt);
 
-    // Use a more reliable model for video generation
+    // Use Stable Video Diffusion model
     const response = await fetch("https://api.replicate.com/v1/predictions", {
       method: "POST",
       headers: {
@@ -38,16 +39,15 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        // Using Stable Video Diffusion model
         version: "9ca9f2058a799b5e52bcdc1db4c385a869c4feff51b9ab6cf1f9d5d4ebe8e87c",
         input: {
           prompt: prompt,
-          video_length: "4_seconds", // Start with shorter videos for testing
+          video_length: format.maxLength > 30 ? "30_seconds" : `${format.maxLength}_seconds`,
           fps: 24,
-          width: size.width,
-          height: size.height,
+          width: format.dimensions.width,
+          height: format.dimensions.height,
           num_inference_steps: 50,
-          guidance_scale: 17.5, // Increased for better prompt adherence
+          guidance_scale: 17.5
         },
       }),
     });
@@ -61,7 +61,6 @@ serve(async (req) => {
     const prediction = await response.json();
     console.log('Video generation started:', prediction);
 
-    // Poll for completion with improved error handling
     const videoUrl = await pollForCompletion(prediction.id, replicateApiToken);
     console.log('Video generation completed:', videoUrl);
 
@@ -69,7 +68,8 @@ serve(async (req) => {
       JSON.stringify({ 
         success: true, 
         videoUrl,
-        prompt 
+        prompt,
+        format 
       }),
       { 
         headers: { 

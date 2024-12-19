@@ -8,6 +8,7 @@ import StepNavigation from "./complete/StepNavigation";
 import LoadingState from "./complete/LoadingState";
 import AdPreviewCard from "./gallery/AdPreviewCard";
 import { facebookAdSpecs } from "@/types/facebookAdSpecs";
+import { facebookVideoAdSpecs } from "@/types/videoAdSpecs";
 
 interface AdGalleryStepProps {
   businessIdea: BusinessIdea;
@@ -45,7 +46,10 @@ const AdGalleryStep = ({
           targetAudience,
           campaign: {
             hooks: adHooks,
-            specs: {
+            specs: videoAdsEnabled ? {
+              facebook: facebookVideoAdSpecs,
+              formats: ['feed', 'stories', 'carousel', 'cover']
+            } : {
               facebook: facebookAdSpecs,
               google: {
                 commonSizes: [
@@ -99,7 +103,7 @@ const AdGalleryStep = ({
     if (adVariants.length === 0) {
       generateAds();
     }
-  }, [videoAdsEnabled]); // Regenerate ads when video mode changes
+  }, [videoAdsEnabled]);
 
   return (
     <div className="space-y-6 md:space-y-8">
