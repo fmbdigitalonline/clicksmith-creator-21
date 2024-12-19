@@ -5,7 +5,7 @@ export const buildMainPrompt = (
   businessIdea: BusinessIdea,
   targetAudience: TargetAudience,
   hook: MarketingHook
-) => {
+): string => {
   return `Generate a highly realistic commercial photograph:
 ${getEnvironmentSpecs()}
 
@@ -24,7 +24,7 @@ export const buildVariationPrompt = (
   businessIdea: BusinessIdea,
   targetAudience: TargetAudience,
   hook: MarketingHook
-) => {
+): string => {
   return `Create a different commercial photograph focusing on:
 - Subject: ${hook.description}
 - Style: Professional DSLR quality

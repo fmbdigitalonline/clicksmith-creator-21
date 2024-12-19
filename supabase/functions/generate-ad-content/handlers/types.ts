@@ -16,11 +16,6 @@ export interface TargetAudience {
   marketingChannels: string[];
 }
 
-export interface MarketingCampaign {
-  hooks: MarketingHook[];
-  format: AdFormat;
-}
-
 export interface MarketingHook {
   text: string;
   description: string;
@@ -35,4 +30,9 @@ export interface AdFormat {
   aspectRatio: string;
   description: string;
   platform: 'facebook' | 'google';
+}
+
+export interface MarketingCampaign {
+  hooks: MarketingHook[];
+  format: AdFormat;
 }

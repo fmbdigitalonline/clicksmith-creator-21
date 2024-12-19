@@ -1,22 +1,25 @@
 export const getBasePhotographySpecs = () => `
-- Ultra-clear resolution with realistic textures
-- Natural studio lighting setup
-- Professional DSLR camera quality
-- Balanced composition following rule of thirds
-- Depth of field for visual interest
+- High resolution, professional quality
+- Natural lighting with soft shadows
+- Sharp focus on main subject
+- Clean, uncluttered composition
+- Professional color grading
+- Commercial photography style
 `;
 
 export const getStrictRequirements = () => `
-- No CGI or artificial elements
-- Natural shadows and lighting
-- Realistic skin textures and fabric details
-- Professional commercial quality
+- Must be suitable for advertising
+- No text overlays
+- No watermarks or logos
+- Natural, realistic style
+- Professional business context
+- High-quality, clear imagery
 `;
 
 export const getEnvironmentSpecs = () => `
-- Modern office or business setting
-- Glass windows and contemporary furniture
-- Professional workspace atmosphere
-- Clean and organized environment
-- Vibrant but natural lighting
+Environment Requirements:
+- Professional business setting
+- Modern, clean aesthetic
+- Well-lit space
+- Appropriate for commercial use
 `;

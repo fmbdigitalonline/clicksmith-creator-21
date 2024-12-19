@@ -6,7 +6,7 @@ export const generatePrompts = (
   businessIdea: BusinessIdea,
   targetAudience: TargetAudience,
   campaign: MarketingCampaign
-) => {
+): string[] => {
   // Generate main prompts from hooks
   const prompts = campaign.hooks.map(hook => 
     sanitizePrompt(buildMainPrompt(businessIdea, targetAudience, hook))
