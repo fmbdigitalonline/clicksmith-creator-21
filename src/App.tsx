@@ -9,37 +9,20 @@ import Projects from "@/pages/Projects";
 import Settings from "@/pages/Settings";
 import Pricing from "@/pages/Pricing";
 import AdWizard from "@/components/AdWizard";
-import Landing from "@/pages/Landing";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
 
 const queryClient = new QueryClient();
 
 function App() {
-  useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        window.location.href = '/dashboard';
-      }
-    };
-
-    if (window.location.pathname === '/') {
-      checkAuth();
-    }
-  }, []);
-
   return (
     <QueryClientProvider client={queryClient}>
       <SidebarProvider>
         <Router>
           <Routes>
-            <Route path="/" element={<Landing />} />
             <Route path="/login" element={<Login />} />
             <Route path="/pricing" element={<Pricing />} />
             <Route
-              path="/dashboard"
+              path="/"
               element={
                 <ProtectedRoute>
                   <AppLayout>
@@ -78,6 +61,7 @@ function App() {
                 </ProtectedRoute>
               }
             />
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
           <OnboardingDialog />
           <Toaster />
