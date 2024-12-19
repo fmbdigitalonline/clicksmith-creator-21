@@ -1,4 +1,4 @@
-import { BusinessIdea, TargetAudience, MarketingCampaign } from '../../types';
+import { BusinessIdea, TargetAudience, MarketingCampaign } from '../types';
 import { buildMainPrompt, buildVariationPrompt } from './promptBuilder';
 import { sanitizePrompt } from './promptUtils';
 
