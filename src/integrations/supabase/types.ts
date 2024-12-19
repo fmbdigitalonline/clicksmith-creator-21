@@ -375,6 +375,7 @@ export type Database = {
           current_period_start: string | null
           id: string
           plan_id: string | null
+          stripe_customer_id: string | null
           updated_at: string
           user_id: string
         }
@@ -386,6 +387,7 @@ export type Database = {
           current_period_start?: string | null
           id?: string
           plan_id?: string | null
+          stripe_customer_id?: string | null
           updated_at?: string
           user_id: string
         }
@@ -397,6 +399,7 @@ export type Database = {
           current_period_start?: string | null
           id?: string
           plan_id?: string | null
+          stripe_customer_id?: string | null
           updated_at?: string
           user_id?: string
         }
