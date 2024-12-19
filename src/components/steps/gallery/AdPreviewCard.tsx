@@ -32,9 +32,10 @@ interface AdPreviewCardProps {
     callToAction: string;
   };
   onCreateProject: () => void;
+  isVideo?: boolean;
 }
 
-const AdPreviewCard = ({ variant, onCreateProject }: AdPreviewCardProps) => {
+const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewCardProps) => {
   const [isSaving, setSaving] = useState(false);
   const { toast } = useToast();
 
@@ -60,13 +61,13 @@ const AdPreviewCard = ({ variant, onCreateProject }: AdPreviewCardProps) => {
         return;
       }
 
-      // Download the image
+      // Download the image/video
       const response = await fetch(variant.image.url);
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `${variant.platform}-ad-${variant.size.width}x${variant.size.height}.jpg`;
+      link.download = `${variant.platform}-${isVideo ? 'video' : 'ad'}-${variant.size.width}x${variant.size.height}.${isVideo ? 'mp4' : 'jpg'}`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -74,7 +75,7 @@ const AdPreviewCard = ({ variant, onCreateProject }: AdPreviewCardProps) => {
 
       toast({
         title: "Success!",
-        description: `Your ${variant.size.label} ad has been saved and downloaded.`,
+        description: `Your ${variant.size.label} ${isVideo ? 'video' : 'ad'} has been saved and downloaded.`,
       });
     } catch (error) {
       console.error('Error saving ad:', error);
@@ -97,11 +98,19 @@ const AdPreviewCard = ({ variant, onCreateProject }: AdPreviewCardProps) => {
         }} 
         className="relative"
       >
-        <img
-          src={variant.image.url}
-          alt={variant.headline}
-          className="object-cover w-full h-full"
-        />
+        {isVideo ? (
+          <video
+            src={variant.image.url}
+            controls
+            className="object-cover w-full h-full"
+          />
+        ) : (
+          <img
+            src={variant.image.url}
+            alt={variant.headline}
+            className="object-cover w-full h-full"
+          />
+        )}
       </div>
       <CardContent className="p-4 space-y-4">
         <div className="space-y-2">
