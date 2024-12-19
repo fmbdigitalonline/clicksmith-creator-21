@@ -16,6 +16,7 @@ interface AdGalleryStepProps {
   onStartOver: () => void;
   onBack: () => void;
   onCreateProject: () => void;
+  videoAdsEnabled?: boolean;
 }
 
 const AdGalleryStep = ({
@@ -25,6 +26,7 @@ const AdGalleryStep = ({
   onStartOver,
   onBack,
   onCreateProject,
+  videoAdsEnabled = false,
 }: AdGalleryStepProps) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [adVariants, setAdVariants] = useState<any[]>([]);
@@ -36,7 +38,7 @@ const AdGalleryStep = ({
     try {
       const { data, error } = await supabase.functions.invoke('generate-ad-content', {
         body: { 
-          type: 'complete_ads',
+          type: videoAdsEnabled ? 'video_ads' : 'complete_ads',
           businessIdea,
           targetAudience,
           campaign: {
@@ -72,7 +74,7 @@ const AdGalleryStep = ({
       setAdVariants(data.variants);
       
       toast({
-        title: "Ads Generated!",
+        title: `${videoAdsEnabled ? 'Video Ads' : 'Image Ads'} Generated!`,
         description: "Your ad variants have been generated successfully.",
       });
     } catch (error) {
@@ -91,7 +93,7 @@ const AdGalleryStep = ({
     if (adVariants.length === 0) {
       generateAds();
     }
-  }, []);
+  }, [videoAdsEnabled]); // Regenerate ads when video mode changes
 
   return (
     <div className="space-y-6 md:space-y-8">
@@ -103,7 +105,7 @@ const AdGalleryStep = ({
       <div>
         <h2 className="text-xl md:text-2xl font-semibold mb-2">Your Ad Gallery</h2>
         <p className="text-gray-600 mb-6">
-          Review your generated ad variants optimized for different platforms and formats.
+          Review your generated {videoAdsEnabled ? 'video' : 'image'} ad variants optimized for different platforms and formats.
         </p>
       </div>
 
@@ -126,6 +128,7 @@ const AdGalleryStep = ({
                       key={`${index}-${variant.size.label}`}
                       variant={variant}
                       onCreateProject={onCreateProject}
+                      isVideo={videoAdsEnabled}
                     />
                   ))}
               </div>
@@ -140,6 +143,7 @@ const AdGalleryStep = ({
                       key={index}
                       variant={variant}
                       onCreateProject={onCreateProject}
+                      isVideo={videoAdsEnabled}
                     />
                   ))}
               </div>

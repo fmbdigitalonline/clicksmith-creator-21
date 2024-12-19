@@ -327,6 +327,8 @@ export type Database = {
           title: string
           updated_at: string
           user_id: string
+          video_ad_settings: Json | null
+          video_ads_enabled: boolean | null
         }
         Insert: {
           ad_dimensions?: Json | null
@@ -345,6 +347,8 @@ export type Database = {
           title: string
           updated_at?: string
           user_id: string
+          video_ad_settings?: Json | null
+          video_ads_enabled?: boolean | null
         }
         Update: {
           ad_dimensions?: Json | null
@@ -363,6 +367,8 @@ export type Database = {
           title?: string
           updated_at?: string
           user_id?: string
+          video_ad_settings?: Json | null
+          video_ads_enabled?: boolean | null
         }
         Relationships: []
       }
@@ -424,6 +430,7 @@ export type Database = {
           target_audience: Json | null
           updated_at: string
           user_id: string
+          video_ad_preferences: Json | null
         }
         Insert: {
           ad_format?: Json | null
@@ -435,6 +442,7 @@ export type Database = {
           target_audience?: Json | null
           updated_at?: string
           user_id: string
+          video_ad_preferences?: Json | null
         }
         Update: {
           ad_format?: Json | null
@@ -446,6 +454,7 @@ export type Database = {
           target_audience?: Json | null
           updated_at?: string
           user_id?: string
+          video_ad_preferences?: Json | null
         }
         Relationships: []
       }

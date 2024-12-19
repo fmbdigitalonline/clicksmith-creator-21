@@ -9,9 +9,12 @@ import WizardProgress from "./WizardProgress";
 import { useState, useMemo } from "react";
 import CreateProjectDialog from "./projects/CreateProjectDialog";
 import { useNavigate } from "react-router-dom";
+import { Toggle } from "./ui/toggle";
+import { Video, Image } from "lucide-react";
 
 const AdWizard = () => {
   const [showCreateProject, setShowCreateProject] = useState(false);
+  const [videoAdsEnabled, setVideoAdsEnabled] = useState(false);
   const navigate = useNavigate();
   
   const {
@@ -79,12 +82,13 @@ const AdWizard = () => {
             onStartOver={handleStartOver}
             onBack={handleBack}
             onCreateProject={handleCreateProject}
+            videoAdsEnabled={videoAdsEnabled}
           />
         ) : null;
       default:
         return null;
     }
-  }, [currentStep, businessIdea, targetAudience, audienceAnalysis, selectedHooks]);
+  }, [currentStep, businessIdea, targetAudience, audienceAnalysis, selectedHooks, videoAdsEnabled]);
 
   return (
     <div className="container max-w-6xl mx-auto px-4 py-8">
@@ -99,6 +103,23 @@ const AdWizard = () => {
           onStepClick={setCurrentStep}
           canNavigateToStep={canNavigateToStep}
         />
+      </div>
+
+      <div className="flex items-center justify-end mb-6 space-x-2">
+        <span className="text-sm text-gray-600">Image Ads</span>
+        <Toggle
+          pressed={videoAdsEnabled}
+          onPressedChange={setVideoAdsEnabled}
+          aria-label="Toggle video ads"
+          className="data-[state=on]:bg-facebook"
+        >
+          {videoAdsEnabled ? (
+            <Video className="h-4 w-4" />
+          ) : (
+            <Image className="h-4 w-4" />
+          )}
+        </Toggle>
+        <span className="text-sm text-gray-600">Video Ads</span>
       </div>
 
       {currentStepComponent}
