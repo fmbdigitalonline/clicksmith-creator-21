@@ -89,8 +89,8 @@ const AdWizard = () => {
   return (
     <div className="container max-w-6xl mx-auto px-4 py-8">
       <WizardHeader
-        title="Business Idea Validator"
-        description="Validate your business concept by testing different audience segments with AI-powered Facebook ad campaigns."
+        title="ProfitPilot"
+        description="Quickly go from idea to ready-to-run ads by testing different audience segments with AI-powered Facebook ad campaigns."
       />
 
       <div className="mb-8">
