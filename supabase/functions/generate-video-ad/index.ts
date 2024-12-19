@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -14,24 +13,24 @@ serve(async (req) => {
   try {
     const { businessIdea, targetAudience, hook, size } = await req.json();
     
-    // Get the Replicate API token from environment variables
     const replicateApiToken = Deno.env.get('REPLICATE_API_TOKEN');
     if (!replicateApiToken) {
       throw new Error('Replicate API token not configured');
     }
 
-    // Generate the prompt for the video
-    const prompt = `Create a video advertisement for:
+    // Generate a more specific prompt for better video quality
+    const prompt = `Create a professional video advertisement that shows:
       ${businessIdea.description}
       Target audience: ${targetAudience.description}
-      Hook: ${hook.text}
-      Style: Professional, engaging, business-appropriate
-      Requirements: High quality, clear message, compelling visuals
-      Video size: ${size.width}x${size.height}`;
+      Marketing message: ${hook.text}
+      Style: Modern, professional video advertisement
+      Must include: Dynamic visuals, smooth transitions
+      Video requirements: High quality, clear message, compelling visuals
+      Video dimensions: ${size.width}x${size.height}`;
 
-    console.log('Generating video with prompt:', prompt);
+    console.log('Starting video generation with prompt:', prompt);
 
-    // Call Replicate API
+    // Use a more reliable model for video generation
     const response = await fetch("https://api.replicate.com/v1/predictions", {
       method: "POST",
       headers: {
@@ -39,28 +38,32 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        version: "847dfa8b01e739637fc76f480ede0c1d76408e1d694b830b5dfb8e547bf98405",
+        // Using Stable Video Diffusion model
+        version: "9ca9f2058a799b5e52bcdc1db4c385a869c4feff51b9ab6cf1f9d5d4ebe8e87c",
         input: {
           prompt: prompt,
-          num_frames: 90, // 3 seconds at 30fps
+          video_length: "4_seconds", // Start with shorter videos for testing
+          fps: 24,
           width: size.width,
           height: size.height,
-          guidance_scale: 7.5,
-          num_inference_steps: 50
+          num_inference_steps: 50,
+          guidance_scale: 17.5, // Increased for better prompt adherence
         },
       }),
     });
 
     if (!response.ok) {
       const error = await response.json();
+      console.error('Replicate API error:', error);
       throw new Error(`Replicate API error: ${error.detail || 'Unknown error'}`);
     }
 
     const prediction = await response.json();
     console.log('Video generation started:', prediction);
 
-    // Poll for completion
+    // Poll for completion with improved error handling
     const videoUrl = await pollForCompletion(prediction.id, replicateApiToken);
+    console.log('Video generation completed:', videoUrl);
 
     return new Response(
       JSON.stringify({ 
@@ -95,6 +98,8 @@ serve(async (req) => {
 
 async function pollForCompletion(predictionId: string, apiToken: string, maxAttempts = 60): Promise<string> {
   for (let i = 0; i < maxAttempts; i++) {
+    console.log(`Polling attempt ${i + 1} for prediction ${predictionId}`);
+    
     const response = await fetch(
       `https://api.replicate.com/v1/predictions/${predictionId}`,
       {
