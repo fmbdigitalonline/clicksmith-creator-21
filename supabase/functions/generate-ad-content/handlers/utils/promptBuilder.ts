@@ -6,15 +6,20 @@ export const buildMainPrompt = (
   targetAudience: TargetAudience,
   hook: MarketingHook
 ): string => {
-  return `Generate a highly realistic commercial photograph:
+  return `Generate a highly realistic commercial photograph that visually represents this marketing hook:
+"${hook.text}"
+
+Marketing Angle: ${hook.description}
+
+Context:
+- Business: ${businessIdea.description}
+- Target Audience: ${targetAudience.description}
+- Value Proposition: ${businessIdea.valueProposition}
+
 ${getEnvironmentSpecs()}
 
 Strict Requirements:
 ${getStrictRequirements()}
-
-Business Context: ${businessIdea.description}
-Target Audience: ${targetAudience.description}
-Marketing Hook: ${hook.description}
 
 Additional Photography Specifications:
 ${getBasePhotographySpecs()}`;
@@ -25,18 +30,23 @@ export const buildVariationPrompt = (
   targetAudience: TargetAudience,
   hook: MarketingHook
 ): string => {
-  return `Create a different commercial photograph focusing on:
-- Subject: ${hook.description}
-- Style: Professional DSLR quality
-- Lighting: Natural studio lighting
-- Environment: Modern business setting
+  return `Create a different commercial photograph for this marketing hook:
+"${hook.text}"
+
+Focus on:
+- Marketing Angle: ${hook.description}
+- Target Audience: ${targetAudience.description}
+- Business Context: ${businessIdea.description}
+
+Style Requirements:
+- Professional DSLR quality
+- Natural studio lighting
+- Modern business setting
+- Authentic and relatable
 
 Must Include:
 - Real people and environments
 - Professional composition
 - Sharp focus and high resolution
-- Natural lighting and shadows
-
-Business Context: ${businessIdea.description}
-Target Audience: ${targetAudience.description}`;
+- Natural lighting and shadows`;
 };
