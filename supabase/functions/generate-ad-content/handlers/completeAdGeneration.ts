@@ -17,6 +17,12 @@ const adSpecs = {
     { width: 300, height: 50, label: "Mobile Banner" },
     { width: 320, height: 50, label: "Mobile Banner" },
     { width: 320, height: 100, label: "Large Mobile Banner" }
+  ],
+  videoSizes: [
+    { width: 1920, height: 1080, label: "Full HD (16:9)" },
+    { width: 1280, height: 720, label: "HD (16:9)" },
+    { width: 1080, height: 1080, label: "Square Video" },
+    { width: 1080, height: 1920, label: "Portrait Video (9:16)" }
   ]
 };
 
@@ -28,10 +34,11 @@ export async function handleCompleteAdGeneration(
 ) {
   try {
     // Generate content based on type (image or video)
-    const isVideo = campaign.type === 'video';
+    const isVideo = campaign.type === 'video_ads';
     let mainContent;
 
     if (isVideo) {
+      console.log('Generating video content...');
       // Call the video generation endpoint
       const response = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/generate-video-ad`, {
         method: 'POST',
@@ -42,15 +49,20 @@ export async function handleCompleteAdGeneration(
         body: JSON.stringify({
           businessIdea,
           targetAudience,
-          hook: campaign.hooks[0] // Use first hook for video
+          hook: campaign.hooks[0], // Use first hook for video
+          size: adSpecs.videoSizes[0] // Use Full HD by default
         }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to generate video content');
+        const errorData = await response.json();
+        console.error('Video generation failed:', errorData);
+        throw new Error('Failed to generate video content: ' + (errorData.error || response.statusText));
       }
 
       const data = await response.json();
+      console.log('Video generation response:', data);
+      
       mainContent = {
         url: data.videoUrl,
         prompt: data.prompt,
@@ -93,37 +105,52 @@ export async function handleCompleteAdGeneration(
     // Generate variants for different sizes and platforms
     const variants = [];
 
-    // Add desktop ad variants
-    adSpecs.commonSizes.forEach(size => {
-      // Facebook variants
-      campaign.hooks.forEach(hook => {
-        variants.push({
-          platform: 'facebook',
-          image: mainContent,
-          size: size,
-          headline: hook.text,
-          description: `${businessIdea.valueProposition} - Perfect for ${targetAudience.name}`,
-          callToAction: 'Learn More',
-          isVideo,
+    if (isVideo) {
+      // For videos, we only generate a few common video sizes
+      adSpecs.videoSizes.forEach(size => {
+        campaign.hooks.forEach(hook => {
+          variants.push({
+            platform: 'facebook',
+            image: mainContent,
+            size: size,
+            headline: hook.text,
+            description: `${businessIdea.valueProposition} - Perfect for ${targetAudience.name}`,
+            callToAction: 'Watch Now',
+            isVideo: true,
+          });
+        });
+      });
+    } else {
+      // Add desktop ad variants
+      adSpecs.commonSizes.forEach(size => {
+        // Facebook variants
+        campaign.hooks.forEach(hook => {
+          variants.push({
+            platform: 'facebook',
+            image: mainContent,
+            size: size,
+            headline: hook.text,
+            description: `${businessIdea.valueProposition} - Perfect for ${targetAudience.name}`,
+            callToAction: 'Learn More',
+            isVideo: false,
+          });
+        });
+
+        // Google variants
+        campaign.hooks.forEach(hook => {
+          variants.push({
+            platform: 'google',
+            image: mainContent,
+            size: size,
+            headline: hook.text.substring(0, 30) + (hook.text.length > 30 ? '...' : ''),
+            description: businessIdea.valueProposition.substring(0, 90) + (businessIdea.valueProposition.length > 90 ? '...' : ''),
+            callToAction: 'Learn More',
+            isVideo: false,
+          });
         });
       });
 
-      // Google variants
-      campaign.hooks.forEach(hook => {
-        variants.push({
-          platform: 'google',
-          image: mainContent,
-          size: size,
-          headline: hook.text.substring(0, 30) + (hook.text.length > 30 ? '...' : ''),
-          description: businessIdea.valueProposition.substring(0, 90) + (businessIdea.valueProposition.length > 90 ? '...' : ''),
-          callToAction: 'Learn More',
-          isVideo,
-        });
-      });
-    });
-
-    // Add mobile ad variants if not video (video ads use responsive players)
-    if (!isVideo) {
+      // Add mobile ad variants
       adSpecs.mobileCommonSizes.forEach(size => {
         campaign.hooks.forEach(hook => {
           variants.push({
@@ -134,6 +161,7 @@ export async function handleCompleteAdGeneration(
             description: businessIdea.valueProposition.substring(0, 70) + (businessIdea.valueProposition.length > 70 ? '...' : ''),
             callToAction: 'Learn More',
             isMobile: true,
+            isVideo: false,
           });
         });
       });

@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { businessIdea, targetAudience, hook } = await req.json();
+    const { businessIdea, targetAudience, hook, size } = await req.json();
     
     // Get the Replicate API token from environment variables
     const replicateApiToken = Deno.env.get('REPLICATE_API_TOKEN');
@@ -26,7 +26,10 @@ serve(async (req) => {
       Target audience: ${targetAudience.description}
       Hook: ${hook.text}
       Style: Professional, engaging, business-appropriate
-      Requirements: High quality, clear message, compelling visuals`;
+      Requirements: High quality, clear message, compelling visuals
+      Video size: ${size.width}x${size.height}`;
+
+    console.log('Generating video with prompt:', prompt);
 
     // Call Replicate API
     const response = await fetch("https://api.replicate.com/v1/predictions", {
@@ -40,8 +43,8 @@ serve(async (req) => {
         input: {
           prompt: prompt,
           num_frames: 90, // 3 seconds at 30fps
-          width: 1024,
-          height: 576,
+          width: size.width,
+          height: size.height,
           guidance_scale: 7.5,
           num_inference_steps: 50
         },
@@ -106,7 +109,10 @@ async function pollForCompletion(predictionId: string, apiToken: string, maxAtte
     }
 
     const prediction = await response.json();
+    console.log('Polling status:', prediction.status);
+    
     if (prediction.status === 'succeeded') {
+      console.log('Video generation completed:', prediction.output);
       return prediction.output;
     } else if (prediction.status === 'failed') {
       throw new Error(`Video generation failed: ${prediction.error || 'Unknown error'}`);
