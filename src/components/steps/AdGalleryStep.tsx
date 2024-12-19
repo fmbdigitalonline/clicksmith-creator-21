@@ -36,6 +36,8 @@ const AdGalleryStep = ({
   const generateAds = async () => {
     setIsGenerating(true);
     try {
+      console.log('Generating ads with type:', videoAdsEnabled ? 'video_ads' : 'complete_ads');
+      
       const { data, error } = await supabase.functions.invoke('generate-ad-content', {
         body: { 
           type: videoAdsEnabled ? 'video_ads' : 'complete_ads',
@@ -69,8 +71,12 @@ const AdGalleryStep = ({
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error response:', error);
+        throw error;
+      }
 
+      console.log('Generated ad variants:', data);
       setAdVariants(data.variants);
       
       toast({
