@@ -6,22 +6,32 @@ export const buildMainPrompt = (
   targetAudience: TargetAudience,
   hook: MarketingHook
 ): string => {
-  return `Generate a highly realistic commercial photograph that visually represents this marketing hook:
+  return `Create a photorealistic commercial photograph that looks indistinguishable from a professional DSLR camera shot. The image should visually represent this marketing message:
+
 "${hook.text}"
 
-Marketing Angle: ${hook.description}
+Marketing Concept:
+${hook.description}
 
-Context:
-- Business: ${businessIdea.description}
+Scene Context:
+- Business Type: ${businessIdea.description}
 - Target Audience: ${targetAudience.description}
 - Value Proposition: ${businessIdea.valueProposition}
 
+Photography Requirements:
+- Ultra-realistic, professional DSLR quality
+- Natural, studio-quality lighting with soft shadows
+- Crisp, sharp focus with high resolution
+- Real-world textures and materials
+- No AI artifacts or digital art aesthetics
+- Must look like it was shot by a professional photographer
+
 ${getEnvironmentSpecs()}
 
-Strict Requirements:
+Critical Requirements:
 ${getStrictRequirements()}
 
-Additional Photography Specifications:
+Technical Specifications:
 ${getBasePhotographySpecs()}`;
 };
 
@@ -30,23 +40,27 @@ export const buildVariationPrompt = (
   targetAudience: TargetAudience,
   hook: MarketingHook
 ): string => {
-  return `Create a different commercial photograph for this marketing hook:
+  return `Create another photorealistic commercial photograph for this marketing concept:
 "${hook.text}"
 
-Focus on:
-- Marketing Angle: ${hook.description}
+Key Focus:
+- Marketing Message: ${hook.description}
 - Target Audience: ${targetAudience.description}
 - Business Context: ${businessIdea.description}
 
-Style Requirements:
-- Professional DSLR quality
-- Natural studio lighting
-- Modern business setting
-- Authentic and relatable
+Mandatory Requirements:
+- Must be indistinguishable from a real photograph
+- Professional DSLR camera quality
+- Studio-grade lighting setup
+- Modern, authentic business environment
+- Real human subjects with natural expressions
+- Realistic textures and materials
+- No digital art or AI-generated aesthetics
 
-Must Include:
-- Real people and environments
-- Professional composition
-- Sharp focus and high resolution
-- Natural lighting and shadows`;
+Technical Requirements:
+- Ultra-sharp focus throughout
+- Professional color grading
+- Natural light and shadow interplay
+- High-resolution output
+- Proper depth of field`;
 };

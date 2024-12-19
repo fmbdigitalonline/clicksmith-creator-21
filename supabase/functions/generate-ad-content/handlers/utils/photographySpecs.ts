@@ -1,22 +1,27 @@
 export const getBasePhotographySpecs = (): string => `
-- High resolution, professional quality
-- Natural lighting with soft shadows
-- Sharp focus on main subject
-- Clean, uncluttered background
+- Ultra-high resolution output (4K minimum)
+- Professional DSLR camera quality
+- Studio-quality lighting with natural shadows
+- Tack-sharp focus on main subjects
+- Clean, uncluttered composition
 - Professional color grading
+- Realistic depth of field
 `;
 
 export const getStrictRequirements = (): string => `
-- Must look like a real photograph
-- No AI artifacts or distortions
-- Natural human proportions
-- Realistic textures and materials
+- Must be indistinguishable from a real photograph
+- Absolutely no AI artifacts or digital art aesthetics
+- Perfect human proportions and anatomy
+- Hyper-realistic textures and materials
 - Professional lighting and composition
+- Natural skin tones and textures
 `;
 
 export const getEnvironmentSpecs = (): string => `
-- Professional studio or business setting
-- Modern and clean environment
-- Natural, diffused lighting
-- Neutral or contextually appropriate background
+Environment Requirements:
+- Professional studio or real business setting
+- Modern, clean, and authentic environment
+- Natural, studio-quality lighting
+- Contextually appropriate background
+- Real-world depth and perspective
 `;
