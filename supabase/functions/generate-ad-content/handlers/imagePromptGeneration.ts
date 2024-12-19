@@ -57,47 +57,50 @@ export async function handleImagePromptGeneration(
     const basePrompt = buildBasePrompt(businessIdea, targetAudience, campaign);
     console.log('Base prompt generated:', basePrompt);
 
-    // Generate prompts based on each selected hook with fallback variations
+    // Generate prompts based on each selected hook with improved commercial photography requirements
     const prompts = campaign.hooks.map(hook => {
-      const hookPrompt = `Create a hyper-realistic commercial photograph for a professional advertising campaign. The photograph should represent: "${hook.description}"
+      const hookPrompt = `Generate a highly realistic commercial photograph:
+- Subject: A professional workspace with a businessperson presenting in a modern office.
+- Quality: Ultra-clear resolution, realistic textures, natural studio lighting.
+- Composition: Balanced framing, rule of thirds.
+- Style: High-quality DSLR camera, professional commercial quality.
+- Environment: Glass windows, modern furniture, vibrant lighting.
 
-STRICT REQUIREMENTS:
-- Must be an actual photograph, absolutely NO illustrations, drawings, or artificial-looking images
-- Ultra-realistic, professional commercial photography quality
-- Natural, studio-quality lighting with proper shadows and highlights
-- Crystal clear focus and professional camera quality
-- Real human subjects (when applicable) in authentic business settings
-- Real products and environments (no CGI or artificial elements)
-- Composition following rule of thirds and professional photography principles
-- Color grading matching high-end advertising campaigns
-- Depth of field appropriate for commercial photography
+Strict Requirements:
+- No CGI, drawings, or artificial elements.
+- Include depth of field and natural shadows.
+- Skin textures and fabric details must look real.
 
 Business Context: ${businessIdea.description}
-Value Proposition: ${businessIdea.valueProposition}
 Target Audience: ${targetAudience.description}
+Marketing Hook: ${hook.description}
 
 Additional Photography Specifications:
-- Use professional DSLR camera quality
-- Shoot in RAW format equivalent
-- Maintain perfect exposure
-- Ensure proper white balance
-- Include subtle bokeh effects where appropriate
-- Maintain sharp focus on key subjects
-- Use professional color grading
-- Include natural environmental lighting`;
+- Camera Settings: f/2.8 aperture for shallow depth of field
+- ISO: 100-400 for minimal noise
+- White Balance: Calibrated for indoor lighting
+- Focus: Sharp on main subject with natural bokeh
+- Color Profile: Adobe RGB for wide gamut
+- Resolution: Minimum 4K (3840x2160)
+- Lighting Setup: Three-point lighting with soft boxes`;
+
       return sanitizePrompt(hookPrompt);
     });
 
     // If we have less than 6 prompts, add some variations
     while (prompts.length < 6) {
       const randomHook = campaign.hooks[Math.floor(Math.random() * campaign.hooks.length)];
-      const variationPrompt = `Create a different ultra-realistic commercial photograph focusing on: "${randomHook.description}".
-MUST BE:
-- A real photograph, not an illustration or digital art
-- Professional commercial photography quality
-- Natural studio lighting
-- Real people and real environments
+      const variationPrompt = `Create a different commercial photograph focusing on:
+- Subject: ${randomHook.description}
+- Style: Professional DSLR quality
+- Lighting: Natural studio setup
+- Environment: Modern business setting
+
+Must Include:
+- Real people and environments
+- Professional composition
 - Sharp focus and high resolution
+- Natural lighting and shadows
 
 Business Context: ${businessIdea.description}
 Target Audience: ${targetAudience.description}`;
