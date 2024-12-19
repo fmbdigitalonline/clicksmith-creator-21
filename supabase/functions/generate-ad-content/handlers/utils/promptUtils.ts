@@ -22,13 +22,3 @@ export function transformPrompt(prompt: string, attempt: number): string {
   const variationIndex = attempt % variations.length;
   return variations[variationIndex](prompt);
 }
-
-export function validateBusinessContext(businessIdea: any): void {
-  if (!businessIdea.description || businessIdea.description.length < 10) {
-    throw new Error('Business description is too vague or missing');
-  }
-  
-  if (!businessIdea.valueProposition || businessIdea.valueProposition.length < 10) {
-    throw new Error('Value proposition is too vague or missing');
-  }
-}
