@@ -103,6 +103,8 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewC
             src={variant.image.url}
             controls
             className="object-cover w-full h-full"
+            playsInline
+            preload="metadata"
           />
         ) : (
           <img
@@ -127,6 +129,9 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewC
                 <p>Format: {variant.specs.designRecommendations.fileTypes.join(", ")}</p>
                 <p>Aspect Ratio: {variant.specs.designRecommendations.aspectRatios}</p>
               </>
+            )}
+            {isVideo && (
+              <p>Type: Video Ad</p>
             )}
           </div>
         </div>
