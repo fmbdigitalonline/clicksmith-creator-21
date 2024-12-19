@@ -11,10 +11,25 @@ import Pricing from "@/pages/Pricing";
 import AdWizard from "@/components/AdWizard";
 import Landing from "@/pages/Landing";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 const queryClient = new QueryClient();
 
 function App() {
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        window.location.href = '/dashboard';
+      }
+    };
+
+    if (window.location.pathname === '/') {
+      checkAuth();
+    }
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <SidebarProvider>
