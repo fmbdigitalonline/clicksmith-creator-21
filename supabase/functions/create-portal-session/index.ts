@@ -25,24 +25,49 @@ serve(async (req) => {
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
 
     if (userError || !user) {
-      throw new Error('Unauthorized');
+      console.error('Authentication error:', userError);
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 401,
+        }
+      );
     }
 
+    console.log('Fetching subscription for user:', user.id);
+    
     // Get the user's subscription details
     const { data: subscriptionData, error: subscriptionError } = await supabaseClient
       .from('subscriptions')
       .select('stripe_customer_id')
       .eq('user_id', user.id)
       .eq('active', true)
-      .single();
+      .maybeSingle();
 
     if (subscriptionError) {
-      throw new Error('Failed to fetch subscription details');
+      console.error('Subscription fetch error:', subscriptionError);
+      return new Response(
+        JSON.stringify({ error: 'Failed to fetch subscription details', details: subscriptionError.message }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400,
+        }
+      );
     }
 
     if (!subscriptionData?.stripe_customer_id) {
-      throw new Error('No Stripe customer ID found');
+      console.error('No Stripe customer ID found for user:', user.id);
+      return new Response(
+        JSON.stringify({ error: 'No active subscription found' }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 404,
+        }
+      );
     }
+
+    console.log('Found Stripe customer ID:', subscriptionData.stripe_customer_id);
 
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
       apiVersion: '2023-10-16',
@@ -62,7 +87,7 @@ serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error('Error:', error);
+    console.error('Portal session error:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
       { 
