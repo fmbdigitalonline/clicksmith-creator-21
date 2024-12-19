@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { Replicate } from "https://esm.sh/replicate@0.25.1";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -6,6 +7,7 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
@@ -18,6 +20,17 @@ serve(async (req) => {
       throw new Error('Replicate API token not configured');
     }
 
+    console.log('Starting video generation with inputs:', {
+      businessIdea,
+      targetAudience,
+      hook,
+      format
+    });
+
+    const replicate = new Replicate({
+      auth: replicateApiToken,
+    });
+
     // Generate a more specific prompt for better video quality
     const prompt = `Create a professional video advertisement that shows:
       ${businessIdea.description}
@@ -29,45 +42,54 @@ serve(async (req) => {
       Format: ${format.description}
       Dimensions: ${format.dimensions.width}x${format.dimensions.height}`;
 
-    console.log('Starting video generation with prompt:', prompt);
+    console.log('Using prompt for video generation:', prompt);
 
     // Use Stable Video Diffusion model
-    const response = await fetch("https://api.replicate.com/v1/predictions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Token ${replicateApiToken}`,
-        "Content-Type": "application/json",
+    const prediction = await replicate.predictions.create({
+      version: "9ca9f2058a799b5e52bcdc1db4c385a869c4feff51b9ab6cf1f9d5d4ebe8e87c",
+      input: {
+        prompt: prompt,
+        video_length: format.maxLength > 30 ? "30_seconds" : `${format.maxLength}_seconds`,
+        fps: 24,
+        width: format.dimensions.width,
+        height: format.dimensions.height,
+        num_inference_steps: 50,
+        guidance_scale: 17.5,
+        negative_prompt: "blurry, low quality, amateurish, unprofessional"
       },
-      body: JSON.stringify({
-        version: "9ca9f2058a799b5e52bcdc1db4c385a869c4feff51b9ab6cf1f9d5d4ebe8e87c",
-        input: {
-          prompt: prompt,
-          video_length: format.maxLength > 30 ? "30_seconds" : `${format.maxLength}_seconds`,
-          fps: 24,
-          width: format.dimensions.width,
-          height: format.dimensions.height,
-          num_inference_steps: 50,
-          guidance_scale: 17.5
-        },
-      }),
     });
 
-    if (!response.ok) {
-      const error = await response.json();
-      console.error('Replicate API error:', error);
-      throw new Error(`Replicate API error: ${error.detail || 'Unknown error'}`);
-    }
-
-    const prediction = await response.json();
     console.log('Video generation started:', prediction);
 
-    const videoUrl = await pollForCompletion(prediction.id, replicateApiToken);
-    console.log('Video generation completed:', videoUrl);
+    // Poll for completion
+    let result = prediction;
+    const maxAttempts = 60;
+    const pollInterval = 2000;
+
+    for (let i = 0; i < maxAttempts; i++) {
+      if (result.status === "succeeded") {
+        console.log('Video generation completed successfully:', result);
+        break;
+      }
+      
+      if (result.status === "failed") {
+        throw new Error(`Video generation failed: ${result.error}`);
+      }
+
+      console.log(`Polling attempt ${i + 1}, status: ${result.status}`);
+      await new Promise(resolve => setTimeout(resolve, pollInterval));
+      
+      result = await replicate.predictions.get(prediction.id);
+    }
+
+    if (result.status !== "succeeded") {
+      throw new Error('Video generation timed out or failed');
+    }
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        videoUrl,
+        videoUrl: result.output,
         prompt,
         format 
       }),
@@ -95,37 +117,3 @@ serve(async (req) => {
     );
   }
 });
-
-async function pollForCompletion(predictionId: string, apiToken: string, maxAttempts = 60): Promise<string> {
-  for (let i = 0; i < maxAttempts; i++) {
-    console.log(`Polling attempt ${i + 1} for prediction ${predictionId}`);
-    
-    const response = await fetch(
-      `https://api.replicate.com/v1/predictions/${predictionId}`,
-      {
-        headers: {
-          "Authorization": `Token ${apiToken}`,
-        },
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error(`Failed to check prediction status: ${response.statusText}`);
-    }
-
-    const prediction = await response.json();
-    console.log('Polling status:', prediction.status);
-    
-    if (prediction.status === 'succeeded') {
-      console.log('Video generation completed:', prediction.output);
-      return prediction.output;
-    } else if (prediction.status === 'failed') {
-      throw new Error(`Video generation failed: ${prediction.error || 'Unknown error'}`);
-    }
-
-    // Wait 2 seconds before next attempt
-    await new Promise(resolve => setTimeout(resolve, 2000));
-  }
-
-  throw new Error('Video generation timed out');
-}
