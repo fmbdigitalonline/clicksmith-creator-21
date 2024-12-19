@@ -1,46 +1,42 @@
-interface BusinessIdea {
-  description: string;
-  valueProposition: string;
-}
+import { getBasePhotographySpecs, getStrictRequirements, getEnvironmentSpecs } from './photographySpecs';
+import { BusinessIdea, TargetAudience, MarketingHook } from '../types';
 
-interface TargetAudience {
-  name: string;
-  description: string;
-}
-
-interface MarketingCampaign {
-  hooks: Array<{ description: string }>;
-}
-
-export function buildBasePrompt(
+export const buildMainPrompt = (
   businessIdea: BusinessIdea,
   targetAudience: TargetAudience,
-  campaign: MarketingCampaign
-): string {
-  return `Create a hyper-realistic commercial photograph for a professional advertising campaign. The photograph should represent:
-${campaign.hooks.map(hook => hook.description).join('\n')}
+  hook: MarketingHook
+) => {
+  return `Generate a highly realistic commercial photograph:
+${getEnvironmentSpecs()}
 
-STRICT REQUIREMENTS:
-- Must be an actual photograph, absolutely NO illustrations, drawings, or artificial-looking images
-- Ultra-realistic, professional commercial photography quality
-- Natural, studio-quality lighting with proper shadows and highlights
-- Crystal clear focus and professional camera quality
-- Real human subjects (when applicable) in authentic business settings
-- Real products and environments (no CGI or artificial elements)
-- Composition following rule of thirds and professional photography principles
-- Color grading matching high-end advertising campaigns
+Strict Requirements:
+${getStrictRequirements()}
 
 Business Context: ${businessIdea.description}
-Value Proposition: ${businessIdea.valueProposition}
 Target Audience: ${targetAudience.description}
+Marketing Hook: ${hook.description}
 
 Additional Photography Specifications:
-- Use professional DSLR camera quality
-- Shoot in RAW format equivalent
-- Maintain perfect exposure
-- Ensure proper white balance
-- Include subtle bokeh effects where appropriate
-- Maintain sharp focus on key subjects
-- Use professional color grading
-- Include natural environmental lighting`;
-}
+${getBasePhotographySpecs()}`;
+};
+
+export const buildVariationPrompt = (
+  businessIdea: BusinessIdea,
+  targetAudience: TargetAudience,
+  hook: MarketingHook
+) => {
+  return `Create a different commercial photograph focusing on:
+- Subject: ${hook.description}
+- Style: Professional DSLR quality
+- Lighting: Natural studio setup
+- Environment: Modern business setting
+
+Must Include:
+- Real people and environments
+- Professional composition
+- Sharp focus and high resolution
+- Natural lighting and shadows
+
+Business Context: ${businessIdea.description}
+Target Audience: ${targetAudience.description}`;
+};

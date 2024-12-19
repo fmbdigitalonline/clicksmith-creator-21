@@ -1,34 +1,9 @@
 import Replicate from 'https://esm.sh/replicate@0.25.1';
 import { corsHeaders } from '../../_shared/cors.ts';
-import { sanitizePrompt, transformPrompt, validateBusinessContext } from './utils/promptUtils.ts';
+import { validateBusinessContext } from './utils/promptUtils.ts';
 import { generateWithReplicate } from './utils/replicateUtils.ts';
-import { buildBasePrompt } from './utils/promptBuilder.ts';
-
-interface BusinessIdea {
-  description: string;
-  valueProposition: string;
-}
-
-interface TargetAudience {
-  name: string;
-  description: string;
-}
-
-interface MarketingCampaign {
-  hooks: Array<{
-    text: string;
-    description: string;
-  }>;
-  format: {
-    format: string;
-    dimensions: {
-      width: number;
-      height: number;
-    };
-    aspectRatio: string;
-    description: string;
-  };
-}
+import { generatePrompts } from './utils/promptGeneration.ts';
+import { BusinessIdea, TargetAudience, MarketingCampaign } from './types';
 
 export async function handleImagePromptGeneration(
   businessIdea: BusinessIdea,
@@ -54,60 +29,8 @@ export async function handleImagePromptGeneration(
       auth: replicateApiToken,
     });
 
-    const basePrompt = buildBasePrompt(businessIdea, targetAudience, campaign);
-    console.log('Base prompt generated:', basePrompt);
-
-    // Generate prompts based on each selected hook with improved commercial photography requirements
-    const prompts = campaign.hooks.map(hook => {
-      const hookPrompt = `Generate a highly realistic commercial photograph:
-- Subject: A professional workspace with a businessperson presenting in a modern office.
-- Quality: Ultra-clear resolution, realistic textures, natural studio lighting.
-- Composition: Balanced framing, rule of thirds.
-- Style: High-quality DSLR camera, professional commercial quality.
-- Environment: Glass windows, modern furniture, vibrant lighting.
-
-Strict Requirements:
-- No CGI, drawings, or artificial elements.
-- Include depth of field and natural shadows.
-- Skin textures and fabric details must look real.
-
-Business Context: ${businessIdea.description}
-Target Audience: ${targetAudience.description}
-Marketing Hook: ${hook.description}
-
-Additional Photography Specifications:
-- Camera Settings: f/2.8 aperture for shallow depth of field
-- ISO: 100-400 for minimal noise
-- White Balance: Calibrated for indoor lighting
-- Focus: Sharp on main subject with natural bokeh
-- Color Profile: Adobe RGB for wide gamut
-- Resolution: Minimum 4K (3840x2160)
-- Lighting Setup: Three-point lighting with soft boxes`;
-
-      return sanitizePrompt(hookPrompt);
-    });
-
-    // If we have less than 6 prompts, add some variations
-    while (prompts.length < 6) {
-      const randomHook = campaign.hooks[Math.floor(Math.random() * campaign.hooks.length)];
-      const variationPrompt = `Create a different commercial photograph focusing on:
-- Subject: ${randomHook.description}
-- Style: Professional DSLR quality
-- Lighting: Natural studio setup
-- Environment: Modern business setting
-
-Must Include:
-- Real people and environments
-- Professional composition
-- Sharp focus and high resolution
-- Natural lighting and shadows
-
-Business Context: ${businessIdea.description}
-Target Audience: ${targetAudience.description}`;
-      prompts.push(sanitizePrompt(variationPrompt));
-    }
-
-    console.log('Starting image generation with validated prompts:', prompts);
+    const prompts = generatePrompts(businessIdea, targetAudience, campaign);
+    console.log('Generated prompts:', prompts);
 
     // Generate all images in parallel with enhanced retry logic
     const imagePromises = prompts.map(async (prompt, index) => {
@@ -118,12 +41,9 @@ Target Audience: ${targetAudience.description}`;
         try {
           console.log(`Attempting to generate image ${index + 1}, attempt ${attempt + 1}`);
           
-          const transformedPrompt = transformPrompt(prompt, attempt);
-          console.log(`Using transformed prompt: ${transformedPrompt}`);
-          
           const imageUrl = await generateWithReplicate(
             replicate,
-            transformedPrompt,
+            prompt,
             campaign.format.dimensions
           );
 
@@ -131,14 +51,14 @@ Target Audience: ${targetAudience.description}`;
           
           return {
             url: imageUrl,
-            prompt: transformedPrompt,
+            prompt,
           };
         } catch (error) {
           attempt++;
           console.error(`Error generating image ${index + 1}, attempt ${attempt}:`, error);
           
           if (attempt === maxRetries) {
-            throw new Error('Failed to generate appropriate business image after multiple attempts. Please try again with a different business context.');
+            throw new Error('Failed to generate appropriate business image after multiple attempts.');
           }
           
           await new Promise(resolve => setTimeout(resolve, 2000 * attempt));
@@ -153,7 +73,7 @@ Target Audience: ${targetAudience.description}`;
       return { images };
     } catch (error) {
       console.error('Error in image generation batch:', error);
-      throw new Error('Failed to generate appropriate business images. Please try adjusting your business description.');
+      throw new Error('Failed to generate appropriate business images.');
     }
   } catch (error) {
     console.error('Error in handleImagePromptGeneration:', error);
