@@ -5,7 +5,6 @@ export const getBasePhotographySpecs = (): string => `
 - Tack-sharp focus on main subjects
 - Clean, uncluttered composition
 - Professional color grading
-- Realistic depth of field
 `;
 
 export const getStrictRequirements = (): string => `
