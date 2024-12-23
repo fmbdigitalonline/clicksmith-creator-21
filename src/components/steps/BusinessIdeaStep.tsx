@@ -24,8 +24,14 @@ const BusinessIdeaStep = ({
       return;
     }
 
-    // In a real app, we would process this with an AI model
-    const valueProposition = `Enhanced version of: ${description}`;
+    // Format the value proposition to be more ad-friendly
+    // Remove any "Enhanced version of:" prefix and focus on the core message
+    const valueProposition = description
+      .replace(/^Enhanced version of:\s*/i, '')
+      .split('.')
+      .map(sentence => sentence.trim())
+      .filter(sentence => sentence.length > 0)
+      .join('. ');
 
     onNext({
       description,
