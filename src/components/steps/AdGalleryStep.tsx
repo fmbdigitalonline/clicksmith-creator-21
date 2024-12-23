@@ -9,7 +9,8 @@ import LoadingState from "./complete/LoadingState";
 import AdPreviewCard from "./gallery/AdPreviewCard";
 import { facebookAdSpecs } from "@/types/facebookAdSpecs";
 import { facebookVideoAdSpecs } from "@/types/videoAdSpecs";
-import { Linkedin, Tiktok } from "lucide-react";
+import { Linkedin } from "lucide-react";
+import { SiTiktok } from "react-icons/si";
 
 interface AdGalleryStepProps {
   businessIdea: BusinessIdea;
@@ -153,7 +154,7 @@ const AdGalleryStep = ({
                 LinkedIn
               </TabsTrigger>
               <TabsTrigger value="tiktok" className="flex items-center gap-2">
-                <Tiktok className="h-4 w-4" />
+                <SiTiktok className="h-4 w-4" />
                 TikTok
               </TabsTrigger>
             </TabsList>
