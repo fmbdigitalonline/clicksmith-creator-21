@@ -35,6 +35,7 @@ const AdGalleryStep = ({
   const [isGenerating, setIsGenerating] = useState(false);
   const [adVariants, setAdVariants] = useState<any[]>([]);
   const [platform, setPlatform] = useState<"facebook" | "google" | "linkedin" | "tiktok">("facebook");
+  const [regenerationCount, setRegenerationCount] = useState(0);
   const { toast } = useToast();
 
   const generateAds = async () => {
@@ -94,7 +95,9 @@ const AdGalleryStep = ({
                 ]
               }
             }
-          }
+          },
+          regenerationCount: regenerationCount, // Add variation factor
+          timestamp: new Date().getTime() // Add timestamp for variation
         }
       });
 
@@ -105,10 +108,11 @@ const AdGalleryStep = ({
 
       console.log('Generated ad variants:', data);
       setAdVariants(data.variants);
+      setRegenerationCount(prev => prev + 1);
       
       toast({
-        title: `${videoAdsEnabled ? 'Video Ads' : 'Image Ads'} Generated!`,
-        description: "Your ad variants have been generated successfully.",
+        title: `Fresh ${videoAdsEnabled ? 'Video Ads' : 'Image Ads'} Generated!`,
+        description: "Your new ad variants have been generated successfully.",
       });
     } catch (error) {
       console.error('Error generating ads:', error);

@@ -1,7 +1,15 @@
-export async function handleAudienceGeneration(businessIdea: any, openAIApiKey: string) {
-  const prompt = `As a market research professional, analyze this business and provide 3 potential target audiences:
+export async function handleAudienceGeneration(businessIdea: any, openAIApiKey: string, regenerationCount: number = 0) {
+  const prompt = `As a market research professional, analyze this business and provide 3 COMPLETELY DIFFERENT potential target audiences 
+  (consider this is regeneration attempt #${regenerationCount}, so provide fresh perspectives):
+  
   Business Description: ${businessIdea.description}
   Value Proposition: ${businessIdea.valueProposition}
+
+  Important: Ensure each regeneration provides unique and diverse audiences with different:
+  - Demographics
+  - Pain points
+  - Marketing approaches
+  - Positioning strategies
 
   For each audience, provide professional market research insights including:
   1. Audience name and description

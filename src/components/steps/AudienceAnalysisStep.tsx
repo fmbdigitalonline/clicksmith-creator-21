@@ -27,6 +27,7 @@ const AudienceAnalysisStep = ({
 }: AudienceAnalysisStepProps) => {
   const [analysis, setAnalysis] = useState<AudienceAnalysis | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [regenerationCount, setRegenerationCount] = useState(0);
   const { toast } = useToast();
 
   const generateAnalysis = async () => {
@@ -36,16 +37,20 @@ const AudienceAnalysisStep = ({
         body: { 
           type: 'audience_analysis',
           businessIdea,
-          targetAudience
+          targetAudience,
+          regenerationCount: regenerationCount, // Add variation factor
+          timestamp: new Date().getTime() // Add timestamp for variation
         }
       });
 
       if (error) throw error;
 
       setAnalysis(data.analysis);
+      setRegenerationCount(prev => prev + 1);
+      
       toast({
-        title: "Analysis Generated!",
-        description: "Deep audience analysis has been generated successfully.",
+        title: "Fresh Analysis Generated!",
+        description: "New deep audience analysis has been generated successfully.",
       });
     } catch (error) {
       console.error('Error generating analysis:', error);

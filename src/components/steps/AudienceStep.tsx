@@ -23,6 +23,7 @@ const AudienceStep = ({
 }) => {
   const [audiences, setAudiences] = useState<TargetAudience[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [regenerationCount, setRegenerationCount] = useState(0);
   const { toast } = useToast();
 
   const generateAudiences = async () => {
@@ -31,15 +32,19 @@ const AudienceStep = ({
       const { data, error } = await supabase.functions.invoke('generate-ad-content', {
         body: { 
           type: 'audience',
-          businessIdea: businessIdea
+          businessIdea: businessIdea,
+          regenerationCount: regenerationCount, // Add variation factor
+          timestamp: new Date().getTime() // Add timestamp for variation
         }
       });
 
       if (error) throw error;
 
       setAudiences(data.audiences);
+      setRegenerationCount(prev => prev + 1);
+      
       toast({
-        title: "Audiences Generated!",
+        title: "Fresh Audiences Generated!",
         description: "New target audiences have been generated based on your business idea.",
       });
     } catch (error) {
