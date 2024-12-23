@@ -8,7 +8,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { BusinessIdea, TargetAudience } from "@/types/adWizard";
-import { Users, ArrowLeft, ArrowRight, Wand2 } from "lucide-react";
+import { Users, ArrowLeft, ArrowRight, Wand2, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -76,8 +76,12 @@ const AudienceStep = ({
           disabled={isGenerating}
           className="bg-facebook hover:bg-facebook/90 text-white w-full md:w-auto"
         >
-          <Wand2 className="w-4 h-4 mr-2" />
-          {isGenerating ? "Generating..." : "Generate New Audiences"}
+          {isGenerating ? (
+            <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+          ) : (
+            <Wand2 className="w-4 h-4 mr-2" />
+          )}
+          {isGenerating ? "Regenerating..." : "Generate New Audiences"}
         </Button>
       </div>
 

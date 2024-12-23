@@ -9,8 +9,9 @@ import LoadingState from "./complete/LoadingState";
 import AdPreviewCard from "./gallery/AdPreviewCard";
 import { facebookAdSpecs } from "@/types/facebookAdSpecs";
 import { facebookVideoAdSpecs } from "@/types/videoAdSpecs";
-import { Linkedin } from "lucide-react";
+import { Linkedin, RefreshCw } from "lucide-react";
 import { SiTiktok } from "react-icons/si";
+import { Button } from "@/components/ui/button";
 
 interface AdGalleryStepProps {
   businessIdea: BusinessIdea;
@@ -129,16 +130,24 @@ const AdGalleryStep = ({
 
   return (
     <div className="space-y-6 md:space-y-8">
-      <StepNavigation
-        onBack={onBack}
-        onStartOver={onStartOver}
-      />
-
-      <div>
-        <h2 className="text-xl md:text-2xl font-semibold mb-2">Your Ad Gallery</h2>
-        <p className="text-gray-600 mb-6">
-          Review your generated {videoAdsEnabled ? 'video' : 'image'} ad variants optimized for different platforms and formats.
-        </p>
+      <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-4">
+        <StepNavigation
+          onBack={onBack}
+          onStartOver={onStartOver}
+        />
+        <Button
+          onClick={generateAds}
+          disabled={isGenerating}
+          variant="outline"
+          className="w-full md:w-auto"
+        >
+          {isGenerating ? (
+            <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+          ) : (
+            <RefreshCw className="w-4 h-4 mr-2" />
+          )}
+          <span>Regenerate Ads</span>
+        </Button>
       </div>
 
       {isGenerating ? (

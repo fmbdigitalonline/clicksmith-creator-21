@@ -8,7 +8,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { BusinessIdea, TargetAudience, AudienceAnalysis } from "@/types/adWizard";
-import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -82,18 +82,29 @@ const AudienceAnalysisStep = ({
           <ArrowLeft className="w-4 h-4" />
           <span>Previous Step</span>
         </Button>
-        <Button
-          onClick={handleNext}
-          disabled={!analysis || isLoading}
-          className="bg-facebook hover:bg-facebook/90 text-white w-full md:w-auto"
-        >
-          {isLoading ? (
-            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-          ) : (
+        <div className="flex gap-2">
+          <Button
+            onClick={generateAnalysis}
+            disabled={isLoading}
+            variant="outline"
+            className="w-full md:w-auto"
+          >
+            {isLoading ? (
+              <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <RefreshCw className="w-4 h-4 mr-2" />
+            )}
+            <span>Regenerate Analysis</span>
+          </Button>
+          <Button
+            onClick={handleNext}
+            disabled={!analysis || isLoading}
+            className="bg-facebook hover:bg-facebook/90 text-white w-full md:w-auto"
+          >
+            <span>Next Step</span>
             <ArrowRight className="w-4 h-4 ml-2" />
-          )}
-          <span>Next Step</span>
-        </Button>
+          </Button>
+        </div>
       </div>
 
       <div>
