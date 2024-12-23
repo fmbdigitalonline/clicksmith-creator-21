@@ -1,5 +1,5 @@
-import { BusinessIdea, TargetAudience, MarketingHook } from '../../../types/index.ts';
-import { buildMainPrompt, buildVariationPrompt } from './promptBuilder.ts';
+import { BusinessIdea, TargetAudience, MarketingHook } from '../../types';
+import { buildMainPrompt, buildVariationPrompt } from './promptBuilder';
 
 export const generatePrompts = (
   businessIdea: BusinessIdea,

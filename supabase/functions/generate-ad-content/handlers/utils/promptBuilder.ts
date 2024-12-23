@@ -1,4 +1,4 @@
-import { BusinessIdea, TargetAudience, MarketingHook } from '../../../types/index.ts';
+import { BusinessIdea, TargetAudience, MarketingHook } from '../../types';
 import { getBasePhotographySpecs, getStrictRequirements, getEnvironmentSpecs } from './photographySpecs';
 
 export const buildMainPrompt = (
@@ -19,20 +19,12 @@ Scene Context:
 - Value Proposition: ${businessIdea.valueProposition}
 
 Photography Requirements:
-- Ultra-realistic, professional DSLR quality
-- Natural, studio-quality lighting with soft shadows
-- Crisp, sharp focus with high resolution
-- Real-world textures and materials
-- No AI artifacts or digital art aesthetics
-- Must look like it was shot by a professional photographer
+${getBasePhotographySpecs()}
 
 ${getEnvironmentSpecs()}
 
 Critical Requirements:
-${getStrictRequirements()}
-
-Technical Specifications:
-${getBasePhotographySpecs()}`;
+${getStrictRequirements()}`;
 };
 
 export const buildVariationPrompt = (
@@ -49,18 +41,8 @@ Key Focus:
 - Business Context: ${businessIdea.description}
 
 Mandatory Requirements:
-- Must be indistinguishable from a real photograph
-- Professional DSLR camera quality
-- Studio-grade lighting setup
-- Modern, authentic business environment
-- Real human subjects with natural expressions
-- Realistic textures and materials
-- No digital art or AI-generated aesthetics
+${getStrictRequirements()}
 
 Technical Requirements:
-- Ultra-sharp focus throughout
-- Professional color grading
-- Natural light and shadow interplay
-- High-resolution output
-- Proper depth of field`;
+${getBasePhotographySpecs()}`;
 };
