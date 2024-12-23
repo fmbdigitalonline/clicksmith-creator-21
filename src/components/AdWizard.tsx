@@ -2,7 +2,6 @@ import { useAdWizardState } from "@/hooks/useAdWizardState";
 import IdeaStep from "./steps/BusinessIdeaStep";
 import AudienceStep from "./steps/AudienceStep";
 import AudienceAnalysisStep from "./steps/AudienceAnalysisStep";
-import HookStep from "./steps/HookStep";
 import AdGalleryStep from "./steps/AdGalleryStep";
 import WizardHeader from "./wizard/WizardHeader";
 import WizardProgress from "./WizardProgress";
@@ -26,7 +25,6 @@ const AdWizard = () => {
     handleIdeaSubmit,
     handleAudienceSelect,
     handleAnalysisComplete,
-    handleHookSelect,
     handleBack,
     handleStartOver,
     canNavigateToStep,
@@ -66,15 +64,6 @@ const AdWizard = () => {
         ) : null;
       case 4:
         return businessIdea && targetAudience && audienceAnalysis ? (
-          <HookStep
-            businessIdea={businessIdea}
-            targetAudience={targetAudience}
-            onNext={handleHookSelect}
-            onBack={handleBack}
-          />
-        ) : null;
-      case 5:
-        return businessIdea && targetAudience && selectedHooks.length > 0 ? (
           <AdGalleryStep
             businessIdea={businessIdea}
             targetAudience={targetAudience}

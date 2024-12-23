@@ -25,13 +25,20 @@ export const useAdWizardState = () => {
 
   const handleAnalysisComplete = useCallback((analysis: AudienceAnalysis) => {
     setAudienceAnalysis(analysis);
-    setCurrentStep(4);
-  }, []);
-
-  const handleHookSelect = useCallback((hooks: AdHook[]) => {
+    // Generate hooks automatically here
+    const { data: { hooks } } = await supabase.functions.invoke('generate-ad-content', {
+      body: { 
+        type: 'hooks',
+        businessIdea,
+        targetAudience: {
+          ...targetAudience,
+          audienceAnalysis: analysis
+        }
+      }
+    });
     setSelectedHooks(hooks);
-    setCurrentStep(5);
-  }, []);
+    setCurrentStep(4);
+  }, [businessIdea, targetAudience]);
 
   const handleBack = useCallback(() => {
     setCurrentStep(prev => Math.max(1, prev - 1));
@@ -54,8 +61,6 @@ export const useAdWizardState = () => {
       case 3:
         return !!businessIdea && !!targetAudience;
       case 4:
-        return !!businessIdea && !!targetAudience && !!audienceAnalysis;
-      case 5:
         return !!businessIdea && !!targetAudience && !!audienceAnalysis && selectedHooks.length > 0;
       default:
         return false;
@@ -71,7 +76,6 @@ export const useAdWizardState = () => {
     handleIdeaSubmit,
     handleAudienceSelect,
     handleAnalysisComplete,
-    handleHookSelect,
     handleBack,
     handleStartOver,
     canNavigateToStep,
