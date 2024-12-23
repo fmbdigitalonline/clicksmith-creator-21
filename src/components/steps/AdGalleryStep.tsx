@@ -9,6 +9,7 @@ import LoadingState from "./complete/LoadingState";
 import AdPreviewCard from "./gallery/AdPreviewCard";
 import { facebookAdSpecs } from "@/types/facebookAdSpecs";
 import { facebookVideoAdSpecs } from "@/types/videoAdSpecs";
+import { Linkedin, Tiktok } from "lucide-react";
 
 interface AdGalleryStepProps {
   businessIdea: BusinessIdea;
@@ -31,7 +32,7 @@ const AdGalleryStep = ({
 }: AdGalleryStepProps) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [adVariants, setAdVariants] = useState<any[]>([]);
-  const [platform, setPlatform] = useState<"facebook" | "google">("facebook");
+  const [platform, setPlatform] = useState<"facebook" | "google" | "linkedin" | "tiktok">("facebook");
   const { toast } = useToast();
 
   const generateAds = async () => {
@@ -48,7 +49,14 @@ const AdGalleryStep = ({
             hooks: adHooks,
             specs: videoAdsEnabled ? {
               facebook: facebookVideoAdSpecs,
-              formats: ['feed', 'stories', 'carousel', 'cover']
+              linkedin: {
+                formats: ['feed', 'sponsored', 'message'],
+                aspectRatios: ['1:1', '16:9']
+              },
+              tiktok: {
+                formats: ['in-feed', 'topview', 'branded-effects'],
+                aspectRatios: ['9:16']
+              }
             } : {
               facebook: facebookAdSpecs,
               google: {
@@ -68,6 +76,19 @@ const AdGalleryStep = ({
                   { width: 300, height: 50, label: "Mobile Banner" },
                   { width: 320, height: 50, label: "Mobile Banner" },
                   { width: 320, height: 100, label: "Large Mobile Banner" }
+                ]
+              },
+              linkedin: {
+                commonSizes: [
+                  { width: 1200, height: 627, label: "Single Image Ad" },
+                  { width: 1200, height: 1200, label: "Square Image" },
+                  { width: 1920, height: 1080, label: "Video Ad" }
+                ]
+              },
+              tiktok: {
+                commonSizes: [
+                  { width: 1080, height: 1920, label: "Full Screen" },
+                  { width: 1080, height: 1080, label: "Square" }
                 ]
               }
             }
@@ -123,10 +144,18 @@ const AdGalleryStep = ({
         <LoadingState />
       ) : (
         <div className="space-y-6">
-          <Tabs defaultValue="facebook" className="w-full" onValueChange={(value) => setPlatform(value as "facebook" | "google")}>
-            <TabsList className="grid w-full grid-cols-2 mb-6">
+          <Tabs defaultValue="facebook" className="w-full" onValueChange={(value) => setPlatform(value as typeof platform)}>
+            <TabsList className="grid w-full grid-cols-4 mb-6">
               <TabsTrigger value="facebook">Facebook Ads</TabsTrigger>
               <TabsTrigger value="google">Google Ads</TabsTrigger>
+              <TabsTrigger value="linkedin" className="flex items-center gap-2">
+                <Linkedin className="h-4 w-4" />
+                LinkedIn
+              </TabsTrigger>
+              <TabsTrigger value="tiktok" className="flex items-center gap-2">
+                <Tiktok className="h-4 w-4" />
+                TikTok
+              </TabsTrigger>
             </TabsList>
             
             <TabsContent value="facebook" className="space-y-4">
@@ -148,6 +177,36 @@ const AdGalleryStep = ({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {adVariants
                   .filter(variant => variant.platform === 'google')
+                  .map((variant, index) => (
+                    <AdPreviewCard
+                      key={index}
+                      variant={variant}
+                      onCreateProject={onCreateProject}
+                      isVideo={videoAdsEnabled}
+                    />
+                  ))}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="linkedin" className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {adVariants
+                  .filter(variant => variant.platform === 'linkedin')
+                  .map((variant, index) => (
+                    <AdPreviewCard
+                      key={index}
+                      variant={variant}
+                      onCreateProject={onCreateProject}
+                      isVideo={videoAdsEnabled}
+                    />
+                  ))}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="tiktok" className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {adVariants
+                  .filter(variant => variant.platform === 'tiktok')
                   .map((variant, index) => (
                     <AdPreviewCard
                       key={index}
