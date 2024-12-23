@@ -1,4 +1,4 @@
-import { BusinessIdea, TargetAudience, MarketingHook } from '../types';
+import { BusinessIdea, TargetAudience, MarketingHook } from '../../types';
 import { getBasePhotographySpecs, getStrictRequirements, getEnvironmentSpecs } from './photographySpecs';
 
 export const buildMainPrompt = (
@@ -6,7 +6,7 @@ export const buildMainPrompt = (
   targetAudience: TargetAudience,
   hook: MarketingHook
 ): string => {
-  return `Create a photorealistic commercial photograph that looks indistinguishable from a professional DSLR camera shot. The image should visually represent this marketing message:
+  return `Create a hyper-realistic commercial photograph for a professional advertising campaign. The photograph should represent:
 
 "${hook.text}"
 
@@ -40,7 +40,7 @@ export const buildVariationPrompt = (
   targetAudience: TargetAudience,
   hook: MarketingHook
 ): string => {
-  return `Create another photorealistic commercial photograph for this marketing concept:
+  return `Create another hyper-realistic commercial photograph for this marketing concept:
 "${hook.text}"
 
 Key Focus:

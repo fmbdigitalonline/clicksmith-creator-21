@@ -16,11 +16,6 @@ export interface TargetAudience {
   marketingChannels: string[];
 }
 
-export interface MarketingCampaign {
-  hooks: MarketingHook[];
-  format: AdFormat;
-}
-
 export interface MarketingHook {
   text: string;
   description: string;
