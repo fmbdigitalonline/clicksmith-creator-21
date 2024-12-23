@@ -1,4 +1,4 @@
-import { BusinessIdea, TargetAudience, MarketingHook } from '../../../types';
+import { BusinessIdea, TargetAudience, MarketingHook } from '../../../types/index.ts';
 import { getBasePhotographySpecs, getStrictRequirements, getEnvironmentSpecs } from './photographySpecs';
 
 export const buildMainPrompt = (
