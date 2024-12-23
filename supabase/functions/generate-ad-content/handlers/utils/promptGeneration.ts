@@ -1,13 +1,21 @@
-import { BusinessIdea, TargetAudience, MarketingHook } from '../../types.ts';
+import { BusinessIdea, TargetAudience, MarketingHook } from '../../Types.ts';
 import { buildMainPrompt, buildVariationPrompt } from './promptBuilder.ts';
 
 export const generatePrompts = (
   businessIdea: BusinessIdea,
   targetAudience: TargetAudience,
-  hook: MarketingHook
+  hook: MarketingHook,
+  count: number = 1
 ): string[] => {
-  const mainPrompt = buildMainPrompt(businessIdea, targetAudience, hook);
-  const variationPrompt = buildVariationPrompt(businessIdea, targetAudience, hook);
+  const prompts: string[] = [];
   
-  return [mainPrompt, variationPrompt];
+  // Always include the main prompt
+  prompts.push(buildMainPrompt(businessIdea, targetAudience, hook));
+  
+  // Generate additional variations if requested
+  for (let i = 1; i < count; i++) {
+    prompts.push(buildVariationPrompt(businessIdea, targetAudience, hook));
+  }
+  
+  return prompts;
 };
