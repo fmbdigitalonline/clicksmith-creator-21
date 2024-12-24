@@ -8,7 +8,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { BusinessIdea, TargetAudience } from "@/types/adWizard";
-import { Users, ArrowLeft, ArrowRight, Wand2, RefreshCw } from "lucide-react";
+import { Users, ArrowLeft, Wand2, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -26,27 +26,36 @@ const AudienceStep = ({
   const [regenerationCount, setRegenerationCount] = useState(0);
   const { toast } = useToast();
 
-  const generateAudiences = async () => {
+  const generateAudiences = async (forceRegenerate: boolean = false) => {
     setIsGenerating(true);
     try {
+      // Increment regeneration count when forcing regeneration
+      const currentRegenerationCount = forceRegenerate ? regenerationCount + 1 : regenerationCount;
+      
       const { data, error } = await supabase.functions.invoke('generate-ad-content', {
         body: { 
           type: 'audience',
           businessIdea: businessIdea,
-          regenerationCount: regenerationCount, // Add variation factor
-          timestamp: new Date().getTime() // Add timestamp for variation
+          regenerationCount: currentRegenerationCount,
+          timestamp: new Date().getTime(),
+          forceRegenerate: forceRegenerate // Add this flag to ensure new variations
         }
       });
 
       if (error) throw error;
 
-      setAudiences(data.audiences);
-      setRegenerationCount(prev => prev + 1);
+      if (forceRegenerate) {
+        setRegenerationCount(currentRegenerationCount);
+      }
       
-      toast({
-        title: "Fresh Audiences Generated!",
-        description: "New target audiences have been generated based on your business idea.",
-      });
+      setAudiences(data.audiences);
+      
+      if (forceRegenerate) {
+        toast({
+          title: "Fresh Audiences Generated!",
+          description: "New target audiences have been generated based on your business idea.",
+        });
+      }
     } catch (error) {
       console.error('Error generating audiences:', error);
       toast({
@@ -61,7 +70,7 @@ const AudienceStep = ({
 
   useEffect(() => {
     if (audiences.length === 0) {
-      generateAudiences();
+      generateAudiences(false);
     }
   }, []);
 
@@ -77,7 +86,7 @@ const AudienceStep = ({
           <span>Previous Step</span>
         </Button>
         <Button
-          onClick={generateAudiences}
+          onClick={() => generateAudiences(true)}
           disabled={isGenerating}
           className="bg-facebook hover:bg-facebook/90 text-white w-full md:w-auto"
         >
@@ -154,10 +163,6 @@ const AudienceStep = ({
                     ))}
                   </ul>
                 </div>
-              </div>
-
-              <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                <ArrowRight className="w-5 h-5 text-facebook" />
               </div>
             </CardContent>
           </Card>
