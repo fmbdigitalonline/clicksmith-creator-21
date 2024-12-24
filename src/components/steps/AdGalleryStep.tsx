@@ -6,8 +6,8 @@ import { TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import StepNavigation from "./complete/StepNavigation";
 import LoadingState from "./complete/LoadingState";
-import FacebookAdPreview from "./gallery/FacebookAdPreview";
 import PlatformTabs from "./gallery/PlatformTabs";
+import PlatformContent from "./gallery/PlatformContent";
 import { RefreshCw } from "lucide-react";
 
 interface AdGalleryStepProps {
@@ -149,27 +149,12 @@ const AdGalleryStep = ({
 
   const renderPlatformContent = (platformName: string) => (
     <TabsContent value={platformName} className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {adVariants
-          .filter(variant => variant.platform === platformName)
-          .map((variant, index) => (
-            platformName === 'facebook' ? (
-              <FacebookAdPreview
-                key={`${index}-${variant.size?.label || 'default'}`}
-                variant={variant}
-                onCreateProject={onCreateProject}
-                isVideo={videoAdsEnabled}
-              />
-            ) : (
-              <AdPreviewCard
-                key={`${index}-${variant.size?.label || 'default'}`}
-                variant={variant}
-                onCreateProject={onCreateProject}
-                isVideo={videoAdsEnabled}
-              />
-            )
-          ))}
-      </div>
+      <PlatformContent
+        platformName={platformName}
+        adVariants={adVariants}
+        onCreateProject={onCreateProject}
+        videoAdsEnabled={videoAdsEnabled}
+      />
     </TabsContent>
   );
 
