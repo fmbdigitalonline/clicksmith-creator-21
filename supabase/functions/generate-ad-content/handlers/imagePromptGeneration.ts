@@ -3,7 +3,7 @@ import { corsHeaders } from '../../_shared/cors.ts';
 import { validateBusinessContext } from './utils/promptUtils.ts';
 import { generateWithReplicate } from './utils/replicateUtils.ts';
 import { generatePrompts } from './utils/promptGeneration.ts';
-import { BusinessIdea, TargetAudience, MarketingCampaign } from './types';
+import { BusinessIdea, TargetAudience, MarketingCampaign } from './types.ts';
 
 export async function handleImagePromptGeneration(
   businessIdea: BusinessIdea,
