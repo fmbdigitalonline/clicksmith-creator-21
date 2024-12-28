@@ -11,17 +11,28 @@ const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+  'Access-Control-Max-Age': '86400',
 };
 
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { 
+      headers: {
+        ...corsHeaders,
+        'Vary': 'Origin',
+      }
+    });
   }
 
   try {
+    // Log request details for debugging
+    console.log('Request URL:', req.url);
+    console.log('Request method:', req.method);
+    console.log('Request headers:', Object.fromEntries(req.headers.entries()));
+
     const { type, businessIdea, targetAudience, regenerationCount, timestamp, forceRegenerate } = await req.json();
-    console.log('Received request:', { type, businessIdea, targetAudience, regenerationCount, timestamp, forceRegenerate });
+    console.log('Received request payload:', { type, businessIdea, targetAudience, regenerationCount, timestamp, forceRegenerate });
 
     let responseData;
 
@@ -54,24 +65,33 @@ serve(async (req) => {
         throw new Error(`Unsupported generation type: ${type}`);
     }
 
+    console.log('Generated response data:', responseData);
+
     return new Response(JSON.stringify(responseData), {
       headers: { 
-        ...corsHeaders, 
-        'Content-Type': 'application/json'
+        ...corsHeaders,
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
+        'Pragma': 'no-cache',
       },
     });
   } catch (error) {
     console.error('Error in generate-ad-content function:', error);
+    console.error('Error stack:', error.stack);
+    
     return new Response(
       JSON.stringify({
         error: error.message,
         details: error.stack,
+        timestamp: new Date().toISOString(),
       }),
       {
         status: 500,
         headers: { 
-          ...corsHeaders, 
-          'Content-Type': 'application/json'
+          ...corsHeaders,
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-store, no-cache, must-revalidate',
+          'Pragma': 'no-cache',
         },
       }
     );
