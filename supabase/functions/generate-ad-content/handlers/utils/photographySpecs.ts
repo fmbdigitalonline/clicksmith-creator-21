@@ -1,23 +1,26 @@
 export const getBasePhotographySpecs = (): string => `
-- High-quality, professional commercial photography
-- Sharp focus and clear composition
-- Professional lighting setup
-- Clean, uncluttered background
-- High resolution output
-- Natural color grading
-- Professional post-processing`;
+- Ultra-high resolution output (4K minimum)
+- Professional DSLR camera quality
+- Studio-quality lighting with natural shadows
+- Tack-sharp focus on main subjects
+- Clean, uncluttered composition
+- Professional color grading
+`;
 
 export const getStrictRequirements = (): string => `
-- No text overlays (text will be added separately)
-- No watermarks or logos
-- No copyrighted material
-- No offensive or inappropriate content
-- Must be suitable for commercial use
-- Must follow platform-specific guidelines`;
+- Must be indistinguishable from a real photograph
+- Absolutely no AI artifacts or digital art aesthetics
+- Perfect human proportions and anatomy
+- Hyper-realistic textures and materials
+- Professional lighting and composition
+- Natural skin tones and textures
+`;
 
 export const getEnvironmentSpecs = (): string => `
-- Professional studio or relevant location setting
-- Appropriate props and staging
-- Controlled lighting environment
-- Clean and modern aesthetic
-- Consistent with brand guidelines`;
+Environment Requirements:
+- Professional studio or real business setting
+- Modern, clean, and authentic environment
+- Natural, studio-quality lighting
+- Contextually appropriate background
+- Real-world depth and perspective
+`;

@@ -1,44 +1,143 @@
-const mockAudiences = [
-  {
-    name: "Young Urban Professionals",
-    description: "Career-focused individuals aged 25-35 living in metropolitan areas",
-    demographics: "Age: 25-35, Urban areas, College educated, Income: $60k-100k",
-    painPoints: [
-      "Limited time for personal life",
-      "High stress levels",
-      "Work-life balance challenges"
-    ],
-    icp: "Sarah, 28, Marketing Manager in NYC",
-    coreMessage: "Efficiency and productivity without sacrificing personal time",
-    positioning: "Premium solution for busy professionals",
-    marketingAngle: "Time-saving benefits with professional quality",
-    messagingApproach: "Professional, direct, benefit-focused",
-    marketingChannels: ["LinkedIn", "Instagram", "Professional Networks"]
-  },
-  {
-    name: "Small Business Owners",
-    description: "Entrepreneurs and small business owners seeking growth",
-    demographics: "Age: 30-50, Mixed urban/suburban, Business owners",
-    painPoints: [
-      "Limited resources",
-      "Competitive market",
-      "Time management"
-    ],
-    icp: "Mike, 42, Local Restaurant Owner",
-    coreMessage: "Grow your business without growing your overhead",
-    positioning: "Smart solution for ambitious entrepreneurs",
-    marketingAngle: "Cost-effective growth enablement",
-    messagingApproach: "Practical, ROI-focused, supportive",
-    marketingChannels: ["Facebook", "Local Business Networks", "LinkedIn"]
-  }
-];
-
-export async function generateAudiences(businessIdea: any, regenerationCount = 0, forceRegenerate = false) {
-  console.log('Generating audiences for:', businessIdea);
+export async function handleAudienceGeneration(businessIdea: any, openAIApiKey: string, regenerationCount: number = 0) {
+  const prompt = `As a market research professional, analyze this business and provide 3 COMPLETELY DIFFERENT potential target audiences 
+  (consider this is regeneration attempt #${regenerationCount}, so provide fresh perspectives):
   
-  // For now, return mock data
-  return {
-    audiences: mockAudiences,
-    message: "Generated 2 audience profiles based on your business idea"
-  };
+  Business Description: ${businessIdea.description}
+  Value Proposition: ${businessIdea.valueProposition}
+
+  Important: Ensure each regeneration provides unique and diverse audiences with different:
+  - Demographics
+  - Pain points
+  - Marketing approaches
+  - Positioning strategies
+
+  For each audience, provide professional market research insights including:
+  1. Audience name and description
+  2. Demographic information
+  3. Key pain points (3 specific challenges)
+  4. Ideal Customer Profile (ICP)
+  5. Core messaging strategy
+  6. Market positioning
+  7. Marketing approach
+  8. Recommended channels
+
+  Return a JSON array with 3 audience objects containing:
+  - name (string): descriptive name
+  - description (string): professional audience description
+  - painPoints (array of 3 strings): key challenges
+  - demographics (string): demographic information
+  - icp (string): ideal customer profile
+  - coreMessage (string): primary value proposition
+  - positioning (string): market positioning
+  - marketingAngle (string): strategic approach
+  - messagingApproach (string): communication strategy
+  - marketingChannels (array of strings): recommended channels
+
+  Format: Return only a raw JSON array starting with [ and ending with ]. No markdown or formatting.`;
+
+  try {
+    console.log('Sending request to OpenAI with prompt:', prompt);
+    
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openAIApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          { 
+            role: 'system', 
+            content: 'You are a professional market research analyst providing structured business insights. Return only raw JSON data.'
+          },
+          { role: 'user', content: prompt }
+        ],
+        temperature: 0.7,
+        max_tokens: 2000,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error('OpenAI API error:', errorData);
+      
+      // Handle safety system rejection specifically
+      if (errorData.includes('safety system')) {
+        throw new Error('Content filtered by safety system. Please revise your business description to use more professional language.');
+      }
+      
+      throw new Error(`OpenAI API error: ${errorData}`);
+    }
+
+    const data = await response.json();
+    console.log('OpenAI response:', data);
+
+    if (!data.choices?.[0]?.message?.content) {
+      throw new Error('Invalid response format from OpenAI');
+    }
+
+    const content = data.choices[0].message.content.trim();
+    console.log('Raw content from OpenAI:', content);
+
+    // Clean the JSON content
+    const cleanContent = content
+      .replace(/```json\n?/g, '')
+      .replace(/```\n?/g, '')
+      .replace(/^[\s\n]*\[/, '[')
+      .replace(/\][\s\n]*$/, ']')
+      .trim();
+
+    console.log('Cleaned content:', cleanContent);
+
+    try {
+      const audiences = JSON.parse(cleanContent);
+      console.log('Parsed audiences:', audiences);
+
+      if (!Array.isArray(audiences)) {
+        console.error('Not an array:', audiences);
+        throw new Error('Response is not an array');
+      }
+
+      if (audiences.length !== 3) {
+        console.error('Wrong number of audiences:', audiences.length);
+        throw new Error('Expected exactly 3 audiences');
+      }
+
+      // Validate the structure of each audience object
+      audiences.forEach((audience, index) => {
+        const requiredFields = [
+          'name', 'description', 'painPoints', 'demographics',
+          'icp', 'coreMessage', 'positioning', 'marketingAngle',
+          'messagingApproach', 'marketingChannels'
+        ];
+
+        requiredFields.forEach(field => {
+          if (!audience[field]) {
+            console.error(`Missing field "${field}" in audience ${index + 1}:`, audience);
+            throw new Error(`Missing required field "${field}" in audience ${index + 1}`);
+          }
+        });
+
+        if (!Array.isArray(audience.painPoints)) {
+          console.error('Invalid painPoints:', audience.painPoints);
+          throw new Error(`painPoints must be an array in audience ${index + 1}`);
+        }
+
+        if (!Array.isArray(audience.marketingChannels)) {
+          console.error('Invalid marketingChannels:', audience.marketingChannels);
+          throw new Error(`marketingChannels must be an array in audience ${index + 1}`);
+        }
+      });
+
+      return { audiences };
+    } catch (parseError) {
+      console.error('JSON parsing error:', parseError);
+      console.error('Content that failed to parse:', cleanContent);
+      throw new Error(`Failed to parse OpenAI response: ${parseError.message}`);
+    }
+  } catch (error) {
+    console.error('Error in handleAudienceGeneration:', error);
+    throw error;
+  }
 }

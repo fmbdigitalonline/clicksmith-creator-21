@@ -1,14 +1,17 @@
 import { useState, useEffect } from "react";
+import { Card } from "@/components/ui/card";
 import { BusinessIdea, TargetAudience, AdHook } from "@/types/adWizard";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
-import { TabsContent } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import StepNavigation from "./complete/StepNavigation";
 import LoadingState from "./complete/LoadingState";
-import PlatformTabs from "./gallery/PlatformTabs";
-import PlatformContent from "./gallery/PlatformContent";
-import { RefreshCw } from "lucide-react";
+import AdPreviewCard from "./gallery/AdPreviewCard";
+import { facebookAdSpecs } from "@/types/facebookAdSpecs";
+import { facebookVideoAdSpecs } from "@/types/videoAdSpecs";
+import { Linkedin, RefreshCw } from "lucide-react";
+import { SiTiktok } from "react-icons/si";
+import { Button } from "@/components/ui/button";
 
 interface AdGalleryStepProps {
   businessIdea: BusinessIdea;
@@ -48,10 +51,7 @@ const AdGalleryStep = ({
           campaign: {
             hooks: adHooks,
             specs: videoAdsEnabled ? {
-              facebook: {
-                formats: ['feed', 'sponsored', 'message'],
-                aspectRatios: ['1:1', '16:9']
-              },
+              facebook: facebookVideoAdSpecs,
               linkedin: {
                 formats: ['feed', 'sponsored', 'message'],
                 aspectRatios: ['1:1', '16:9']
@@ -61,25 +61,7 @@ const AdGalleryStep = ({
                 aspectRatios: ['9:16']
               }
             } : {
-              facebook: {
-                commonSizes: [
-                  { width: 250, height: 250, label: "Square" },
-                  { width: 200, height: 200, label: "Small Square" },
-                  { width: 468, height: 60, label: "Banner" },
-                  { width: 728, height: 90, label: "Leaderboard" },
-                  { width: 300, height: 250, label: "Inline Rectangle" },
-                  { width: 336, height: 280, label: "Large Rectangle" },
-                  { width: 120, height: 600, label: "Skyscraper" },
-                  { width: 160, height: 600, label: "Wide Skyscraper" },
-                  { width: 300, height: 600, label: "Half-Page Ad" },
-                  { width: 970, height: 90, label: "Large Leaderboard" }
-                ],
-                mobileCommonSizes: [
-                  { width: 300, height: 50, label: "Mobile Banner" },
-                  { width: 320, height: 50, label: "Mobile Banner" },
-                  { width: 320, height: 100, label: "Large Mobile Banner" }
-                ]
-              },
+              facebook: facebookAdSpecs,
               google: {
                 commonSizes: [
                   { width: 250, height: 250, label: "Square" },
@@ -114,12 +96,15 @@ const AdGalleryStep = ({
               }
             }
           },
-          regenerationCount: regenerationCount,
-          timestamp: new Date().getTime()
+          regenerationCount: regenerationCount, // Add variation factor
+          timestamp: new Date().getTime() // Add timestamp for variation
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error response:', error);
+        throw error;
+      }
 
       console.log('Generated ad variants:', data);
       setAdVariants(data.variants);
@@ -147,17 +132,6 @@ const AdGalleryStep = ({
     }
   }, [videoAdsEnabled]);
 
-  const renderPlatformContent = (platformName: string) => (
-    <TabsContent value={platformName} className="space-y-4">
-      <PlatformContent
-        platformName={platformName}
-        adVariants={adVariants}
-        onCreateProject={onCreateProject}
-        videoAdsEnabled={videoAdsEnabled}
-      />
-    </TabsContent>
-  );
-
   return (
     <div className="space-y-6 md:space-y-8">
       <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-4">
@@ -183,12 +157,82 @@ const AdGalleryStep = ({
       {isGenerating ? (
         <LoadingState />
       ) : (
-        <PlatformTabs platform={platform} onPlatformChange={(value) => setPlatform(value as typeof platform)}>
-          {renderPlatformContent('facebook')}
-          {renderPlatformContent('google')}
-          {renderPlatformContent('linkedin')}
-          {renderPlatformContent('tiktok')}
-        </PlatformTabs>
+        <div className="space-y-6">
+          <Tabs defaultValue="facebook" className="w-full" onValueChange={(value) => setPlatform(value as typeof platform)}>
+            <TabsList className="grid w-full grid-cols-4 mb-6">
+              <TabsTrigger value="facebook">Facebook Ads</TabsTrigger>
+              <TabsTrigger value="google">Google Ads</TabsTrigger>
+              <TabsTrigger value="linkedin" className="flex items-center gap-2">
+                <Linkedin className="h-4 w-4" />
+                LinkedIn
+              </TabsTrigger>
+              <TabsTrigger value="tiktok" className="flex items-center gap-2">
+                <SiTiktok className="h-4 w-4" />
+                TikTok
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="facebook" className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {adVariants
+                  .filter(variant => variant.platform === 'facebook')
+                  .map((variant, index) => (
+                    <AdPreviewCard
+                      key={`${index}-${variant.size.label}`}
+                      variant={variant}
+                      onCreateProject={onCreateProject}
+                      isVideo={videoAdsEnabled}
+                    />
+                  ))}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="google" className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {adVariants
+                  .filter(variant => variant.platform === 'google')
+                  .map((variant, index) => (
+                    <AdPreviewCard
+                      key={index}
+                      variant={variant}
+                      onCreateProject={onCreateProject}
+                      isVideo={videoAdsEnabled}
+                    />
+                  ))}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="linkedin" className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {adVariants
+                  .filter(variant => variant.platform === 'linkedin')
+                  .map((variant, index) => (
+                    <AdPreviewCard
+                      key={index}
+                      variant={variant}
+                      onCreateProject={onCreateProject}
+                      isVideo={videoAdsEnabled}
+                    />
+                  ))}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="tiktok" className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {adVariants
+                  .filter(variant => variant.platform === 'tiktok')
+                  .map((variant, index) => (
+                    <AdPreviewCard
+                      key={index}
+                      variant={variant}
+                      onCreateProject={onCreateProject}
+                      isVideo={videoAdsEnabled}
+                    />
+                  ))}
+              </div>
+            </TabsContent>
+          </Tabs>
+        </div>
       )}
     </div>
   );
