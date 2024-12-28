@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import generateCompleteAds from './handlers/completeAdGeneration.ts';
+import { generateCompleteAds } from './handlers/completeAdGeneration.ts';
 import { generateHooks } from './handlers/hookGeneration.ts';
 import { generateAudienceAnalysis } from './handlers/audienceAnalysis.ts';
 import { generateImages } from './handlers/imagePromptGeneration.ts';
