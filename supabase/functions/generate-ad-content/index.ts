@@ -8,7 +8,6 @@ const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-  'Access-Control-Max-Age': '86400',
 };
 
 serve(async (req) => {
@@ -28,7 +27,7 @@ serve(async (req) => {
     console.log('Request method:', req.method);
     console.log('Request headers:', Object.fromEntries(req.headers.entries()));
 
-    const { type, businessIdea, targetAudience, regenerationCount, timestamp, forceRegenerate } = await req.json();
+    const { type, businessIdea, targetAudience, campaign, regenerationCount, timestamp, forceRegenerate } = await req.json();
     console.log('Received request payload:', { type, businessIdea, targetAudience, regenerationCount, timestamp, forceRegenerate });
 
     let responseData;
@@ -41,7 +40,7 @@ serve(async (req) => {
         responseData = await generateAudienceAnalysis(businessIdea, targetAudience);
         break;
       case 'complete_ads':
-        responseData = await generateCompleteAds(businessIdea, targetAudience, regenerationCount);
+        responseData = await generateCompleteAds(businessIdea, targetAudience, campaign, regenerationCount);
         break;
       case 'images':
         responseData = await generateImages(businessIdea, targetAudience);
