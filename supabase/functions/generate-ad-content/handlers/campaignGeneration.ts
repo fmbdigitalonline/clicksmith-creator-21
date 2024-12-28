@@ -1,5 +1,5 @@
 export async function handleCampaignGeneration(businessIdea: any, targetAudience: any, audienceAnalysis: any, openAIApiKey: string) {
-  const prompt = `Create a marketing campaign for this business and target audience:
+  const prompt = `Create compelling ad copy variations for this business and target audience:
 
 Business:
 Description: ${businessIdea.description}
@@ -11,18 +11,21 @@ ${JSON.stringify(targetAudience, null, 2)}
 Audience Analysis:
 ${JSON.stringify(audienceAnalysis, null, 2)}
 
-Create a complete marketing campaign with:
-1. 3 Ad copies (different versions)
+Create a complete set of ad copies with:
+1. 5 Long-form Ad Copies (minimum 200 characters each)
 2. 3 Headlines (6 words max)
 
 Ad Copy Guidelines:
-- Create 3 different versions:
-  1. "Younder story": Longer, storytelling-based
-  2. "Short impact": One impactful sentence
-  3. "AIDA version": Middle-length with bullet points
-- Should be general about product benefits
+- Create 5 different versions, each at least 200 characters long
+- Each version should have a unique angle or approach:
+  1. "Problem-Solution": Focus on the pain point and your solution
+  2. "Benefits-First": Highlight the main benefits and outcomes
+  3. "Social Proof": Write as if including testimonials or results
+  4. "Emotional Appeal": Connect with the audience's desires and fears
+  5. "Feature-Benefit": Connect product features to audience benefits
 - Must attract attention in first sentence
-- Each version should be different
+- Include clear call-to-action
+- Each version should be different in tone and approach
 
 Headline Guidelines:
 - Maximum 6 words
@@ -34,8 +37,8 @@ Return ONLY a valid JSON object with these fields:
 {
   "adCopies": [
     {
-      "type": "story|short|aida",
-      "content": "string"
+      "type": "problem_solution|benefits|social_proof|emotional|feature",
+      "content": "string (min 200 chars)"
     }
   ],
   "headlines": ["string", "string", "string"]
@@ -52,7 +55,7 @@ Return ONLY a valid JSON object with these fields:
       messages: [
         { 
           role: 'system', 
-          content: 'You are an expert marketing copywriter who creates compelling campaigns based on deep audience analysis. Focus on clear, impactful messaging that resonates with the target audience.'
+          content: 'You are an expert marketing copywriter who creates compelling, long-form ad copies based on deep audience analysis. Focus on clear, impactful messaging that resonates with the target audience while maintaining minimum length requirements.'
         },
         { role: 'user', content: prompt }
       ],
