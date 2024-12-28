@@ -21,13 +21,20 @@ export interface MarketingHook {
   description: string;
 }
 
-export interface AdFormat {
-  format: string;
-  dimensions: {
-    width: number;
-    height: number;
+export interface MarketingCampaign {
+  hooks: MarketingHook[];
+  specs?: {
+    facebook?: {
+      formats?: string[];
+      aspectRatios?: string[];
+    };
+    linkedin?: {
+      formats?: string[];
+      aspectRatios?: string[];
+    };
+    tiktok?: {
+      formats?: string[];
+      aspectRatios?: string[];
+    };
   };
-  aspectRatio: string;
-  description: string;
-  platform: 'facebook' | 'google';
 }

@@ -1,5 +1,5 @@
 import { Configuration, OpenAIApi } from "npm:openai-edge@1.2.2";
-import { BusinessIdea, TargetAudience, MarketingCampaign } from '../Types';
+import { BusinessIdea, TargetAudience, MarketingCampaign } from '../types.ts';
 import { generatePrompts } from './utils/promptGeneration';
 
 export async function generateCompleteAds(
