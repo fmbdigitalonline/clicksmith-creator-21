@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Download, Save } from "lucide-react";
+import { Download, Save, Play, Pause } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -32,11 +32,23 @@ interface AdPreviewCardProps {
     callToAction: string;
   };
   onCreateProject: () => void;
+  isVideo?: boolean;
 }
 
-const AdPreviewCard = ({ variant, onCreateProject }: AdPreviewCardProps) => {
+const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewCardProps) => {
   const [isSaving, setSaving] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
   const { toast } = useToast();
+
+  const handleVideoPlayPause = (videoElement: HTMLVideoElement) => {
+    if (videoElement.paused) {
+      videoElement.play();
+      setIsPlaying(true);
+    } else {
+      videoElement.pause();
+      setIsPlaying(false);
+    }
+  };
 
   const handleSaveAndDownload = async () => {
     setSaving(true);
@@ -60,13 +72,13 @@ const AdPreviewCard = ({ variant, onCreateProject }: AdPreviewCardProps) => {
         return;
       }
 
-      // Download the image
+      // Download the image/video
       const response = await fetch(variant.image.url);
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `${variant.platform}-ad-${variant.size.width}x${variant.size.height}.jpg`;
+      link.download = `${variant.platform}-${isVideo ? 'video' : 'ad'}-${variant.size.width}x${variant.size.height}.${isVideo ? 'mp4' : 'jpg'}`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -74,7 +86,7 @@ const AdPreviewCard = ({ variant, onCreateProject }: AdPreviewCardProps) => {
 
       toast({
         title: "Success!",
-        description: `Your ${variant.size.label} ad has been saved and downloaded.`,
+        description: `Your ${variant.size.label} ${isVideo ? 'video' : 'ad'} has been saved and downloaded.`,
       });
     } catch (error) {
       console.error('Error saving ad:', error);
@@ -95,13 +107,39 @@ const AdPreviewCard = ({ variant, onCreateProject }: AdPreviewCardProps) => {
           aspectRatio: `${variant.size.width} / ${variant.size.height}`,
           maxHeight: '400px'
         }} 
-        className="relative"
+        className="relative group"
       >
-        <img
-          src={variant.image.url}
-          alt={variant.headline}
-          className="object-cover w-full h-full"
-        />
+        {isVideo ? (
+          <>
+            <video
+              src={variant.image.url}
+              className="object-cover w-full h-full cursor-pointer"
+              playsInline
+              preload="metadata"
+              onClick={(e) => handleVideoPlayPause(e.currentTarget)}
+              onPlay={() => setIsPlaying(true)}
+              onPause={() => setIsPlaying(false)}
+            />
+            <Button
+              variant="secondary"
+              size="icon"
+              className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity"
+              onClick={(e) => {
+                e.stopPropagation();
+                const video = e.currentTarget.parentElement?.querySelector('video');
+                if (video) handleVideoPlayPause(video);
+              }}
+            >
+              {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+            </Button>
+          </>
+        ) : (
+          <img
+            src={variant.image.url}
+            alt={variant.headline}
+            className="object-cover w-full h-full"
+          />
+        )}
       </div>
       <CardContent className="p-4 space-y-4">
         <div className="space-y-2">
@@ -118,6 +156,9 @@ const AdPreviewCard = ({ variant, onCreateProject }: AdPreviewCardProps) => {
                 <p>Format: {variant.specs.designRecommendations.fileTypes.join(", ")}</p>
                 <p>Aspect Ratio: {variant.specs.designRecommendations.aspectRatios}</p>
               </>
+            )}
+            {isVideo && (
+              <p>Type: Video Ad</p>
             )}
           </div>
         </div>

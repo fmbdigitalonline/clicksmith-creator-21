@@ -20,14 +20,3 @@ export interface MarketingHook {
   text: string;
   description: string;
 }
-
-export interface AdFormat {
-  format: string;
-  dimensions: {
-    width: number;
-    height: number;
-  };
-  aspectRatio: string;
-  description: string;
-  platform: 'facebook' | 'google';
-}

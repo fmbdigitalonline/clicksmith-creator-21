@@ -1,46 +1,48 @@
-interface BusinessIdea {
-  description: string;
-  valueProposition: string;
-}
+import { BusinessIdea, TargetAudience, MarketingHook } from '../../Types.ts';
+import { getBasePhotographySpecs, getStrictRequirements, getEnvironmentSpecs } from './photographySpecs.ts';
 
-interface TargetAudience {
-  name: string;
-  description: string;
-}
-
-interface MarketingCampaign {
-  hooks: Array<{ description: string }>;
-}
-
-export function buildBasePrompt(
+export const buildMainPrompt = (
   businessIdea: BusinessIdea,
   targetAudience: TargetAudience,
-  campaign: MarketingCampaign
-): string {
+  hook: MarketingHook
+): string => {
   return `Create a hyper-realistic commercial photograph for a professional advertising campaign. The photograph should represent:
-${campaign.hooks.map(hook => hook.description).join('\n')}
 
-STRICT REQUIREMENTS:
-- Must be an actual photograph, absolutely NO illustrations, drawings, or artificial-looking images
-- Ultra-realistic, professional commercial photography quality
-- Natural, studio-quality lighting with proper shadows and highlights
-- Crystal clear focus and professional camera quality
-- Real human subjects (when applicable) in authentic business settings
-- Real products and environments (no CGI or artificial elements)
-- Composition following rule of thirds and professional photography principles
-- Color grading matching high-end advertising campaigns
+"${hook.text}"
 
-Business Context: ${businessIdea.description}
-Value Proposition: ${businessIdea.valueProposition}
-Target Audience: ${targetAudience.description}
+Marketing Concept:
+${hook.description}
 
-Additional Photography Specifications:
-- Use professional DSLR camera quality
-- Shoot in RAW format equivalent
-- Maintain perfect exposure
-- Ensure proper white balance
-- Include subtle bokeh effects where appropriate
-- Maintain sharp focus on key subjects
-- Use professional color grading
-- Include natural environmental lighting`;
-}
+Scene Context:
+- Business Type: ${businessIdea.description}
+- Target Audience: ${targetAudience.description}
+- Value Proposition: ${businessIdea.valueProposition}
+
+Photography Requirements:
+${getBasePhotographySpecs()}
+
+${getEnvironmentSpecs()}
+
+Critical Requirements:
+${getStrictRequirements()}`;
+};
+
+export const buildVariationPrompt = (
+  businessIdea: BusinessIdea,
+  targetAudience: TargetAudience,
+  hook: MarketingHook
+): string => {
+  return `Create another hyper-realistic commercial photograph for this marketing concept:
+"${hook.text}"
+
+Key Focus:
+- Marketing Message: ${hook.description}
+- Target Audience: ${targetAudience.description}
+- Business Context: ${businessIdea.description}
+
+Mandatory Requirements:
+${getStrictRequirements()}
+
+Technical Requirements:
+${getBasePhotographySpecs()}`;
+};

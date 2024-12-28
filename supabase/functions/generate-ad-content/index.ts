@@ -1,11 +1,11 @@
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { handleAudienceGeneration } from './handlers/audienceGeneration.ts';
-import { handleAudienceAnalysis } from './handlers/audienceAnalysis.ts';
-import { handleCampaignGeneration } from './handlers/campaignGeneration.ts';
-import { handleImagePromptGeneration } from './handlers/imagePromptGeneration.ts';
-import { handleHookGeneration } from './handlers/hookGeneration.ts';
-import { handleCompleteAdGeneration } from './handlers/completeAdGeneration.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
+import { generateAudiences } from "./handlers/audienceGeneration.ts";
+import { generateHooks } from "./handlers/hookGeneration.ts";
+import { generateImagePrompts } from "./handlers/imagePromptGeneration.ts";
+import { generateCompleteAd } from "./handlers/completeAdGeneration.ts";
+import { analyzeAudience } from "./handlers/audienceAnalysis.ts";
+import { generateCampaign } from "./handlers/campaignGeneration.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,85 +13,57 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Get the JWT token from the request headers
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      throw new Error('No authorization header');
-    }
+    const { type, businessIdea, targetAudience, regenerationCount, timestamp, forceRegenerate } = await req.json();
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    
-    if (!supabaseUrl || !supabaseServiceKey) {
-      throw new Error('Missing environment variables');
-    }
+    let responseData;
 
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    // Get the user ID from the JWT token
-    const { data: { user }, error: userError } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
-    
-    if (userError || !user) {
-      throw new Error('Invalid user token');
-    }
-
-    console.log('Processing request for user:', user.id);
-
-    const { type, businessIdea, targetAudience, audienceAnalysis, campaign } = await req.json();
-    const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
-
-    if (!openAIApiKey) {
-      throw new Error('OpenAI API key not found');
-    }
-
-    let result;
     switch (type) {
       case 'audience':
-        if (!businessIdea) throw new Error('Business idea is required for audience generation');
-        result = await handleAudienceGeneration(businessIdea, openAIApiKey);
-        break;
-      case 'audience_analysis':
-        if (!businessIdea || !targetAudience) throw new Error('Business idea and target audience are required for analysis');
-        result = await handleAudienceAnalysis(businessIdea, targetAudience, openAIApiKey);
-        break;
-      case 'campaign':
-        if (!businessIdea || !targetAudience || !audienceAnalysis) 
-          throw new Error('Business idea, target audience, and analysis are required for campaign generation');
-        result = await handleCampaignGeneration(businessIdea, targetAudience, audienceAnalysis, openAIApiKey);
+        console.log('Generating audiences with params:', { businessIdea, regenerationCount, timestamp, forceRegenerate });
+        responseData = await generateAudiences(businessIdea, regenerationCount, forceRegenerate);
         break;
       case 'hooks':
-        if (!businessIdea || !targetAudience) 
-          throw new Error('Business idea and target audience are required for hook generation');
-        result = await handleHookGeneration(businessIdea, targetAudience, openAIApiKey);
+        console.log('Generating hooks with params:', { businessIdea, targetAudience });
+        responseData = await generateHooks(businessIdea, targetAudience);
         break;
       case 'images':
-        if (!businessIdea || !targetAudience || !campaign) 
-          throw new Error('Business idea, target audience, and campaign are required for image generation');
-        result = await handleImagePromptGeneration(businessIdea, targetAudience, campaign, openAIApiKey);
+        console.log('Generating image prompts with params:', { businessIdea, targetAudience });
+        responseData = await generateImagePrompts(businessIdea, targetAudience);
         break;
-      case 'complete_ads':
-        if (!businessIdea || !targetAudience || !campaign) 
-          throw new Error('Business idea, target audience, and campaign are required for complete ad generation');
-        result = await handleCompleteAdGeneration(businessIdea, targetAudience, campaign, openAIApiKey);
+      case 'complete':
+        console.log('Generating complete ad with params:', { businessIdea, targetAudience });
+        responseData = await generateCompleteAd(businessIdea, targetAudience);
+        break;
+      case 'analysis':
+        console.log('Analyzing audience with params:', { businessIdea, targetAudience });
+        responseData = await analyzeAudience(businessIdea, targetAudience);
+        break;
+      case 'campaign':
+        console.log('Generating campaign with params:', { businessIdea, targetAudience });
+        responseData = await generateCampaign(businessIdea, targetAudience);
         break;
       default:
-        throw new Error('Invalid generation type');
+        throw new Error(`Unsupported generation type: ${type}`);
     }
 
-    return new Response(JSON.stringify(result), {
+    return new Response(JSON.stringify(responseData), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
     console.error('Error in generate-ad-content function:', error);
     return new Response(
-      JSON.stringify({ error: error.message }), 
-      { 
-        status: 400,
+      JSON.stringify({
+        error: error.message,
+        details: error.stack,
+      }),
+      {
+        status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );

@@ -31,3 +31,8 @@ export interface AdFormat {
   description: string;
   platform: 'facebook' | 'google';
 }
+
+export interface MarketingCampaign {
+  hooks: MarketingHook[];
+  format: AdFormat;
+}
