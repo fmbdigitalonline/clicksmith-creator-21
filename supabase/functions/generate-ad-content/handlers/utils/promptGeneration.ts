@@ -1,67 +1,27 @@
-import { BusinessIdea, TargetAudience, MarketingHook } from '../../types.ts';
+import { BusinessIdea, TargetAudience } from '../../types.ts';
 
-export const generatePrompts = (
+export function generatePrompts(
   businessIdea: BusinessIdea,
   targetAudience: TargetAudience,
-  hook: MarketingHook,
-  count: number = 1
-): string[] => {
-  const prompts: string[] = [];
-  
-  // Generate the main prompt
-  const mainPrompt = buildMainPrompt(businessIdea, targetAudience, hook);
-  prompts.push(mainPrompt);
-  
-  // Generate additional variations if requested
-  for (let i = 1; i < count; i++) {
-    prompts.push(buildVariationPrompt(businessIdea, targetAudience, hook));
-  }
-  
-  return prompts;
-};
-
-const buildMainPrompt = (
-  businessIdea: BusinessIdea,
-  targetAudience: TargetAudience,
-  hook: MarketingHook
-): string => {
-  return `Create a compelling ad for the following business and target audience:
-
-Business Description: ${businessIdea.description}
-Value Proposition: ${businessIdea.valueProposition}
-
-Target Audience:
-- Description: ${targetAudience.description}
-- Demographics: ${targetAudience.demographics}
-- Pain Points: ${targetAudience.painPoints.join(', ')}
-
-Marketing Hook: ${hook.text}
-Hook Context: ${hook.description}
-
-Generate an engaging ad that:
-1. Addresses the audience's pain points
-2. Highlights the value proposition
-3. Uses the marketing hook effectively
-4. Maintains a professional and persuasive tone
-5. Follows platform-specific best practices`;
-};
-
-const buildVariationPrompt = (
-  businessIdea: BusinessIdea,
-  targetAudience: TargetAudience,
-  hook: MarketingHook
-): string => {
-  return `Create a different variation of an ad with these parameters:
-
-Core Message: ${hook.text}
-Business Type: ${businessIdea.description}
+  hook: string,
+  numberOfVariants: number
+): string[] {
+  const basePrompt = `Create a compelling advertisement for the following business:
+Business: ${businessIdea.description}
 Target Audience: ${targetAudience.description}
-Key Pain Points: ${targetAudience.painPoints.join(', ')}
+Key Hook: ${hook}
 
-Focus on:
-1. Different angle or perspective
-2. Alternative emotional appeal
-3. Unique way to present the value proposition
-4. Fresh approach to the marketing hook
-5. Maintaining brand consistency`;
-};
+The ad should:
+1. Be engaging and memorable
+2. Clearly communicate the value proposition
+3. Speak directly to the target audience's needs
+4. Use the hook creatively
+5. Be concise and impactful
+
+Please provide a complete ad copy that includes a headline and body text.`;
+
+  // Generate multiple prompts with slight variations to get diverse results
+  return Array(numberOfVariants).fill(basePrompt).map((prompt, index) => 
+    `${prompt}\n\nThis is variant ${index + 1}/${numberOfVariants}. Make this version unique while maintaining effectiveness.`
+  );
+}
