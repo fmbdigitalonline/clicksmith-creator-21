@@ -13,6 +13,8 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  console.log('Received request:', req.method, req.url);
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -20,6 +22,7 @@ serve(async (req) => {
 
   try {
     const { type, businessIdea, targetAudience, regenerationCount, timestamp, forceRegenerate } = await req.json();
+    console.log('Request payload:', { type, businessIdea, targetAudience, regenerationCount });
 
     let responseData;
 
@@ -52,8 +55,14 @@ serve(async (req) => {
         throw new Error(`Unsupported generation type: ${type}`);
     }
 
+    console.log('Generated response:', responseData);
+
     return new Response(JSON.stringify(responseData), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { 
+        ...corsHeaders, 
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-store, no-cache, must-revalidate'
+      },
     });
   } catch (error) {
     console.error('Error in generate-ad-content function:', error);

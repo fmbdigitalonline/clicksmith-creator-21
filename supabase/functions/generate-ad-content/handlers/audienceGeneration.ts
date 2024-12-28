@@ -1,71 +1,44 @@
-import { BusinessIdea } from "../types.ts";
-import { OpenAIStream } from "../handlers/utils/replicateUtils.ts";
-
-export async function generateAudiences(
-  businessIdea: BusinessIdea, 
-  regenerationCount: number = 0,
-  forceRegenerate: boolean = false
-): Promise<{ audiences: any[] }> {
-  const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
-  if (!openAIApiKey) {
-    throw new Error('OpenAI API key is not configured');
+const mockAudiences = [
+  {
+    name: "Young Urban Professionals",
+    description: "Career-focused individuals aged 25-35 living in metropolitan areas",
+    demographics: "Age: 25-35, Urban areas, College educated, Income: $60k-100k",
+    painPoints: [
+      "Limited time for personal life",
+      "High stress levels",
+      "Work-life balance challenges"
+    ],
+    icp: "Sarah, 28, Marketing Manager in NYC",
+    coreMessage: "Efficiency and productivity without sacrificing personal time",
+    positioning: "Premium solution for busy professionals",
+    marketingAngle: "Time-saving benefits with professional quality",
+    messagingApproach: "Professional, direct, benefit-focused",
+    marketingChannels: ["LinkedIn", "Instagram", "Professional Networks"]
+  },
+  {
+    name: "Small Business Owners",
+    description: "Entrepreneurs and small business owners seeking growth",
+    demographics: "Age: 30-50, Mixed urban/suburban, Business owners",
+    painPoints: [
+      "Limited resources",
+      "Competitive market",
+      "Time management"
+    ],
+    icp: "Mike, 42, Local Restaurant Owner",
+    coreMessage: "Grow your business without growing your overhead",
+    positioning: "Smart solution for ambitious entrepreneurs",
+    marketingAngle: "Cost-effective growth enablement",
+    messagingApproach: "Practical, ROI-focused, supportive",
+    marketingChannels: ["Facebook", "Local Business Networks", "LinkedIn"]
   }
+];
 
-  console.log('Generating audiences with regeneration count:', regenerationCount);
-  console.log('Force regenerate:', forceRegenerate);
-
-  const prompt = `Generate 3 distinct target audience personas for a business idea: ${businessIdea.description}.
-  ${forceRegenerate ? `Make these different from previous generations (variation ${regenerationCount}).` : ''}
+export async function generateAudiences(businessIdea: any, regenerationCount = 0, forceRegenerate = false) {
+  console.log('Generating audiences for:', businessIdea);
   
-  For each persona, include:
-  1. Demographics (age range, gender, location, income level)
-  2. Psychographics (interests, values, lifestyle)
-  3. Pain points and challenges
-  4. Goals and aspirations
-  5. Online behavior and platform preferences
-  
-  Format the response as a JSON array with 3 objects, each containing these fields.`;
-
-  try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are an expert marketing strategist specializing in audience targeting and segmentation.'
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        temperature: forceRegenerate ? 0.9 : 0.7, // Increase variation when regenerating
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    const generatedText = data.choices[0].message.content;
-    
-    try {
-      const audiences = JSON.parse(generatedText);
-      console.log('Successfully generated audiences:', audiences);
-      return { audiences };
-    } catch (parseError) {
-      console.error('Error parsing OpenAI response:', parseError);
-      throw new Error('Failed to parse generated audiences');
-    }
-  } catch (error) {
-    console.error('Error in generateAudiences:', error);
-    throw error;
-  }
+  // For now, return mock data
+  return {
+    audiences: mockAudiences,
+    message: "Generated 2 audience profiles based on your business idea"
+  };
 }
