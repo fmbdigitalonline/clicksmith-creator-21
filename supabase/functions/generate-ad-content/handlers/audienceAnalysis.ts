@@ -1,9 +1,9 @@
-export async function handleAudienceAnalysis(businessIdea: any, targetAudience: any, openAIApiKey: string, regenerationCount: number = 0) {
-  console.log('Starting audience analysis... (regeneration #${regenerationCount})');
-  
-  const prompt = `Analyze the following target audience for a business 
-  (consider this is regeneration attempt #${regenerationCount}, so provide fresh insights and perspectives):
-  
+export async function handleAudienceAnalysis(businessIdea: any, targetAudience: any, openAIApiKey: string) {
+  console.log('Starting audience analysis...');
+  console.log('Business idea:', businessIdea);
+  console.log('Target audience:', targetAudience);
+
+  const prompt = `Analyze the following target audience for a business:
   Business Description: ${businessIdea.description}
   Value Proposition: ${businessIdea.valueProposition}
   
@@ -14,12 +14,6 @@ export async function handleAudienceAnalysis(businessIdea: any, targetAudience: 
   Pain Points: ${targetAudience.painPoints.join(', ')}
   ICP: ${targetAudience.icp}
   Core Message: ${targetAudience.coreMessage}
-  
-  Important: For each regeneration, explore different angles and provide unique insights focusing on:
-  - Different market segments within the target audience
-  - Alternative pain points and desires
-  - Varied sophistication levels and awareness states
-  - Fresh objections and concerns
   
   Return a JSON object with these exact fields (no markdown formatting):
   {

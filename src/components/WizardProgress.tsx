@@ -1,5 +1,32 @@
+import { CheckIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Check } from "lucide-react";
+
+const steps = [
+  {
+    title: "Business Idea",
+    description: "Describe your product"
+  },
+  {
+    title: "Target Audience",
+    description: "Choose who to reach"
+  },
+  {
+    title: "Audience Analysis",
+    description: "Deep audience insights"
+  },
+  {
+    title: "Marketing Hooks",
+    description: "Create your message"
+  },
+  {
+    title: "Ad Format",
+    description: "Choose size & platform"
+  },
+  {
+    title: "Ad Preview",
+    description: "Review and export"
+  }
+];
 
 interface WizardProgressProps {
   currentStep: number;
@@ -7,67 +34,64 @@ interface WizardProgressProps {
   canNavigateToStep: (step: number) => boolean;
 }
 
-const steps = [
-  { number: 1, title: "Business Idea" },
-  { number: 2, title: "Target Audience" },
-  { number: 3, title: "Audience Analysis" },
-  { number: 4, title: "Ad Gallery" },
-];
-
 const WizardProgress = ({
   currentStep,
   onStepClick,
-  canNavigateToStep,
+  canNavigateToStep
 }: WizardProgressProps) => {
   return (
-    <nav aria-label="Progress">
-      <ol role="list" className="space-y-4 md:flex md:space-x-8 md:space-y-0">
-        {steps.map((step, index) => (
-          <li key={step.title} className="md:flex-1">
-            <button
+    <div className="relative">
+      <div className="absolute top-1/2 left-0 w-full h-0.5 bg-gray-100 -translate-y-1/2" />
+      <div className="relative flex justify-between items-center">
+        {steps.map((step, index) => {
+          const stepNumber = index + 1;
+          const isClickable = canNavigateToStep(stepNumber);
+          const isActive = stepNumber === currentStep;
+          const isCompleted = stepNumber < currentStep;
+          
+          return (
+            <div
+              key={step.title}
               className={cn(
-                "group flex w-full flex-col border-l-4 py-2 pl-4 md:border-l-0 md:border-t-4 md:pb-0 md:pl-0 md:pt-4",
-                step.number < currentStep
-                  ? "border-facebook hover:border-facebook/80"
-                  : step.number === currentStep
-                  ? "border-facebook"
-                  : "border-gray-200",
-                !canNavigateToStep(step.number) && "cursor-not-allowed opacity-50"
+                "flex flex-col items-center relative",
+                isClickable && "cursor-pointer group"
               )}
-              onClick={() => canNavigateToStep(step.number) && onStepClick(step.number)}
-              disabled={!canNavigateToStep(step.number)}
+              onClick={() => isClickable && onStepClick(stepNumber)}
             >
-              <span className="text-sm font-medium">
-                {step.number < currentStep ? (
-                  <Check className="h-4 w-4 text-facebook" />
-                ) : (
-                  <span
-                    className={cn(
-                      "text-sm font-medium",
-                      step.number === currentStep
-                        ? "text-facebook"
-                        : "text-gray-500"
-                    )}
-                  >
-                    Step {step.number}
-                  </span>
-                )}
-              </span>
-              <span
+              <div
                 className={cn(
-                  "text-sm font-medium",
-                  step.number === currentStep
-                    ? "text-facebook"
-                    : "text-gray-500"
+                  "w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 z-10",
+                  isCompleted ? "bg-facebook text-white shadow-lg" :
+                  isActive ? "bg-facebook text-white ring-4 ring-facebook/20" :
+                  "bg-white border-2 border-gray-200 text-gray-400",
+                  isClickable && !isActive && !isCompleted && "group-hover:border-facebook/50 group-hover:text-facebook"
                 )}
               >
-                {step.title}
-              </span>
-            </button>
-          </li>
-        ))}
-      </ol>
-    </nav>
+                {isCompleted ? (
+                  <CheckIcon className="w-6 h-6" />
+                ) : (
+                  stepNumber
+                )}
+              </div>
+              <div className="mt-4 text-center">
+                <p
+                  className={cn(
+                    "font-medium mb-1 transition-colors duration-200",
+                    (isActive || isCompleted) ? "text-facebook" : "text-gray-500",
+                    isClickable && !isActive && !isCompleted && "group-hover:text-facebook"
+                  )}
+                >
+                  {step.title}
+                </p>
+                <p className="text-sm text-gray-500">
+                  {step.description}
+                </p>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 };
 

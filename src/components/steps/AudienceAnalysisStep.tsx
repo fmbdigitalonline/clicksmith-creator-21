@@ -8,7 +8,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { BusinessIdea, TargetAudience, AudienceAnalysis } from "@/types/adWizard";
-import { ArrowLeft, ArrowRight, Loader2, RefreshCw } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -27,7 +27,6 @@ const AudienceAnalysisStep = ({
 }: AudienceAnalysisStepProps) => {
   const [analysis, setAnalysis] = useState<AudienceAnalysis | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [regenerationCount, setRegenerationCount] = useState(0);
   const { toast } = useToast();
 
   const generateAnalysis = async () => {
@@ -37,20 +36,16 @@ const AudienceAnalysisStep = ({
         body: { 
           type: 'audience_analysis',
           businessIdea,
-          targetAudience,
-          regenerationCount: regenerationCount, // Add variation factor
-          timestamp: new Date().getTime() // Add timestamp for variation
+          targetAudience
         }
       });
 
       if (error) throw error;
 
       setAnalysis(data.analysis);
-      setRegenerationCount(prev => prev + 1);
-      
       toast({
-        title: "Fresh Analysis Generated!",
-        description: "New deep audience analysis has been generated successfully.",
+        title: "Analysis Generated!",
+        description: "Deep audience analysis has been generated successfully.",
       });
     } catch (error) {
       console.error('Error generating analysis:', error);
@@ -87,29 +82,18 @@ const AudienceAnalysisStep = ({
           <ArrowLeft className="w-4 h-4" />
           <span>Previous Step</span>
         </Button>
-        <div className="flex gap-2">
-          <Button
-            onClick={generateAnalysis}
-            disabled={isLoading}
-            variant="outline"
-            className="w-full md:w-auto"
-          >
-            {isLoading ? (
-              <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-            ) : (
-              <RefreshCw className="w-4 h-4 mr-2" />
-            )}
-            <span>Regenerate Analysis</span>
-          </Button>
-          <Button
-            onClick={handleNext}
-            disabled={!analysis || isLoading}
-            className="bg-facebook hover:bg-facebook/90 text-white w-full md:w-auto"
-          >
-            <span>Next Step</span>
+        <Button
+          onClick={handleNext}
+          disabled={!analysis || isLoading}
+          className="bg-facebook hover:bg-facebook/90 text-white w-full md:w-auto"
+        >
+          {isLoading ? (
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+          ) : (
             <ArrowRight className="w-4 h-4 ml-2" />
-          </Button>
-        </div>
+          )}
+          <span>Next Step</span>
+        </Button>
       </div>
 
       <div>

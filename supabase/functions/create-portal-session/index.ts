@@ -17,65 +17,36 @@ serve(async (req) => {
     
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
     );
 
     const authHeader = req.headers.get('Authorization')!;
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
+    const { data: { user } } = await supabaseClient.auth.getUser(token);
 
-    if (userError || !user) {
-      console.error('Authentication error:', userError);
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 401,
-        }
-      );
+    if (!user?.email) {
+      throw new Error('User email not found');
     }
-
-    console.log('Fetching subscription for user:', user.id);
-    
-    // Get the user's subscription details
-    const { data: subscriptionData, error: subscriptionError } = await supabaseClient
-      .from('subscriptions')
-      .select('stripe_customer_id')
-      .eq('user_id', user.id)
-      .eq('active', true)
-      .maybeSingle();
-
-    if (subscriptionError) {
-      console.error('Subscription fetch error:', subscriptionError);
-      return new Response(
-        JSON.stringify({ error: 'Failed to fetch subscription details', details: subscriptionError.message }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 400,
-        }
-      );
-    }
-
-    if (!subscriptionData?.stripe_customer_id) {
-      console.error('No Stripe customer ID found for user:', user.id);
-      return new Response(
-        JSON.stringify({ error: 'No active subscription found' }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 404,
-        }
-      );
-    }
-
-    console.log('Found Stripe customer ID:', subscriptionData.stripe_customer_id);
 
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
       apiVersion: '2023-10-16',
     });
 
+    // Get Stripe customer ID
+    const customers = await stripe.customers.list({
+      email: user.email,
+      limit: 1,
+    });
+
+    const customerId = customers.data[0]?.id;
+
+    if (!customerId) {
+      throw new Error('No Stripe customer found');
+    }
+
     // Create portal session
     const session = await stripe.billingPortal.sessions.create({
-      customer: subscriptionData.stripe_customer_id,
+      customer: customerId,
       return_url: returnUrl,
     });
 
@@ -87,7 +58,7 @@ serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error('Portal session error:', error);
+    console.error('Error:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
       { 

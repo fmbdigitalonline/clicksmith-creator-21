@@ -72,12 +72,9 @@ serve(async (req) => {
       customerId = customer.id;
     }
 
-    // Determine if this is a one-time payment or subscription based on the plan price
-    const isOneTimePayment = planData.price === 10;
-
-    // Create checkout session with appropriate mode and configuration
+    // Create checkout session with subscription mode and recurring price
     console.log('Creating checkout session...');
-    const sessionConfig = {
+    const session = await stripe.checkout.sessions.create({
       customer: customerId,
       line_items: [
         {
@@ -85,28 +82,21 @@ serve(async (req) => {
           quantity: 1,
         },
       ],
-      mode: isOneTimePayment ? 'payment' : 'subscription',
+      mode: 'subscription',
+      subscription_data: {
+        trial_period_days: null,
+        metadata: {
+          supabaseUid: user.id,
+          planId: planData.id,
+        },
+      },
       success_url: `${req.headers.get('origin')}/settings?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${req.headers.get('origin')}/pricing`,
       metadata: {
         supabaseUid: user.id,
         planId: planData.id,
       },
-    };
-
-    // Add subscription_data only for subscription mode
-    if (!isOneTimePayment) {
-      Object.assign(sessionConfig, {
-        subscription_data: {
-          metadata: {
-            supabaseUid: user.id,
-            planId: planData.id,
-          },
-        },
-      });
-    }
-
-    const session = await stripe.checkout.sessions.create(sessionConfig);
+    });
 
     console.log('Checkout session created successfully');
     return new Response(

@@ -49,15 +49,6 @@ serve(async (req) => {
       throw new Error('OpenAI API key not found');
     }
 
-    console.log('Received request type:', type);
-
-    // Validate the type parameter
-    const validTypes = ['audience', 'audience_analysis', 'campaign', 'hooks', 'images', 'complete_ads', 'video_ads'];
-    if (!validTypes.includes(type)) {
-      console.error('Invalid type received:', type);
-      throw new Error(`Invalid generation type. Must be one of: ${validTypes.join(', ')}`);
-    }
-
     let result;
     switch (type) {
       case 'audience':
@@ -84,9 +75,8 @@ serve(async (req) => {
         result = await handleImagePromptGeneration(businessIdea, targetAudience, campaign, openAIApiKey);
         break;
       case 'complete_ads':
-      case 'video_ads':
         if (!businessIdea || !targetAudience || !campaign) 
-          throw new Error('Business idea, target audience, and campaign are required for ad generation');
+          throw new Error('Business idea, target audience, and campaign are required for complete ad generation');
         result = await handleCompleteAdGeneration(businessIdea, targetAudience, campaign, openAIApiKey);
         break;
       default:

@@ -29,36 +29,20 @@ export const SubscriptionSettings = ({ subscription, isLoadingSubscription }: Su
 
   const handleManageSubscription = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        toast({
-          title: "Authentication required",
-          description: "Please sign in to manage your subscription",
-          variant: "destructive",
-        });
-        return;
-      }
-
       const { data, error } = await supabase.functions.invoke('create-portal-session', {
         body: { returnUrl: window.location.href }
       });
 
-      if (error) {
-        console.error('Portal session error:', error);
-        throw error;
-      }
+      if (error) throw error;
 
       if (data?.url) {
         window.location.href = data.url;
-      } else {
-        throw new Error('No portal URL received');
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Portal session error:', error);
       toast({
         title: "Error",
-        description: "Failed to open subscription management portal. Please try again later.",
+        description: "Failed to open subscription management portal.",
         variant: "destructive",
       });
     }

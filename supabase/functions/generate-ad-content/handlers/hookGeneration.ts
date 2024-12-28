@@ -54,6 +54,11 @@ General
 
 Follow these guidelines:
 
+Marketing angle Definition:
+A marketing angle is an approach taken to deliver your messages about an offer to your potential customers.
+Just write a short brief and clear sentence to explain the angle.
+All angles should be different from one another.
+
 Hooks Guidelines:
 - Every hook should address a specific marketing angle
 - Very short, concise and impactful

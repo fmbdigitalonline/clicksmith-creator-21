@@ -8,7 +8,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { BusinessIdea, TargetAudience } from "@/types/adWizard";
-import { Users, ArrowLeft, Wand2, RefreshCw } from "lucide-react";
+import { Users, ArrowLeft, ArrowRight, Wand2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -23,56 +23,30 @@ const AudienceStep = ({
 }) => {
   const [audiences, setAudiences] = useState<TargetAudience[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [regenerationCount, setRegenerationCount] = useState(0);
   const { toast } = useToast();
 
-  const generateAudiences = async (forceRegenerate: boolean = false) => {
+  const generateAudiences = async () => {
     setIsGenerating(true);
     try {
-      console.log('Generating audiences with business idea:', businessIdea);
-      
-      // Increment regeneration count when forcing regeneration
-      const currentRegenerationCount = forceRegenerate ? regenerationCount + 1 : regenerationCount;
-      
       const { data, error } = await supabase.functions.invoke('generate-ad-content', {
         body: { 
           type: 'audience',
-          businessIdea: businessIdea,
-          regenerationCount: currentRegenerationCount,
-          timestamp: new Date().getTime(),
-          forceRegenerate: forceRegenerate
+          businessIdea: businessIdea
         }
       });
 
-      if (error) {
-        console.error('Error from Supabase:', error);
-        throw error;
-      }
+      if (error) throw error;
 
-      console.log('Received response:', data);
-
-      if (!data?.audiences || !Array.isArray(data.audiences)) {
-        console.error('Invalid response format:', data);
-        throw new Error('Invalid response format from server');
-      }
-
-      if (forceRegenerate) {
-        setRegenerationCount(currentRegenerationCount);
-      }
-      
       setAudiences(data.audiences);
-      
-      if (forceRegenerate) {
-        toast({
-          title: "Fresh Audiences Generated!",
-          description: "New target audiences have been generated based on your business idea.",
-        });
-      }
+      toast({
+        title: "Audiences Generated!",
+        description: "New target audiences have been generated based on your business idea.",
+      });
     } catch (error) {
       console.error('Error generating audiences:', error);
       toast({
         title: "Generation Failed",
-        description: error instanceof Error ? error.message : "Failed to generate audiences. Please try again.",
+        description: "Failed to generate audiences. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -82,7 +56,7 @@ const AudienceStep = ({
 
   useEffect(() => {
     if (audiences.length === 0) {
-      generateAudiences(false);
+      generateAudiences();
     }
   }, []);
 
@@ -98,16 +72,12 @@ const AudienceStep = ({
           <span>Previous Step</span>
         </Button>
         <Button
-          onClick={() => generateAudiences(true)}
+          onClick={generateAudiences}
           disabled={isGenerating}
           className="bg-facebook hover:bg-facebook/90 text-white w-full md:w-auto"
         >
-          {isGenerating ? (
-            <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-          ) : (
-            <Wand2 className="w-4 h-4 mr-2" />
-          )}
-          {isGenerating ? "Regenerating..." : "Generate New Audiences"}
+          <Wand2 className="w-4 h-4 mr-2" />
+          {isGenerating ? "Generating..." : "Generate New Audiences"}
         </Button>
       </div>
 
@@ -119,9 +89,9 @@ const AudienceStep = ({
       </div>
 
       <div className="grid gap-4 md:gap-6 grid-cols-1 lg:grid-cols-3">
-        {audiences.map((audience, index) => (
+        {audiences.map((audience) => (
           <Card
-            key={`${audience.name}-${index}`}
+            key={audience.name}
             className="relative group cursor-pointer hover:shadow-lg transition-all duration-200 border-2 hover:border-facebook"
             onClick={() => onNext(audience)}
           >
@@ -139,8 +109,8 @@ const AudienceStep = ({
                 <div className="space-y-2">
                   <p className="text-sm font-medium text-facebook">Pain Points:</p>
                   <ul className="text-sm list-disc list-inside text-gray-600 space-y-1">
-                    {audience.painPoints.map((point, idx) => (
-                      <li key={`${point}-${idx}`}>{point}</li>
+                    {audience.painPoints.map((point) => (
+                      <li key={point}>{point}</li>
                     ))}
                   </ul>
                 </div>
@@ -170,11 +140,15 @@ const AudienceStep = ({
                 <div>
                   <p className="text-sm font-medium text-facebook">Marketing Channels:</p>
                   <ul className="text-sm list-disc list-inside text-gray-600">
-                    {audience.marketingChannels.map((channel, idx) => (
-                      <li key={`${channel}-${idx}`}>{channel}</li>
+                    {audience.marketingChannels.map((channel) => (
+                      <li key={channel}>{channel}</li>
                     ))}
                   </ul>
                 </div>
+              </div>
+
+              <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                <ArrowRight className="w-5 h-5 text-facebook" />
               </div>
             </CardContent>
           </Card>

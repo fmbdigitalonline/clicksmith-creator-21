@@ -18,9 +18,9 @@ const Index = () => {
     <div className="container mx-auto py-6">
       <div className="flex flex-col gap-8">
         <div className="flex flex-col items-center justify-center gap-4 p-8 text-center">
-          <h1 className="text-4xl font-bold tracking-tight">Viable</h1>
+          <h1 className="text-4xl font-bold tracking-tight">Business Idea Validator</h1>
           <p className="text-lg text-muted-foreground">
-            Discover profitable ideas fast through targeted market testing and AI-powered Facebook ad campaigns
+            Validate your business concept through targeted market testing and AI-powered Facebook ad campaigns
           </p>
           <Button 
             size="lg" 
@@ -28,7 +28,7 @@ const Index = () => {
             className="mt-4 gap-2"
           >
             <Wand2 className="h-5 w-5" />
-            Start ProfitPilot Wizard
+            Start Validation Wizard
           </Button>
         </div>
         <ProjectList onStartAdWizard={handleStartAdWizard} />

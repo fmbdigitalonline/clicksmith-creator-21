@@ -16,7 +16,12 @@ export interface TargetAudience {
   marketingChannels: string[];
 }
 
-export interface MarketingHook {
+export interface MarketingCampaign {
+  hooks: AdHook[];
+  format: AdFormat;
+}
+
+export interface AdHook {
   text: string;
   description: string;
 }
@@ -30,4 +35,31 @@ export interface AdFormat {
   aspectRatio: string;
   description: string;
   platform: 'facebook' | 'google';
+}
+
+export interface AdSize {
+  width: number;
+  height: number;
+  label: string;
+}
+
+export interface AdSpecs {
+  uploadedAdSpecs: {
+    maxFileSizeKB: number;
+    acceptedFormats: string[];
+    commonSizes: AdSize[];
+    mobileCommonSizes: AdSize[];
+    topPerforming: AdSize[];
+  };
+  responsiveAdSpecs: {
+    recommendedAspectRatios: {
+      square: string;
+      landscape: string;
+    };
+    minimumImageWidth: number;
+    responsiveRenderedSizes: {
+      desktop: AdSize[];
+      mobile: AdSize[];
+    };
+  };
 }
