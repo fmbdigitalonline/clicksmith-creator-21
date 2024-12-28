@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { generateCompleteAds } from './handlers/completeAdGeneration.ts';
 import { generateHooks } from './handlers/hookGeneration.ts';
 import { generateAudienceAnalysis } from './handlers/audienceAnalysis.ts';
+import { generateCompleteAds } from './handlers/completeAdGeneration.ts';
 import { generateImages } from './handlers/imagePromptGeneration.ts';
 
 const corsHeaders = {
