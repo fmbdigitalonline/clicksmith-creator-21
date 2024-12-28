@@ -1,15 +1,12 @@
 import { BusinessIdea, TargetAudience } from '../types.ts';
 
-export const analyzeAudience = async (
+export const generateAudienceAnalysis = async (
   businessIdea: BusinessIdea,
-  targetAudience: TargetAudience,
-  openAIApiKey: string,
-  regenerationCount: number = 0
+  targetAudience: TargetAudience
 ) => {
-  console.log('Starting audience analysis... (regeneration #${regenerationCount})');
+  console.log('Starting audience analysis...');
   
-  const prompt = `Analyze the following target audience for a business 
-  (consider this is regeneration attempt #${regenerationCount}, so provide fresh insights and perspectives):
+  const prompt = `Analyze the following target audience for a business:
   
   Business Description: ${businessIdea.description}
   Value Proposition: ${businessIdea.valueProposition}
@@ -21,12 +18,6 @@ export const analyzeAudience = async (
   Pain Points: ${targetAudience.painPoints.join(', ')}
   ICP: ${targetAudience.icp}
   Core Message: ${targetAudience.coreMessage}
-  
-  Important: For each regeneration, explore different angles and provide unique insights focusing on:
-  - Different market segments within the target audience
-  - Alternative pain points and desires
-  - Varied sophistication levels and awareness states
-  - Fresh objections and concerns
   
   Return a JSON object with these exact fields (no markdown formatting):
   {
@@ -43,11 +34,11 @@ export const analyzeAudience = async (
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
+        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4',
         messages: [
           {
             role: 'system',
@@ -109,3 +100,6 @@ export const analyzeAudience = async (
     throw error;
   }
 };
+
+// Alias for backward compatibility
+export const analyzeAudience = generateAudienceAnalysis;
