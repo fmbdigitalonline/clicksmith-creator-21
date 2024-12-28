@@ -29,6 +29,8 @@ const AudienceStep = ({
   const generateAudiences = async (forceRegenerate: boolean = false) => {
     setIsGenerating(true);
     try {
+      console.log('Generating audiences with business idea:', businessIdea);
+      
       // Increment regeneration count when forcing regeneration
       const currentRegenerationCount = forceRegenerate ? regenerationCount + 1 : regenerationCount;
       
@@ -38,11 +40,21 @@ const AudienceStep = ({
           businessIdea: businessIdea,
           regenerationCount: currentRegenerationCount,
           timestamp: new Date().getTime(),
-          forceRegenerate: forceRegenerate // Add this flag to ensure new variations
+          forceRegenerate: forceRegenerate
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error from Supabase:', error);
+        throw error;
+      }
+
+      console.log('Received response:', data);
+
+      if (!data?.audiences || !Array.isArray(data.audiences)) {
+        console.error('Invalid response format:', data);
+        throw new Error('Invalid response format from server');
+      }
 
       if (forceRegenerate) {
         setRegenerationCount(currentRegenerationCount);
@@ -60,7 +72,7 @@ const AudienceStep = ({
       console.error('Error generating audiences:', error);
       toast({
         title: "Generation Failed",
-        description: "Failed to generate audiences. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to generate audiences. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -107,9 +119,9 @@ const AudienceStep = ({
       </div>
 
       <div className="grid gap-4 md:gap-6 grid-cols-1 lg:grid-cols-3">
-        {audiences.map((audience) => (
+        {audiences.map((audience, index) => (
           <Card
-            key={audience.name}
+            key={`${audience.name}-${index}`}
             className="relative group cursor-pointer hover:shadow-lg transition-all duration-200 border-2 hover:border-facebook"
             onClick={() => onNext(audience)}
           >
@@ -127,8 +139,8 @@ const AudienceStep = ({
                 <div className="space-y-2">
                   <p className="text-sm font-medium text-facebook">Pain Points:</p>
                   <ul className="text-sm list-disc list-inside text-gray-600 space-y-1">
-                    {audience.painPoints.map((point) => (
-                      <li key={point}>{point}</li>
+                    {audience.painPoints.map((point, idx) => (
+                      <li key={`${point}-${idx}`}>{point}</li>
                     ))}
                   </ul>
                 </div>
@@ -158,8 +170,8 @@ const AudienceStep = ({
                 <div>
                   <p className="text-sm font-medium text-facebook">Marketing Channels:</p>
                   <ul className="text-sm list-disc list-inside text-gray-600">
-                    {audience.marketingChannels.map((channel) => (
-                      <li key={channel}>{channel}</li>
+                    {audience.marketingChannels.map((channel, idx) => (
+                      <li key={`${channel}-${idx}`}>{channel}</li>
                     ))}
                   </ul>
                 </div>
