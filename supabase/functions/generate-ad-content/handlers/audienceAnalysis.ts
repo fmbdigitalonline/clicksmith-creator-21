@@ -1,12 +1,8 @@
-import { BusinessIdea, TargetAudience } from '../types.ts';
-
-export const generateAudienceAnalysis = async (
-  businessIdea: BusinessIdea,
-  targetAudience: TargetAudience
-) => {
-  console.log('Starting audience analysis...');
+export async function handleAudienceAnalysis(businessIdea: any, targetAudience: any, openAIApiKey: string, regenerationCount: number = 0) {
+  console.log('Starting audience analysis... (regeneration #${regenerationCount})');
   
-  const prompt = `Analyze the following target audience for a business:
+  const prompt = `Analyze the following target audience for a business 
+  (consider this is regeneration attempt #${regenerationCount}, so provide fresh insights and perspectives):
   
   Business Description: ${businessIdea.description}
   Value Proposition: ${businessIdea.valueProposition}
@@ -18,6 +14,12 @@ export const generateAudienceAnalysis = async (
   Pain Points: ${targetAudience.painPoints.join(', ')}
   ICP: ${targetAudience.icp}
   Core Message: ${targetAudience.coreMessage}
+  
+  Important: For each regeneration, explore different angles and provide unique insights focusing on:
+  - Different market segments within the target audience
+  - Alternative pain points and desires
+  - Varied sophistication levels and awareness states
+  - Fresh objections and concerns
   
   Return a JSON object with these exact fields (no markdown formatting):
   {
@@ -34,11 +36,11 @@ export const generateAudienceAnalysis = async (
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+        'Authorization': `Bearer ${openAIApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4',
+        model: 'gpt-4o-mini',
         messages: [
           {
             role: 'system',
@@ -96,10 +98,7 @@ export const generateAudienceAnalysis = async (
 
     return { analysis };
   } catch (error) {
-    console.error('Error in analyzeAudience:', error);
+    console.error('Error in handleAudienceAnalysis:', error);
     throw error;
   }
-};
-
-// Alias for backward compatibility
-export const analyzeAudience = generateAudienceAnalysis;
+}

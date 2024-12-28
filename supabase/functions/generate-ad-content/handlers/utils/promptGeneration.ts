@@ -1,20 +1,21 @@
-import { BusinessIdea, TargetAudience, MarketingHook } from '../../types.ts';
+import { BusinessIdea, TargetAudience, MarketingHook } from '../../Types.ts';
+import { buildMainPrompt, buildVariationPrompt } from './promptBuilder.ts';
 
-export function generatePrompts(
+export const generatePrompts = (
   businessIdea: BusinessIdea,
   targetAudience: TargetAudience,
   hook: MarketingHook,
-  count: number = 3
-): string[] {
-  const basePrompt = `Create a compelling ad for the following business:
-Business: ${businessIdea.description}
-Value Proposition: ${businessIdea.valueProposition}
-Target Audience: ${targetAudience.description}
-Marketing Angle: ${hook.description}
-Hook: ${hook.text}`;
-
-  // Generate multiple variations of the prompt
-  return Array(count).fill(basePrompt).map((prompt, index) => 
-    `${prompt}\n\nGenerate Ad Variation #${index + 1}:\nCreate a unique and engaging ad that incorporates the hook and marketing angle while speaking directly to the target audience's pain points. The ad should be concise, persuasive, and optimized for social media.`
-  );
-}
+  count: number = 1
+): string[] => {
+  const prompts: string[] = [];
+  
+  // Always include the main prompt
+  prompts.push(buildMainPrompt(businessIdea, targetAudience, hook));
+  
+  // Generate additional variations if requested
+  for (let i = 1; i < count; i++) {
+    prompts.push(buildVariationPrompt(businessIdea, targetAudience, hook));
+  }
+  
+  return prompts;
+};
