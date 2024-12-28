@@ -1,4 +1,4 @@
-import { serve } from 'https://deno.fresh.dev/std@v1/http/server.ts';
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import generateCompleteAds from './handlers/completeAdGeneration.ts';
 import { generateHooks } from './handlers/hookGeneration.ts';
 import { generateAudienceAnalysis } from './handlers/audienceAnalysis.ts';
