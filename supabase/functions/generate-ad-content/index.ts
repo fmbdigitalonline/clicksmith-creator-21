@@ -10,6 +10,7 @@ import { generateCampaign } from "./handlers/campaignGeneration.ts";
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
 };
 
 serve(async (req) => {
@@ -20,6 +21,7 @@ serve(async (req) => {
 
   try {
     const { type, businessIdea, targetAudience, regenerationCount, timestamp, forceRegenerate } = await req.json();
+    console.log('Received request:', { type, businessIdea, targetAudience, regenerationCount, timestamp, forceRegenerate });
 
     let responseData;
 
@@ -53,7 +55,10 @@ serve(async (req) => {
     }
 
     return new Response(JSON.stringify(responseData), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { 
+        ...corsHeaders, 
+        'Content-Type': 'application/json'
+      },
     });
   } catch (error) {
     console.error('Error in generate-ad-content function:', error);
@@ -64,7 +69,10 @@ serve(async (req) => {
       }),
       {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json'
+        },
       }
     );
   }
