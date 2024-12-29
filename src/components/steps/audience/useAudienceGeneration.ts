@@ -15,20 +15,28 @@ export const useAudienceGeneration = () => {
     setError(null);
     
     try {
-      console.log('Generating audiences with params:', { businessIdea, regenerationCount, forceRegenerate });
+      const session = await supabase.auth.getSession();
+      const authHeader = session.data.session?.access_token 
+        ? `Bearer ${session.data.session.access_token}`
+        : undefined;
+
+      const requestBody = {
+        type: 'audience',
+        businessIdea,
+        regenerationCount: forceRegenerate ? regenerationCount + 1 : regenerationCount,
+        timestamp: new Date().getTime(),
+        forceRegenerate
+      };
+
+      console.log('Generating audiences with params:', requestBody);
 
       const { data, error: supabaseError } = await supabase.functions.invoke('generate-ad-content', {
         method: 'POST',
-        body: {
-          type: 'audience',
-          businessIdea,
-          regenerationCount: forceRegenerate ? regenerationCount + 1 : regenerationCount,
-          timestamp: new Date().getTime(),
-          forceRegenerate
-        },
         headers: {
-          'Content-Type': 'application/json'
-        }
+          'Content-Type': 'application/json',
+          'Authorization': authHeader,
+        },
+        body: JSON.stringify(requestBody)
       });
 
       if (supabaseError) {
@@ -43,8 +51,6 @@ export const useAudienceGeneration = () => {
         throw new Error('Invalid response format from server');
       }
 
-      console.log('Generated audiences:', data.audiences);
-      
       if (forceRegenerate) {
         setRegenerationCount(prev => prev + 1);
       }

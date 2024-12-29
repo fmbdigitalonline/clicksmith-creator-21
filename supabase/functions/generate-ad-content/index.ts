@@ -29,13 +29,15 @@ serve(async (req) => {
     }
 
     // Ensure request has a body and parse it
+    const text = await req.text();
+    if (!text) {
+      throw new Error('Empty request body');
+    }
+
+    console.log('Raw request body:', text);
+    
     let body;
     try {
-      const text = await req.text();
-      if (!text) {
-        throw new Error('Empty request body');
-      }
-      console.log('Raw request body:', text);
       body = JSON.parse(text);
     } catch (e) {
       console.error('JSON parsing error:', e);
