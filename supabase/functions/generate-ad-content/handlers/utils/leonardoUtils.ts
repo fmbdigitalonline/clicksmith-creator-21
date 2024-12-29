@@ -29,7 +29,7 @@ export async function generateWithLeonardo(prompt: string): Promise<string> {
       },
       body: JSON.stringify({
         prompt,
-        modelId: "6bef9f1b-29cb-40c7-b9df-32b51c1f67d3", // Updated to Leonardo Creative model
+        modelId: "6bef9f1b-29cb-40c7-b9df-32b51c1f67d3", // Leonardo Creative v2
         width: 1024,
         height: 1024,
         num_images: 1,
@@ -39,6 +39,9 @@ export async function generateWithLeonardo(prompt: string): Promise<string> {
         negative_prompt: "low quality, blurry, distorted, ugly, bad anatomy, watermark, signature, text",
         nsfw: false,
         photoReal: true,
+        seed: Math.floor(Math.random() * 2147483647), // Random seed for variety
+        scheduler: "LEONARDO", // Using Leonardo's default scheduler
+        presetStyle: "LEONARDO", // Using Leonardo's default style
       }),
     });
 
@@ -48,7 +51,7 @@ export async function generateWithLeonardo(prompt: string): Promise<string> {
         status: initResponse.status,
         statusText: initResponse.statusText,
         error: errorText,
-        requestBody: prompt
+        requestBody: { prompt }
       });
       throw new Error(`Leonardo API initialization error: ${initResponse.status} ${initResponse.statusText}`);
     }
@@ -99,7 +102,8 @@ export async function generateWithLeonardo(prompt: string): Promise<string> {
         }
         console.log('Leonardo generation complete:', {
           status: statusData.sdGenerationJob.status,
-          imageCount: statusData.sdGenerationJob.imageUrls.length
+          imageCount: statusData.sdGenerationJob.imageUrls.length,
+          generationId
         });
         return statusData.sdGenerationJob.imageUrls[0];
       }
