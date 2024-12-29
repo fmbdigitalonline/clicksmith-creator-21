@@ -55,12 +55,10 @@ export async function generateWithReplicate(
 
         if (result.status === "succeeded") {
           console.log('Generation succeeded:', result);
-          if (!result.output) {
-            throw new Error('No output received from successful generation');
-          }
-          const imageUrl = Array.isArray(result.output) ? result.output[0] : result.output;
-          if (!imageUrl) {
-            throw new Error('No valid image URL in output');
+          // The output is already a string URL, which matches the required schema
+          const imageUrl = result.output;
+          if (!imageUrl || typeof imageUrl !== 'string') {
+            throw new Error('Invalid output format from Replicate');
           }
           return imageUrl;
         }
