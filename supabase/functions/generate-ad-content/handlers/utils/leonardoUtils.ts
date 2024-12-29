@@ -29,14 +29,16 @@ export async function generateWithLeonardo(prompt: string): Promise<string> {
       },
       body: JSON.stringify({
         prompt,
-        modelId: "ac614f96-1082-45bf-be9d-757f2d31c174", // Leonardo Creative
+        modelId: "6bef9f1b-29cb-40c7-b9df-32b51c1f67d3", // Updated to Leonardo Creative model
         width: 1024,
         height: 1024,
         num_images: 1,
-        photoReal: true,
-        photoRealVersion: "v2",
+        guidance_scale: 7,
+        public: false,
         promptMagic: true,
-        negative_prompt: "low quality, blurry, distorted",
+        negative_prompt: "low quality, blurry, distorted, ugly, bad anatomy, watermark, signature, text",
+        nsfw: false,
+        photoReal: true,
       }),
     });
 
@@ -45,7 +47,8 @@ export async function generateWithLeonardo(prompt: string): Promise<string> {
       console.error('Leonardo API initialization error:', {
         status: initResponse.status,
         statusText: initResponse.statusText,
-        error: errorText
+        error: errorText,
+        requestBody: prompt
       });
       throw new Error(`Leonardo API initialization error: ${initResponse.status} ${initResponse.statusText}`);
     }
@@ -82,7 +85,8 @@ export async function generateWithLeonardo(prompt: string): Promise<string> {
         console.error('Leonardo API status check error:', {
           status: statusResponse.status,
           statusText: statusResponse.statusText,
-          error: errorText
+          error: errorText,
+          generationId
         });
         throw new Error(`Failed to check generation status: ${statusResponse.status}`);
       }
@@ -93,7 +97,10 @@ export async function generateWithLeonardo(prompt: string): Promise<string> {
         if (!statusData.sdGenerationJob.imageUrls?.[0]) {
           throw new Error('No image URL in completed generation');
         }
-        console.log('Leonardo generation complete:', statusData);
+        console.log('Leonardo generation complete:', {
+          status: statusData.sdGenerationJob.status,
+          imageCount: statusData.sdGenerationJob.imageUrls.length
+        });
         return statusData.sdGenerationJob.imageUrls[0];
       }
 
