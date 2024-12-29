@@ -6,15 +6,37 @@ import { generateCampaign } from "./handlers/campaignGeneration.ts";
 import { analyzeAudience } from "./handlers/audienceAnalysis.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 
-serve(async (req) => {
-  // Log incoming request details
-  console.log('Edge Function received request:', { 
-    method: req.method,
-    url: req.url,
-    headers: Object.fromEntries(req.headers.entries())
-  });
+// Helper function to sanitize JSON strings
+const sanitizeJson = (obj: unknown): unknown => {
+  if (typeof obj === 'string') {
+    // Remove control characters and properly escape special characters
+    return obj.replace(/[\u0000-\u001F\u007F-\u009F]/g, '')
+             .replace(/\\/g, '\\\\')
+             .replace(/"/g, '\\"')
+             .replace(/\n/g, '\\n')
+             .replace(/\r/g, '\\r')
+             .replace(/\t/g, '\\t');
+  }
+  if (Array.isArray(obj)) {
+    return obj.map(sanitizeJson);
+  }
+  if (obj && typeof obj === 'object') {
+    return Object.fromEntries(
+      Object.entries(obj).map(([key, value]) => [key, sanitizeJson(value)])
+    );
+  }
+  return obj;
+};
 
+serve(async (req) => {
   try {
+    // Log incoming request details
+    console.log('Edge Function received request:', { 
+      method: req.method,
+      url: req.url,
+      headers: Object.fromEntries(req.headers.entries())
+    });
+
     // Handle CORS preflight requests
     if (req.method === 'OPTIONS') {
       return new Response(null, { 
@@ -32,14 +54,21 @@ serve(async (req) => {
       throw new Error(`Method ${req.method} not allowed. Only GET and POST requests are accepted.`);
     }
 
-    // Parse the request body with proper error handling
+    // Parse and validate the request body
     let body;
     try {
-      body = await req.json();
-      console.log('Request body:', body);
+      const text = await req.text();
+      console.log('Raw request body:', text);
+      
+      if (text) {
+        body = JSON.parse(text);
+        // Sanitize the parsed JSON
+        body = sanitizeJson(body);
+        console.log('Sanitized request body:', body);
+      }
     } catch (e) {
       console.error('Error parsing request body:', e);
-      throw new Error('Invalid JSON in request body');
+      throw new Error(`Invalid JSON in request body: ${e.message}`);
     }
 
     if (!body) {
@@ -77,8 +106,8 @@ serve(async (req) => {
           const imageData = await generateImagePrompts(businessIdea, targetAudience, campaignData.campaign);
           console.log('Image data generated:', imageData);
           
-          // Combine the results
-          responseData = {
+          // Sanitize the response data
+          responseData = sanitizeJson({
             variants: campaignData.campaign.adCopies.map((copy: any, index: number) => ({
               platform: 'facebook',
               headline: campaignData.campaign.headlines[index % campaignData.campaign.headlines.length],
@@ -90,7 +119,7 @@ serve(async (req) => {
                 label: "Facebook Feed"
               }
             }))
-          };
+          });
         } catch (error) {
           console.error('Error generating ad content:', error);
           throw error;
@@ -104,11 +133,12 @@ serve(async (req) => {
         throw new Error(`Unsupported generation type: ${type}`);
     }
 
-    // Log the response data for debugging
-    console.log('Edge Function response data:', responseData);
+    // Sanitize the final response data
+    const sanitizedResponse = sanitizeJson(responseData);
+    console.log('Edge Function response data:', sanitizedResponse);
 
     // Return success response with CORS headers
-    return new Response(JSON.stringify(responseData), {
+    return new Response(JSON.stringify(sanitizedResponse), {
       status: 200,
       headers: { 
         ...corsHeaders,
