@@ -24,15 +24,20 @@ const AudienceStep = ({
   const [audiences, setAudiences] = useState<TargetAudience[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [regenerationCount, setRegenerationCount] = useState(0);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
   const generateAudiences = async (forceRegenerate: boolean = false) => {
     setIsGenerating(true);
+    setError(null);
+    
     try {
-      console.log('Generating audiences with params:', { 
+      console.log('Calling generate-ad-content function with params:', { 
+        type: 'audience',
         businessIdea, 
         regenerationCount,
-        forceRegenerate 
+        forceRegenerate,
+        timestamp: new Date().getTime()
       });
 
       const { data, error } = await supabase.functions.invoke('generate-ad-content', {
@@ -49,6 +54,8 @@ const AudienceStep = ({
         console.error('Supabase function error:', error);
         throw error;
       }
+
+      console.log('Response from generate-ad-content:', data);
 
       if (!data || !Array.isArray(data.audiences)) {
         console.error('Invalid response format:', data);
@@ -71,9 +78,11 @@ const AudienceStep = ({
       }
     } catch (error) {
       console.error('Error generating audiences:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to generate audiences';
+      setError(errorMessage);
       toast({
         title: "Generation Failed",
-        description: "Failed to generate audiences. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -118,6 +127,14 @@ const AudienceStep = ({
           Select the audience that best matches your ideal customers.
         </p>
       </div>
+
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg">
+          <p className="font-medium">Error occurred:</p>
+          <p>{error}</p>
+          <p className="text-sm mt-2">Please try again or contact support if the issue persists.</p>
+        </div>
+      )}
 
       {isGenerating ? (
         <div className="flex items-center justify-center py-12">
