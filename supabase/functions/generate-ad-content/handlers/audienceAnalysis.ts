@@ -1,4 +1,4 @@
-export async function handleAudienceAnalysis(businessIdea: any, targetAudience: any, openAIApiKey: string, regenerationCount: number = 0) {
+export const analyzeAudience = async (businessIdea: any, targetAudience: any, openAIApiKey: string, regenerationCount: number = 0) => {
   console.log('Starting audience analysis... (regeneration #${regenerationCount})');
   
   const prompt = `Analyze the following target audience for a business 
@@ -98,7 +98,7 @@ export async function handleAudienceAnalysis(businessIdea: any, targetAudience: 
 
     return { analysis };
   } catch (error) {
-    console.error('Error in handleAudienceAnalysis:', error);
+    console.error('Error in analyzeAudience:', error);
     throw error;
   }
-}
+};
