@@ -18,10 +18,10 @@ interface RetryConfig {
 
 // Default model configurations
 const MODELS = {
-  sdxl: "39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b", // SDXL
-  sdxlBase: "8beff3369e81422112d93b89ca01426147de542cd4684c244b673b105188fe5f", // SDXL Base
-  sdv15: "a4a8bafd6089e5dad6dd6dc5b3304a8ff88a27615fa0b67d135b0dfd814187be", // Stable Diffusion v1.5
-  flux: "black-forest-labs/flux-1.1-pro" // Flux model for realistic images
+  sdxl: "39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b",
+  sdxlBase: "8beff3369e81422112d93b89ca01426147de542cd4684c244b673b105188fe5f",
+  sdv15: "a4a8bafd6089e5dad6dd6dc5b3304a8ff88a27615fa0b67d135b0dfd814187be",
+  flux: "black-forest-labs/flux-1.1-pro"
 } as const;
 
 async function delay(ms: number): Promise<void> {
@@ -53,24 +53,21 @@ async function retryWithBackoff<T>(
 
 async function pollPrediction(
   replicate: Replicate,
-  predictionId: string,
+  prediction: any,
   maxAttempts: number = 30
 ): Promise<any> {
   let attempts = 0;
   
   while (attempts < maxAttempts) {
-    const result = await replicate.predictions.get(predictionId);
-    console.log(`Polling attempt ${attempts + 1}, status: ${result.status}`);
-    
-    if (result.status === 'succeeded') {
-      return result;
+    if (prediction.status === 'succeeded') {
+      return prediction;
     }
     
-    if (result.status === 'failed') {
-      throw new Error(`Prediction failed: ${result.error}`);
+    if (prediction.status === 'failed') {
+      throw new Error(`Prediction failed: ${prediction.error}`);
     }
     
-    if (result.status === 'canceled') {
+    if (prediction.status === 'canceled') {
       throw new Error('Prediction was canceled');
     }
     
@@ -108,15 +105,23 @@ export async function generateWithReplicate(
 
     // Create prediction with retry logic
     const prediction = await retryWithBackoff(
-      async () => replicate.run(MODELS[config.model as keyof typeof MODELS], {
-        input: {
-          prompt,
-          width: config.width,
-          height: config.height,
-          num_outputs: config.numOutputs,
-          prompt_upsampling: true, // Enable prompt upsampling for better results
-        },
-      }),
+      async () => {
+        const modelId = MODELS[config.model as keyof typeof MODELS];
+        console.log(`Using model: ${modelId}`);
+        
+        const result = await replicate.run(modelId, {
+          input: {
+            prompt,
+            width: config.width,
+            height: config.height,
+            num_outputs: config.numOutputs,
+            prompt_upsampling: true,
+          }
+        });
+
+        console.log('Raw Replicate response:', result);
+        return result;
+      },
       {
         maxRetries: config.maxRetries,
         delay: config.retryDelay,
@@ -126,11 +131,17 @@ export async function generateWithReplicate(
 
     console.log('Prediction result:', prediction);
 
-    if (!prediction || !Array.isArray(prediction)) {
-      throw new Error('Invalid output received from Replicate');
+    // Handle different response formats
+    let imageUrl: string;
+    if (Array.isArray(prediction)) {
+      imageUrl = prediction[0];
+    } else if (typeof prediction === 'string') {
+      imageUrl = prediction;
+    } else if (prediction.output && Array.isArray(prediction.output)) {
+      imageUrl = prediction.output[0];
+    } else {
+      throw new Error(`Unexpected response format from Replicate: ${JSON.stringify(prediction)}`);
     }
-
-    const imageUrl = prediction[0];
     
     if (typeof imageUrl !== 'string' || !imageUrl.startsWith('http')) {
       throw new Error(`Invalid URL format received: ${imageUrl}`);
