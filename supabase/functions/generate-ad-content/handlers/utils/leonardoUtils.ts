@@ -27,14 +27,15 @@ export async function generateWithLeonardo(prompt: string): Promise<string> {
       },
       body: JSON.stringify({
         prompt,
-        modelId: "ac614f96-1082-45bf-be9d-757f2d31c174", // Leonardo Vision XL model ID
-        width: 1024,
-        height: 768,
+        modelId: "aa77f04e-3eec-4034-9c07-d0f619684628", // Leonardo Kino XL model
+        width: 512,
+        height: 512,
         num_images: 1,
-        negative_prompt: "blurry, low quality, distorted, deformed",
+        negative_prompt: "trees, blurry, low quality, distorted, deformed",
         public: false,
         nsfw: false,
         photoReal: true,
+        photoRealVersion: "v2",
         scheduler: "DDIM",
         presetStyle: "DYNAMIC",
         alchemy: true,
