@@ -42,7 +42,7 @@ serve(async (req) => {
         break;
       case 'analysis':
         console.log('Analyzing audience with params:', { businessIdea, targetAudience });
-        responseData = await analyzeAudience(businessIdea, targetAudience, Deno.env.get("OPENAI_API_KEY") || "");
+        responseData = await analyzeAudience(businessIdea, targetAudience);
         break;
       case 'campaign':
         console.log('Generating campaign with params:', { businessIdea, targetAudience });

@@ -1,79 +1,20 @@
-export async function handleHookGeneration(businessIdea: any, targetAudience: any, openAIApiKey: string) {
-  const prompt = `Create a marketing campaign for this business and target audience:
+export async function generateHooks(businessIdea: any, targetAudience: any) {
+  const prompt = `Create marketing hooks for this business and target audience:
 
 Business:
-${businessIdea.description}
-Value Proposition: ${businessIdea.valueProposition}
+${JSON.stringify(businessIdea, null, 2)}
 
 Target Audience:
-Name: ${targetAudience.name}
-Description: ${targetAudience.description}
-Demographics: ${targetAudience.demographics}
-Pain Points: ${targetAudience.painPoints.join(', ')}
-Core Message: ${targetAudience.coreMessage}
-Deep Pain Points: ${targetAudience.audienceAnalysis?.deepPainPoints?.join(', ') || 'Not available'}
-Potential Objections: ${targetAudience.audienceAnalysis?.potentialObjections?.join(', ') || 'Not available'}
+${JSON.stringify(targetAudience, null, 2)}
 
-Title: Ad campaign for ${businessIdea.description}
-
-[Target audience]
-${targetAudience.name}
-
-Specific
-[Marketing angle 1]
-[Hook 1]
-[Marketing angle 2]
-[Hook 2]
-[Marketing angle 3]
-[Hook 3]
-[Marketing angle 4]
-[Hook 4]
-[Marketing angle 5]
-[Hook 5]
-[Marketing angle 6]
-[Hook 6]
-[Marketing angle 7]
-[Hook 7]
-[Marketing angle 8]
-[Hook 8]
-[Marketing angle 9]
-[Hook 9]
-[Marketing angle 10]
-[Hook 10]
-
-General
-[Ad copies]
-[Ad copy 1 - Younder story]
-[Ad copy 2 - Short impact]
-[Ad copy 3 - AIDA version]
-
-[Headlines]
-[Headline 1]
-[Headline 2]
-[Headline 3]
-
-Follow these guidelines:
-
-Hooks Guidelines:
-- Every hook should address a specific marketing angle
-- Very short, concise and impactful
-- Call out the target audience either obviously or through shared knowledge
-- Goal is to make the audience stop and read
-- Can be questions, statements, or commands
-- Can use humor or emotion when appropriate
-- Must make it obvious the ad is for them
-
-Ad Copy Guidelines:
-Create 3 different versions:
-1. "Younder story": Longer, storytelling-based
-2. "Short impact": One impactful sentence
-3. "AIDA version": Middle-length with bullet points
-
-Headline Guidelines:
-- Maximum 6 words
-- Straight to the point
-- Highlight solution, product, or feature
-- Based on market awareness/sophistication
+Create 10 marketing hooks that:
+1. Address specific pain points
+2. Are very short and impactful
+3. Make the audience stop and read
+4. Call out the target audience either obviously or through shared knowledge
+5. Can be questions, statements, or commands
+6. Can use humor or emotion when appropriate
+7. Must make it obvious the ad is for them
 
 Return ONLY a valid JSON array with exactly 10 items in this format:
 [
@@ -84,12 +25,12 @@ Return ONLY a valid JSON array with exactly 10 items in this format:
 ]`;
 
   try {
-    console.log('Sending prompt to OpenAI:', prompt);
+    console.log('Generating hooks with prompt:', prompt);
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
+        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
