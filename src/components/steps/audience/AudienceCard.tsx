@@ -8,6 +8,10 @@ interface AudienceCardProps {
 }
 
 const AudienceCard = ({ audience, onClick }: AudienceCardProps) => {
+  // Ensure arrays have default values if undefined
+  const painPoints = audience.painPoints || [];
+  const marketingChannels = audience.marketingChannels || [];
+
   return (
     <Card
       className="relative group cursor-pointer hover:shadow-lg transition-all duration-200 border-2 hover:border-facebook"
@@ -27,7 +31,7 @@ const AudienceCard = ({ audience, onClick }: AudienceCardProps) => {
           <div className="space-y-2">
             <p className="text-sm font-medium text-facebook">Pain Points:</p>
             <ul className="text-sm list-disc list-inside text-gray-600 space-y-1">
-              {audience.painPoints.map((point, pointIndex) => (
+              {painPoints.map((point, pointIndex) => (
                 <li key={`${point}-${pointIndex}`}>{point}</li>
               ))}
             </ul>
@@ -58,7 +62,7 @@ const AudienceCard = ({ audience, onClick }: AudienceCardProps) => {
           <div>
             <p className="text-sm font-medium text-facebook">Marketing Channels:</p>
             <ul className="text-sm list-disc list-inside text-gray-600">
-              {audience.marketingChannels.map((channel, channelIndex) => (
+              {marketingChannels.map((channel, channelIndex) => (
                 <li key={`${channel}-${channelIndex}`}>{channel}</li>
               ))}
             </ul>
