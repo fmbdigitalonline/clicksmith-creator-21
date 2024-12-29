@@ -1,4 +1,4 @@
-export async function handleCampaignGeneration(businessIdea: any, targetAudience: any, audienceAnalysis: any, openAIApiKey: string) {
+export async function generateCampaign(businessIdea: any, targetAudience: any, audienceAnalysis: any, openAIApiKey: string) {
   const prompt = `Create a marketing campaign for this business and target audience:
 
 Business:
@@ -41,36 +41,50 @@ Return ONLY a valid JSON object with these fields:
   "headlines": ["string", "string", "string"]
 }`;
 
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${openAIApiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      messages: [
-        { 
-          role: 'system', 
-          content: 'You are an expert marketing copywriter who creates compelling campaigns based on deep audience analysis. Focus on clear, impactful messaging that resonates with the target audience.'
-        },
-        { role: 'user', content: prompt }
-      ],
-      temperature: 0.7,
-      max_tokens: 2000,
-    }),
-  });
-
-  const data = await response.json();
-  if (data.error) {
-    throw new Error(data.error.message);
-  }
-
   try {
-    const campaign = JSON.parse(data.choices[0].message.content.trim());
+    console.log('Sending request to OpenAI...');
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openAIApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are an expert marketing copywriter. Always respond with raw JSON only, no markdown.'
+          },
+          { role: 'user', content: prompt }
+        ],
+        temperature: 0.7,
+        max_tokens: 2000,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      console.error('OpenAI API error:', error);
+      throw new Error(`OpenAI API error: ${error}`);
+    }
+
+    const data = await response.json();
+    console.log('Raw OpenAI response:', data);
+
+    if (!data.choices?.[0]?.message?.content) {
+      throw new Error('Invalid response format from OpenAI');
+    }
+
+    const content = data.choices[0].message.content;
+    console.log('Content before parsing:', content);
+
+    const campaign = JSON.parse(content);
+    console.log('Parsed campaign:', campaign);
+
     return { campaign };
   } catch (error) {
-    console.error('Error parsing campaign:', error);
-    throw new Error('Failed to parse campaign data');
+    console.error('Error in generateCampaign:', error);
+    throw error;
   }
 }
