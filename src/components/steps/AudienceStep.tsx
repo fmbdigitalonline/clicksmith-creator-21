@@ -29,23 +29,36 @@ const AudienceStep = ({
   const generateAudiences = async (forceRegenerate: boolean = false) => {
     setIsGenerating(true);
     try {
-      // Increment regeneration count when forcing regeneration
-      const currentRegenerationCount = forceRegenerate ? regenerationCount + 1 : regenerationCount;
-      
+      console.log('Generating audiences with params:', { 
+        businessIdea, 
+        regenerationCount,
+        forceRegenerate 
+      });
+
       const { data, error } = await supabase.functions.invoke('generate-ad-content', {
         body: { 
           type: 'audience',
           businessIdea: businessIdea,
-          regenerationCount: currentRegenerationCount,
+          regenerationCount: forceRegenerate ? regenerationCount + 1 : regenerationCount,
           timestamp: new Date().getTime(),
-          forceRegenerate: forceRegenerate // Add this flag to ensure new variations
+          forceRegenerate
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase function error:', error);
+        throw error;
+      }
 
+      if (!data || !Array.isArray(data.audiences)) {
+        console.error('Invalid response format:', data);
+        throw new Error('Invalid response format from server');
+      }
+
+      console.log('Generated audiences:', data.audiences);
+      
       if (forceRegenerate) {
-        setRegenerationCount(currentRegenerationCount);
+        setRegenerationCount(prev => prev + 1);
       }
       
       setAudiences(data.audiences);
@@ -106,68 +119,78 @@ const AudienceStep = ({
         </p>
       </div>
 
-      <div className="grid gap-4 md:gap-6 grid-cols-1 lg:grid-cols-3">
-        {audiences.map((audience) => (
-          <Card
-            key={audience.name}
-            className="relative group cursor-pointer hover:shadow-lg transition-all duration-200 border-2 hover:border-facebook"
-            onClick={() => onNext(audience)}
-          >
-            <div className="absolute inset-0 bg-gradient-to-br from-facebook/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-xl" />
-            <CardHeader>
-              <div className="flex items-center space-x-2 mb-2">
-                <Users className="w-5 h-5 text-facebook" />
-                <CardTitle className="text-lg">{audience.name}</CardTitle>
-              </div>
-              <CardDescription>{audience.demographics}</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <p className="text-sm mb-2">{audience.description}</p>
-                <div className="space-y-2">
-                  <p className="text-sm font-medium text-facebook">Pain Points:</p>
-                  <ul className="text-sm list-disc list-inside text-gray-600 space-y-1">
-                    {audience.painPoints.map((point) => (
-                      <li key={point}>{point}</li>
-                    ))}
-                  </ul>
+      {isGenerating ? (
+        <div className="flex items-center justify-center py-12">
+          <RefreshCw className="w-8 h-8 animate-spin text-facebook" />
+        </div>
+      ) : audiences.length === 0 ? (
+        <div className="text-center py-12">
+          <p className="text-gray-600">No audiences generated yet. Please try again.</p>
+        </div>
+      ) : (
+        <div className="grid gap-4 md:gap-6 grid-cols-1 lg:grid-cols-3">
+          {audiences.map((audience, index) => (
+            <Card
+              key={`${audience.name}-${index}`}
+              className="relative group cursor-pointer hover:shadow-lg transition-all duration-200 border-2 hover:border-facebook"
+              onClick={() => onNext(audience)}
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-facebook/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-xl" />
+              <CardHeader>
+                <div className="flex items-center space-x-2 mb-2">
+                  <Users className="w-5 h-5 text-facebook" />
+                  <CardTitle className="text-lg">{audience.name}</CardTitle>
                 </div>
-              </div>
+                <CardDescription>{audience.demographics}</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <p className="text-sm mb-2">{audience.description}</p>
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-facebook">Pain Points:</p>
+                    <ul className="text-sm list-disc list-inside text-gray-600 space-y-1">
+                      {audience.painPoints.map((point, pointIndex) => (
+                        <li key={`${point}-${pointIndex}`}>{point}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
 
-              <div className="space-y-3 pt-2 border-t">
-                <div>
-                  <p className="text-sm font-medium text-facebook">Ideal Customer Profile:</p>
-                  <p className="text-sm text-gray-600">{audience.icp}</p>
+                <div className="space-y-3 pt-2 border-t">
+                  <div>
+                    <p className="text-sm font-medium text-facebook">Ideal Customer Profile:</p>
+                    <p className="text-sm text-gray-600">{audience.icp}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-facebook">Core Message:</p>
+                    <p className="text-sm text-gray-600">{audience.coreMessage}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-facebook">Positioning:</p>
+                    <p className="text-sm text-gray-600">{audience.positioning}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-facebook">Marketing Angle:</p>
+                    <p className="text-sm text-gray-600">{audience.marketingAngle}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-facebook">Messaging Approach:</p>
+                    <p className="text-sm text-gray-600">{audience.messagingApproach}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-facebook">Marketing Channels:</p>
+                    <ul className="text-sm list-disc list-inside text-gray-600">
+                      {audience.marketingChannels.map((channel, channelIndex) => (
+                        <li key={`${channel}-${channelIndex}`}>{channel}</li>
+                      ))}
+                    </ul>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-facebook">Core Message:</p>
-                  <p className="text-sm text-gray-600">{audience.coreMessage}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-facebook">Positioning:</p>
-                  <p className="text-sm text-gray-600">{audience.positioning}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-facebook">Marketing Angle:</p>
-                  <p className="text-sm text-gray-600">{audience.marketingAngle}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-facebook">Messaging Approach:</p>
-                  <p className="text-sm text-gray-600">{audience.messagingApproach}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-facebook">Marketing Channels:</p>
-                  <ul className="text-sm list-disc list-inside text-gray-600">
-                    {audience.marketingChannels.map((channel) => (
-                      <li key={channel}>{channel}</li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

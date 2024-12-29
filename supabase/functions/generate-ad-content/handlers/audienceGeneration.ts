@@ -13,6 +13,7 @@ export async function generateAudiences(
 
   console.log('Generating audiences with regeneration count:', regenerationCount);
   console.log('Force regenerate:', forceRegenerate);
+  console.log('Business idea:', businessIdea);
 
   const prompt = `Generate 3 distinct target audience personas for a business idea: ${businessIdea.description}.
   ${forceRegenerate ? `Make these different from previous generations (variation ${regenerationCount}).` : ''}
@@ -50,6 +51,8 @@ export async function generateAudiences(
     });
 
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error('OpenAI API error response:', errorText);
       throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`);
     }
 
@@ -62,6 +65,7 @@ export async function generateAudiences(
       return { audiences };
     } catch (parseError) {
       console.error('Error parsing OpenAI response:', parseError);
+      console.error('Raw response:', generatedText);
       throw new Error('Failed to parse generated audiences');
     }
   } catch (error) {
