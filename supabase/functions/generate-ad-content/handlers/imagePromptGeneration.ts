@@ -1,4 +1,5 @@
 import { BusinessIdea, TargetAudience, MarketingCampaign } from '../Types.ts';
+import { generateWithLeonardo } from './utils/leonardoUtils.ts';
 
 export async function generateImagePrompts(
   businessIdea: BusinessIdea,
@@ -25,7 +26,6 @@ Create 4 different image prompts that:
 Return ONLY a valid JSON array with exactly 4 items in this format:
 [
   {
-    "url": "generated_image_url",
     "prompt": "detailed_image_prompt"
   }
 ]`;
@@ -40,7 +40,7 @@ Return ONLY a valid JSON array with exactly 4 items in this format:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4',
         messages: [
           { 
             role: 'system', 
@@ -58,29 +58,11 @@ Return ONLY a valid JSON array with exactly 4 items in this format:
     const data = await response.json();
     const generatedPrompts = JSON.parse(data.choices[0].message.content);
 
-    // Generate actual images using the prompts
+    // Generate images using Leonardo AI
     const imagePromises = generatedPrompts.map(async (item: any) => {
-      const imageResponse = await fetch('https://api.openai.com/v1/images/generations', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: "dall-e-3",
-          prompt: item.prompt,
-          n: 1,
-          size: "1024x1024",
-        }),
-      });
-
-      if (!imageResponse.ok) {
-        throw new Error(`Image generation error: ${imageResponse.status} ${imageResponse.statusText}`);
-      }
-
-      const imageData = await imageResponse.json();
+      const imageUrl = await generateWithLeonardo(item.prompt);
       return {
-        url: imageData.data[0].url,
+        url: imageUrl,
         prompt: item.prompt,
       };
     });
