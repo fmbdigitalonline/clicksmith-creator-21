@@ -17,11 +17,34 @@ serve(async (req) => {
   }
 
   try {
-    const { type, businessIdea, targetAudience, regenerationCount, timestamp, forceRegenerate } = await req.json();
+    // Ensure request has a body
+    if (req.body === null) {
+      throw new Error('Request body is required');
+    }
 
-    let responseData;
+    // Parse JSON body with error handling
+    let body;
+    try {
+      const text = await req.text();
+      if (!text) {
+        throw new Error('Empty request body');
+      }
+      body = JSON.parse(text);
+    } catch (e) {
+      console.error('JSON parsing error:', e);
+      throw new Error(`Invalid JSON in request body: ${e.message}`);
+    }
+
+    // Validate required fields
+    const { type, businessIdea, targetAudience, regenerationCount, timestamp, forceRegenerate } = body;
+    
+    if (!type) {
+      throw new Error('type is required in request body');
+    }
+
     console.log('Processing request:', { type, timestamp, regenerationCount, forceRegenerate });
 
+    let responseData;
     switch (type) {
       case 'audience':
         console.log('Generating audiences with params:', { businessIdea, regenerationCount, timestamp, forceRegenerate });
@@ -66,7 +89,7 @@ serve(async (req) => {
       error: error instanceof Error ? error.message : 'An unknown error occurred',
       details: error instanceof Error ? error.stack : undefined
     }), {
-      status: 500,
+      status: 400,
       headers: { 
         ...corsHeaders, 
         'Content-Type': 'application/json' 
