@@ -55,8 +55,9 @@ serve(async (req) => {
         console.log('Generating image prompts with params:', { businessIdea, targetAudience });
         responseData = await generateImagePrompts(businessIdea, targetAudience);
         break;
-      case 'complete':
-        console.log('Generating complete ad with params:', { businessIdea, targetAudience });
+      case 'complete_ads':
+      case 'video_ads':
+        console.log('Generating complete ad campaign with params:', { businessIdea, targetAudience, type });
         responseData = await generateCampaign(businessIdea, targetAudience);
         break;
       case 'audience_analysis':

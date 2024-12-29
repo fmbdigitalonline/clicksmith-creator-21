@@ -1,3 +1,5 @@
+import { BusinessIdea, TargetAudience } from "../types.ts";
+
 export async function generateCampaign(businessIdea: any, targetAudience: any) {
   const prompt = `Create a marketing campaign for this business and target audience:
 
@@ -13,7 +15,7 @@ Create a complete marketing campaign with:
 
 Ad Copy Guidelines:
 - Create 3 different versions:
-  1. "Younder story": Longer, storytelling-based
+  1. "Longer story": Longer, storytelling-based
   2. "Short impact": One impactful sentence
   3. "AIDA version": Middle-length with bullet points
 - Should be general about product benefits
@@ -39,10 +41,15 @@ Return ONLY a valid JSON object with these fields:
 
   try {
     console.log('Sending request to OpenAI...');
+    const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+    if (!openAIApiKey) {
+      throw new Error('OpenAI API key is not configured');
+    }
+
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+        'Authorization': `Bearer ${openAIApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
