@@ -27,7 +27,7 @@ export async function generateWithReplicate(
     // Run the Flux model with specific version and parameters
     console.log('Running Flux model...');
     const output = await replicate.run(
-      "black-forest-labs/flux-1.1-pro-ultra:d0b489c2e6b0f0b5c7d4f0b0f0b5c7d4f0b0f0b5",
+      "black-forest-labs/flux-1.1-pro",
       {
         input: {
           prompt: prompt,
