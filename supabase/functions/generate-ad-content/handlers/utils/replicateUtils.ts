@@ -108,15 +108,13 @@ export async function generateWithReplicate(
 
     // Create prediction with retry logic
     const prediction = await retryWithBackoff(
-      async () => replicate.predictions.create({
-        version: MODELS[config.model as keyof typeof MODELS] || MODELS.flux,
+      async () => replicate.run(MODELS[config.model as keyof typeof MODELS], {
         input: {
           prompt,
           width: config.width,
           height: config.height,
           num_outputs: config.numOutputs,
           prompt_upsampling: true, // Enable prompt upsampling for better results
-          raw: true, // Enable raw mode for more realistic images
         },
       }),
       {
@@ -126,18 +124,13 @@ export async function generateWithReplicate(
       }
     );
 
-    console.log('Prediction created:', prediction);
+    console.log('Prediction result:', prediction);
 
-    // Poll for results with automatic retries
-    const result = await pollPrediction(replicate, prediction.id, config.maxAttempts);
-    
-    console.log('Final result:', result);
-
-    if (!result.output || !Array.isArray(result.output) || result.output.length === 0) {
-      throw new Error('Invalid or empty output received from Replicate');
+    if (!prediction || !Array.isArray(prediction)) {
+      throw new Error('Invalid output received from Replicate');
     }
 
-    const imageUrl = result.output[0];
+    const imageUrl = prediction[0];
     
     if (typeof imageUrl !== 'string' || !imageUrl.startsWith('http')) {
       throw new Error(`Invalid URL format received: ${imageUrl}`);
