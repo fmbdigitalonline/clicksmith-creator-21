@@ -24,70 +24,31 @@ export async function generateWithReplicate(
     
     console.log('Using aspect ratio:', aspectRatio);
 
-    // Create prediction with Flux model
-    console.log('Creating prediction with Flux model...');
-    const prediction = await replicate.predictions.create({
-      // Latest stable version of Flux model
-      version: "6c9ae690c241f5149121c6b2e5c05f48ff1f9551ad2f61c1d01eda6621852657",
-      input: {
-        prompt: prompt,
-        aspect_ratio: aspectRatio,
-        negative_prompt: "blurry, low quality, distorted, deformed, ugly, bad anatomy",
-        safety_tolerance: 2,
-        output_format: "jpg",
-        raw: false
+    // Run the Flux model directly
+    console.log('Running Flux model...');
+    const output = await replicate.run(
+      "black-forest-labs/flux-1.1-pro-ultra",
+      {
+        input: {
+          prompt: prompt,
+          aspect_ratio: aspectRatio,
+          negative_prompt: "blurry, low quality, distorted, deformed, ugly, bad anatomy",
+          safety_tolerance: 2,
+          output_format: "jpg",
+          raw: false
+        }
       }
-    });
+    );
 
-    console.log('Prediction created:', prediction);
+    console.log('Generation output:', output);
 
-    // Configuration for polling
-    const maxAttempts = 60; // 5 minutes total with 5s interval
-    const pollInterval = 5000; // 5 seconds
-    let attempts = 0;
-    let result = null;
-
-    while (attempts < maxAttempts) {
-      console.log(`Polling attempt ${attempts + 1}/${maxAttempts}`);
-      
-      try {
-        result = await replicate.predictions.get(prediction.id);
-        console.log('Poll result:', result);
-
-        if (result.status === "succeeded") {
-          console.log('Generation succeeded:', result);
-          // The output is a string URL as per the output schema
-          const imageUrl = result.output;
-          if (!imageUrl || typeof imageUrl !== 'string') {
-            throw new Error('Invalid output format from Replicate');
-          }
-          return imageUrl;
-        }
-        
-        if (result.status === "failed") {
-          throw new Error(`Generation failed: ${result.error || 'Unknown error'}`);
-        }
-
-        if (result.status === "canceled") {
-          throw new Error('Image generation was canceled');
-        }
-
-        // If still processing, wait before next attempt
-        await new Promise(resolve => setTimeout(resolve, pollInterval));
-        attempts++;
-      } catch (pollError) {
-        console.error('Error during polling:', pollError);
-        // Only throw if we've exhausted our attempts
-        if (attempts >= maxAttempts - 1) {
-          throw pollError;
-        }
-        // Otherwise, continue polling
-        attempts++;
-        await new Promise(resolve => setTimeout(resolve, pollInterval));
-      }
+    // Validate output
+    if (!output || typeof output !== 'string') {
+      throw new Error('Invalid output format from Replicate');
     }
 
-    throw new Error(`Image generation timed out after ${maxAttempts * pollInterval / 1000} seconds`);
+    return output;
+
   } catch (error) {
     console.error('Error in generateWithReplicate:', error);
     throw error;
