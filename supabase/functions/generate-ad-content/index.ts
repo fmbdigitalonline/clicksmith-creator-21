@@ -7,6 +7,7 @@ import { analyzeAudience } from "./handlers/audienceAnalysis.ts";
 import { corsHeaders } from "./handlers/utils/corsHeaders.ts";
 
 serve(async (req) => {
+  // Log incoming request details
   console.log('Edge Function received request:', { 
     method: req.method,
     url: req.url,
@@ -34,6 +35,7 @@ serve(async (req) => {
     let body;
     try {
       body = await req.json();
+      console.log('Request body:', body);
     } catch (e) {
       console.error('Error parsing request body:', e);
       throw new Error('Invalid JSON in request body');
@@ -43,14 +45,14 @@ serve(async (req) => {
       throw new Error('Empty request body');
     }
 
-    console.log('Processing request:', { type: body.type, timestamp: body.timestamp });
-
     // Validate required fields
     const { type, businessIdea, targetAudience, regenerationCount = 0, timestamp, forceRegenerate = false, campaign } = body;
     
     if (!type) {
       throw new Error('type is required in request body');
     }
+
+    console.log('Processing request:', { type, timestamp });
 
     let responseData;
     switch (type) {
@@ -80,7 +82,7 @@ serve(async (req) => {
               platform: 'facebook',
               headline: campaignData.campaign.headlines[index % campaignData.campaign.headlines.length],
               description: copy.content,
-              imageUrl: imageData.images[0]?.url, // Use the first image for all variants since we're only generating one
+              imageUrl: imageData.images[0]?.url,
               size: {
                 width: 1200,
                 height: 628,
@@ -104,7 +106,7 @@ serve(async (req) => {
     // Log the response data for debugging
     console.log('Edge Function response data:', responseData);
 
-    // Ensure we're sending a proper JSON response with CORS headers
+    // Return success response with CORS headers
     return new Response(JSON.stringify(responseData), {
       status: 200,
       headers: { 
@@ -115,7 +117,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in generate-ad-content function:', error);
     
-    // Return a proper error response with CORS headers
+    // Return error response with CORS headers
     return new Response(JSON.stringify({
       error: error.message,
       details: error.stack
