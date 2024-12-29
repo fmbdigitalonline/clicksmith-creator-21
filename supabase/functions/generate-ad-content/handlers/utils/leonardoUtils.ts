@@ -38,7 +38,6 @@ export async function generateWithLeonardo(prompt: string): Promise<string> {
           negative_prompt: "blurry, low quality, distorted, deformed",
           public: false,
           nsfw: false,
-          photoReal: true,
           scheduler: "DDIM",
           presetStyle: "DYNAMIC",
           guidance_scale: 7,
