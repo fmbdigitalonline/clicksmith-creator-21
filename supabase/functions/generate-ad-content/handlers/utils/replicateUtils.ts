@@ -21,6 +21,7 @@ const MODELS = {
   sdxl: "39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b", // SDXL
   sdxlBase: "8beff3369e81422112d93b89ca01426147de542cd4684c244b673b105188fe5f", // SDXL Base
   sdv15: "a4a8bafd6089e5dad6dd6dc5b3304a8ff88a27615fa0b67d135b0dfd814187be", // Stable Diffusion v1.5
+  flux: "black-forest-labs/flux-1.1-pro-ultra" // Flux model for realistic images
 } as const;
 
 async function delay(ms: number): Promise<void> {
@@ -85,7 +86,7 @@ export async function generateWithReplicate(
   options: ImageOptions = { width: 1024, height: 1024 }
 ): Promise<string> {
   const defaultOptions = {
-    model: 'sdxl',
+    model: 'flux',
     numOutputs: 1,
     maxAttempts: 30,
     maxRetries: 3,
@@ -108,12 +109,13 @@ export async function generateWithReplicate(
     // Create prediction with retry logic
     const prediction = await retryWithBackoff(
       async () => replicate.predictions.create({
-        version: MODELS[config.model as keyof typeof MODELS] || MODELS.sdxl,
+        version: MODELS[config.model as keyof typeof MODELS] || MODELS.flux,
         input: {
           prompt,
           width: config.width,
           height: config.height,
           num_outputs: config.numOutputs,
+          raw: true, // Enable raw mode for more realistic images
         },
       }),
       {
