@@ -23,6 +23,8 @@ export async function generateWithLeonardo(prompt: string): Promise<string> {
         width: 1024,
         height: 1024,
         num_images: 1,
+        photoReal: true,
+        photoRealVersion: "v2",
         promptMagic: true,
         negative_prompt: "low quality, blurry, distorted",
       }),
