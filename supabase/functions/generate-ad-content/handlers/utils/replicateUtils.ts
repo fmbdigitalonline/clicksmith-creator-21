@@ -1,4 +1,5 @@
 import { corsHeaders } from '../../../_shared/cors.ts';
+import Replicate from 'replicate';
 
 export async function generateWithReplicate(
   prompt: string,
@@ -7,9 +8,11 @@ export async function generateWithReplicate(
   console.log('Starting image generation with Replicate:', { prompt, dimensions });
 
   try {
-    // Calculate aspect ratio based on dimensions
-    const aspectRatio = `${dimensions.width}:${dimensions.height}`;
-    
+    // Initialize Replicate client with API token from environment
+    const replicate = new Replicate({
+      auth: Deno.env.get('REPLICATE_API_TOKEN'),
+    });
+
     // Create prediction with SDXL Lightning model
     const prediction = await replicate.predictions.create({
       version: "5599ed30703defd1d160a25a63321b4dec97101d98b4674bcc56e41f62f35637",
