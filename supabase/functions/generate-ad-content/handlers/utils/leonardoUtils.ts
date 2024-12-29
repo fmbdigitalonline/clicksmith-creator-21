@@ -31,7 +31,7 @@ export async function generateWithLeonardo(prompt: string): Promise<string> {
         },
         body: JSON.stringify({
           prompt,
-          modelId: "6bef9f1b-29cb-40c7-b9df-32b51c1f67d3", // Updated to use the provided model ID
+          modelId: "6bef9f1b-29cb-40c7-b9df-32b51c1f67d3",
           width: 512,
           height: 512,
           num_images: 1,
@@ -68,7 +68,7 @@ export async function generateWithLeonardo(prompt: string): Promise<string> {
         throw new Error('No generation ID received from Leonardo API');
       }
 
-      // Step 2: Poll for results
+      // Step 2: Poll for results using the correct endpoint path
       console.log('Polling for generation results...');
       let attempts = 0;
       let delay = POLLING_INTERVAL;
