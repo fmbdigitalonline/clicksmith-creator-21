@@ -21,7 +21,7 @@ const MODELS = {
   sdxl: "39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b", // SDXL
   sdxlBase: "8beff3369e81422112d93b89ca01426147de542cd4684c244b673b105188fe5f", // SDXL Base
   sdv15: "a4a8bafd6089e5dad6dd6dc5b3304a8ff88a27615fa0b67d135b0dfd814187be", // Stable Diffusion v1.5
-  flux: "black-forest-labs/flux-1.1-pro-ultra" // Flux model for realistic images
+  flux: "black-forest-labs/flux-1.1-pro" // Flux model for realistic images
 } as const;
 
 async function delay(ms: number): Promise<void> {
