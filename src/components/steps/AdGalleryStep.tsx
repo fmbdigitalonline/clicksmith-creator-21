@@ -36,6 +36,21 @@ const AdGalleryStep = ({
   const [generationStatus, setGenerationStatus] = useState<string>("");
   const { toast } = useToast();
 
+  const validateResponse = (data: any) => {
+    if (!data) {
+      throw new Error('No data received from server');
+    }
+
+    // Check for variants array
+    const variants = data.variants || data;
+    if (!Array.isArray(variants)) {
+      console.error('Invalid variants format:', variants);
+      throw new Error('Invalid response format: variants is not an array');
+    }
+
+    return variants;
+  };
+
   const generateAds = async () => {
     setIsGenerating(true);
     setGenerationStatus("Initializing ad generation...");
@@ -76,17 +91,8 @@ const AdGalleryStep = ({
       // Log the entire response for debugging
       console.log('Edge Function response:', data);
 
-      // Check if data exists and has the expected structure
-      if (!data) {
-        throw new Error('No data received from server');
-      }
-
-      // Handle both possible response formats and ensure images are included
-      const variants = data.variants || data;
-      if (!Array.isArray(variants)) {
-        console.error('Invalid variants format:', variants);
-        throw new Error('Invalid response format: variants is not an array');
-      }
+      // Validate and process the response
+      const variants = validateResponse(data);
 
       // Map the variants to include image URLs if they exist
       const processedVariants = variants.map(variant => ({
