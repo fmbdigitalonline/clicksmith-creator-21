@@ -20,7 +20,6 @@ serve(async (req) => {
     const { type, businessIdea, targetAudience, regenerationCount, timestamp, forceRegenerate } = await req.json();
 
     let responseData;
-
     console.log('Processing request:', { type, timestamp, regenerationCount, forceRegenerate });
 
     switch (type) {
@@ -52,14 +51,26 @@ serve(async (req) => {
         throw new Error(`Unsupported generation type: ${type}`);
     }
 
-    return new Response(JSON.stringify(responseData), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    // Ensure responseData is properly serializable
+    const safeResponseData = JSON.parse(JSON.stringify(responseData));
+
+    return new Response(JSON.stringify(safeResponseData), {
+      headers: { 
+        ...corsHeaders, 
+        'Content-Type': 'application/json' 
+      },
     });
   } catch (error) {
     console.error('Error in generate-ad-content function:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ 
+      error: error instanceof Error ? error.message : 'An unknown error occurred',
+      details: error instanceof Error ? error.stack : undefined
+    }), {
       status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { 
+        ...corsHeaders, 
+        'Content-Type': 'application/json' 
+      },
     });
   }
 });
