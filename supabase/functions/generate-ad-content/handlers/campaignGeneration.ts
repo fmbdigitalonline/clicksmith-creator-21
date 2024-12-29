@@ -18,14 +18,15 @@ Ad Copy Guidelines:
   1. "Longer story": Longer, storytelling-based use pain point one from audience analysis
   2. "personal emotional story  ": personal emotional story use pain point two from audience analysis
   3. "AIDA version": Middle-length with bullet points use pain point three from audience analysis
-- Should be addresing about audience analysis painpoints
+- Should be addressing about audience analysis painpoints
+- Some ad copies must also address the benefits of the products based on the positive experience the product provides
 - Must attract attention in first sentence
 - Each version should be different
 
 Headline Guidelines:
 - Maximum 6 words
 - Straight to the point
-- Highlight solution, product, or feature
+- Highlight the result of using this product, the benefitial experience, or goal that is going te be achieved when using this product
 - Based on market awareness/sophistication
 
 Return ONLY a valid JSON object with these fields:
