@@ -1,10 +1,5 @@
-interface LeonardoResponse {
-  sdGenerationJob: {
-    generationId: string;
-    status: string;
-    imageUrls: string[];
-  };
-}
+const POLLING_INTERVAL = 2000; // 2 seconds
+const MAX_POLLING_ATTEMPTS = 30; // 1 minute maximum wait time
 
 export async function generateWithLeonardo(prompt: string): Promise<string> {
   console.log('Starting image generation with Leonardo:', { prompt });
@@ -17,49 +12,48 @@ export async function generateWithLeonardo(prompt: string): Promise<string> {
   // Validate API key
   const apiKey = Deno.env.get('LEONARDO_API_KEY');
   if (!apiKey) {
-    throw new Error('LEONARDO_API_KEY is not configured');
+    throw new Error('Leonardo API key not configured');
   }
 
   try {
-    // Initialize generation with proper error handling
+    // Initialize generation
+    console.log('Initializing Leonardo generation...');
     const initResponse = await fetch('https://cloud.leonardo.ai/api/rest/v1/generations', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
+        'accept': 'application/json',
+        'content-type': 'application/json',
+        'authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
         prompt,
-        modelId: "f3296a34-9aef-4370-ad18-88daf26862c3", // Leonardo Signature v2
+        modelId: "b24e16ff-06e3-43eb-8d33-4416c2d75876", // Updated model ID
         width: 1024,
-        height: 1024,
+        height: 768,
         num_images: 1,
-        guidance_scale: 7,
+        negative_prompt: "",
         public: false,
-        promptMagic: true,
-        negative_prompt: "low quality, blurry, distorted, ugly, bad anatomy, watermark, signature, text",
         nsfw: false,
         photoReal: true,
-        seed: Math.floor(Math.random() * 2147483647), // Random seed for variety
+        seed: Math.floor(Math.random() * 2147483647),
         scheduler: "DDIM",
-        presetStyle: "LEONARDO",
+        presetStyle: "DYNAMIC",
         alchemy: true,
-        contrastRatio: 1,
+        guidance_scale: 7,
         promptMagicVersion: "v2",
       }),
     });
 
+    const initData = await initResponse.json();
+    console.log('Leonardo init response:', initData);
+
     if (!initResponse.ok) {
-      const errorText = await initResponse.text();
+      const errorText = initData.error || 'Unknown error';
       console.error('Leonardo API initialization error:', {
         status: initResponse.status,
-        statusText: initResponse.statusText,
         error: errorText,
-        requestBody: { prompt }
       });
-      
-      // Check for specific error cases
+
       if (initResponse.status === 401) {
         throw new Error('Invalid Leonardo API key. Please check your credentials.');
       } else if (initResponse.status === 400) {
@@ -69,68 +63,46 @@ export async function generateWithLeonardo(prompt: string): Promise<string> {
       throw new Error(`Leonardo API error: ${initResponse.status} ${initResponse.statusText}`);
     }
 
-    const initData = await initResponse.json();
-    
-    if (!initData?.sdGenerationJob?.generationId) {
-      console.error('Invalid response from Leonardo API:', initData);
-      throw new Error('Invalid response format from Leonardo API');
+    const generationId = initData.sdGenerationJob?.generationId;
+    if (!generationId) {
+      throw new Error('No generation ID received from Leonardo API');
     }
 
-    const generationId = initData.sdGenerationJob.generationId;
-    console.log('Generation initialized:', { generationId });
-
-    // Poll for results with improved error handling
-    const maxAttempts = 30;
-    const pollingInterval = 2000;
+    // Poll for results
+    console.log('Polling for generation results...');
     let attempts = 0;
-
-    while (attempts < maxAttempts) {
-      await new Promise(resolve => setTimeout(resolve, pollingInterval));
-
+    while (attempts < MAX_POLLING_ATTEMPTS) {
       const statusResponse = await fetch(
         `https://cloud.leonardo.ai/api/rest/v1/generations/${generationId}`,
         {
           headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Accept': 'application/json',
+            'authorization': `Bearer ${apiKey}`,
           },
         }
       );
 
       if (!statusResponse.ok) {
-        const errorText = await statusResponse.text();
-        console.error('Leonardo API status check error:', {
-          status: statusResponse.status,
-          statusText: statusResponse.statusText,
-          error: errorText,
-          generationId
-        });
-        throw new Error(`Failed to check generation status: ${statusResponse.status}`);
+        throw new Error(`Failed to check generation status: ${statusResponse.status} ${statusResponse.statusText}`);
       }
 
-      const statusData: LeonardoResponse = await statusResponse.json();
-      console.log('Generation status:', {
-        status: statusData.sdGenerationJob.status,
-        generationId,
-        attempt: attempts + 1
-      });
+      const statusData = await statusResponse.json();
+      console.log('Generation status:', statusData.status);
 
-      if (statusData.sdGenerationJob.status === 'COMPLETE') {
-        if (!statusData.sdGenerationJob.imageUrls?.[0]) {
+      if (statusData.status === 'COMPLETE') {
+        const imageUrl = statusData.generations?.[0]?.url;
+        if (!imageUrl) {
           throw new Error('No image URL in completed generation');
         }
-        console.log('Leonardo generation complete:', {
-          status: statusData.sdGenerationJob.status,
-          imageCount: statusData.sdGenerationJob.imageUrls.length,
-          generationId
-        });
-        return statusData.sdGenerationJob.imageUrls[0];
+        return imageUrl;
+      } else if (statusData.status === 'FAILED') {
+        throw new Error('Generation failed: ' + (statusData.error || 'Unknown error'));
       }
 
+      await new Promise(resolve => setTimeout(resolve, POLLING_INTERVAL));
       attempts++;
     }
 
-    throw new Error('Image generation timed out');
+    throw new Error('Generation timed out');
   } catch (error) {
     console.error('Error in Leonardo image generation:', error);
     throw error;
