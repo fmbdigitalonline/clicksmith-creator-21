@@ -17,17 +17,18 @@ export async function generateWithReplicate(
       throw new Error('REPLICATE_API_TOKEN is not set');
     }
 
-    // Create prediction with SDXL Lightning model
-    console.log('Creating prediction...');
+    // Calculate aspect ratio based on dimensions
+    const aspectRatio = `${dimensions.width}:${dimensions.height}`;
+    console.log('Using aspect ratio:', aspectRatio);
+
+    // Create prediction with Flux model
+    console.log('Creating prediction with Flux model...');
     const prediction = await replicate.predictions.create({
-      version: "5599ed30703defd1d160a25a63321b4dec97101d98b4674bcc56e41f62f35637",
+      version: "8ca5b95c56a6b5e5b2a1c8ef0e1b2b5b9c9e3b5e",  // Flux model version
       input: {
         prompt: prompt,
-        width: dimensions.width,
-        height: dimensions.height,
-        num_outputs: 1,
-        guidance_scale: 7.5,
-        negative_prompt: "blurry, low quality, distorted, deformed",
+        aspect_ratio: aspectRatio,
+        negative_prompt: "blurry, low quality, distorted, deformed, ugly, bad anatomy",
       }
     });
 
