@@ -13,7 +13,12 @@ export async function generateWithReplicate(
       auth: Deno.env.get('REPLICATE_API_TOKEN'),
     });
 
+    if (!replicate.auth) {
+      throw new Error('REPLICATE_API_TOKEN is not set');
+    }
+
     // Create prediction with SDXL Lightning model
+    console.log('Creating prediction...');
     const prediction = await replicate.predictions.create({
       version: "5599ed30703defd1d160a25a63321b4dec97101d98b4674bcc56e41f62f35637",
       input: {
@@ -28,67 +33,55 @@ export async function generateWithReplicate(
 
     console.log('Prediction created:', prediction);
 
-    const maxWaitTime = 180000; // 3 minutes
-    const pollInterval = 5000; // Poll every 5 seconds
-    const startTime = Date.now();
-    let result;
-    let lastStatus = '';
-    let retryCount = 0;
-    const maxRetries = 3;
+    // Configuration for polling
+    const maxAttempts = 60; // 5 minutes total with 5s interval
+    const pollInterval = 5000; // 5 seconds
+    let attempts = 0;
+    let result = null;
 
-    while (!result && Date.now() - startTime < maxWaitTime) {
+    while (attempts < maxAttempts) {
+      console.log(`Polling attempt ${attempts + 1}/${maxAttempts}`);
+      
       try {
         result = await replicate.predictions.get(prediction.id);
-        
-        if (result.status !== lastStatus) {
-          console.log(`Generation status updated to: ${result.status}`);
-          lastStatus = result.status;
+        console.log('Poll result:', result);
+
+        if (result.status === "succeeded") {
+          console.log('Generation succeeded:', result);
+          if (!result.output) {
+            throw new Error('No output received from successful generation');
+          }
+          const imageUrl = Array.isArray(result.output) ? result.output[0] : result.output;
+          if (!imageUrl) {
+            throw new Error('No valid image URL in output');
+          }
+          return imageUrl;
         }
         
-        if (result.status === "succeeded") {
-          break;
-        } else if (result.status === "failed") {
-          if (retryCount < maxRetries) {
-            console.log(`Retry attempt ${retryCount + 1} of ${maxRetries}`);
-            retryCount++;
-            await new Promise(resolve => setTimeout(resolve, 2000));
-            continue;
-          }
-          throw new Error(`Prediction failed: ${result.error}`);
-        } else if (result.status === "canceled") {
+        if (result.status === "failed") {
+          throw new Error(`Generation failed: ${result.error || 'Unknown error'}`);
+        }
+
+        if (result.status === "canceled") {
           throw new Error('Image generation was canceled');
         }
-        
+
+        // If still processing, wait before next attempt
         await new Promise(resolve => setTimeout(resolve, pollInterval));
+        attempts++;
       } catch (pollError) {
-        console.error('Error polling prediction status:', pollError);
-        if (retryCount < maxRetries) {
-          console.log(`Retry attempt ${retryCount + 1} of ${maxRetries}`);
-          retryCount++;
-          await new Promise(resolve => setTimeout(resolve, 2000));
-          continue;
+        console.error('Error during polling:', pollError);
+        // Only throw if we've exhausted our attempts
+        if (attempts >= maxAttempts - 1) {
+          throw pollError;
         }
-        throw pollError;
+        // Otherwise, continue polling
+        attempts++;
+        await new Promise(resolve => setTimeout(resolve, pollInterval));
       }
     }
 
-    if (!result || result.status !== "succeeded") {
-      throw new Error('Image generation timed out or failed');
-    }
-
-    console.log('Generation result:', result);
-
-    if (!result.output) {
-      throw new Error('No output received from image generation');
-    }
-
-    const imageUrl = Array.isArray(result.output) ? result.output[0] : result.output;
-    
-    if (!imageUrl) {
-      throw new Error('No valid image URL in output');
-    }
-
-    return imageUrl;
+    throw new Error(`Image generation timed out after ${maxAttempts * pollInterval / 1000} seconds`);
   } catch (error) {
     console.error('Error in generateWithReplicate:', error);
     throw error;
