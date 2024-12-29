@@ -58,17 +58,33 @@ serve(async (req) => {
       case 'complete_ads':
       case 'video_ads':
         console.log('Generating complete ad campaign with params:', { businessIdea, targetAudience, campaign });
-        // First generate the campaign content
-        const campaignData = await generateCampaign(businessIdea, targetAudience);
-        
-        // Then generate images based on the campaign
-        const imageData = await generateImagePrompts(businessIdea, targetAudience, campaignData.campaign);
-        
-        // Combine the results
-        responseData = {
-          ...campaignData,
-          images: imageData.images
-        };
+        try {
+          // First generate the campaign content
+          const campaignData = await generateCampaign(businessIdea, targetAudience);
+          console.log('Campaign data generated:', campaignData);
+          
+          // Then generate images based on the campaign
+          const imageData = await generateImagePrompts(businessIdea, targetAudience, campaignData.campaign);
+          console.log('Image data generated:', imageData);
+          
+          // Combine the results
+          responseData = {
+            variants: campaignData.campaign.adCopies.map((copy: any, index: number) => ({
+              platform: 'facebook',
+              headline: campaignData.campaign.headlines[index % campaignData.campaign.headlines.length],
+              description: copy.content,
+              imageUrl: imageData.images[0]?.url, // Use the first image for all variants since we're only generating one
+              size: {
+                width: 1200,
+                height: 628,
+                label: "Facebook Feed"
+              }
+            }))
+          };
+        } catch (error) {
+          console.error('Error generating ad content:', error);
+          throw error;
+        }
         break;
       case 'audience_analysis':
         console.log('Analyzing audience with params:', { businessIdea, targetAudience, regenerationCount });

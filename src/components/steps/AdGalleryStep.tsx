@@ -51,65 +51,11 @@ const AdGalleryStep = ({
               facebook: {
                 formats: ['feed', 'sponsored', 'message'],
                 aspectRatios: ['1:1', '16:9']
-              },
-              linkedin: {
-                formats: ['feed', 'sponsored', 'message'],
-                aspectRatios: ['1:1', '16:9']
-              },
-              tiktok: {
-                formats: ['in-feed', 'topview', 'branded-effects'],
-                aspectRatios: ['9:16']
               }
             } : {
               facebook: {
                 commonSizes: [
-                  { width: 250, height: 250, label: "Square" },
-                  { width: 200, height: 200, label: "Small Square" },
-                  { width: 468, height: 60, label: "Banner" },
-                  { width: 728, height: 90, label: "Leaderboard" },
-                  { width: 300, height: 250, label: "Inline Rectangle" },
-                  { width: 336, height: 280, label: "Large Rectangle" },
-                  { width: 120, height: 600, label: "Skyscraper" },
-                  { width: 160, height: 600, label: "Wide Skyscraper" },
-                  { width: 300, height: 600, label: "Half-Page Ad" },
-                  { width: 970, height: 90, label: "Large Leaderboard" }
-                ],
-                mobileCommonSizes: [
-                  { width: 300, height: 50, label: "Mobile Banner" },
-                  { width: 320, height: 50, label: "Mobile Banner" },
-                  { width: 320, height: 100, label: "Large Mobile Banner" }
-                ]
-              },
-              google: {
-                commonSizes: [
-                  { width: 250, height: 250, label: "Square" },
-                  { width: 200, height: 200, label: "Small Square" },
-                  { width: 468, height: 60, label: "Banner" },
-                  { width: 728, height: 90, label: "Leaderboard" },
-                  { width: 300, height: 250, label: "Inline Rectangle" },
-                  { width: 336, height: 280, label: "Large Rectangle" },
-                  { width: 120, height: 600, label: "Skyscraper" },
-                  { width: 160, height: 600, label: "Wide Skyscraper" },
-                  { width: 300, height: 600, label: "Half-Page Ad" },
-                  { width: 970, height: 90, label: "Large Leaderboard" }
-                ],
-                mobileCommonSizes: [
-                  { width: 300, height: 50, label: "Mobile Banner" },
-                  { width: 320, height: 50, label: "Mobile Banner" },
-                  { width: 320, height: 100, label: "Large Mobile Banner" }
-                ]
-              },
-              linkedin: {
-                commonSizes: [
-                  { width: 1200, height: 627, label: "Single Image Ad" },
-                  { width: 1200, height: 1200, label: "Square Image" },
-                  { width: 1920, height: 1080, label: "Video Ad" }
-                ]
-              },
-              tiktok: {
-                commonSizes: [
-                  { width: 1080, height: 1920, label: "Full Screen" },
-                  { width: 1080, height: 1080, label: "Square" }
+                  { width: 1200, height: 628, label: "Facebook Feed" }
                 ]
               }
             }
@@ -119,9 +65,17 @@ const AdGalleryStep = ({
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error from Edge Function:', error);
+        throw error;
+      }
 
-      console.log('Generated ad variants:', data);
+      if (!data?.variants) {
+        console.error('Invalid response format:', data);
+        throw new Error('Invalid response format from server');
+      }
+
+      console.log('Generated ad variants:', data.variants);
       setAdVariants(data.variants);
       setRegenerationCount(prev => prev + 1);
       
