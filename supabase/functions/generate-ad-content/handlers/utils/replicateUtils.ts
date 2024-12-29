@@ -42,12 +42,16 @@ export async function generateWithReplicate(
 
     console.log('Generation output:', output);
 
+    // Handle array output (Replicate sometimes returns an array with one item)
+    const imageUrl = Array.isArray(output) ? output[0] : output;
+
     // Validate output
-    if (!output || typeof output !== 'string') {
-      throw new Error('Invalid output format from Replicate');
+    if (!imageUrl || typeof imageUrl !== 'string' || !imageUrl.startsWith('http')) {
+      console.error('Invalid output format received:', output);
+      throw new Error('Invalid output format from Replicate: Expected URL string');
     }
 
-    return output;
+    return imageUrl;
 
   } catch (error) {
     console.error('Error in generateWithReplicate:', error);
