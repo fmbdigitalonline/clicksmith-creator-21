@@ -53,14 +53,33 @@ serve(async (req) => {
         Style: Modern, professional video advertisement.`,
         { width: 1200, height: 628 }
       );
-      response = { variants: [{ videoUrl, type: 'video' }] };
+      
+      if (!videoUrl) {
+        throw new Error('Failed to generate video');
+      }
+      
+      response = { variants: [{ 
+        image: { url: videoUrl },
+        type: 'video',
+        headline: "Your Video Ad",
+        description: businessIdea.description,
+        callToAction: "Learn More"
+      }] };
+      
+      console.log('Video generation successful:', response);
     } else {
       const imageUrl = await generateWithReplicate(
         `Create an advertisement for: ${businessIdea.description}. 
         Target audience: ${targetAudience.description}.`,
         { width: 1200, height: 628 }
       );
-      response = { variants: [{ imageUrl, type: 'image' }] };
+      response = { variants: [{ 
+        image: { url: imageUrl },
+        type: 'image',
+        headline: "Your Image Ad",
+        description: businessIdea.description,
+        callToAction: "Learn More"
+      }] };
     }
 
     // Deduct credits after successful generation

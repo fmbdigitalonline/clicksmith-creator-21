@@ -104,7 +104,7 @@ export async function generateVideo(
 
 export async function generateWithReplicate(prompt: string, options: ImageOptions): Promise<string> {
   const defaultOptions = {
-    model: 'flux',
+    model: 'sdxl',
     numOutputs: 1,
     maxAttempts: 30,
     maxRetries: 3,
@@ -124,33 +124,20 @@ export async function generateWithReplicate(prompt: string, options: ImageOption
       auth: Deno.env.get('REPLICATE_API_KEY'),
     });
 
-    // Create prediction with retry logic
-    const prediction = await retryWithBackoff(
-      async () => {
-        const modelId = MODELS[config.model as keyof typeof MODELS];
-        console.log(`Using model: ${modelId}`);
-        
-        const result = await replicate.run(modelId, {
-          input: {
-            prompt,
-            width: config.width,
-            height: config.height,
-            num_outputs: config.numOutputs,
-            prompt_upsampling: true,
-          }
-        });
-
-        console.log('Raw Replicate response:', result);
-        return result;
-      },
+    const prediction = await replicate.run(
+      MODELS.sdxl,
       {
-        maxRetries: config.maxRetries,
-        delay: config.retryDelay,
-        backoffFactor: 2
+        input: {
+          prompt,
+          width: config.width,
+          height: config.height,
+          num_outputs: config.numOutputs,
+          prompt_upsampling: true,
+        }
       }
     );
 
-    console.log('Prediction result:', prediction);
+    console.log('Raw Replicate response:', prediction);
 
     // Handle different response formats
     let imageUrl: string;
