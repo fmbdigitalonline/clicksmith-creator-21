@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { generateAudiences } from "./handlers/audienceGeneration.ts";
 import { generateHooks } from "./handlers/hookGeneration.ts";
 import { generateImagePrompts } from "./handlers/imagePromptGeneration.ts";
@@ -21,12 +20,6 @@ serve(async (req) => {
     const { type, businessIdea, targetAudience, regenerationCount, timestamp, forceRegenerate } = await req.json();
 
     let responseData;
-
-    // Verify authorization
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      throw new Error('Missing authorization header');
-    }
 
     console.log('Processing request:', { type, timestamp, regenerationCount, forceRegenerate });
 
@@ -64,15 +57,9 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error('Error in generate-ad-content function:', error);
-    return new Response(
-      JSON.stringify({
-        error: error.message,
-        details: error.stack,
-      }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    );
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 });

@@ -1,4 +1,4 @@
-export async function generateCampaign(businessIdea: any, targetAudience: any, audienceAnalysis: any, openAIApiKey: string) {
+export async function generateCampaign(businessIdea: any, targetAudience: any) {
   const prompt = `Create a marketing campaign for this business and target audience:
 
 Business:
@@ -6,9 +6,6 @@ ${JSON.stringify(businessIdea, null, 2)}
 
 Target Audience:
 ${JSON.stringify(targetAudience, null, 2)}
-
-Audience Analysis:
-${JSON.stringify(audienceAnalysis, null, 2)}
 
 Create a complete marketing campaign with:
 1. 3 Ad copies (different versions)
@@ -45,7 +42,7 @@ Return ONLY a valid JSON object with these fields:
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
+        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
