@@ -15,11 +15,6 @@ export const useAudienceGeneration = () => {
     setError(null);
     
     try {
-      const session = await supabase.auth.getSession();
-      const authHeader = session.data.session?.access_token 
-        ? `Bearer ${session.data.session.access_token}`
-        : undefined;
-
       const requestBody = {
         type: 'audience',
         businessIdea,
@@ -31,12 +26,7 @@ export const useAudienceGeneration = () => {
       console.log('Generating audiences with params:', requestBody);
 
       const { data, error: supabaseError } = await supabase.functions.invoke('generate-ad-content', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': authHeader,
-        },
-        body: JSON.stringify(requestBody)
+        body: requestBody
       });
 
       if (supabaseError) {

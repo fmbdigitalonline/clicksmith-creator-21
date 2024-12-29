@@ -22,36 +22,24 @@ serve(async (req) => {
       throw new Error(`Method ${req.method} not allowed. Only POST requests are accepted.`);
     }
 
-    // Validate Content-Type header
-    const contentType = req.headers.get('content-type');
-    if (!contentType || !contentType.includes('application/json')) {
-      throw new Error('Content-Type must be application/json');
-    }
+    // Parse the request body
+    const body = await req.json().catch((e) => {
+      console.error('Error parsing request body:', e);
+      throw new Error('Invalid JSON in request body');
+    });
 
-    // Ensure request has a body and parse it
-    const text = await req.text();
-    if (!text) {
+    if (!body) {
       throw new Error('Empty request body');
     }
 
-    console.log('Raw request body:', text);
-    
-    let body;
-    try {
-      body = JSON.parse(text);
-    } catch (e) {
-      console.error('JSON parsing error:', e);
-      throw new Error(`Invalid JSON in request body: ${e.message}`);
-    }
+    console.log('Processing request:', { type: body.type, timestamp: body.timestamp });
 
     // Validate required fields
-    const { type, businessIdea, targetAudience, regenerationCount, timestamp, forceRegenerate } = body;
+    const { type, businessIdea, targetAudience, regenerationCount = 0, timestamp, forceRegenerate = false } = body;
     
     if (!type) {
       throw new Error('type is required in request body');
     }
-
-    console.log('Processing request:', { type, timestamp, regenerationCount, forceRegenerate });
 
     let responseData;
     switch (type) {
