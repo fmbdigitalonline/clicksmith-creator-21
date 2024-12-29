@@ -9,10 +9,12 @@ interface LeonardoResponse {
 export async function generateWithLeonardo(prompt: string): Promise<string> {
   console.log('Starting image generation with Leonardo:', { prompt });
 
+  // Validate prompt
   if (!prompt || typeof prompt !== 'string') {
     throw new Error('Invalid prompt provided to Leonardo API');
   }
 
+  // Validate API key
   const apiKey = Deno.env.get('LEONARDO_API_KEY');
   if (!apiKey) {
     throw new Error('LEONARDO_API_KEY is not configured');
@@ -29,7 +31,7 @@ export async function generateWithLeonardo(prompt: string): Promise<string> {
       },
       body: JSON.stringify({
         prompt,
-        modelId: "6bef9f1b-29cb-40c7-b9df-32b51c1f67d3", // Leonardo Creative v2
+        modelId: "1e7737d7-545e-469f-857f-e4b46eaa151d", // Leonardo Creative
         width: 1024,
         height: 1024,
         num_images: 1,
@@ -40,8 +42,8 @@ export async function generateWithLeonardo(prompt: string): Promise<string> {
         nsfw: false,
         photoReal: true,
         seed: Math.floor(Math.random() * 2147483647), // Random seed for variety
-        scheduler: "LEONARDO", // Using Leonardo's default scheduler
-        presetStyle: "LEONARDO", // Using Leonardo's default style
+        scheduler: "LEONARDO",
+        presetStyle: "LEONARDO",
       }),
     });
 
@@ -53,7 +55,15 @@ export async function generateWithLeonardo(prompt: string): Promise<string> {
         error: errorText,
         requestBody: { prompt }
       });
-      throw new Error(`Leonardo API initialization error: ${initResponse.status} ${initResponse.statusText}`);
+      
+      // Check for specific error cases
+      if (initResponse.status === 401) {
+        throw new Error('Invalid Leonardo API key. Please check your credentials.');
+      } else if (initResponse.status === 400) {
+        throw new Error('Invalid request parameters. Please check the prompt and model ID.');
+      }
+      
+      throw new Error(`Leonardo API error: ${initResponse.status} ${initResponse.statusText}`);
     }
 
     const initData = await initResponse.json();
@@ -64,6 +74,7 @@ export async function generateWithLeonardo(prompt: string): Promise<string> {
     }
 
     const generationId = initData.sdGenerationJob.generationId;
+    console.log('Generation initialized:', { generationId });
 
     // Poll for results with improved error handling
     const maxAttempts = 30;
@@ -95,6 +106,11 @@ export async function generateWithLeonardo(prompt: string): Promise<string> {
       }
 
       const statusData: LeonardoResponse = await statusResponse.json();
+      console.log('Generation status:', {
+        status: statusData.sdGenerationJob.status,
+        generationId,
+        attempt: attempts + 1
+      });
 
       if (statusData.sdGenerationJob.status === 'COMPLETE') {
         if (!statusData.sdGenerationJob.imageUrls?.[0]) {
