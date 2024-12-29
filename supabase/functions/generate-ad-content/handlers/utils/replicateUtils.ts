@@ -1,4 +1,4 @@
-import Replicate from 'replicate';
+import Replicate from "https://esm.sh/replicate@0.25.1";
 
 interface ImageOptions {
   width: number;
@@ -102,7 +102,7 @@ export async function generateWithReplicate(
     });
 
     const replicate = new Replicate({
-      auth: Deno.env.get('REPLICATE_API_TOKEN'),
+      auth: Deno.env.get('REPLICATE_API_KEY'),
     });
 
     // Create prediction with retry logic
