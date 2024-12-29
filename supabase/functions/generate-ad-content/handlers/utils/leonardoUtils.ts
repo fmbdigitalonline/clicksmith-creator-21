@@ -10,8 +10,8 @@ export async function generateWithLeonardo(prompt: string): Promise<string> {
   console.log('Starting image generation with Leonardo:', { prompt });
 
   // Validate prompt
-  if (!prompt || typeof prompt !== 'string') {
-    throw new Error('Invalid prompt provided to Leonardo API');
+  if (!prompt || typeof prompt !== 'string' || prompt.length < 10) {
+    throw new Error('Invalid prompt: Prompt must be a string of at least 10 characters');
   }
 
   // Validate API key
@@ -31,7 +31,7 @@ export async function generateWithLeonardo(prompt: string): Promise<string> {
       },
       body: JSON.stringify({
         prompt,
-        modelId: "1e7737d7-545e-469f-857f-e4b46eaa151d", // Leonardo Creative
+        modelId: "f3296a34-9aef-4370-ad18-88daf26862c3", // Leonardo Signature v2
         width: 1024,
         height: 1024,
         num_images: 1,
@@ -42,8 +42,11 @@ export async function generateWithLeonardo(prompt: string): Promise<string> {
         nsfw: false,
         photoReal: true,
         seed: Math.floor(Math.random() * 2147483647), // Random seed for variety
-        scheduler: "LEONARDO",
+        scheduler: "DDIM",
         presetStyle: "LEONARDO",
+        alchemy: true,
+        contrastRatio: 1,
+        promptMagicVersion: "v2",
       }),
     });
 
@@ -60,7 +63,7 @@ export async function generateWithLeonardo(prompt: string): Promise<string> {
       if (initResponse.status === 401) {
         throw new Error('Invalid Leonardo API key. Please check your credentials.');
       } else if (initResponse.status === 400) {
-        throw new Error('Invalid request parameters. Please check the prompt and model ID.');
+        throw new Error(`Invalid request parameters: ${errorText}`);
       }
       
       throw new Error(`Leonardo API error: ${initResponse.status} ${initResponse.statusText}`);
