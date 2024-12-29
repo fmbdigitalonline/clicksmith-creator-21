@@ -27,7 +27,8 @@ export async function generateWithReplicate(
     // Create prediction with Flux model
     console.log('Creating prediction with Flux model...');
     const prediction = await replicate.predictions.create({
-      version: "2a966a1cdd9c3cd6b3ef23f0764931360640be3f9416f32f6361a6f0731af6cb",
+      // Latest stable version of Flux model
+      version: "6c9ae690c241f5149121c6b2e5c05f48ff1f9551ad2f61c1d01eda6621852657",
       input: {
         prompt: prompt,
         aspect_ratio: aspectRatio,
@@ -55,7 +56,7 @@ export async function generateWithReplicate(
 
         if (result.status === "succeeded") {
           console.log('Generation succeeded:', result);
-          // The output is already a string URL, which matches the required schema
+          // The output is a string URL as per the output schema
           const imageUrl = result.output;
           if (!imageUrl || typeof imageUrl !== 'string') {
             throw new Error('Invalid output format from Replicate');
