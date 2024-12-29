@@ -4,17 +4,18 @@ import { generateHooks } from "./handlers/hookGeneration.ts";
 import { generateImagePrompts } from "./handlers/imagePromptGeneration.ts";
 import { generateCampaign } from "./handlers/campaignGeneration.ts";
 import { analyzeAudience } from "./handlers/audienceAnalysis.ts";
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { corsHeaders } from "./handlers/utils/corsHeaders.ts";
 
 serve(async (req) => {
   try {
     // Handle CORS preflight requests
     if (req.method === 'OPTIONS') {
-      return new Response(null, { headers: corsHeaders });
+      return new Response(null, { 
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json'
+        }
+      });
     }
 
     // Validate request method
@@ -22,11 +23,14 @@ serve(async (req) => {
       throw new Error(`Method ${req.method} not allowed. Only POST requests are accepted.`);
     }
 
-    // Parse the request body
-    const body = await req.json().catch((e) => {
+    // Parse the request body with proper error handling
+    let body;
+    try {
+      body = await req.json();
+    } catch (e) {
       console.error('Error parsing request body:', e);
       throw new Error('Invalid JSON in request body');
-    });
+    }
 
     if (!body) {
       throw new Error('Empty request body');
@@ -74,6 +78,7 @@ serve(async (req) => {
         throw new Error(`Unsupported generation type: ${type}`);
     }
 
+    // Ensure we're sending a proper JSON response
     return new Response(JSON.stringify(responseData), {
       headers: { 
         ...corsHeaders,
