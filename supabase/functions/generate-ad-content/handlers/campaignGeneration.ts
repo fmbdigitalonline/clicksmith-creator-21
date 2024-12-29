@@ -2,8 +2,7 @@ export async function generateCampaign(businessIdea: any, targetAudience: any, a
   const prompt = `Create a marketing campaign for this business and target audience:
 
 Business:
-Description: ${businessIdea.description}
-Value Proposition: ${businessIdea.valueProposition}
+${JSON.stringify(businessIdea, null, 2)}
 
 Target Audience:
 ${JSON.stringify(targetAudience, null, 2)}
@@ -50,7 +49,7 @@ Return ONLY a valid JSON object with these fields:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4',
+        model: 'gpt-4o-mini',
         messages: [
           {
             role: 'system',

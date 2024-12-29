@@ -3,14 +3,12 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { generateAudiences } from "./handlers/audienceGeneration.ts";
 import { generateHooks } from "./handlers/hookGeneration.ts";
 import { generateImagePrompts } from "./handlers/imagePromptGeneration.ts";
-import { generateCompleteAd } from "./handlers/completeAdGeneration.ts";
-import { analyzeAudience } from "./handlers/audienceAnalysis.ts";
 import { generateCampaign } from "./handlers/campaignGeneration.ts";
+import { analyzeAudience } from "./handlers/audienceAnalysis.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
 };
 
 serve(async (req) => {
@@ -47,7 +45,7 @@ serve(async (req) => {
         break;
       case 'complete':
         console.log('Generating complete ad with params:', { businessIdea, targetAudience });
-        responseData = await generateCompleteAd(businessIdea, targetAudience);
+        responseData = await generateCampaign(businessIdea, targetAudience);
         break;
       case 'analysis':
         console.log('Analyzing audience with params:', { businessIdea, targetAudience });
