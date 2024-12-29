@@ -31,11 +31,11 @@ export async function generateWithLeonardo(prompt: string): Promise<string> {
         },
         body: JSON.stringify({
           prompt,
-          modelId: "aa77f04e-3eec-4034-9c07-d0f619684628", // Leonardo Kino XL model
+          modelId: "1e60896f-3c26-4296-8ecc-53e2afecc132", // Leonardo Lightning XL model
           width: 512,
           height: 512,
           num_images: 1,
-          negative_prompt: "trees, blurry, low quality, distorted, deformed",
+          negative_prompt: "blurry, low quality, distorted, deformed",
           public: false,
           nsfw: false,
           photoReal: true,

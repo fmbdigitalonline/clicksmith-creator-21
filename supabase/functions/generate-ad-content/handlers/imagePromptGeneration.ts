@@ -6,7 +6,7 @@ export async function generateImagePrompts(
   targetAudience: TargetAudience,
   campaign?: MarketingCampaign
 ) {
-  const prompt = `Generate creative image prompts for marketing visuals based on this business and target audience:
+  const prompt = `Generate creative image prompt for marketing visual based on this business and target audience:
 
 Business:
 ${JSON.stringify(businessIdea, null, 2)}
@@ -17,13 +17,13 @@ ${JSON.stringify(targetAudience, null, 2)}
 ${campaign ? `Campaign Details:
 ${JSON.stringify(campaign, null, 2)}` : ''}
 
-Create 4 different image prompts that:
-1. Visually represent the value proposition
-2. Connect emotionally with the target audience
-3. Are detailed enough for high-quality image generation
-4. Follow professional advertising best practices
+Create 1 image prompt that:
+1. Visually represents the value proposition
+2. Connects emotionally with the target audience
+3. Is detailed enough for high-quality image generation
+4. Follows professional advertising best practices
 
-Return ONLY a valid JSON array with exactly 4 items in this format:
+Return ONLY a valid JSON array with exactly 1 item in this format:
 [
   {
     "prompt": "detailed_image_prompt"
@@ -40,7 +40,7 @@ Return ONLY a valid JSON array with exactly 4 items in this format:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4',
         messages: [
           { 
             role: 'system', 
@@ -58,7 +58,7 @@ Return ONLY a valid JSON array with exactly 4 items in this format:
     const data = await response.json();
     const generatedPrompts = JSON.parse(data.choices[0].message.content);
 
-    // Generate images using Leonardo AI
+    // Generate image using Leonardo AI
     const imagePromises = generatedPrompts.map(async (item: any) => {
       const imageUrl = await generateWithLeonardo(item.prompt);
       return {
