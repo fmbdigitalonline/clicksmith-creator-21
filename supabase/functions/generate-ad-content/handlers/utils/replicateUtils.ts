@@ -24,7 +24,7 @@ export async function generateWithReplicate(
     // Create prediction with Flux model
     console.log('Creating prediction with Flux model...');
     const prediction = await replicate.predictions.create({
-      version: "8ca5b95c56a6b5e5b2a1c8ef0e1b2b5b9c9e3b5e",  // Flux model version
+      version: "2a966a1cdd9c3cd6b3ef23f0764931360640be3f9416f32f6361a6f0731af6cb",  // Correct Flux model version
       input: {
         prompt: prompt,
         aspect_ratio: aspectRatio,
