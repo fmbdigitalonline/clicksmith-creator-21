@@ -97,17 +97,27 @@ export async function generateVideo(
   try {
     console.log('Starting video generation with configuration:', {
       prompt,
-      options
+      options,
+      model: MODELS.hunyuan
     });
 
     const replicate = new Replicate({
       auth: Deno.env.get('REPLICATE_API_TOKEN'),
     });
 
+    if (!Deno.env.get('REPLICATE_API_TOKEN')) {
+      throw new Error('REPLICATE_API_TOKEN is not configured');
+    }
+
     // Create prediction with retry logic
     const prediction = await retryWithBackoff(
       async () => {
-        console.log(`Using Hunyuan model for video generation`);
+        console.log(`Initiating Hunyuan model for video generation with params:`, {
+          prompt,
+          num_frames: Math.min(((options.duration || 30) * 24), 300),
+          width: options.width,
+          height: options.height
+        });
         
         const result = await replicate.run(MODELS.hunyuan, {
           input: {
@@ -130,21 +140,26 @@ export async function generateVideo(
       }
     );
 
-    console.log('Video generation result:', prediction);
+    console.log('Video generation prediction:', prediction);
 
     // Handle different response formats
     let videoUrl: string;
     if (Array.isArray(prediction)) {
       videoUrl = prediction[0];
+      console.log('Using first URL from prediction array:', videoUrl);
     } else if (typeof prediction === 'string') {
       videoUrl = prediction;
+      console.log('Using direct string URL from prediction:', videoUrl);
     } else if (prediction.output && Array.isArray(prediction.output)) {
       videoUrl = prediction.output[0];
+      console.log('Using first URL from prediction output array:', videoUrl);
     } else {
+      console.error('Unexpected prediction format:', prediction);
       throw new Error(`Unexpected response format from Replicate: ${JSON.stringify(prediction)}`);
     }
     
     if (typeof videoUrl !== 'string' || !videoUrl.startsWith('http')) {
+      console.error('Invalid video URL format:', videoUrl);
       throw new Error(`Invalid URL format received: ${videoUrl}`);
     }
 
