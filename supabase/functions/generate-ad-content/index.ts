@@ -17,18 +17,25 @@ serve(async (req) => {
   }
 
   try {
-    // Ensure request has a body
-    if (req.body === null) {
-      throw new Error('Request body is required');
+    // Validate request method
+    if (req.method !== 'POST') {
+      throw new Error(`Method ${req.method} not allowed. Only POST requests are accepted.`);
     }
 
-    // Parse JSON body with error handling
+    // Validate Content-Type header
+    const contentType = req.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      throw new Error('Content-Type must be application/json');
+    }
+
+    // Ensure request has a body and parse it
     let body;
     try {
       const text = await req.text();
       if (!text) {
         throw new Error('Empty request body');
       }
+      console.log('Raw request body:', text);
       body = JSON.parse(text);
     } catch (e) {
       console.error('JSON parsing error:', e);
