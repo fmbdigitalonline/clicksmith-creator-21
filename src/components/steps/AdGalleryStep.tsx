@@ -78,15 +78,27 @@ const AdGalleryStep = ({
         throw new Error('No data received from server');
       }
 
-      // Handle both possible response formats
+      // Handle both possible response formats and ensure images are included
       const variants = data.variants || data;
       if (!Array.isArray(variants)) {
         console.error('Invalid variants format:', variants);
         throw new Error('Invalid response format: variants is not an array');
       }
 
-      console.log('Processed ad variants:', variants);
-      setAdVariants(variants);
+      // Map the variants to include image URLs if they exist
+      const processedVariants = variants.map(variant => ({
+        ...variant,
+        imageUrl: variant.image?.url || variant.imageUrl,
+        platform: 'facebook',
+        size: {
+          width: 1200,
+          height: 628,
+          label: "Facebook Feed"
+        }
+      }));
+
+      console.log('Processed ad variants:', processedVariants);
+      setAdVariants(processedVariants);
       setRegenerationCount(prev => prev + 1);
       
       toast({
