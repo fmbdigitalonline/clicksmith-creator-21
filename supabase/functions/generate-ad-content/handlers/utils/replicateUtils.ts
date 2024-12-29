@@ -1,5 +1,5 @@
 import { corsHeaders } from '../../../_shared/cors.ts';
-import Replicate from 'replicate';
+import Replicate from 'npm:replicate';
 
 export async function generateWithReplicate(
   prompt: string,
