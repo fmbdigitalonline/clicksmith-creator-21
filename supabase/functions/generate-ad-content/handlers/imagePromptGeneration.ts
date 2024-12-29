@@ -1,32 +1,21 @@
 import { BusinessIdea, TargetAudience, MarketingCampaign } from '../Types.ts';
 import { generateWithReplicate } from './utils/replicateUtils.ts';
 
-// Helper function to sanitize strings for JSON
-const sanitizeString = (str: string): string => {
-  if (typeof str !== 'string') return str;
-  return str
-    .replace(/[\u0000-\u001F\u007F-\u009F]/g, '') // Remove control characters
-    .replace(/\\/g, '\\\\')  // Escape backslashes
-    .replace(/"/g, '\\"')    // Escape quotes
-    .replace(/\n/g, '\\n')   // Replace newlines
-    .replace(/\r/g, '\\r')   // Replace carriage returns
-    .replace(/\t/g, '\\t');  // Replace tabs
-};
-
-// Helper function to sanitize objects recursively
-const sanitizeObject = (obj: any): any => {
-  if (typeof obj === 'string') {
-    return sanitizeString(obj);
+// Helper function to validate and parse JSON safely
+const safeJSONParse = (str: string) => {
+  try {
+    // First, ensure the string is properly formatted
+    const cleaned = str.replace(/[\u0000-\u001F\u007F-\u009F]/g, '')
+                      .replace(/\n/g, ' ')
+                      .trim();
+    
+    // Try to parse the cleaned string
+    return JSON.parse(cleaned);
+  } catch (error) {
+    console.error('JSON Parse Error:', error);
+    console.log('Problematic string:', str);
+    throw new Error(`Failed to parse JSON: ${error.message}`);
   }
-  if (Array.isArray(obj)) {
-    return obj.map(sanitizeObject);
-  }
-  if (obj && typeof obj === 'object') {
-    return Object.fromEntries(
-      Object.entries(obj).map(([key, value]) => [key, sanitizeObject(value)])
-    );
-  }
-  return obj;
 };
 
 export async function generateImagePrompts(
@@ -37,13 +26,13 @@ export async function generateImagePrompts(
   const prompt = `Generate creative image prompt for marketing visual based on this business and target audience:
 
 Business:
-${JSON.stringify(sanitizeObject(businessIdea), null, 2)}
+${JSON.stringify(businessIdea, null, 2)}
 
 Target Audience:
-${JSON.stringify(sanitizeObject(targetAudience), null, 2)}
+${JSON.stringify(targetAudience, null, 2)}
 
 ${campaign ? `Campaign Details:
-${JSON.stringify(sanitizeObject(campaign), null, 2)}` : ''}
+${JSON.stringify(campaign, null, 2)}` : ''}
 
 Create 1 image prompt that:
 1. Visually represents the value proposition
@@ -86,14 +75,25 @@ Return ONLY a valid JSON array with exactly 1 item in this format:
     const data = await response.json();
     console.log('OpenAI response:', data);
 
-    // Sanitize the response content before parsing
-    const sanitizedContent = sanitizeString(data.choices[0].message.content);
-    const generatedPrompts = JSON.parse(sanitizedContent);
+    if (!data.choices?.[0]?.message?.content) {
+      throw new Error('Invalid response format from OpenAI');
+    }
+
+    // Parse and validate the response content
+    const generatedPrompts = safeJSONParse(data.choices[0].message.content);
     console.log('Generated prompts:', generatedPrompts);
+
+    if (!Array.isArray(generatedPrompts) || generatedPrompts.length === 0) {
+      throw new Error('Invalid prompts format: Expected non-empty array');
+    }
 
     // Generate image using Replicate
     const imagePromises = generatedPrompts.map(async (item: any) => {
-      const imageUrl = await generateWithReplicate(sanitizeString(item.prompt), { width: 1024, height: 1024 });
+      if (!item.prompt || typeof item.prompt !== 'string') {
+        throw new Error('Invalid prompt format: Expected string prompt');
+      }
+
+      const imageUrl = await generateWithReplicate(item.prompt, { width: 1024, height: 1024 });
       return {
         url: imageUrl,
         prompt: item.prompt,
