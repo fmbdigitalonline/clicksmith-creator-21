@@ -17,23 +17,24 @@ export async function generateWithReplicate(
       throw new Error('REPLICATE_API_TOKEN is not set');
     }
 
-    // Calculate aspect ratio based on dimensions
-    const aspectRatio = `${dimensions.width}:${dimensions.height}`;
+    // Calculate aspect ratio from dimensions
+    const gcd = (a: number, b: number): number => b === 0 ? a : gcd(b, a % b);
+    const divisor = gcd(dimensions.width, dimensions.height);
+    const aspectRatio = `${dimensions.width/divisor}:${dimensions.height/divisor}`;
+    
     console.log('Using aspect ratio:', aspectRatio);
 
     // Create prediction with Flux model
     console.log('Creating prediction with Flux model...');
     const prediction = await replicate.predictions.create({
-      version: "2a966a1cdd9c3cd6b3ef23f0764931360640be3f9416f32f6361a6f0731af6cb",  // Correct Flux model version
+      version: "2a966a1cdd9c3cd6b3ef23f0764931360640be3f9416f32f6361a6f0731af6cb",
       input: {
         prompt: prompt,
+        aspect_ratio: aspectRatio,
         negative_prompt: "blurry, low quality, distorted, deformed, ugly, bad anatomy",
-        width: dimensions.width,
-        height: dimensions.height,
-        num_inference_steps: 50,
-        guidance_scale: 7.5,
-        scheduler: "DPMSolverMultistep",
-        num_outputs: 1
+        safety_tolerance: 2,
+        output_format: "jpg",
+        raw: false
       }
     });
 
