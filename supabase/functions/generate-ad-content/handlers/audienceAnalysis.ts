@@ -1,8 +1,13 @@
-import { AudienceAnalysisResponse } from "./types.ts";
+import { BusinessIdea, TargetAudience } from "../types.ts";
 
-export const analyzeAudience = async (businessIdea: any, targetAudience: any, openAIApiKey: string, regenerationCount: number = 0): Promise<AudienceAnalysisResponse> => {
+export const analyzeAudience = async (businessIdea: BusinessIdea, targetAudience: TargetAudience, regenerationCount: number = 0) => {
   console.log('Starting audience analysis... (regeneration #${regenerationCount})');
   
+  const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+  if (!openAIApiKey) {
+    throw new Error('OpenAI API key not configured');
+  }
+
   const prompt = `Analyze the following target audience for a business 
   (consider this is regeneration attempt #${regenerationCount}, so provide fresh insights and perspectives):
   
@@ -42,7 +47,7 @@ export const analyzeAudience = async (businessIdea: any, targetAudience: any, op
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4',
+        model: 'gpt-4o-mini',
         messages: [
           {
             role: 'system',
