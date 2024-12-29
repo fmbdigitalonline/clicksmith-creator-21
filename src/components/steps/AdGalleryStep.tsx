@@ -70,13 +70,23 @@ const AdGalleryStep = ({
         throw error;
       }
 
-      if (!data?.variants) {
-        console.error('Invalid response format:', data);
-        throw new Error('Invalid response format from server');
+      // Log the entire response for debugging
+      console.log('Edge Function response:', data);
+
+      // Check if data exists and has the expected structure
+      if (!data) {
+        throw new Error('No data received from server');
       }
 
-      console.log('Generated ad variants:', data.variants);
-      setAdVariants(data.variants);
+      // Handle both possible response formats
+      const variants = data.variants || data;
+      if (!Array.isArray(variants)) {
+        console.error('Invalid variants format:', variants);
+        throw new Error('Invalid response format: variants is not an array');
+      }
+
+      console.log('Processed ad variants:', variants);
+      setAdVariants(variants);
       setRegenerationCount(prev => prev + 1);
       
       toast({
