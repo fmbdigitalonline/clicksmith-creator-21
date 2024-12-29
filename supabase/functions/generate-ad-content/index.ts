@@ -35,7 +35,7 @@ serve(async (req) => {
     console.log('Processing request:', { type: body.type, timestamp: body.timestamp });
 
     // Validate required fields
-    const { type, businessIdea, targetAudience, regenerationCount = 0, timestamp, forceRegenerate = false } = body;
+    const { type, businessIdea, targetAudience, regenerationCount = 0, timestamp, forceRegenerate = false, campaign } = body;
     
     if (!type) {
       throw new Error('type is required in request body');
@@ -51,14 +51,20 @@ serve(async (req) => {
         console.log('Generating hooks with params:', { businessIdea, targetAudience });
         responseData = await generateHooks(businessIdea, targetAudience);
         break;
-      case 'images':
-        console.log('Generating image prompts with params:', { businessIdea, targetAudience });
-        responseData = await generateImagePrompts(businessIdea, targetAudience);
-        break;
       case 'complete_ads':
       case 'video_ads':
-        console.log('Generating complete ad campaign with params:', { businessIdea, targetAudience, type });
-        responseData = await generateCampaign(businessIdea, targetAudience);
+        console.log('Generating complete ad campaign with params:', { businessIdea, targetAudience, campaign });
+        // First generate the campaign content
+        const campaignData = await generateCampaign(businessIdea, targetAudience);
+        
+        // Then generate images based on the campaign
+        const imageData = await generateImagePrompts(businessIdea, targetAudience, campaignData.campaign);
+        
+        // Combine the results
+        responseData = {
+          ...campaignData,
+          images: imageData.images
+        };
         break;
       case 'audience_analysis':
         console.log('Analyzing audience with params:', { businessIdea, targetAudience, regenerationCount });

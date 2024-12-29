@@ -35,17 +35,29 @@ const AdFormatStep = ({
   const generateImages = async () => {
     setIsGenerating(true);
     try {
+      console.log('Generating images with params:', { businessIdea, targetAudience, campaign });
+      
       const { data, error } = await supabase.functions.invoke('generate-ad-content', {
         body: { 
-          type: 'images',
+          type: 'complete_ads',
           businessIdea,
           targetAudience,
-          campaign
+          campaign,
+          timestamp: new Date().getTime()
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error from Edge Function:', error);
+        throw error;
+      }
 
+      if (!data?.images || !Array.isArray(data.images)) {
+        console.error('Invalid response format:', data);
+        throw new Error('Invalid response format from server');
+      }
+
+      console.log('Generated images:', data.images);
       setImages(data.images);
       
       toast({
@@ -56,7 +68,7 @@ const AdFormatStep = ({
       console.error('Error generating images:', error);
       toast({
         title: "Generation Failed",
-        description: "Failed to generate images. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to generate images. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -71,7 +83,15 @@ const AdFormatStep = ({
   }, []);
 
   const handleContinue = () => {
-    onNext(images);
+    if (images.length > 0) {
+      onNext(images);
+    } else {
+      toast({
+        title: "No Images Available",
+        description: "Please wait for images to generate before continuing.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
