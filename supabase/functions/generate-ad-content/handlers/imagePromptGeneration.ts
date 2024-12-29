@@ -1,5 +1,5 @@
 import { BusinessIdea, TargetAudience, MarketingCampaign } from '../Types.ts';
-import { generateWithLeonardo } from './utils/leonardoUtils.ts';
+import { generateWithReplicate } from './utils/replicateUtils.ts';
 
 export async function generateImagePrompts(
   businessIdea: BusinessIdea,
@@ -58,9 +58,9 @@ Return ONLY a valid JSON array with exactly 1 item in this format:
     const data = await response.json();
     const generatedPrompts = JSON.parse(data.choices[0].message.content);
 
-    // Generate image using Leonardo AI
+    // Generate image using Replicate
     const imagePromises = generatedPrompts.map(async (item: any) => {
-      const imageUrl = await generateWithLeonardo(item.prompt);
+      const imageUrl = await generateWithReplicate(item.prompt, { width: 1024, height: 1024 });
       return {
         url: imageUrl,
         prompt: item.prompt,

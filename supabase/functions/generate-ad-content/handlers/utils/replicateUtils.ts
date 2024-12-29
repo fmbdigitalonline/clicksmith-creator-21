@@ -1,7 +1,6 @@
 import { corsHeaders } from '../../../_shared/cors.ts';
 
 export async function generateWithReplicate(
-  replicate: any,
   prompt: string,
   dimensions: { width: number; height: number }
 ): Promise<string> {
@@ -11,16 +10,16 @@ export async function generateWithReplicate(
     // Calculate aspect ratio based on dimensions
     const aspectRatio = `${dimensions.width}:${dimensions.height}`;
     
-    // Create prediction with FLUX 1.1 Pro in raw mode for more authentic results
+    // Create prediction with SDXL Lightning model
     const prediction = await replicate.predictions.create({
-      version: "2a966a1cdd9c20e8d63dbd562e7c8a1f4c78e62e6c5b042d44ba12a2c758b07f",
+      version: "5599ed30703defd1d160a25a63321b4dec97101d98b4674bcc56e41f62f35637",
       input: {
-        raw: true, // Enable raw mode for more authentic results
         prompt: prompt,
-        aspect_ratio: aspectRatio,
-        output_format: "jpg",
-        safety_tolerance: 2,
-        image_prompt_strength: 0.8 // Increased for better prompt adherence while maintaining authenticity
+        width: dimensions.width,
+        height: dimensions.height,
+        num_outputs: 1,
+        guidance_scale: 7.5,
+        negative_prompt: "blurry, low quality, distorted, deformed",
       }
     });
 
