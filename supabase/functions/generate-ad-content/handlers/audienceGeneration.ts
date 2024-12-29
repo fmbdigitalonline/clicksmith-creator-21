@@ -25,7 +25,19 @@ export async function generateAudiences(
   4. Goals and aspirations
   5. Online behavior and platform preferences
   
-  Format the response as a JSON array with 3 objects, each containing these fields.`;
+  Format the response as a JSON array with 3 objects, each containing:
+  {
+    "name": "string",
+    "description": "string",
+    "demographics": "string",
+    "painPoints": ["string"],
+    "icp": "string",
+    "coreMessage": "string",
+    "positioning": "string",
+    "marketingAngle": "string",
+    "messagingApproach": "string",
+    "marketingChannels": ["string"]
+  }`;
 
   try {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -35,7 +47,7 @@ export async function generateAudiences(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4',
         messages: [
           {
             role: 'system',
@@ -46,7 +58,7 @@ export async function generateAudiences(
             content: prompt
           }
         ],
-        temperature: forceRegenerate ? 0.9 : 0.7, // Increase variation when regenerating
+        temperature: forceRegenerate ? 0.9 : 0.7,
       }),
     });
 

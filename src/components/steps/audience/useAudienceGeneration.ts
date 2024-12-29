@@ -15,32 +15,19 @@ export const useAudienceGeneration = () => {
     setError(null);
     
     try {
-      const session = await supabase.auth.getSession();
-      const authHeader = session.data.session?.access_token 
-        ? `Bearer ${session.data.session.access_token}`
-        : undefined;
+      console.log('Generating audiences with params:', { businessIdea, regenerationCount, forceRegenerate });
 
-      // Prepare the request body
-      const requestBody = {
-        type: 'audience',
-        businessIdea,
-        regenerationCount: forceRegenerate ? regenerationCount + 1 : regenerationCount,
-        timestamp: new Date().getTime(),
-        forceRegenerate
-      };
-
-      console.log('Calling generate-ad-content function with params:', { 
-        ...requestBody,
-        authHeader: authHeader ? 'Present' : 'Missing'
-      });
-
-      // Make the request with explicit headers and method
       const { data, error: supabaseError } = await supabase.functions.invoke('generate-ad-content', {
         method: 'POST',
-        body: requestBody,
+        body: {
+          type: 'audience',
+          businessIdea,
+          regenerationCount: forceRegenerate ? regenerationCount + 1 : regenerationCount,
+          timestamp: new Date().getTime(),
+          forceRegenerate
+        },
         headers: {
-          'Content-Type': 'application/json',
-          Authorization: authHeader,
+          'Content-Type': 'application/json'
         }
       });
 
