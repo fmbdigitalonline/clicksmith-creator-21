@@ -10,6 +10,7 @@ import { generateCampaign } from "./handlers/campaignGeneration.ts";
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
 };
 
 serve(async (req) => {
@@ -22,6 +23,14 @@ serve(async (req) => {
     const { type, businessIdea, targetAudience, regenerationCount, timestamp, forceRegenerate } = await req.json();
 
     let responseData;
+
+    // Verify authorization
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      throw new Error('Missing authorization header');
+    }
+
+    console.log('Processing request:', { type, timestamp, regenerationCount, forceRegenerate });
 
     switch (type) {
       case 'audience':
