@@ -1,72 +1,155 @@
-import { corsHeaders } from '../../../_shared/cors.ts';
-import Replicate from 'npm:replicate';
+import Replicate from 'replicate';
+
+interface ImageOptions {
+  width: number;
+  height: number;
+  model?: string;
+  numOutputs?: number;
+  maxAttempts?: number;
+  retryDelay?: number;
+  maxRetries?: number;
+}
+
+interface RetryConfig {
+  maxRetries: number;
+  delay: number;
+  backoffFactor: number;
+}
+
+// Default model configurations
+const MODELS = {
+  sdxl: "39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b", // SDXL
+  sdxlBase: "8beff3369e81422112d93b89ca01426147de542cd4684c244b673b105188fe5f", // SDXL Base
+  sdv15: "a4a8bafd6089e5dad6dd6dc5b3304a8ff88a27615fa0b67d135b0dfd814187be", // Stable Diffusion v1.5
+} as const;
+
+async function delay(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function retryWithBackoff<T>(
+  operation: () => Promise<T>,
+  config: RetryConfig
+): Promise<T> {
+  let lastError: Error | null = null;
+  
+  for (let attempt = 0; attempt < config.maxRetries; attempt++) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error;
+      console.warn(`Attempt ${attempt + 1} failed:`, error.message);
+      
+      if (attempt < config.maxRetries - 1) {
+        const backoffTime = config.delay * Math.pow(config.backoffFactor, attempt);
+        await delay(backoffTime);
+      }
+    }
+  }
+  
+  throw lastError || new Error('Operation failed after retries');
+}
+
+async function pollPrediction(
+  replicate: Replicate,
+  predictionId: string,
+  maxAttempts: number = 30
+): Promise<any> {
+  let attempts = 0;
+  
+  while (attempts < maxAttempts) {
+    const result = await replicate.predictions.get(predictionId);
+    console.log(`Polling attempt ${attempts + 1}, status: ${result.status}`);
+    
+    if (result.status === 'succeeded') {
+      return result;
+    }
+    
+    if (result.status === 'failed') {
+      throw new Error(`Prediction failed: ${result.error}`);
+    }
+    
+    if (result.status === 'canceled') {
+      throw new Error('Prediction was canceled');
+    }
+    
+    await delay(1000);
+    attempts++;
+  }
+  
+  throw new Error(`Prediction timed out after ${maxAttempts} attempts`);
+}
 
 export async function generateWithReplicate(
   prompt: string,
-  dimensions: { width: number; height: number }
+  options: ImageOptions = { width: 1024, height: 1024 }
 ): Promise<string> {
-  console.log('Starting image generation with Replicate:', { prompt, dimensions });
+  const defaultOptions = {
+    model: 'sdxl',
+    numOutputs: 1,
+    maxAttempts: 30,
+    maxRetries: 3,
+    retryDelay: 1000,
+  };
 
+  const config = { ...defaultOptions, ...options };
+  
   try {
-    // Initialize Replicate client with API token from environment
+    console.log('Starting image generation with configuration:', {
+      prompt,
+      model: config.model,
+      options: config
+    });
+
     const replicate = new Replicate({
       auth: Deno.env.get('REPLICATE_API_TOKEN'),
     });
 
-    if (!replicate.auth) {
-      throw new Error('REPLICATE_API_TOKEN is not set');
-    }
-
-    // Calculate aspect ratio from dimensions
-    const gcd = (a: number, b: number): number => b === 0 ? a : gcd(b, a % b);
-    const divisor = gcd(dimensions.width, dimensions.height);
-    const aspectRatio = `${dimensions.width/divisor}:${dimensions.height/divisor}`;
-    
-    console.log('Using aspect ratio:', aspectRatio);
-
-    // Run the Flux model with specific version and parameters
-    console.log('Running Flux model...');
-    const output = await replicate.run(
-      "black-forest-labs/flux-1.1-pro",
-      {
+    // Create prediction with retry logic
+    const prediction = await retryWithBackoff(
+      async () => replicate.predictions.create({
+        version: MODELS[config.model as keyof typeof MODELS] || MODELS.sdxl,
         input: {
-          prompt: prompt,
-          aspect_ratio: aspectRatio,
-          negative_prompt: "blurry, low quality, distorted, deformed, ugly, bad anatomy",
-          safety_tolerance: 2,
-          output_format: "jpg",
-          raw: false
-        }
+          prompt,
+          width: config.width,
+          height: config.height,
+          num_outputs: config.numOutputs,
+        },
+      }),
+      {
+        maxRetries: config.maxRetries,
+        delay: config.retryDelay,
+        backoffFactor: 2
       }
     );
 
-    console.log('Raw output from Replicate:', output);
+    console.log('Prediction created:', prediction);
 
-    // Handle different output formats
-    let imageUrl: string | null = null;
+    // Poll for results with automatic retries
+    const result = await pollPrediction(replicate, prediction.id, config.maxAttempts);
+    
+    console.log('Final result:', result);
 
-    if (Array.isArray(output)) {
-      // If output is an array, take the first item
-      imageUrl = output[0];
-    } else if (typeof output === 'object' && output !== null) {
-      // If output is an object, look for common URL fields
-      imageUrl = (output as any).url || (output as any).image || (output as any).output;
-    } else if (typeof output === 'string') {
-      // If output is directly a string URL
-      imageUrl = output;
+    if (!result.output || !Array.isArray(result.output) || result.output.length === 0) {
+      throw new Error('Invalid or empty output received from Replicate');
     }
 
-    // Validate final URL
-    if (!imageUrl || typeof imageUrl !== 'string' || !imageUrl.startsWith('http')) {
-      console.error('Invalid output format received:', output);
-      throw new Error(`Invalid output format from Replicate. Expected URL string, got: ${typeof imageUrl}`);
+    const imageUrl = result.output[0];
+    
+    if (typeof imageUrl !== 'string' || !imageUrl.startsWith('http')) {
+      throw new Error(`Invalid URL format received: ${imageUrl}`);
     }
 
     console.log('Successfully generated image URL:', imageUrl);
     return imageUrl;
 
   } catch (error) {
-    console.error('Error in generateWithReplicate:', error);
+    console.error('Error in generateWithReplicate:', {
+      message: error.message,
+      stack: error.stack,
+      prompt,
+      options: config
+    });
     throw error;
   }
 }
