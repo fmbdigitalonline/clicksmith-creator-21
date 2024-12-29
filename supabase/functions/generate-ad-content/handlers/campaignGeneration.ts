@@ -14,11 +14,11 @@ Create a complete marketing campaign with:
 2. 3 Headlines (6 words max)
 
 Ad Copy Guidelines:
-- Create 3 different versions:
-  1. "Longer story": Longer, storytelling-based
-  2. "Short impact": One impactful sentence
-  3. "AIDA version": Middle-length with bullet points
-- Should be general about product benefits
+- Create 10 different versions and rotate:
+  1. "Longer story": Longer, storytelling-based use pain point one from audience analysis
+  2. "personal emotional story  ": personal emotional story use pain point two from audience analysis
+  3. "AIDA version": Middle-length with bullet points use pain point three from audience analysis
+- Should be addresing about audience analysis painpoints
 - Must attract attention in first sentence
 - Each version should be different
 
