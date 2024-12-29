@@ -86,7 +86,9 @@ Return ONLY a valid JSON array with exactly 1 item in this format:
     const data = await response.json();
     console.log('OpenAI response:', data);
 
-    const generatedPrompts = JSON.parse(data.choices[0].message.content);
+    // Sanitize the response content before parsing
+    const sanitizedContent = sanitizeString(data.choices[0].message.content);
+    const generatedPrompts = JSON.parse(sanitizedContent);
     console.log('Generated prompts:', generatedPrompts);
 
     // Generate image using Replicate
