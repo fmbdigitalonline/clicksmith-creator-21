@@ -69,6 +69,7 @@ const AdGalleryStep = ({
 
       if (error) {
         console.error('Error from Edge Function:', error);
+        setGenerationStatus("Generation failed. Please try again.");
         throw error;
       }
 
@@ -113,7 +114,9 @@ const AdGalleryStep = ({
       setGenerationStatus("Generation failed. Please try again.");
       toast({
         title: "Generation Failed",
-        description: error instanceof Error ? error.message : "Failed to generate ads. Please try again.",
+        description: error instanceof Error 
+          ? `Error: ${error.message}. Please try again or contact support.`
+          : "Failed to generate ads. Please try again.",
         variant: "destructive",
       });
     } finally {

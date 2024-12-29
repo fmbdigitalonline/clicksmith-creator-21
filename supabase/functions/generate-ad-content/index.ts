@@ -7,13 +7,20 @@ import { analyzeAudience } from "./handlers/audienceAnalysis.ts";
 import { corsHeaders } from "./handlers/utils/corsHeaders.ts";
 
 serve(async (req) => {
+  console.log('Edge Function received request:', { 
+    method: req.method,
+    url: req.url,
+    headers: Object.fromEntries(req.headers.entries())
+  });
+
   try {
     // Handle CORS preflight requests
     if (req.method === 'OPTIONS') {
       return new Response(null, { 
+        status: 204,
         headers: {
           ...corsHeaders,
-          'Content-Type': 'application/json'
+          'Access-Control-Max-Age': '86400',
         }
       });
     }
@@ -94,23 +101,29 @@ serve(async (req) => {
         throw new Error(`Unsupported generation type: ${type}`);
     }
 
-    // Ensure we're sending a proper JSON response
+    // Log the response data for debugging
+    console.log('Edge Function response data:', responseData);
+
+    // Ensure we're sending a proper JSON response with CORS headers
     return new Response(JSON.stringify(responseData), {
+      status: 200,
       headers: { 
         ...corsHeaders,
-        'Content-Type': 'application/json' 
+        'Content-Type': 'application/json',
       },
     });
   } catch (error) {
     console.error('Error in generate-ad-content function:', error);
+    
+    // Return a proper error response with CORS headers
     return new Response(JSON.stringify({
       error: error.message,
       details: error.stack
     }), {
-      status: 400,
+      status: error.status || 400,
       headers: { 
         ...corsHeaders,
-        'Content-Type': 'application/json' 
+        'Content-Type': 'application/json',
       },
     });
   }
