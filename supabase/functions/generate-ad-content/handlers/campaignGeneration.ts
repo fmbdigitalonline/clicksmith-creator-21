@@ -22,6 +22,7 @@ Ad Copy Guidelines:
 - Some ad copies must also address the benefits of the products based on the positive experience the product provides
 - Must attract attention in first sentence
 - Each version should be different
+- Never use names and always talk directly to the reader, use words like you
 
 Headline Guidelines:
 - Maximum 6 words
