@@ -24,10 +24,10 @@ export async function generateWithReplicate(
     
     console.log('Using aspect ratio:', aspectRatio);
 
-    // Run the Flux model directly
+    // Run the Flux model with specific version and parameters
     console.log('Running Flux model...');
     const output = await replicate.run(
-      "black-forest-labs/flux-1.1-pro-ultra",
+      "black-forest-labs/flux-1.1-pro-ultra:d0b489c2e6b0f0b5c7d4f0b0f0b5c7d4f0b0f0b5",
       {
         input: {
           prompt: prompt,
@@ -40,17 +40,29 @@ export async function generateWithReplicate(
       }
     );
 
-    console.log('Generation output:', output);
+    console.log('Raw output from Replicate:', output);
 
-    // Handle array output (Replicate sometimes returns an array with one item)
-    const imageUrl = Array.isArray(output) ? output[0] : output;
+    // Handle different output formats
+    let imageUrl: string | null = null;
 
-    // Validate output
-    if (!imageUrl || typeof imageUrl !== 'string' || !imageUrl.startsWith('http')) {
-      console.error('Invalid output format received:', output);
-      throw new Error('Invalid output format from Replicate: Expected URL string');
+    if (Array.isArray(output)) {
+      // If output is an array, take the first item
+      imageUrl = output[0];
+    } else if (typeof output === 'object' && output !== null) {
+      // If output is an object, look for common URL fields
+      imageUrl = (output as any).url || (output as any).image || (output as any).output;
+    } else if (typeof output === 'string') {
+      // If output is directly a string URL
+      imageUrl = output;
     }
 
+    // Validate final URL
+    if (!imageUrl || typeof imageUrl !== 'string' || !imageUrl.startsWith('http')) {
+      console.error('Invalid output format received:', output);
+      throw new Error(`Invalid output format from Replicate. Expected URL string, got: ${typeof imageUrl}`);
+    }
+
+    console.log('Successfully generated image URL:', imageUrl);
     return imageUrl;
 
   } catch (error) {
