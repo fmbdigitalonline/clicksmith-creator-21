@@ -1,4 +1,6 @@
-export const analyzeAudience = async (businessIdea: any, targetAudience: any, openAIApiKey: string, regenerationCount: number = 0) => {
+import { AudienceAnalysisResponse } from "./types.ts";
+
+export const analyzeAudience = async (businessIdea: any, targetAudience: any, openAIApiKey: string, regenerationCount: number = 0): Promise<AudienceAnalysisResponse> => {
   console.log('Starting audience analysis... (regeneration #${regenerationCount})');
   
   const prompt = `Analyze the following target audience for a business 
