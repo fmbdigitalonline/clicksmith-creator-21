@@ -1,7 +1,7 @@
 import { BusinessIdea, TargetAudience } from "../types.ts";
 
 export const analyzeAudience = async (businessIdea: BusinessIdea, targetAudience: TargetAudience, regenerationCount: number = 0) => {
-  console.log('Starting audience analysis... (regeneration #${regenerationCount})');
+  console.log('Starting audience analysis...', { regenerationCount });
   
   const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
   if (!openAIApiKey) {
