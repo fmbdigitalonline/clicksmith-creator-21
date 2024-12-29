@@ -20,7 +20,7 @@ export async function generateWithLeonardo(prompt: string): Promise<string> {
   
   while (retryCount < MAX_RETRIES) {
     try {
-      // Initialize generation
+      // Step 1: Initialize generation
       console.log('Initializing Leonardo generation...');
       const initResponse = await fetch('https://cloud.leonardo.ai/api/rest/v1/generations', {
         method: 'POST',
@@ -31,7 +31,7 @@ export async function generateWithLeonardo(prompt: string): Promise<string> {
         },
         body: JSON.stringify({
           prompt,
-          modelId: "1e60896f-3c26-4296-8ecc-53e2afecc132", // Leonardo Lightning XL model
+          modelId: "6bef9f1b-29cb-40c7-b9df-32b51c1f67d3", // Updated to use the provided model ID
           width: 512,
           height: 512,
           num_images: 1,
@@ -39,12 +39,9 @@ export async function generateWithLeonardo(prompt: string): Promise<string> {
           public: false,
           nsfw: false,
           photoReal: true,
-          photoRealVersion: "v2",
           scheduler: "DDIM",
           presetStyle: "DYNAMIC",
-          alchemy: true,
           guidance_scale: 7,
-          promptMagicVersion: "v2",
         }),
       });
 
@@ -72,7 +69,7 @@ export async function generateWithLeonardo(prompt: string): Promise<string> {
         throw new Error('No generation ID received from Leonardo API');
       }
 
-      // Poll for results with exponential backoff
+      // Step 2: Poll for results
       console.log('Polling for generation results...');
       let attempts = 0;
       let delay = POLLING_INTERVAL;
