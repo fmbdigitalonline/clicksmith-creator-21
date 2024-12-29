@@ -115,6 +115,7 @@ export async function generateWithReplicate(
           width: config.width,
           height: config.height,
           num_outputs: config.numOutputs,
+          prompt_upsampling: true, // Enable prompt upsampling for better results
           raw: true, // Enable raw mode for more realistic images
         },
       }),
