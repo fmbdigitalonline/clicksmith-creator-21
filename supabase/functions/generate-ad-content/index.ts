@@ -4,7 +4,7 @@ import { generateHooks } from "./handlers/hookGeneration.ts";
 import { generateImagePrompts } from "./handlers/imagePromptGeneration.ts";
 import { generateCampaign } from "./handlers/campaignGeneration.ts";
 import { analyzeAudience } from "./handlers/audienceAnalysis.ts";
-import { corsHeaders } from "./handlers/utils/corsHeaders.ts";
+import { corsHeaders } from "../_shared/cors.ts";
 
 serve(async (req) => {
   // Log incoming request details
@@ -22,13 +22,14 @@ serve(async (req) => {
         headers: {
           ...corsHeaders,
           'Access-Control-Max-Age': '86400',
+          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
         }
       });
     }
 
     // Validate request method
-    if (req.method !== 'POST') {
-      throw new Error(`Method ${req.method} not allowed. Only POST requests are accepted.`);
+    if (!['GET', 'POST'].includes(req.method)) {
+      throw new Error(`Method ${req.method} not allowed. Only GET and POST requests are accepted.`);
     }
 
     // Parse the request body with proper error handling
