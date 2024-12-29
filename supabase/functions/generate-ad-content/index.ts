@@ -11,12 +11,12 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
-
   try {
+    // Handle CORS preflight requests
+    if (req.method === 'OPTIONS') {
+      return new Response(null, { headers: corsHeaders });
+    }
+
     // Validate request method
     if (req.method !== 'POST') {
       throw new Error(`Method ${req.method} not allowed. Only POST requests are accepted.`);
@@ -59,36 +59,29 @@ serve(async (req) => {
         console.log('Generating complete ad with params:', { businessIdea, targetAudience });
         responseData = await generateCampaign(businessIdea, targetAudience);
         break;
-      case 'analysis':
-        console.log('Analyzing audience with params:', { businessIdea, targetAudience });
-        responseData = await analyzeAudience(businessIdea, targetAudience);
-        break;
-      case 'campaign':
-        console.log('Generating campaign with params:', { businessIdea, targetAudience });
-        responseData = await generateCampaign(businessIdea, targetAudience);
+      case 'audience_analysis':
+        console.log('Analyzing audience with params:', { businessIdea, targetAudience, regenerationCount });
+        responseData = await analyzeAudience(businessIdea, targetAudience, regenerationCount);
         break;
       default:
         throw new Error(`Unsupported generation type: ${type}`);
     }
 
-    // Ensure responseData is properly serializable
-    const safeResponseData = JSON.parse(JSON.stringify(responseData));
-
-    return new Response(JSON.stringify(safeResponseData), {
+    return new Response(JSON.stringify(responseData), {
       headers: { 
-        ...corsHeaders, 
+        ...corsHeaders,
         'Content-Type': 'application/json' 
       },
     });
   } catch (error) {
     console.error('Error in generate-ad-content function:', error);
-    return new Response(JSON.stringify({ 
-      error: error instanceof Error ? error.message : 'An unknown error occurred',
-      details: error instanceof Error ? error.stack : undefined
+    return new Response(JSON.stringify({
+      error: error.message,
+      details: error.stack
     }), {
       status: 400,
       headers: { 
-        ...corsHeaders, 
+        ...corsHeaders,
         'Content-Type': 'application/json' 
       },
     });
