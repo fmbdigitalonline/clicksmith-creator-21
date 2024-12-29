@@ -1,4 +1,4 @@
-import { corsHeaders } from "../handlers/utils/corsHeaders.ts";
+import { corsHeaders } from "./utils/corsHeaders.ts";
 
 export async function generateAudiences(businessIdea: any, regenerationCount = 0, forceRegenerate = false) {
   const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
