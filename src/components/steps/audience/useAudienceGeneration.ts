@@ -20,6 +20,7 @@ export const useAudienceGeneration = () => {
         ? `Bearer ${session.data.session.access_token}`
         : undefined;
 
+      // Prepare the request body
       const requestBody = {
         type: 'audience',
         businessIdea,
@@ -33,7 +34,9 @@ export const useAudienceGeneration = () => {
         authHeader: authHeader ? 'Present' : 'Missing'
       });
 
+      // Make the request with explicit headers and method
       const { data, error: supabaseError } = await supabase.functions.invoke('generate-ad-content', {
+        method: 'POST',
         body: requestBody,
         headers: {
           'Content-Type': 'application/json',
