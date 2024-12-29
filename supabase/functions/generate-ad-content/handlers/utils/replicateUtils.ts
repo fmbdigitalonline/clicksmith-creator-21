@@ -27,8 +27,13 @@ export async function generateWithReplicate(
       version: "2a966a1cdd9c3cd6b3ef23f0764931360640be3f9416f32f6361a6f0731af6cb",  // Correct Flux model version
       input: {
         prompt: prompt,
-        aspect_ratio: aspectRatio,
         negative_prompt: "blurry, low quality, distorted, deformed, ugly, bad anatomy",
+        width: dimensions.width,
+        height: dimensions.height,
+        num_inference_steps: 50,
+        guidance_scale: 7.5,
+        scheduler: "DPMSolverMultistep",
+        num_outputs: 1
       }
     });
 
