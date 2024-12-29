@@ -1,6 +1,7 @@
 import { corsHeaders } from "./utils/corsHeaders.ts";
+import { BusinessIdea } from "../types.ts";
 
-export async function generateAudiences(businessIdea: any, regenerationCount = 0, forceRegenerate = false) {
+export async function generateAudiences(businessIdea: BusinessIdea, regenerationCount = 0, forceRegenerate = false) {
   const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
   if (!openAIApiKey) {
     throw new Error('OpenAI API key is not configured');
@@ -44,7 +45,7 @@ export async function generateAudiences(businessIdea: any, regenerationCount = 0
         messages: [
           {
             role: 'system',
-            content: 'You are an expert marketing strategist specializing in audience targeting and segmentation. Always respond with valid JSON.'
+            content: 'You are an expert marketing strategist specializing in audience targeting and segmentation. Always respond with valid JSON array containing exactly 3 audience personas.'
           },
           {
             role: 'user',
@@ -71,8 +72,12 @@ export async function generateAudiences(businessIdea: any, regenerationCount = 0
     const generatedText = data.choices[0].message.content;
     
     try {
+      // Clean up the response before parsing
+      const cleanedText = generatedText.replace(/```json\n?|\n?```/g, '').trim();
+      console.log('Cleaned text before parsing:', cleanedText);
+      
       // Try to parse the response as JSON
-      const parsedAudiences = JSON.parse(generatedText);
+      const parsedAudiences = JSON.parse(cleanedText);
       
       // Validate the structure of the parsed data
       if (!Array.isArray(parsedAudiences) || parsedAudiences.length !== 3) {
