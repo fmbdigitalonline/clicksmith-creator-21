@@ -33,10 +33,12 @@ const AdGalleryStep = ({
   const [adVariants, setAdVariants] = useState<any[]>([]);
   const [platform, setPlatform] = useState<"facebook" | "google" | "linkedin" | "tiktok">("facebook");
   const [regenerationCount, setRegenerationCount] = useState(0);
+  const [generationStatus, setGenerationStatus] = useState<string>("");
   const { toast } = useToast();
 
   const generateAds = async () => {
     setIsGenerating(true);
+    setGenerationStatus("Initializing ad generation...");
     try {
       console.log('Generating ads with type:', videoAdsEnabled ? 'video_ads' : 'complete_ads');
       
@@ -100,6 +102,7 @@ const AdGalleryStep = ({
       console.log('Processed ad variants:', processedVariants);
       setAdVariants(processedVariants);
       setRegenerationCount(prev => prev + 1);
+      setGenerationStatus("Generation completed successfully!");
       
       toast({
         title: `Fresh ${videoAdsEnabled ? 'Video Ads' : 'Image Ads'} Generated!`,
@@ -107,6 +110,7 @@ const AdGalleryStep = ({
       });
     } catch (error) {
       console.error('Error generating ads:', error);
+      setGenerationStatus("Generation failed. Please try again.");
       toast({
         title: "Generation Failed",
         description: error instanceof Error ? error.message : "Failed to generate ads. Please try again.",
@@ -141,19 +145,24 @@ const AdGalleryStep = ({
           onBack={onBack}
           onStartOver={onStartOver}
         />
-        <Button
-          onClick={generateAds}
-          disabled={isGenerating}
-          variant="outline"
-          className="w-full md:w-auto"
-        >
-          {isGenerating ? (
-            <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-          ) : (
-            <RefreshCw className="w-4 h-4 mr-2" />
+        <div className="flex flex-col items-end gap-2 w-full md:w-auto">
+          {generationStatus && (
+            <p className="text-sm text-gray-600">{generationStatus}</p>
           )}
-          <span>Regenerate Ads</span>
-        </Button>
+          <Button
+            onClick={generateAds}
+            disabled={isGenerating}
+            variant="outline"
+            className="w-full md:w-auto"
+          >
+            {isGenerating ? (
+              <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <RefreshCw className="w-4 h-4 mr-2" />
+            )}
+            <span>Regenerate Ads</span>
+          </Button>
+        </div>
       </div>
 
       {isGenerating ? (
