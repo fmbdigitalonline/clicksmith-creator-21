@@ -13,6 +13,7 @@ const FacebookAdFormats = ({ selectedFormat, onFormatSelect }: FacebookAdFormats
       title: "Landscape Image",
       description: "1200 x 628px - Best for Facebook feed ads",
       format: {
+        type: "image",
         format: "facebook_landscape",
         dimensions: { width: 1200, height: 628 },
         aspectRatio: "1.91:1",
@@ -25,6 +26,7 @@ const FacebookAdFormats = ({ selectedFormat, onFormatSelect }: FacebookAdFormats
       title: "Square Image",
       description: "1080 x 1080px - Great for Instagram feed",
       format: {
+        type: "image",
         format: "facebook_square",
         dimensions: { width: 1080, height: 1080 },
         aspectRatio: "1:1",
@@ -37,6 +39,7 @@ const FacebookAdFormats = ({ selectedFormat, onFormatSelect }: FacebookAdFormats
       title: "Story Image",
       description: "1080 x 1920px - Perfect for Stories and Reels",
       format: {
+        type: "image",
         format: "facebook_story",
         dimensions: { width: 1080, height: 1920 },
         aspectRatio: "9:16",
@@ -49,6 +52,7 @@ const FacebookAdFormats = ({ selectedFormat, onFormatSelect }: FacebookAdFormats
       title: "Carousel Image",
       description: "1080 x 1080px - For multi-image carousel ads",
       format: {
+        type: "image",
         format: "facebook_carousel",
         dimensions: { width: 1080, height: 1080 },
         aspectRatio: "1:1",
@@ -61,6 +65,7 @@ const FacebookAdFormats = ({ selectedFormat, onFormatSelect }: FacebookAdFormats
       title: "Collection Cover",
       description: "1200 x 628px - For collection ad covers",
       format: {
+        type: "image",
         format: "facebook_collection",
         dimensions: { width: 1200, height: 628 },
         aspectRatio: "1.91:1",

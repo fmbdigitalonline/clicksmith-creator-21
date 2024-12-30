@@ -24,6 +24,10 @@ const PreviewStep = ({
     });
   };
 
+  const formatDemographics = (demographics: TargetAudience['demographics']) => {
+    return `${demographics.ageRange}, ${demographics.gender}, ${demographics.location}`;
+  };
+
   return (
     <div className="space-y-6 md:space-y-8">
       <div className="flex flex-col md:flex-row justify-between gap-4 mb-4">
@@ -78,7 +82,7 @@ const PreviewStep = ({
             </div>
             <div>
               <h5 className="text-sm font-medium text-gray-700 mb-1">Demographics</h5>
-              <p className="text-sm text-gray-600">{audience.demographics}</p>
+              <p className="text-sm text-gray-600">{formatDemographics(audience.demographics)}</p>
             </div>
             <div>
               <h5 className="text-sm font-medium text-gray-700 mb-1">Hook Type</h5>

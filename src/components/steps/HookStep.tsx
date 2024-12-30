@@ -28,35 +28,21 @@ const HookStep = ({
   const generateHooks = async () => {
     setIsGenerating(true);
     try {
-      const enrichedTargetAudience = {
-        ...targetAudience,
-        audienceAnalysis: targetAudience.audienceAnalysis
-      };
-
       const { data, error } = await supabase.functions.invoke('generate-ad-content', {
         body: { 
           type: 'hooks',
           businessIdea,
-          targetAudience: enrichedTargetAudience
+          targetAudience
         }
       });
 
       if (error) {
-        // Check if it's an insufficient credits error
-        if (error.message?.includes('Insufficient credits')) {
-          toast({
-            title: "Insufficient Credits",
-            description: "You don't have enough credits to generate hooks. Please purchase more credits to continue.",
-            variant: "destructive",
-          });
-          return;
-        }
         throw error;
       }
 
       if (data?.hooks && Array.isArray(data.hooks)) {
         setHooks(data.hooks);
-        setSelectedHooks([]); // Reset selections when generating new hooks
+        setSelectedHooks([]);
         toast({
           title: "Hooks Generated!",
           description: "New ad hooks have been generated based on your audience's deep pain points.",
@@ -171,5 +157,3 @@ const HookStep = ({
     </div>
   );
 };
-
-export default HookStep;

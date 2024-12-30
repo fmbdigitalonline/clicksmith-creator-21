@@ -12,6 +12,10 @@ const AudienceCard = ({ audience, onClick }: AudienceCardProps) => {
   const painPoints = audience.painPoints || [];
   const marketingChannels = audience.marketingChannels || [];
 
+  const formatDemographics = (demographics: TargetAudience['demographics']) => {
+    return `${demographics.ageRange}, ${demographics.gender}, ${demographics.location}`;
+  };
+
   return (
     <Card
       className="relative group cursor-pointer hover:shadow-lg transition-all duration-200 border-2 hover:border-facebook"
@@ -23,7 +27,7 @@ const AudienceCard = ({ audience, onClick }: AudienceCardProps) => {
           <Users className="w-5 h-5 text-facebook" />
           <CardTitle className="text-lg">{audience.name}</CardTitle>
         </div>
-        <CardDescription>{audience.demographics}</CardDescription>
+        <CardDescription>{formatDemographics(audience.demographics)}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div>

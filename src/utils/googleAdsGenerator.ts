@@ -1,4 +1,4 @@
-import { BusinessIdea, TargetAudience, AdHook, GoogleAdFormat } from "@/types/adWizard";
+import { BusinessIdea, TargetAudience, AdHook, AdFormat } from "@/types/adWizard";
 import { supabase } from "@/integrations/supabase/client";
 
 export const generateGoogleAds = async (
@@ -7,7 +7,7 @@ export const generateGoogleAds = async (
   adHooks: AdHook[],
   videoAdsEnabled: boolean,
   existingImageUrl?: string
-): Promise<GoogleAdFormat[]> => {
+): Promise<AdFormat[]> => {
   try {
     const { data, error } = await supabase.functions.invoke('generate-ad-content', {
       body: {
