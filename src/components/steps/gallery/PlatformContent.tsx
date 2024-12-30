@@ -34,13 +34,28 @@ const PlatformContent = ({
       if (platformName === 'google' && businessIdea && targetAudience) {
         setIsLoading(true);
         try {
+          // Get the first available image URL from Facebook ads
+          const existingImageUrl = adVariants[0]?.imageUrl || adVariants[0]?.image?.url;
+          
           const ads = await generateGoogleAds(
             businessIdea,
             targetAudience,
             adHooks,
-            videoAdsEnabled
+            videoAdsEnabled,
+            existingImageUrl // Pass the existing image URL
           );
-          setGoogleAds(ads);
+          
+          // Ensure each Google ad variant uses the existing image
+          const processedAds = ads.map(ad => ({
+            ...ad,
+            image: {
+              url: existingImageUrl,
+              prompt: "Existing image from Facebook ad"
+            },
+            imageUrl: existingImageUrl // Add this for compatibility
+          }));
+          
+          setGoogleAds(processedAds);
         } catch (error) {
           console.error('Error loading Google ads:', error);
           toast({
@@ -57,7 +72,7 @@ const PlatformContent = ({
     if (platformName === 'google') {
       loadGoogleAds();
     }
-  }, [platformName, businessIdea, targetAudience, adHooks, videoAdsEnabled]);
+  }, [platformName, businessIdea, targetAudience, adHooks, videoAdsEnabled, adVariants]);
 
   if (isLoading) {
     return (
