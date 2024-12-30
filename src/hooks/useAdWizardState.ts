@@ -15,10 +15,13 @@ export const useAdWizardState = () => {
   const [targetAudience, setTargetAudience] = useState<TargetAudience | null>(null);
   const [audienceAnalysis, setAudienceAnalysis] = useState<AudienceAnalysis | null>(null);
   const [selectedHooks, setSelectedHooks] = useState<AdHook[]>([]);
+  const [autoSaveEnabled, setAutoSaveEnabled] = useState(true);
   const { toast } = useToast();
   const { projectId } = useParams();
 
   const saveProgress = async (data: any) => {
+    if (!autoSaveEnabled) return;
+    
     try {
       if (projectId) {
         // If we have a projectId, update the existing project
@@ -56,13 +59,13 @@ export const useAdWizardState = () => {
     setBusinessIdea(idea);
     await saveProgress({ business_idea: idea });
     setCurrentStep(2);
-  }, []);
+  }, [autoSaveEnabled]);
 
   const handleAudienceSelect = useCallback(async (audience: TargetAudience) => {
     setTargetAudience(audience);
     await saveProgress({ target_audience: audience });
     setCurrentStep(3);
-  }, []);
+  }, [autoSaveEnabled]);
 
   const handleAnalysisComplete = useCallback(async (analysis: AudienceAnalysis) => {
     try {
@@ -105,7 +108,7 @@ export const useAdWizardState = () => {
         variant: "destructive",
       });
     }
-  }, [businessIdea, targetAudience, toast]);
+  }, [businessIdea, targetAudience, toast, autoSaveEnabled]);
 
   const handleBack = useCallback(() => {
     setCurrentStep(prev => Math.max(1, prev - 1));
@@ -118,21 +121,23 @@ export const useAdWizardState = () => {
     setSelectedHooks([]);
     setCurrentStep(1);
 
-    // Clear wizard progress
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+    // Clear wizard progress only if autosave is enabled
+    if (autoSaveEnabled) {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
 
-      const { error } = await supabase
-        .from('wizard_progress')
-        .delete()
-        .eq('user_id', user.id);
+        const { error } = await supabase
+          .from('wizard_progress')
+          .delete()
+          .eq('user_id', user.id);
 
-      if (error) throw error;
-    } catch (error) {
-      console.error('Error clearing progress:', error);
+        if (error) throw error;
+      } catch (error) {
+        console.error('Error clearing progress:', error);
+      }
     }
-  }, []);
+  }, [autoSaveEnabled]);
 
   const canNavigateToStep = useCallback((step: number): boolean => {
     switch (step) {
@@ -155,6 +160,8 @@ export const useAdWizardState = () => {
     targetAudience,
     audienceAnalysis,
     selectedHooks,
+    autoSaveEnabled,
+    setAutoSaveEnabled,
     handleIdeaSubmit,
     handleAudienceSelect,
     handleAnalysisComplete,

@@ -9,7 +9,9 @@ import { useState, useMemo } from "react";
 import CreateProjectDialog from "./projects/CreateProjectDialog";
 import { useNavigate } from "react-router-dom";
 import { Toggle } from "./ui/toggle";
-import { Video, Image } from "lucide-react";
+import { Video, Image, Save } from "lucide-react";
+import { Switch } from "./ui/switch";
+import { Label } from "./ui/label";
 
 const AdWizard = () => {
   const [showCreateProject, setShowCreateProject] = useState(false);
@@ -22,6 +24,8 @@ const AdWizard = () => {
     targetAudience,
     audienceAnalysis,
     selectedHooks,
+    autoSaveEnabled,
+    setAutoSaveEnabled,
     handleIdeaSubmit,
     handleAudienceSelect,
     handleAnalysisComplete,
@@ -94,21 +98,35 @@ const AdWizard = () => {
         />
       </div>
 
-      <div className="flex items-center justify-end mb-6 space-x-2">
-        <span className="text-sm text-gray-600">Image Ads</span>
-        <Toggle
-          pressed={videoAdsEnabled}
-          onPressedChange={setVideoAdsEnabled}
-          aria-label="Toggle video ads"
-          className="data-[state=on]:bg-facebook"
-        >
-          {videoAdsEnabled ? (
-            <Video className="h-4 w-4" />
-          ) : (
-            <Image className="h-4 w-4" />
-          )}
-        </Toggle>
-        <span className="text-sm text-gray-600">Video Ads</span>
+      <div className="flex items-center justify-end mb-6 space-x-6">
+        <div className="flex items-center space-x-2">
+          <Switch
+            id="autosave"
+            checked={autoSaveEnabled}
+            onCheckedChange={setAutoSaveEnabled}
+          />
+          <Label htmlFor="autosave" className="text-sm text-gray-600 flex items-center space-x-1">
+            <Save className="h-4 w-4" />
+            <span>Auto-save progress</span>
+          </Label>
+        </div>
+        
+        <div className="flex items-center space-x-2">
+          <span className="text-sm text-gray-600">Image Ads</span>
+          <Toggle
+            pressed={videoAdsEnabled}
+            onPressedChange={setVideoAdsEnabled}
+            aria-label="Toggle video ads"
+            className="data-[state=on]:bg-facebook"
+          >
+            {videoAdsEnabled ? (
+              <Video className="h-4 w-4" />
+            ) : (
+              <Image className="h-4 w-4" />
+            )}
+          </Toggle>
+          <span className="text-sm text-gray-600">Video Ads</span>
+        </div>
       </div>
 
       {currentStepComponent}
