@@ -53,18 +53,40 @@ Return ONLY a valid JSON array with exactly 1 item in this format:
   }
 ]`;
 
-    const generatedPrompts = await generateWithReplicate(prompt, { width: 1200, height: 628 });
+    console.log('Sending prompt to Replicate:', prompt);
+    
+    const response = await generateWithReplicate(prompt, { width: 1200, height: 628 });
+    console.log('Raw Replicate response:', response);
 
-    const images = await Promise.all(generatedPrompts.map(async (item: any) => {
+    // Ensure we have a string response
+    const promptText = typeof response === 'string' ? response : JSON.stringify(response);
+    
+    // Parse the response and ensure it's an array
+    let parsedPrompts;
+    try {
+      parsedPrompts = safeJSONParse(promptText);
+      if (!Array.isArray(parsedPrompts)) {
+        parsedPrompts = [{ prompt: promptText }];
+      }
+    } catch (error) {
+      console.warn('Failed to parse prompts, using raw response:', error);
+      parsedPrompts = [{ prompt: promptText }];
+    }
+
+    console.log('Parsed prompts:', parsedPrompts);
+
+    const images = await Promise.all(parsedPrompts.map(async (item: any) => {
       if (!item.prompt || typeof item.prompt !== 'string') {
         throw new Error('Invalid prompt format: Expected string prompt');
       }
 
       // Generate original image
       const originalUrl = await generateWithReplicate(item.prompt, { width: 1200, height: 628 });
+      console.log('Generated original image URL:', originalUrl);
       
       // Generate resized variants
       const resizedUrls = await resizeImage(originalUrl);
+      console.log('Generated resized variants:', resizedUrls);
 
       // Store image variants in database
       const { data: imageVariant, error } = await supabase
@@ -76,7 +98,10 @@ Return ONLY a valid JSON array with exactly 1 item in this format:
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error storing image variants:', error);
+        throw error;
+      }
 
       return {
         url: originalUrl,
@@ -86,6 +111,7 @@ Return ONLY a valid JSON array with exactly 1 item in this format:
       };
     }));
 
+    console.log('Final generated images:', images);
     return { images };
   } catch (error) {
     console.error('Error in image prompt generation:', error);
