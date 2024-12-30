@@ -4,6 +4,7 @@ import AdFeedbackForm from "./AdFeedbackForm";
 import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { SaveAdButton } from "./SaveAdButton";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface AdVariantCardProps {
   image: AdImage;
@@ -12,19 +13,27 @@ interface AdVariantCardProps {
   onCreateProject?: () => void;
 }
 
+const AD_SIZES = [
+  { width: 1200, height: 628, label: "Landscape (1.91:1)" },
+  { width: 1080, height: 1080, label: "Square (1:1)" },
+  { width: 1080, height: 1920, label: "Vertical (9:16)" }
+];
+
 const AdVariantCard = ({ image, hook, index, onCreateProject }: AdVariantCardProps) => {
   const [rating, setRating] = useState("");
   const [feedback, setFeedback] = useState("");
+  const [selectedSize, setSelectedSize] = useState(`${AD_SIZES[0].width}x${AD_SIZES[0].height}`);
   const { projectId } = useParams();
 
   const handleDownload = async () => {
     try {
-      const response = await fetch(image.url);
+      const imageUrl = image.variants?.[selectedSize] || image.url;
+      const response = await fetch(imageUrl);
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `ad-variant-${index + 1}.jpg`;
+      link.download = `ad-variant-${index + 1}-${selectedSize}.jpg`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -34,15 +43,40 @@ const AdVariantCard = ({ image, hook, index, onCreateProject }: AdVariantCardPro
     }
   };
 
+  const currentImageUrl = image.variants?.[selectedSize] || image.url;
+  const [width, height] = selectedSize.split('x').map(Number);
+
   return (
     <Card className="overflow-hidden">
-      <div className="aspect-video relative">
-        <img
-          src={image.url}
-          alt={`Ad variant ${index + 1}`}
-          className="object-cover w-full h-full"
-        />
+      <div className="p-4 space-y-4">
+        <Select value={selectedSize} onValueChange={setSelectedSize}>
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Select size" />
+          </SelectTrigger>
+          <SelectContent>
+            {AD_SIZES.map((size) => (
+              <SelectItem key={`${size.width}x${size.height}`} value={`${size.width}x${size.height}`}>
+                {size.label} ({size.width}x{size.height})
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <div 
+          className="relative bg-gray-100 rounded-lg overflow-hidden"
+          style={{ 
+            aspectRatio: `${width}/${height}`,
+            maxHeight: '400px'
+          }}
+        >
+          <img
+            src={currentImageUrl}
+            alt={`Ad variant ${index + 1}`}
+            className="object-cover w-full h-full"
+          />
+        </div>
       </div>
+
       <CardContent className="p-4 space-y-4">
         <h3 className="font-medium text-lg">Variant {index + 1}</h3>
         <div className="space-y-2">

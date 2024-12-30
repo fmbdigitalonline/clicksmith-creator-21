@@ -1,5 +1,7 @@
 import { BusinessIdea, TargetAudience, MarketingCampaign } from '../Types.ts';
 import { generateWithReplicate } from './utils/replicateUtils.ts';
+import { resizeImage } from './utils/imageResizing.ts';
+import { supabase } from '../utils/supabaseClient.ts';
 
 // Helper function to validate and parse JSON safely
 const safeJSONParse = (str: string) => {
@@ -20,12 +22,13 @@ export async function generateImagePrompts(
   targetAudience: TargetAudience,
   campaign?: MarketingCampaign
 ) {
-  // Extract pain points from both target audience and deep analysis
-  const audiencePainPoints = targetAudience.painPoints || [];
-  const deepPainPoints = targetAudience.audienceAnalysis?.deepPainPoints || [];
-  const allPainPoints = [...new Set([...audiencePainPoints, ...deepPainPoints])];
+  try {
+    // Extract pain points from both target audience and deep analysis
+    const audiencePainPoints = targetAudience.painPoints || [];
+    const deepPainPoints = targetAudience.audienceAnalysis?.deepPainPoints || [];
+    const allPainPoints = [...new Set([...audiencePainPoints, ...deepPainPoints])];
 
-  const prompt = `Generate creative image prompt for marketing visual based on this business and target audience:
+    const prompt = `Generate creative image prompt for marketing visual based on this business and target audience:
 
 Business:
 ${JSON.stringify(businessIdea, null, 2)}
@@ -52,66 +55,39 @@ Return ONLY a valid JSON array with exactly 1 item in this format:
   }
 ]`;
 
-  try {
-    console.log('Generating image prompts with:', { 
-      businessIdea, 
-      targetAudience, 
-      campaign,
-      combinedPainPoints: allPainPoints 
-    });
+    const generatedPrompts = await generateWithReplicate(prompt, { width: 1200, height: 628 });
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          { 
-            role: 'system', 
-            content: 'You are an expert at creating detailed image prompts for marketing visuals that align with business goals and target audiences.'
-          },
-          { role: 'user', content: prompt }
-        ],
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    console.log('OpenAI response:', data);
-
-    if (!data.choices?.[0]?.message?.content) {
-      throw new Error('Invalid response format from OpenAI');
-    }
-
-    const generatedPrompts = safeJSONParse(data.choices[0].message.content);
-    console.log('Generated prompts:', generatedPrompts);
-
-    if (!Array.isArray(generatedPrompts) || generatedPrompts.length === 0) {
-      throw new Error('Invalid prompts format: Expected non-empty array');
-    }
-
-    // Generate image using Replicate
-    const imagePromises = generatedPrompts.map(async (item: any) => {
+    const images = await Promise.all(generatedPrompts.map(async (item: any) => {
       if (!item.prompt || typeof item.prompt !== 'string') {
         throw new Error('Invalid prompt format: Expected string prompt');
       }
 
-      const imageUrl = await generateWithReplicate(item.prompt, { width: 1024, height: 1024 });
-      return {
-        url: imageUrl,
-        prompt: item.prompt,
-      };
-    });
+      // Generate original image
+      const originalUrl = await generateWithReplicate(item.prompt, { width: 1200, height: 628 });
+      
+      // Generate resized variants
+      const resizedUrls = await resizeImage(originalUrl);
 
-    const images = await Promise.all(imagePromises);
-    console.log('Successfully generated images:', images);
-    
+      // Store image variants in database
+      const { data: imageVariant, error } = await supabase
+        .from('ad_image_variants')
+        .insert({
+          original_image_url: originalUrl,
+          resized_image_urls: resizedUrls,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      return {
+        url: originalUrl,
+        prompt: item.prompt,
+        variants: resizedUrls,
+        variantId: imageVariant.id
+      };
+    }));
+
     return { images };
   } catch (error) {
     console.error('Error in image prompt generation:', error);
