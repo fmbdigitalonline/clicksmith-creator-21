@@ -1,7 +1,6 @@
 import { BusinessIdea, TargetAudience, MarketingCampaign } from '../Types.ts';
 import { generateWithReplicate } from './utils/replicateUtils.ts';
 
-// Helper function to validate and parse JSON safely
 const safeJSONParse = (str: string) => {
   try {
     const cleaned = str.replace(/[\u0000-\u001F\u007F-\u009F]/g, '')
@@ -15,12 +14,17 @@ const safeJSONParse = (str: string) => {
   }
 };
 
+const AD_FORMATS = [
+  { width: 1200, height: 628, label: "Landscape (1.91:1)" },
+  { width: 1080, height: 1080, label: "Square (1:1)" },
+  { width: 1080, height: 1920, label: "Story (9:16)" }
+];
+
 export async function generateImagePrompts(
   businessIdea: BusinessIdea,
   targetAudience: TargetAudience,
   campaign?: MarketingCampaign
 ) {
-  // Extract pain points from both target audience and deep analysis
   const audiencePainPoints = targetAudience.painPoints || [];
   const deepPainPoints = targetAudience.audienceAnalysis?.deepPainPoints || [];
   const allPainPoints = [...new Set([...audiencePainPoints, ...deepPainPoints])];
@@ -96,16 +100,23 @@ Return ONLY a valid JSON array with exactly 1 item in this format:
       throw new Error('Invalid prompts format: Expected non-empty array');
     }
 
-    // Generate image using Replicate
-    const imagePromises = generatedPrompts.map(async (item: any) => {
-      if (!item.prompt || typeof item.prompt !== 'string') {
+    // Generate images for each format
+    const imagePromises = AD_FORMATS.map(async (format) => {
+      if (!generatedPrompts[0].prompt || typeof generatedPrompts[0].prompt !== 'string') {
         throw new Error('Invalid prompt format: Expected string prompt');
       }
 
-      const imageUrl = await generateWithReplicate(item.prompt, { width: 1024, height: 1024 });
+      const imageUrl = await generateWithReplicate(generatedPrompts[0].prompt, {
+        width: format.width,
+        height: format.height
+      });
+
       return {
         url: imageUrl,
-        prompt: item.prompt,
+        prompt: generatedPrompts[0].prompt,
+        width: format.width,
+        height: format.height,
+        label: format.label
       };
     });
 
