@@ -1,24 +1,38 @@
 import { AdHook } from "@/types/adWizard";
 import FacebookAdPreview from "./FacebookAdPreview";
 import AdPreviewCard from "./AdPreviewCard";
+import { generateGoogleAds } from "./utils/googleAdsGenerator";
 
 interface PlatformContentProps {
   platformName: string;
   adVariants: any[];
   onCreateProject: () => void;
   videoAdsEnabled?: boolean;
+  businessIdea?: any;
+  targetAudience?: any;
+  adHooks?: AdHook[];
 }
 
 const PlatformContent = ({ 
   platformName, 
   adVariants = [], 
-  onCreateProject, 
-  videoAdsEnabled = false 
+  onCreateProject,
+  videoAdsEnabled = false,
+  businessIdea,
+  targetAudience,
+  adHooks = []
 }: PlatformContentProps) => {
-  // Ensure adVariants is an array before filtering
-  const filteredVariants = Array.isArray(adVariants) 
-    ? adVariants.filter(variant => variant.platform === platformName)
-    : [];
+  let filteredVariants = adVariants;
+
+  // Use special handling for Google ads
+  if (platformName === 'google' && businessIdea && targetAudience) {
+    filteredVariants = generateGoogleAds(businessIdea, targetAudience, adHooks, videoAdsEnabled);
+  } else {
+    // Keep existing filtering for other platforms
+    filteredVariants = Array.isArray(adVariants) 
+      ? adVariants.filter(variant => variant.platform === platformName)
+      : [];
+  }
 
   if (filteredVariants.length === 0) {
     return (
