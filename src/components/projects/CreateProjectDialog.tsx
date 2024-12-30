@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import ProjectForm, { ProjectFormData } from "./ProjectForm";
 import ProjectActions from "./ProjectActions";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 
 interface CreateProjectDialogProps {
   open: boolean;
@@ -24,6 +26,7 @@ const CreateProjectDialog = ({
   const [userId, setUserId] = useState<string | null>(null);
   const [showActions, setShowActions] = useState(false);
   const [createdProjectId, setCreatedProjectId] = useState<string | null>(null);
+  const [includeWizardProgress, setIncludeWizardProgress] = useState(true);
   
   useEffect(() => {
     const getCurrentUser = async () => {
@@ -49,7 +52,7 @@ const CreateProjectDialog = ({
       ? values.tags.split(",").map((tag) => tag.trim())
       : [];
 
-    const { data, error } = await supabase.from("projects").insert({
+    let projectData: any = {
       title: values.title,
       description: values.description || null,
       tags,
@@ -59,7 +62,33 @@ const CreateProjectDialog = ({
         description: values.businessIdea,
         valueProposition: `Enhanced version of: ${values.businessIdea}`,
       },
-    }).select();
+    };
+
+    if (includeWizardProgress) {
+      // Fetch current wizard progress
+      const { data: wizardProgress } = await supabase
+        .from('wizard_progress')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+
+      if (wizardProgress) {
+        // Include wizard progress data in project
+        projectData = {
+          ...projectData,
+          target_audience: wizardProgress.target_audience,
+          audience_analysis: wizardProgress.audience_analysis,
+          selected_hooks: wizardProgress.selected_hooks,
+          ad_format: wizardProgress.ad_format,
+          video_ad_preferences: wizardProgress.video_ad_preferences,
+        };
+      }
+    }
+
+    const { data, error } = await supabase
+      .from("projects")
+      .insert(projectData)
+      .select();
 
     if (error) {
       toast({
@@ -96,6 +125,7 @@ const CreateProjectDialog = ({
     if (!open) {
       setShowActions(false);
       setCreatedProjectId(null);
+      setIncludeWizardProgress(true);
     }
   }, [open]);
 
@@ -114,11 +144,23 @@ const CreateProjectDialog = ({
           </DialogDescription>
         </DialogHeader>
         {!showActions ? (
-          <ProjectForm
-            onSubmit={handleSubmit}
-            onCancel={() => onOpenChange(false)}
-            initialBusinessIdea={initialBusinessIdea}
-          />
+          <>
+            <ProjectForm
+              onSubmit={handleSubmit}
+              onCancel={() => onOpenChange(false)}
+              initialBusinessIdea={initialBusinessIdea}
+            />
+            <div className="flex items-center space-x-2 mt-4">
+              <Checkbox
+                id="includeProgress"
+                checked={includeWizardProgress}
+                onCheckedChange={(checked) => setIncludeWizardProgress(checked as boolean)}
+              />
+              <Label htmlFor="includeProgress">
+                Include wizard progress data in the project
+              </Label>
+            </div>
+          </>
         ) : (
           <ProjectActions
             onGenerateAds={handleGenerateAds}
