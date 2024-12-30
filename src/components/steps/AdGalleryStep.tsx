@@ -143,6 +143,9 @@ const AdGalleryStep = ({
         adVariants={adVariants}
         onCreateProject={onCreateProject}
         videoAdsEnabled={videoAdsEnabled}
+        businessIdea={businessIdea}
+        targetAudience={targetAudience}
+        adHooks={adHooks}
       />
     </TabsContent>
   );

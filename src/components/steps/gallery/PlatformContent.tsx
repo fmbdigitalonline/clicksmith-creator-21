@@ -1,26 +1,75 @@
-import { AdHook } from "@/types/adWizard";
+import { AdHook, BusinessIdea, TargetAudience } from "@/types/adWizard";
 import FacebookAdPreview from "./FacebookAdPreview";
 import AdPreviewCard from "./AdPreviewCard";
+import { useEffect, useState } from "react";
+import { generateGoogleAds } from "@/utils/googleAdsGenerator";
+import { useToast } from "@/components/ui/use-toast";
+import { Loader2 } from "lucide-react";
 
 interface PlatformContentProps {
   platformName: string;
   adVariants: any[];
   onCreateProject: () => void;
   videoAdsEnabled?: boolean;
+  businessIdea?: BusinessIdea;
+  targetAudience?: TargetAudience;
+  adHooks?: AdHook[];
 }
 
 const PlatformContent = ({ 
   platformName, 
-  adVariants = [], // Add default empty array
+  adVariants = [],
   onCreateProject, 
-  videoAdsEnabled = false 
+  videoAdsEnabled = false,
+  businessIdea,
+  targetAudience,
+  adHooks = []
 }: PlatformContentProps) => {
-  // Ensure adVariants is an array before filtering
-  const filteredVariants = Array.isArray(adVariants) 
-    ? adVariants.filter(variant => variant.platform === platformName)
-    : [];
+  const [googleAds, setGoogleAds] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
 
-  if (filteredVariants.length === 0) {
+  useEffect(() => {
+    const loadGoogleAds = async () => {
+      if (platformName === 'google' && businessIdea && targetAudience) {
+        setIsLoading(true);
+        try {
+          const ads = await generateGoogleAds(
+            businessIdea,
+            targetAudience,
+            adHooks,
+            videoAdsEnabled
+          );
+          setGoogleAds(ads);
+        } catch (error) {
+          console.error('Error loading Google ads:', error);
+          toast({
+            title: "Error generating Google Ads",
+            description: "Failed to generate Google ad variants. Please try again.",
+            variant: "destructive",
+          });
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    if (platformName === 'google') {
+      loadGoogleAds();
+    }
+  }, [platformName, businessIdea, targetAudience, adHooks, videoAdsEnabled]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-8 h-8 animate-spin text-facebook" />
+      </div>
+    );
+  }
+
+  const displayAds = platformName === 'google' ? googleAds : adVariants.filter(variant => variant.platform === platformName);
+
+  if (displayAds.length === 0) {
     return (
       <div className="text-center py-8">
         <p className="text-gray-500">No ad variants available for {platformName}. Please try regenerating the ads.</p>
@@ -30,7 +79,7 @@ const PlatformContent = ({
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      {filteredVariants.map((variant, index) => (
+      {displayAds.map((variant, index) => (
         platformName === 'facebook' ? (
           <FacebookAdPreview
             key={`${index}-${variant.size?.label || 'default'}`}
