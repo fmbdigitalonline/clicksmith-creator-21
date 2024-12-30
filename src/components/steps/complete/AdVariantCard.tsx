@@ -5,9 +5,13 @@ import { Download, Save } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { AdHook, AdImage } from "@/types/adWizard";
 
 interface AdVariantCardProps {
-  variant: any;
+  variant?: any;
+  image?: AdImage;
+  hook?: AdHook;
+  index?: number;
   onCreateProject?: () => void;
   isVideo?: boolean;
 }
@@ -18,13 +22,13 @@ const AD_SIZES = [
   { width: 1080, height: 1920, label: "Vertical (9:16)" }
 ];
 
-const AdVariantCard = ({ variant, onCreateProject, isVideo = false }: AdVariantCardProps) => {
+const AdVariantCard = ({ variant, image, hook, onCreateProject, isVideo = false }: AdVariantCardProps) => {
   const [selectedSize, setSelectedSize] = useState(`${AD_SIZES[0].width}x${AD_SIZES[0].height}`);
   const { toast } = useToast();
 
   const handleDownload = async () => {
     try {
-      const imageUrl = variant.variants?.[selectedSize] || variant.url;
+      const imageUrl = image?.variants?.[selectedSize] || image?.url || variant?.url;
       const response = await fetch(imageUrl);
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
@@ -45,7 +49,7 @@ const AdVariantCard = ({ variant, onCreateProject, isVideo = false }: AdVariantC
     }
   };
 
-  const currentImageUrl = variant.variants?.[selectedSize] || variant.url;
+  const currentImageUrl = image?.variants?.[selectedSize] || image?.url || variant?.url;
   const [width, height] = selectedSize.split('x').map(Number);
 
   return (
@@ -73,10 +77,17 @@ const AdVariantCard = ({ variant, onCreateProject, isVideo = false }: AdVariantC
         >
           <img
             src={currentImageUrl}
-            alt={`Ad variant`}
+            alt={`Ad variant ${hook?.text || ''}`}
             className="object-cover w-full h-full"
           />
         </div>
+
+        {hook && (
+          <div className="space-y-2">
+            <h3 className="font-medium text-lg">{hook.text}</h3>
+            <p className="text-gray-600">{hook.description}</p>
+          </div>
+        )}
 
         <div className="space-y-4">
           <Button
