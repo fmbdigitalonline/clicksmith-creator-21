@@ -1,186 +1,124 @@
-import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { useAdWizardState } from "@/hooks/useAdWizardState";
-import WizardHeader from "./wizard/WizardHeader";
-import StepNavigation from "./wizard/StepNavigation";
-import BusinessIdeaStep from "./steps/BusinessIdeaStep";
+import IdeaStep from "./steps/BusinessIdeaStep";
 import AudienceStep from "./steps/AudienceStep";
 import AudienceAnalysisStep from "./steps/AudienceAnalysisStep";
-import HookStep from "./steps/HookStep";
-import AdFormatStep from "./steps/AdFormatStep";
-import AdSizeStep from "./steps/AdSizeStep";
-import CampaignStep from "./steps/CampaignStep";
-import PreviewStep from "./steps/PreviewStep";
-import CompleteStep from "./steps/CompleteStep";
-import { useToast } from "@/hooks/use-toast";
-import { BusinessIdea, TargetAudience, AudienceAnalysis, AdHook, AdFormat, AdImage } from "@/types/adWizard";
+import AdGalleryStep from "./steps/AdGalleryStep";
+import WizardHeader from "./wizard/WizardHeader";
+import WizardProgress from "./WizardProgress";
+import { useState, useMemo } from "react";
+import CreateProjectDialog from "./projects/CreateProjectDialog";
+import { useNavigate } from "react-router-dom";
+import { Toggle } from "./ui/toggle";
+import { Video, Image } from "lucide-react";
 
 const AdWizard = () => {
-  const { projectId } = useParams();
+  const [showCreateProject, setShowCreateProject] = useState(false);
+  const [videoAdsEnabled, setVideoAdsEnabled] = useState(false);
   const navigate = useNavigate();
-  const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(true);
-  const wizardState = useAdWizardState();
+  
+  const {
+    currentStep,
+    businessIdea,
+    targetAudience,
+    audienceAnalysis,
+    selectedHooks,
+    handleIdeaSubmit,
+    handleAudienceSelect,
+    handleAnalysisComplete,
+    handleBack,
+    handleStartOver,
+    canNavigateToStep,
+    setCurrentStep,
+  } = useAdWizardState();
 
-  useEffect(() => {
-    const loadProjectData = async () => {
-      if (projectId && projectId !== "new") {
-        try {
-          const { data: project, error } = await supabase
-            .from("projects")
-            .select("*")
-            .eq("id", projectId)
-            .single();
-
-          if (error) throw error;
-
-          if (project) {
-            if (project.business_idea) {
-              wizardState.handleIdeaSubmit(project.business_idea as BusinessIdea);
-            }
-            if (project.target_audience) {
-              wizardState.handleAudienceSelect(project.target_audience as TargetAudience);
-            }
-            if (project.audience_analysis) {
-              wizardState.handleAnalysisComplete(project.audience_analysis as AudienceAnalysis);
-            }
-            if (project.selected_hooks) {
-              wizardState.handleHooksSelect(project.selected_hooks as AdHook[]);
-            }
-            if (project.ad_format) {
-              // Convert the string ad_format to AdFormat type
-              const adFormat: AdFormat = {
-                format: project.ad_format,
-                dimensions: project.ad_dimensions || { width: 1200, height: 628 },
-                aspectRatio: "16:9",
-                description: "Facebook Ad Format",
-                platform: "facebook"
-              };
-              wizardState.handleAdFormatSelect(adFormat);
-            }
-            if (project.video_ad_settings) {
-              wizardState.handleVideoPreferencesUpdate(project.video_ad_settings);
-            }
-            if (project.ad_dimensions) {
-              wizardState.handleAdDimensionsUpdate(project.ad_dimensions);
-            }
-            if (project.video_ads_enabled !== undefined) {
-              wizardState.handleVideoAdsToggle(project.video_ads_enabled);
-            }
-          }
-        } catch (error) {
-          console.error("Error loading project:", error);
-          toast({
-            title: "Error loading project",
-            description: "Failed to load project data. Please try again.",
-            variant: "destructive",
-          });
-          navigate("/projects");
-          return;
-        }
-      }
-      setIsLoading(false);
-    };
-
-    loadProjectData();
-  }, [projectId, navigate, toast, wizardState]);
-
-  if (isLoading) {
-    return <div>Loading...</div>;
-  }
-
-  const renderCurrentStep = () => {
-    switch (wizardState.currentStep) {
-      case 1:
-        return <BusinessIdeaStep onNext={wizardState.handleIdeaSubmit} />;
-      case 2:
-        return (
-          <AudienceStep
-            businessIdea={wizardState.businessIdea!}
-            onNext={wizardState.handleAudienceSelect}
-            onBack={wizardState.handleBack}
-          />
-        );
-      case 3:
-        return (
-          <AudienceAnalysisStep
-            businessIdea={wizardState.businessIdea!}
-            targetAudience={wizardState.targetAudience!}
-            onNext={wizardState.handleAnalysisComplete}
-            onBack={wizardState.handleBack}
-          />
-        );
-      case 4:
-        return (
-          <HookStep
-            businessIdea={wizardState.businessIdea!}
-            targetAudience={wizardState.targetAudience!}
-            onNext={wizardState.handleHooksSelect}
-            onBack={wizardState.handleBack}
-          />
-        );
-      case 5:
-        return (
-          <AdFormatStep
-            businessIdea={wizardState.businessIdea!}
-            targetAudience={wizardState.targetAudience!}
-            campaign={wizardState.marketingCampaign!}
-            onNext={wizardState.handleGeneratedImages}
-            onBack={wizardState.handleBack}
-          />
-        );
-      case 6:
-        return (
-          <AdSizeStep
-            onNext={wizardState.handleAdDimensionsUpdate}
-            onBack={wizardState.handleBack}
-          />
-        );
-      case 7:
-        return (
-          <CampaignStep
-            businessIdea={wizardState.businessIdea!}
-            targetAudience={wizardState.targetAudience!}
-            audienceAnalysis={wizardState.audienceAnalysis!}
-            onNext={wizardState.handleCampaignComplete}
-            onBack={wizardState.handleBack}
-          />
-        );
-      case 8:
-        return (
-          <PreviewStep
-            businessIdea={wizardState.businessIdea!}
-            audience={wizardState.targetAudience!}
-            hook={wizardState.selectedHooks[0]}
-            onBack={wizardState.handleBack}
-          />
-        );
-      case 9:
-        return (
-          <CompleteStep
-            businessIdea={wizardState.businessIdea!}
-            targetAudience={wizardState.targetAudience!}
-            adHooks={wizardState.selectedHooks}
-            adFormat={wizardState.adFormat!}
-            onStartOver={wizardState.handleStartOver}
-            onBack={wizardState.handleBack}
-            onCreateProject={wizardState.handleCreateProject}
-          />
-        );
-      default:
-        return <BusinessIdeaStep onNext={wizardState.handleIdeaSubmit} />;
-    }
+  const handleCreateProject = () => {
+    setShowCreateProject(true);
   };
 
+  const handleProjectCreated = (projectId: string) => {
+    setShowCreateProject(false);
+    navigate(`/ad-wizard/${projectId}`);
+  };
+
+  // Memoize the current step component to prevent unnecessary re-renders
+  const currentStepComponent = useMemo(() => {
+    switch (currentStep) {
+      case 1:
+        return <IdeaStep onNext={handleIdeaSubmit} />;
+      case 2:
+        return businessIdea ? (
+          <AudienceStep
+            businessIdea={businessIdea}
+            onNext={handleAudienceSelect}
+            onBack={handleBack}
+          />
+        ) : null;
+      case 3:
+        return businessIdea && targetAudience ? (
+          <AudienceAnalysisStep
+            businessIdea={businessIdea}
+            targetAudience={targetAudience}
+            onNext={handleAnalysisComplete}
+            onBack={handleBack}
+          />
+        ) : null;
+      case 4:
+        return businessIdea && targetAudience && audienceAnalysis ? (
+          <AdGalleryStep
+            businessIdea={businessIdea}
+            targetAudience={targetAudience}
+            adHooks={selectedHooks}
+            onStartOver={handleStartOver}
+            onBack={handleBack}
+            onCreateProject={handleCreateProject}
+            videoAdsEnabled={videoAdsEnabled}
+          />
+        ) : null;
+      default:
+        return null;
+    }
+  }, [currentStep, businessIdea, targetAudience, audienceAnalysis, selectedHooks, videoAdsEnabled]);
+
   return (
-    <div className="container mx-auto px-4 py-8">
-      <WizardHeader 
-        title="Create Your Ad Campaign"
-        description="Follow the steps to create your perfect ad campaign"
+    <div className="container max-w-6xl mx-auto px-4 py-8">
+      <WizardHeader
+        title="ProfitPilot"
+        description="Quickly go from idea to ready-to-run ads by testing different audience segments with AI-powered Facebook ad campaigns."
       />
-      {renderCurrentStep()}
-      <StepNavigation />
+
+      <div className="mb-8">
+        <WizardProgress
+          currentStep={currentStep}
+          onStepClick={setCurrentStep}
+          canNavigateToStep={canNavigateToStep}
+        />
+      </div>
+
+      <div className="flex items-center justify-end mb-6 space-x-2">
+        <span className="text-sm text-gray-600">Image Ads</span>
+        <Toggle
+          pressed={videoAdsEnabled}
+          onPressedChange={setVideoAdsEnabled}
+          aria-label="Toggle video ads"
+          className="data-[state=on]:bg-facebook"
+        >
+          {videoAdsEnabled ? (
+            <Video className="h-4 w-4" />
+          ) : (
+            <Image className="h-4 w-4" />
+          )}
+        </Toggle>
+        <span className="text-sm text-gray-600">Video Ads</span>
+      </div>
+
+      {currentStepComponent}
+
+      <CreateProjectDialog
+        open={showCreateProject}
+        onOpenChange={setShowCreateProject}
+        onSuccess={handleProjectCreated}
+        initialBusinessIdea={businessIdea?.description}
+      />
     </div>
   );
 };

@@ -3,10 +3,7 @@ import {
   BusinessIdea,
   TargetAudience,
   AudienceAnalysis,
-  AdHook,
-  AdFormat,
-  MarketingCampaign,
-  AdImage,
+  AdHook
 } from "@/types/adWizard";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -18,20 +15,13 @@ export const useAdWizardState = () => {
   const [targetAudience, setTargetAudience] = useState<TargetAudience | null>(null);
   const [audienceAnalysis, setAudienceAnalysis] = useState<AudienceAnalysis | null>(null);
   const [selectedHooks, setSelectedHooks] = useState<AdHook[]>([]);
-  const [adFormat, setAdFormat] = useState<AdFormat | null>(null);
-  const [videoAdPreferences, setVideoAdPreferences] = useState<any>(null);
-  const [adDimensions, setAdDimensions] = useState<any>(null);
-  const [videoAdsEnabled, setVideoAdsEnabled] = useState<boolean>(false);
-  const [marketingCampaign, setMarketingCampaign] = useState<MarketingCampaign | null>(null);
-  const [autoSaveEnabled, setAutoSaveEnabled] = useState(true);
   const { toast } = useToast();
   const { projectId } = useParams();
 
   const saveProgress = async (data: any) => {
-    if (!autoSaveEnabled) return;
-    
     try {
       if (projectId) {
+        // If we have a projectId, update the existing project
         const { error } = await supabase
           .from('projects')
           .update(data)
@@ -39,6 +29,7 @@ export const useAdWizardState = () => {
 
         if (error) throw error;
       } else {
+        // If no projectId, save to wizard_progress
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
@@ -65,19 +56,20 @@ export const useAdWizardState = () => {
     setBusinessIdea(idea);
     await saveProgress({ business_idea: idea });
     setCurrentStep(2);
-  }, [autoSaveEnabled]);
+  }, []);
 
   const handleAudienceSelect = useCallback(async (audience: TargetAudience) => {
     setTargetAudience(audience);
     await saveProgress({ target_audience: audience });
     setCurrentStep(3);
-  }, [autoSaveEnabled]);
+  }, []);
 
   const handleAnalysisComplete = useCallback(async (analysis: AudienceAnalysis) => {
     try {
       setAudienceAnalysis(analysis);
       await saveProgress({ audience_analysis: analysis });
 
+      // Generate hooks automatically here
       const { data, error } = await supabase.functions.invoke('generate-ad-content', {
         body: { 
           type: 'hooks',
@@ -113,7 +105,7 @@ export const useAdWizardState = () => {
         variant: "destructive",
       });
     }
-  }, [businessIdea, targetAudience, toast, autoSaveEnabled]);
+  }, [businessIdea, targetAudience, toast]);
 
   const handleBack = useCallback(() => {
     setCurrentStep(prev => Math.max(1, prev - 1));
@@ -126,66 +118,20 @@ export const useAdWizardState = () => {
     setSelectedHooks([]);
     setCurrentStep(1);
 
-    if (autoSaveEnabled) {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
+    // Clear wizard progress
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-        const { error } = await supabase
-          .from('wizard_progress')
-          .delete()
-          .eq('user_id', user.id);
+      const { error } = await supabase
+        .from('wizard_progress')
+        .delete()
+        .eq('user_id', user.id);
 
-        if (error) throw error;
-      } catch (error) {
-        console.error('Error clearing progress:', error);
-      }
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error clearing progress:', error);
     }
-  }, [autoSaveEnabled]);
-
-  const handleHooksSelect = useCallback(async (hooks: AdHook[]) => {
-    setSelectedHooks(hooks);
-    await saveProgress({ selected_hooks: hooks });
-    setCurrentStep(5);
-  }, [autoSaveEnabled]);
-
-  const handleAdFormatSelect = useCallback(async (format: AdFormat) => {
-    setAdFormat(format);
-    await saveProgress({ ad_format: format });
-    setCurrentStep(6);
-  }, [autoSaveEnabled]);
-
-  const handleVideoPreferencesUpdate = useCallback(async (preferences: any) => {
-    setVideoAdPreferences(preferences);
-    await saveProgress({ video_ad_preferences: preferences });
-  }, [autoSaveEnabled]);
-
-  const handleAdDimensionsUpdate = useCallback(async (dimensions: any) => {
-    setAdDimensions(dimensions);
-    await saveProgress({ ad_dimensions: dimensions });
-    setCurrentStep(7);
-  }, [autoSaveEnabled]);
-
-  const handleVideoAdsToggle = useCallback(async (enabled: boolean) => {
-    setVideoAdsEnabled(enabled);
-    await saveProgress({ video_ads_enabled: enabled });
-  }, [autoSaveEnabled]);
-
-  const handleCampaignComplete = useCallback(async (campaign: any) => {
-    setMarketingCampaign(campaign);
-    await saveProgress({ marketing_campaign: campaign });
-    setCurrentStep(8);
-  }, [autoSaveEnabled]);
-
-  const handleCreateProject = useCallback(async () => {
-    // Implementation for project creation
-    setCurrentStep(9);
-  }, []);
-
-  const handleGeneratedImages = useCallback(async (images: AdImage[]) => {
-    // Store the generated images and move to the next step
-    await saveProgress({ generated_ads: images });
-    setCurrentStep(6);
   }, []);
 
   const canNavigateToStep = useCallback((step: number): boolean => {
@@ -209,26 +155,11 @@ export const useAdWizardState = () => {
     targetAudience,
     audienceAnalysis,
     selectedHooks,
-    adFormat,
-    videoAdPreferences,
-    adDimensions,
-    videoAdsEnabled,
-    marketingCampaign,
-    autoSaveEnabled,
-    setAutoSaveEnabled,
     handleIdeaSubmit,
     handleAudienceSelect,
     handleAnalysisComplete,
     handleBack,
     handleStartOver,
-    handleHooksSelect,
-    handleAdFormatSelect,
-    handleVideoPreferencesUpdate,
-    handleAdDimensionsUpdate,
-    handleVideoAdsToggle,
-    handleCampaignComplete,
-    handleCreateProject,
-    handleGeneratedImages,
     canNavigateToStep,
     setCurrentStep,
   };
