@@ -19,7 +19,7 @@ const ProjectProgressDetails = ({
   if (!businessIdea && !targetAudience && !audienceAnalysis) return null;
 
   return (
-    <div className="space-y-4 mt-4">
+    <div className="space-y-4">
       {businessIdea && (
         <div className="p-4 bg-gray-50 rounded-lg">
           <div className="flex items-center gap-2 mb-2">

@@ -13,6 +13,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import EditProjectDialog from "./EditProjectDialog";
 import ProjectCardHeader from "./card/ProjectCardHeader";
 import ProjectProgressDetails from "./card/ProjectProgressDetails";
@@ -42,6 +48,7 @@ interface ProjectCardProps {
 const ProjectCard = ({ project, onUpdate, onStartAdWizard }: ProjectCardProps) => {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const { toast } = useToast();
 
   const handleDelete = async () => {
@@ -77,7 +84,7 @@ const ProjectCard = ({ project, onUpdate, onStartAdWizard }: ProjectCardProps) =
 
   return (
     <>
-      <Card>
+      <Card className="cursor-pointer transition-all hover:shadow-md" onClick={() => setIsDetailsOpen(true)}>
         <ProjectCardHeader 
           title={project.title} 
           validationProgress={getValidationProgress()} 
@@ -86,11 +93,6 @@ const ProjectCard = ({ project, onUpdate, onStartAdWizard }: ProjectCardProps) =
           <p className="text-sm text-muted-foreground mb-4">
             {project.business_idea?.description || project.description || "No description provided"}
           </p>
-          <ProjectProgressDetails
-            businessIdea={project.business_idea}
-            targetAudience={project.target_audience}
-            audienceAnalysis={project.audience_analysis}
-          />
           {project.tags && project.tags.length > 0 && (
             <div className="mt-4 flex flex-wrap gap-2">
               {project.tags.map((tag) => (
@@ -108,6 +110,19 @@ const ProjectCard = ({ project, onUpdate, onStartAdWizard }: ProjectCardProps) =
           hasCampaign={!!project.marketing_campaign}
         />
       </Card>
+
+      <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{project.title}</DialogTitle>
+          </DialogHeader>
+          <ProjectProgressDetails
+            businessIdea={project.business_idea}
+            targetAudience={project.target_audience}
+            audienceAnalysis={project.audience_analysis}
+          />
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
         <AlertDialogContent>
