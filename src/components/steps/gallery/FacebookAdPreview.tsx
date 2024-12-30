@@ -80,7 +80,7 @@ const FacebookAdPreview = ({ variant, onCreateProject, isVideo = false }: Facebo
       };
 
       // Combine existing ads with the new one
-      const existingAds = project?.generated_ads || [];
+      const existingAds = Array.isArray(project?.generated_ads) ? project.generated_ads : [];
       const updatedAds = [...existingAds, newAd];
 
       // Update the project with the new ad
