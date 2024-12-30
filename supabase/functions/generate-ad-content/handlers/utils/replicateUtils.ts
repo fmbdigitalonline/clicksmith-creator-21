@@ -51,31 +51,30 @@ async function retryWithBackoff<T>(
   throw lastError || new Error('Operation failed after retries');
 }
 
-async function pollPrediction(
-  replicate: Replicate,
-  prediction: any,
-  maxAttempts: number = 30
-): Promise<any> {
-  let attempts = 0;
+// Function to scale dimensions while maintaining aspect ratio and max height of 1440
+function getScaledDimensions(width: number, height: number): { width: number; height: number } {
+  const MAX_HEIGHT = 1440;
+  const MAX_WIDTH = 1440;
   
-  while (attempts < maxAttempts) {
-    if (prediction.status === 'succeeded') {
-      return prediction;
-    }
-    
-    if (prediction.status === 'failed') {
-      throw new Error(`Prediction failed: ${prediction.error}`);
-    }
-    
-    if (prediction.status === 'canceled') {
-      throw new Error('Prediction was canceled');
-    }
-    
-    await delay(1000);
-    attempts++;
+  if (height <= MAX_HEIGHT && width <= MAX_WIDTH) {
+    return { width, height };
+  }
+
+  const aspectRatio = width / height;
+  
+  if (height > MAX_HEIGHT) {
+    const newHeight = MAX_HEIGHT;
+    const newWidth = Math.round(newHeight * aspectRatio);
+    return { width: newWidth, height: newHeight };
   }
   
-  throw new Error(`Prediction timed out after ${maxAttempts} attempts`);
+  if (width > MAX_WIDTH) {
+    const newWidth = MAX_WIDTH;
+    const newHeight = Math.round(newWidth / aspectRatio);
+    return { width: newWidth, height: newHeight };
+  }
+
+  return { width, height };
 }
 
 export async function generateWithReplicate(
@@ -103,6 +102,10 @@ export async function generateWithReplicate(
       auth: Deno.env.get('REPLICATE_API_KEY'),
     });
 
+    // Scale dimensions to comply with API limitations
+    const scaledDimensions = getScaledDimensions(config.width, config.height);
+    console.log('Using scaled dimensions:', scaledDimensions);
+
     // Create prediction with retry logic
     const prediction = await retryWithBackoff(
       async () => {
@@ -112,8 +115,8 @@ export async function generateWithReplicate(
         const result = await replicate.run(modelId, {
           input: {
             prompt,
-            width: config.width,
-            height: config.height,
+            width: scaledDimensions.width,
+            height: scaledDimensions.height,
             num_outputs: config.numOutputs,
             prompt_upsampling: true,
           }
