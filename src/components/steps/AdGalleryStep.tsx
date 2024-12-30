@@ -68,11 +68,41 @@ const AdGalleryStep = ({
               facebook: {
                 formats: ['feed', 'sponsored', 'message'],
                 aspectRatios: ['1:1', '16:9']
+              },
+              google: {
+                formats: ['display', 'responsive'],
+                aspectRatios: ['1:1', '16:9', '4:5']
+              },
+              linkedin: {
+                formats: ['sponsored', 'message'],
+                aspectRatios: ['1:1', '16:9']
+              },
+              tiktok: {
+                formats: ['feed', 'story'],
+                aspectRatios: ['9:16', '1:1']
               }
             } : {
               facebook: {
                 commonSizes: [
                   { width: 1200, height: 628, label: "Facebook Feed" }
+                ]
+              },
+              google: {
+                commonSizes: [
+                  { width: 1200, height: 628, label: "Google Display" },
+                  { width: 1200, height: 1200, label: "Google Square" }
+                ]
+              },
+              linkedin: {
+                commonSizes: [
+                  { width: 1200, height: 627, label: "LinkedIn Feed" },
+                  { width: 1200, height: 1200, label: "LinkedIn Square" }
+                ]
+              },
+              tiktok: {
+                commonSizes: [
+                  { width: 1080, height: 1920, label: "TikTok Portrait" },
+                  { width: 1080, height: 1080, label: "TikTok Square" }
                 ]
               }
             }
@@ -94,17 +124,23 @@ const AdGalleryStep = ({
       // Validate and process the response
       const variants = validateResponse(data);
 
-      // Map the variants to include image URLs if they exist
-      const processedVariants = variants.map(variant => ({
-        ...variant,
-        imageUrl: variant.image?.url || variant.imageUrl,
-        platform: 'facebook',
-        size: {
-          width: 1200,
-          height: 628,
-          label: "Facebook Feed"
-        }
-      }));
+      // Map the variants to include platform-specific information
+      const processedVariants = variants.map(variant => {
+        const platformConfig = {
+          facebook: { width: 1200, height: 628, label: "Facebook Feed" },
+          google: { width: 1200, height: 628, label: "Google Display" },
+          linkedin: { width: 1200, height: 627, label: "LinkedIn Feed" },
+          tiktok: { width: 1080, height: 1920, label: "TikTok Portrait" }
+        };
+
+        const platform = variant.platform || 'facebook';
+        return {
+          ...variant,
+          imageUrl: variant.image?.url || variant.imageUrl,
+          platform,
+          size: platformConfig[platform as keyof typeof platformConfig]
+        };
+      });
 
       console.log('Processed ad variants:', processedVariants);
       setAdVariants(processedVariants);

@@ -11,7 +11,7 @@ interface PlatformContentProps {
 
 const PlatformContent = ({ 
   platformName, 
-  adVariants = [], // Add default empty array
+  adVariants = [], 
   onCreateProject, 
   videoAdsEnabled = false 
 }: PlatformContentProps) => {
@@ -23,30 +23,36 @@ const PlatformContent = ({
   if (filteredVariants.length === 0) {
     return (
       <div className="text-center py-8">
-        <p className="text-gray-500">No ad variants available for {platformName}. Please try regenerating the ads.</p>
+        <p className="text-gray-500">Generating {platformName} ads... Please wait or try regenerating the ads.</p>
       </div>
     );
   }
 
+  const renderAdPreview = (variant: any, index: number) => {
+    if (platformName === 'facebook') {
+      return (
+        <FacebookAdPreview
+          key={`${index}-${variant.size?.label || 'default'}`}
+          variant={variant}
+          onCreateProject={onCreateProject}
+          isVideo={videoAdsEnabled}
+        />
+      );
+    }
+
+    return (
+      <AdPreviewCard
+        key={`${index}-${variant.size?.label || 'default'}`}
+        variant={variant}
+        onCreateProject={onCreateProject}
+        isVideo={videoAdsEnabled}
+      />
+    );
+  };
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      {filteredVariants.map((variant, index) => (
-        platformName === 'facebook' ? (
-          <FacebookAdPreview
-            key={`${index}-${variant.size?.label || 'default'}`}
-            variant={variant}
-            onCreateProject={onCreateProject}
-            isVideo={videoAdsEnabled}
-          />
-        ) : (
-          <AdPreviewCard
-            key={`${index}-${variant.size?.label || 'default'}`}
-            variant={variant}
-            onCreateProject={onCreateProject}
-            isVideo={videoAdsEnabled}
-          />
-        )
-      ))}
+      {filteredVariants.map((variant, index) => renderAdPreview(variant, index))}
     </div>
   );
 };
