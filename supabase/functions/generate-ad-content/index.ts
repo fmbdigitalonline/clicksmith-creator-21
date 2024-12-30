@@ -4,7 +4,6 @@ import { generateHooks } from "./handlers/hookGeneration.ts";
 import { generateImagePrompts } from "./handlers/imagePromptGeneration.ts";
 import { generateCampaign } from "./handlers/campaignGeneration.ts";
 import { analyzeAudience } from "./handlers/audienceAnalysis.ts";
-import { generateGoogleAds } from "./handlers/googleAdsGeneration.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 
 // Helper function to sanitize JSON strings
@@ -99,12 +98,15 @@ serve(async (req) => {
       case 'video_ads':
         console.log('Generating complete ad campaign with params:', { businessIdea, targetAudience, campaign });
         try {
+          // First generate the campaign content
           const campaignData = await generateCampaign(businessIdea, targetAudience);
           console.log('Campaign data generated:', campaignData);
           
+          // Then generate images based on the campaign
           const imageData = await generateImagePrompts(businessIdea, targetAudience, campaignData.campaign);
           console.log('Image data generated:', imageData);
           
+          // Sanitize the response data
           responseData = sanitizeJson({
             variants: campaignData.campaign.adCopies.map((copy: any, index: number) => ({
               platform: 'facebook',
@@ -126,10 +128,6 @@ serve(async (req) => {
       case 'audience_analysis':
         console.log('Analyzing audience with params:', { businessIdea, targetAudience, regenerationCount });
         responseData = await analyzeAudience(businessIdea, targetAudience, regenerationCount);
-        break;
-      case 'google_ads':
-        console.log('Generating Google Ads with params:', { businessIdea, targetAudience, campaign });
-        responseData = await generateGoogleAds(businessIdea, targetAudience, campaign);
         break;
       default:
         throw new Error(`Unsupported generation type: ${type}`);

@@ -13,7 +13,6 @@ const GoogleAdFormats = ({ selectedFormat, onFormatSelect }: GoogleAdFormatsProp
       title: "Horizontal Image",
       description: "1200 x 628px - Standard Display Ad",
       format: {
-        type: "image",
         format: "google_horizontal",
         dimensions: { width: 1200, height: 628 },
         aspectRatio: "1.91:1",
@@ -26,7 +25,6 @@ const GoogleAdFormats = ({ selectedFormat, onFormatSelect }: GoogleAdFormatsProp
       title: "Square Image",
       description: "1200 x 1200px - Versatile Square Format",
       format: {
-        type: "image",
         format: "google_square",
         dimensions: { width: 1200, height: 1200 },
         aspectRatio: "1:1",
@@ -39,7 +37,6 @@ const GoogleAdFormats = ({ selectedFormat, onFormatSelect }: GoogleAdFormatsProp
       title: "Vertical Image",
       description: "1200 x 1500px - Portrait Display Ad",
       format: {
-        type: "image",
         format: "google_vertical",
         dimensions: { width: 1200, height: 1500 },
         aspectRatio: "4:5",
@@ -52,7 +49,6 @@ const GoogleAdFormats = ({ selectedFormat, onFormatSelect }: GoogleAdFormatsProp
       title: "Logo Square",
       description: "1200 x 1200px - Logo Display",
       format: {
-        type: "image",
         format: "google_logo_square",
         dimensions: { width: 1200, height: 1200 },
         aspectRatio: "1:1",
@@ -65,7 +61,6 @@ const GoogleAdFormats = ({ selectedFormat, onFormatSelect }: GoogleAdFormatsProp
       title: "Logo Wide",
       description: "1200 x 300px - Wide Logo Display",
       format: {
-        type: "image",
         format: "google_logo_wide",
         dimensions: { width: 1200, height: 300 },
         aspectRatio: "4:1",
@@ -78,7 +73,6 @@ const GoogleAdFormats = ({ selectedFormat, onFormatSelect }: GoogleAdFormatsProp
       title: "Video Horizontal",
       description: "1920 x 1080px - Landscape Video Ad",
       format: {
-        type: "video",
         format: "google_video_horizontal",
         dimensions: { width: 1920, height: 1080 },
         aspectRatio: "16:9",
@@ -91,7 +85,6 @@ const GoogleAdFormats = ({ selectedFormat, onFormatSelect }: GoogleAdFormatsProp
       title: "Video Square",
       description: "1080 x 1080px - Square Video Ad",
       format: {
-        type: "video",
         format: "google_video_square",
         dimensions: { width: 1080, height: 1080 },
         aspectRatio: "1:1",
@@ -104,7 +97,6 @@ const GoogleAdFormats = ({ selectedFormat, onFormatSelect }: GoogleAdFormatsProp
       title: "Video Vertical",
       description: "1080 x 1920px - Portrait Video Ad",
       format: {
-        type: "video",
         format: "google_video_vertical",
         dimensions: { width: 1080, height: 1920 },
         aspectRatio: "9:16",

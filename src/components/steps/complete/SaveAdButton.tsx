@@ -57,11 +57,11 @@ export const SaveAdButton = ({
         if (projectError) throw projectError;
 
         const existingAds = ((project?.generated_ads as SavedAdJson[]) || []).map(ad => ({
-          image: ad.image as unknown as AdImage,
-          hook: ad.hook as unknown as AdHook,
-          rating: Number(ad.rating),
-          feedback: String(ad.feedback),
-          savedAt: String(ad.savedAt),
+          image: ad.image as AdImage,
+          hook: ad.hook as AdHook,
+          rating: ad.rating as number,
+          feedback: ad.feedback as string,
+          savedAt: ad.savedAt as string,
         }));
 
         const newAd: SavedAd = {
@@ -73,8 +73,8 @@ export const SaveAdButton = ({
         };
 
         const jsonAds: SavedAdJson[] = [...existingAds, newAd].map(ad => ({
-          image: ad.image as unknown as Json,
-          hook: ad.hook as unknown as Json,
+          image: ad.image as Json,
+          hook: ad.hook as Json,
           rating: ad.rating as Json,
           feedback: ad.feedback as Json,
           savedAt: ad.savedAt as Json,
@@ -113,7 +113,7 @@ export const SaveAdButton = ({
           project_id: projectId,
           rating: parseInt(rating, 10),
           feedback,
-          saved_images: [image] as unknown as Json
+          saved_images: [image]
         });
 
       if (feedbackError) throw feedbackError;

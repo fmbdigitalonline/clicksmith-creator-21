@@ -7,12 +7,12 @@ import { supabase } from "@/integrations/supabase/client";
 
 interface AdPreviewCardProps {
   variant: {
-    platform?: string;
-    image?: {
+    platform: string;
+    image: {
       url: string;
-      prompt?: string;
+      prompt: string;
     };
-    size?: {
+    size: {
       width: number;
       height: number;
       label: string;
@@ -27,11 +27,11 @@ interface AdPreviewCardProps {
         headlineLength: string;
       };
     };
-    headline?: string;
-    description?: string;
-    callToAction?: string;
+    headline: string;
+    description: string;
+    callToAction: string;
   };
-  onCreateProject?: () => void;
+  onCreateProject: () => void;
   isVideo?: boolean;
 }
 
@@ -39,19 +39,6 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewC
   const [isSaving, setSaving] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const { toast } = useToast();
-
-  // Default values for size if not provided
-  const defaultSize = {
-    width: 1200,
-    height: 628,
-    label: "Default Size"
-  };
-
-  const size = variant.size || defaultSize;
-  const imageUrl = variant.image?.url || "";
-  const headline = variant.headline || "Untitled Ad";
-  const description = variant.description || "";
-  const callToAction = variant.callToAction || "Learn More";
 
   const handleVideoPlayPause = (videoElement: HTMLVideoElement) => {
     if (videoElement.paused) {
@@ -86,12 +73,12 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewC
       }
 
       // Download the image/video
-      const response = await fetch(imageUrl);
+      const response = await fetch(variant.image.url);
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `${variant.platform || 'ad'}-${size.width}x${size.height}.${isVideo ? 'mp4' : 'jpg'}`;
+      link.download = `${variant.platform}-${isVideo ? 'video' : 'ad'}-${variant.size.width}x${variant.size.height}.${isVideo ? 'mp4' : 'jpg'}`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -99,7 +86,7 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewC
 
       toast({
         title: "Success!",
-        description: `Your ${size.label} ${isVideo ? 'video' : 'ad'} has been saved and downloaded.`,
+        description: `Your ${variant.size.label} ${isVideo ? 'video' : 'ad'} has been saved and downloaded.`,
       });
     } catch (error) {
       console.error('Error saving ad:', error);
@@ -117,7 +104,7 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewC
     <Card className="overflow-hidden">
       <div 
         style={{ 
-          aspectRatio: `${size.width} / ${size.height}`,
+          aspectRatio: `${variant.size.width} / ${variant.size.height}`,
           maxHeight: '400px'
         }} 
         className="relative group"
@@ -125,7 +112,7 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewC
         {isVideo ? (
           <>
             <video
-              src={imageUrl}
+              src={variant.image.url}
               className="object-cover w-full h-full cursor-pointer"
               playsInline
               preload="metadata"
@@ -148,8 +135,8 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewC
           </>
         ) : (
           <img
-            src={imageUrl}
-            alt={headline}
+            src={variant.image.url}
+            alt={variant.headline}
             className="object-cover w-full h-full"
           />
         )}
@@ -157,13 +144,13 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewC
       <CardContent className="p-4 space-y-4">
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <h3 className="font-medium text-lg">{headline}</h3>
-            <span className="text-sm text-gray-500">{size.label}</span>
+            <h3 className="font-medium text-lg">{variant.headline}</h3>
+            <span className="text-sm text-gray-500">{variant.size.label}</span>
           </div>
-          <p className="text-gray-600">{description}</p>
-          <p className="text-facebook font-medium">{callToAction}</p>
+          <p className="text-gray-600">{variant.description}</p>
+          <p className="text-facebook font-medium">{variant.callToAction}</p>
           <div className="text-sm text-gray-500 space-y-1">
-            <p>Size: {size.width}x{size.height}</p>
+            <p>Size: {variant.size.width}x{variant.size.height}</p>
             {variant.specs?.designRecommendations && (
               <>
                 <p>Format: {variant.specs.designRecommendations.fileTypes.join(", ")}</p>

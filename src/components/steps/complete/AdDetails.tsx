@@ -20,11 +20,6 @@ const AdDetails = ({ adFormat, targetAudience }: AdDetailsProps) => {
           <h5 className="text-sm font-medium text-gray-700 mb-1">Target Audience</h5>
           <p className="text-sm text-gray-600">{targetAudience.name}</p>
           <p className="text-sm text-gray-600 mt-1">{targetAudience.description}</p>
-          <div className="mt-2">
-            <p className="text-sm text-gray-600">
-              {`${targetAudience.demographics.ageRange}, ${targetAudience.demographics.gender}, ${targetAudience.demographics.location}`}
-            </p>
-          </div>
         </div>
       </div>
     </div>

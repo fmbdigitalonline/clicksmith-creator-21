@@ -50,44 +50,6 @@ export type Database = {
           },
         ]
       }
-      ad_image_variants: {
-        Row: {
-          created_at: string
-          id: string
-          original_image_url: string
-          project_id: string | null
-          resized_image_urls: Json
-          updated_at: string
-          user_id: string | null
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          original_image_url: string
-          project_id?: string | null
-          resized_image_urls?: Json
-          updated_at?: string
-          user_id?: string | null
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          original_image_url?: string
-          project_id?: string | null
-          resized_image_urls?: Json
-          updated_at?: string
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ad_image_variants_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       credit_operations: {
         Row: {
           created_at: string
