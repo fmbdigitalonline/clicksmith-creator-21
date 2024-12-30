@@ -11,7 +11,7 @@ interface PlatformContentProps {
 
 const PlatformContent = ({ 
   platformName, 
-  adVariants = [], // Add default empty array
+  adVariants = [], 
   onCreateProject, 
   videoAdsEnabled = false 
 }: PlatformContentProps) => {

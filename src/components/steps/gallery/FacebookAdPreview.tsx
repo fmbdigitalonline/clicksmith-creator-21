@@ -24,18 +24,23 @@ const AD_FORMATS = [
 
 const FacebookAdPreview = ({ variant, onCreateProject, isVideo = false }: FacebookAdPreviewProps) => {
   const [selectedFormat, setSelectedFormat] = useState(AD_FORMATS[0]);
+  const [downloadFormat, setDownloadFormat] = useState<"jpg" | "png">("jpg");
 
-  // Find the correct image URL for the selected format
-  const getImageUrl = () => {
-    if (!variant.images || !Array.isArray(variant.images)) {
-      return variant.imageUrl;
+  const handleDownload = async () => {
+    try {
+      const response = await fetch(variant.imageUrl || variant.image?.url);
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `facebook-ad-${selectedFormat.width}x${selectedFormat.height}.${downloadFormat}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading image:', error);
     }
-    
-    const formatImage = variant.images.find(
-      (img: any) => img.width === selectedFormat.width && img.height === selectedFormat.height
-    );
-    
-    return formatImage?.url || variant.imageUrl;
   };
 
   return (
@@ -85,9 +90,9 @@ const FacebookAdPreview = ({ variant, onCreateProject, isVideo = false }: Facebo
               <p className="text-gray-500">Video Preview</p>
             </div>
           ) : (
-            getImageUrl() && (
+            variant.imageUrl && (
               <img
-                src={getImageUrl()}
+                src={variant.imageUrl}
                 alt="Ad preview"
                 className="object-cover w-full h-full"
               />
@@ -103,14 +108,29 @@ const FacebookAdPreview = ({ variant, onCreateProject, isVideo = false }: Facebo
           </h3>
         </div>
 
-        {/* Action Button */}
-        <Button 
-          className="w-full bg-facebook hover:bg-facebook/90"
-          onClick={onCreateProject}
-        >
-          <Download className="w-4 h-4 mr-2" />
-          Save Ad
-        </Button>
+        {/* Download Controls */}
+        <div className="flex gap-2 mt-4">
+          <Select
+            value={downloadFormat}
+            onValueChange={(value: "jpg" | "png") => setDownloadFormat(value)}
+          >
+            <SelectTrigger className="w-24">
+              <SelectValue placeholder="Format" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="jpg">JPG</SelectItem>
+              <SelectItem value="png">PNG</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Button 
+            className="flex-1 bg-facebook hover:bg-facebook/90"
+            onClick={handleDownload}
+          >
+            <Download className="w-4 h-4 mr-2" />
+            Download Ad
+          </Button>
+        </div>
       </div>
     </Card>
   );
