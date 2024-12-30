@@ -81,6 +81,28 @@ const ProjectCard = ({ project, onUpdate, onStartAdWizard }: ProjectCardProps) =
     return "outline";
   };
 
+  const renderProgressDetails = () => {
+    return (
+      <div className="space-y-2 mt-4 text-sm text-muted-foreground">
+        {project.business_idea && (
+          <div>
+            <strong>Business Idea:</strong> {project.business_idea.description}
+          </div>
+        )}
+        {project.target_audience && (
+          <div>
+            <strong>Target Audience:</strong> {JSON.stringify(project.target_audience)}
+          </div>
+        )}
+        {project.audience_analysis && (
+          <div>
+            <strong>Audience Analysis:</strong> {JSON.stringify(project.audience_analysis)}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <>
       <Card>
@@ -94,6 +116,7 @@ const ProjectCard = ({ project, onUpdate, onStartAdWizard }: ProjectCardProps) =
           <p className="text-sm text-muted-foreground mb-4">
             {project.business_idea?.description || project.description || "No description provided"}
           </p>
+          {renderProgressDetails()}
           {project.tags && project.tags.length > 0 && (
             <div className="mt-4 flex flex-wrap gap-2">
               {project.tags.map((tag) => (
