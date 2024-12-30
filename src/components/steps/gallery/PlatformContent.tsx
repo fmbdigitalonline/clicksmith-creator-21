@@ -33,26 +33,42 @@ const PlatformContent = ({
     tiktok: "Engaging format for TikTok For Business"
   }[platformName] || "";
 
+  // Add resizing options for all platforms
+  const resizingOptions = {
+    facebook: [
+      { width: 1200, height: 628, label: "Feed (1.91:1)" },
+      { width: 1080, height: 1080, label: "Square (1:1)" },
+      { width: 1080, height: 1920, label: "Story (9:16)" }
+    ],
+    google: [
+      { width: 1200, height: 628, label: "Display (1.91:1)" },
+      { width: 1200, height: 1200, label: "Square (1:1)" },
+      { width: 1200, height: 1500, label: "Portrait (4:5)" }
+    ],
+    linkedin: [
+      { width: 1200, height: 627, label: "Feed (1.91:1)" },
+      { width: 1080, height: 1080, label: "Square (1:1)" },
+      { width: 1080, height: 1920, label: "Story (9:16)" }
+    ],
+    tiktok: [
+      { width: 1080, height: 1920, label: "Full Screen (9:16)" },
+      { width: 1080, height: 1080, label: "Square (1:1)" },
+      { width: 1200, height: 628, label: "Feed (1.91:1)" }
+    ]
+  };
+
   return (
     <div className="space-y-6">
       <p className="text-sm text-gray-600 mb-4">{platformSpecificMessage}</p>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {filteredVariants.map((variant, index) => (
-          platformName === 'facebook' ? (
-            <FacebookAdPreview
-              key={`${index}-${variant.size?.label || 'default'}`}
-              variant={variant}
-              onCreateProject={onCreateProject}
-              isVideo={videoAdsEnabled}
-            />
-          ) : (
-            <AdPreviewCard
-              key={`${index}-${variant.size?.label || 'default'}`}
-              variant={variant}
-              onCreateProject={onCreateProject}
-              isVideo={videoAdsEnabled}
-            />
-          )
+          <AdPreviewCard
+            key={`${index}-${variant.size?.label || 'default'}`}
+            variant={variant}
+            onCreateProject={onCreateProject}
+            isVideo={videoAdsEnabled}
+            resizingOptions={resizingOptions[platformName as keyof typeof resizingOptions] || []}
+          />
         ))}
       </div>
     </div>
