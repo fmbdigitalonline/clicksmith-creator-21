@@ -13,7 +13,6 @@ import {
 } from "@/components/ui/select";
 import AdPreviewImage from "./AdPreviewImage";
 import AdPreviewVideo from "./AdPreviewVideo";
-import AdPreviewControls from "./AdPreviewControls";
 import AdPreviewDetails from "./AdPreviewDetails";
 
 interface AdPreviewCardProps {
