@@ -1,26 +1,33 @@
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { BarChart, Activity, Image, Plus } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { Plus } from "lucide-react";
 import { useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
+import { ProjectsCard } from "@/components/dashboard/ProjectsCard";
+import { AdStatsCard } from "@/components/dashboard/AdStatsCard";
+import { CreditsCard } from "@/components/dashboard/CreditsCard";
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { toast } = useToast();
   const queryClient = useQueryClient();
 
   // Set up real-time subscriptions
   useEffect(() => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
     // Subscribe to projects changes
     const projectsChannel = supabase
       .channel('public:projects')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'projects' },
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'projects',
+          filter: `user_id=eq.${user.id}`
+        },
         () => {
           queryClient.invalidateQueries({ queryKey: ['projectStats'] });
         }
@@ -32,7 +39,12 @@ const Dashboard = () => {
       .channel('public:ad_image_variants')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'ad_image_variants' },
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'ad_image_variants',
+          filter: `user_id=eq.${user.id}`
+        },
         () => {
           queryClient.invalidateQueries({ queryKey: ['adStats'] });
         }
@@ -44,7 +56,12 @@ const Dashboard = () => {
       .channel('public:ad_feedback')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'ad_feedback' },
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'ad_feedback',
+          filter: `user_id=eq.${user.id}`
+        },
         () => {
           queryClient.invalidateQueries({ queryKey: ['adStats'] });
         }
@@ -56,7 +73,12 @@ const Dashboard = () => {
       .channel('public:subscriptions')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'subscriptions' },
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'subscriptions',
+          filter: `user_id=eq.${user.id}`
+        },
         () => {
           queryClient.invalidateQueries({ queryKey: ['credits'] });
         }
@@ -71,84 +93,6 @@ const Dashboard = () => {
       supabase.removeChannel(subscriptionsChannel);
     };
   }, [queryClient]);
-
-  const { data: projectStats } = useQuery({
-    queryKey: ["projectStats"],
-    queryFn: async () => {
-      const { data: projects, error } = await supabase
-        .from("projects")
-        .select("status, created_at")
-        .order("created_at", { ascending: false });
-
-      if (error) {
-        toast({
-          title: "Error fetching projects",
-          description: error.message,
-          variant: "destructive",
-        });
-        return null;
-      }
-
-      return {
-        total: projects.length,
-        completed: projects.filter(p => p.status === "completed").length,
-        inProgress: projects.filter(p => p.status === "in_progress").length,
-      };
-    },
-  });
-
-  const { data: adStats } = useQuery({
-    queryKey: ["adStats"],
-    queryFn: async () => {
-      const { data: images, error: imagesError } = await supabase
-        .from("ad_image_variants")
-        .select("created_at");
-
-      const { data: feedback, error: feedbackError } = await supabase
-        .from("ad_feedback")
-        .select("rating");
-
-      if (imagesError || feedbackError) {
-        toast({
-          title: "Error fetching ad stats",
-          description: "Could not load ad statistics",
-          variant: "destructive",
-        });
-        return null;
-      }
-
-      return {
-        totalAds: images?.length || 0,
-        avgRating: feedback?.length 
-          ? (feedback.reduce((acc, curr) => acc + (curr.rating || 0), 0) / feedback.length).toFixed(1)
-          : "N/A",
-      };
-    },
-  });
-
-  const { data: credits } = useQuery({
-    queryKey: ["credits"],
-    queryFn: async () => {
-      const { data: subscription, error } = await supabase
-        .from("subscriptions")
-        .select("credits_remaining")
-        .eq("active", true)
-        .single();
-
-      if (error) {
-        if (error.code !== "PGRST116") { // No rows returned is expected for free tier
-          toast({
-            title: "Error fetching credits",
-            description: error.message,
-            variant: "destructive",
-          });
-        }
-        return 0;
-      }
-
-      return subscription?.credits_remaining || 0;
-    },
-  });
 
   return (
     <div className="container mx-auto px-4 py-6">
@@ -172,44 +116,9 @@ const Dashboard = () => {
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Projects</CardTitle>
-            <BarChart className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{projectStats?.total || 0}</div>
-            <div className="text-xs text-muted-foreground mt-1">
-              {projectStats?.completed || 0} completed · {projectStats?.inProgress || 0} in progress
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Generated Ads</CardTitle>
-            <Image className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{adStats?.totalAds || 0}</div>
-            <div className="text-xs text-muted-foreground mt-1">
-              Average rating: {adStats?.avgRating}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Credits Remaining</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{credits}</div>
-            <div className="text-xs text-muted-foreground mt-1">
-              Available for new campaigns
-            </div>
-          </CardContent>
-        </Card>
+        <ProjectsCard />
+        <AdStatsCard />
+        <CreditsCard />
       </div>
     </div>
   );
