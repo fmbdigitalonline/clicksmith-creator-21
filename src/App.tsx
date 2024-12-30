@@ -9,6 +9,7 @@ import Projects from "@/pages/Projects";
 import Settings from "@/pages/Settings";
 import Pricing from "@/pages/Pricing";
 import AdWizard from "@/components/AdWizard";
+import Dashboard from "@/pages/Dashboard";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const queryClient = new QueryClient();
@@ -26,7 +27,7 @@ function App() {
               element={
                 <ProtectedRoute>
                   <AppLayout>
-                    <Projects />
+                    <Dashboard />
                   </AppLayout>
                 </ProtectedRoute>
               }
