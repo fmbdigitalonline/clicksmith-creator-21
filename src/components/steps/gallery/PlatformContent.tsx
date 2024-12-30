@@ -38,21 +38,12 @@ const PlatformContent = ({
       <p className="text-sm text-gray-600 mb-4">{platformSpecificMessage}</p>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {filteredVariants.map((variant, index) => (
-          platformName === 'facebook' ? (
-            <FacebookAdPreview
-              key={`${index}-${variant.size?.label || 'default'}`}
-              variant={variant}
-              onCreateProject={onCreateProject}
-              isVideo={videoAdsEnabled}
-            />
-          ) : (
-            <AdPreviewCard
-              key={`${index}-${variant.size?.label || 'default'}`}
-              variant={variant}
-              onCreateProject={onCreateProject}
-              isVideo={videoAdsEnabled}
-            />
-          )
+          <FacebookAdPreview
+            key={`${index}-${variant.size?.label || 'default'}`}
+            variant={variant}
+            onCreateProject={onCreateProject}
+            isVideo={videoAdsEnabled}
+          />
         ))}
       </div>
     </div>
