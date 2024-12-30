@@ -4,6 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Download, Save, Play, Pause } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface AdPreviewCardProps {
   variant: {
@@ -38,6 +45,7 @@ interface AdPreviewCardProps {
 const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewCardProps) => {
   const [isSaving, setSaving] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [downloadFormat, setDownloadFormat] = useState<"jpg" | "png">("jpg");
   const { toast } = useToast();
 
   const handleVideoPlayPause = (videoElement: HTMLVideoElement) => {
@@ -48,6 +56,39 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewC
       videoElement.pause();
       setIsPlaying(false);
     }
+  };
+
+  const convertToFormat = async (url: string, format: "jpg" | "png"): Promise<Blob> => {
+    // Create an image element
+    const img = new Image();
+    await new Promise((resolve, reject) => {
+      img.onload = resolve;
+      img.onerror = reject;
+      img.src = url;
+    });
+
+    // Create a canvas and draw the image
+    const canvas = document.createElement('canvas');
+    canvas.width = img.width;
+    canvas.height = img.height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('Could not get canvas context');
+    ctx.drawImage(img, 0, 0);
+
+    // Convert to desired format
+    const mimeType = format === 'jpg' ? 'image/jpeg' : 'image/png';
+    const quality = format === 'jpg' ? 0.9 : undefined;
+    
+    return new Promise((resolve, reject) => {
+      canvas.toBlob(
+        (blob) => {
+          if (blob) resolve(blob);
+          else reject(new Error('Failed to convert image'));
+        },
+        mimeType,
+        quality
+      );
+    });
   };
 
   const handleSaveAndDownload = async () => {
@@ -72,21 +113,23 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewC
         return;
       }
 
-      // Download the image/video
+      // Download and convert the image
       const response = await fetch(variant.image.url);
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
+      const originalBlob = await response.blob();
+      const convertedBlob = await convertToFormat(URL.createObjectURL(originalBlob), downloadFormat);
+      
+      const url = URL.createObjectURL(convertedBlob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `${variant.platform}-${isVideo ? 'video' : 'ad'}-${variant.size.width}x${variant.size.height}.${isVideo ? 'mp4' : 'jpg'}`;
+      link.download = `${variant.platform}-${isVideo ? 'video' : 'ad'}-${variant.size.width}x${variant.size.height}.${downloadFormat}`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      URL.revokeObjectURL(url);
 
       toast({
         title: "Success!",
-        description: `Your ${variant.size.label} ${isVideo ? 'video' : 'ad'} has been saved and downloaded.`,
+        description: `Your ${variant.size.label} ${isVideo ? 'video' : 'ad'} has been saved and downloaded as ${downloadFormat.toUpperCase()}.`,
       });
     } catch (error) {
       console.error('Error saving ad:', error);
@@ -163,20 +206,35 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewC
           </div>
         </div>
 
-        <Button
-          onClick={handleSaveAndDownload}
-          className="w-full bg-facebook hover:bg-facebook/90"
-          disabled={isSaving}
-        >
-          {isSaving ? (
-            "Saving..."
-          ) : (
-            <>
-              <Save className="w-4 h-4 mr-2" />
-              Save & Download
-            </>
-          )}
-        </Button>
+        <div className="flex gap-2">
+          <Select
+            value={downloadFormat}
+            onValueChange={(value: "jpg" | "png") => setDownloadFormat(value)}
+          >
+            <SelectTrigger className="w-24">
+              <SelectValue placeholder="Format" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="jpg">JPG</SelectItem>
+              <SelectItem value="png">PNG</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Button
+            onClick={handleSaveAndDownload}
+            className="flex-1 bg-facebook hover:bg-facebook/90"
+            disabled={isSaving}
+          >
+            {isSaving ? (
+              "Saving..."
+            ) : (
+              <>
+                <Save className="w-4 h-4 mr-2" />
+                Save & Download
+              </>
+            )}
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );
