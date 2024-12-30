@@ -3,11 +3,12 @@ import { BusinessIdea, TargetAudience, AdHook } from "@/types/adWizard";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { TabsContent } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import StepNavigation from "./complete/StepNavigation";
 import LoadingState from "./complete/LoadingState";
 import PlatformTabs from "./gallery/PlatformTabs";
 import PlatformContent from "./gallery/PlatformContent";
-import GalleryHeader from "./gallery/GalleryHeader";
-import { getVideoAdSpecs, getImageAdSpecs, platformConfig } from "./gallery/AdGenerationConfig";
+import { RefreshCw } from "lucide-react";
 
 interface AdGalleryStepProps {
   businessIdea: BusinessIdea;
@@ -40,6 +41,7 @@ const AdGalleryStep = ({
       throw new Error('No data received from server');
     }
 
+    // Check for variants array
     const variants = data.variants || data;
     if (!Array.isArray(variants)) {
       console.error('Invalid variants format:', variants);
@@ -62,7 +64,18 @@ const AdGalleryStep = ({
           targetAudience,
           campaign: {
             hooks: adHooks,
-            specs: videoAdsEnabled ? getVideoAdSpecs() : getImageAdSpecs()
+            specs: videoAdsEnabled ? {
+              facebook: {
+                formats: ['feed', 'sponsored', 'message'],
+                aspectRatios: ['1:1', '16:9']
+              }
+            } : {
+              facebook: {
+                commonSizes: [
+                  { width: 1200, height: 628, label: "Facebook Feed" }
+                ]
+              }
+            }
           },
           regenerationCount: regenerationCount,
           timestamp: new Date().getTime()
@@ -75,18 +88,23 @@ const AdGalleryStep = ({
         throw error;
       }
 
+      // Log the entire response for debugging
       console.log('Edge Function response:', data);
 
+      // Validate and process the response
       const variants = validateResponse(data);
-      const processedVariants = variants.map(variant => {
-        const platform = variant.platform || 'facebook';
-        return {
-          ...variant,
-          imageUrl: variant.image?.url || variant.imageUrl,
-          platform,
-          size: platformConfig[platform as keyof typeof platformConfig]
-        };
-      });
+
+      // Map the variants to include image URLs if they exist
+      const processedVariants = variants.map(variant => ({
+        ...variant,
+        imageUrl: variant.image?.url || variant.imageUrl,
+        platform: 'facebook',
+        size: {
+          width: 1200,
+          height: 628,
+          label: "Facebook Feed"
+        }
+      }));
 
       console.log('Processed ad variants:', processedVariants);
       setAdVariants(processedVariants);
@@ -125,22 +143,36 @@ const AdGalleryStep = ({
         adVariants={adVariants}
         onCreateProject={onCreateProject}
         videoAdsEnabled={videoAdsEnabled}
-        businessIdea={businessIdea}
-        targetAudience={targetAudience}
-        adHooks={adHooks}
       />
     </TabsContent>
   );
 
   return (
     <div className="space-y-6 md:space-y-8">
-      <GalleryHeader
-        isGenerating={isGenerating}
-        generationStatus={generationStatus}
-        onBack={onBack}
-        onStartOver={onStartOver}
-        onRegenerate={generateAds}
-      />
+      <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-4">
+        <StepNavigation
+          onBack={onBack}
+          onStartOver={onStartOver}
+        />
+        <div className="flex flex-col items-end gap-2 w-full md:w-auto">
+          {generationStatus && (
+            <p className="text-sm text-gray-600">{generationStatus}</p>
+          )}
+          <Button
+            onClick={generateAds}
+            disabled={isGenerating}
+            variant="outline"
+            className="w-full md:w-auto"
+          >
+            {isGenerating ? (
+              <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <RefreshCw className="w-4 h-4 mr-2" />
+            )}
+            <span>Regenerate Ads</span>
+          </Button>
+        </div>
+      </div>
 
       {isGenerating ? (
         <LoadingState />

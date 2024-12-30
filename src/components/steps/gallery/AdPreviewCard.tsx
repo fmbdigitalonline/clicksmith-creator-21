@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Download, Save, Play, Pause, Loader2 } from "lucide-react";
+import { Download, Save, Play, Pause } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -38,7 +38,6 @@ interface AdPreviewCardProps {
 const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewCardProps) => {
   const [isSaving, setSaving] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
   const handleVideoPlayPause = (videoElement: HTMLVideoElement) => {
@@ -49,19 +48,6 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewC
       videoElement.pause();
       setIsPlaying(false);
     }
-  };
-
-  const handleVideoLoad = () => {
-    setIsLoading(false);
-  };
-
-  const handleVideoError = () => {
-    setIsLoading(false);
-    toast({
-      title: "Video Error",
-      description: "There was an error loading the video. Please try again.",
-      variant: "destructive",
-    });
   };
 
   const handleSaveAndDownload = async () => {
@@ -121,7 +107,7 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewC
           aspectRatio: `${variant.size.width} / ${variant.size.height}`,
           maxHeight: '400px'
         }} 
-        className="relative group bg-gray-100"
+        className="relative group"
       >
         {isVideo ? (
           <>
@@ -133,14 +119,7 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewC
               onClick={(e) => handleVideoPlayPause(e.currentTarget)}
               onPlay={() => setIsPlaying(true)}
               onPause={() => setIsPlaying(false)}
-              onLoadedData={handleVideoLoad}
-              onError={handleVideoError}
             />
-            {isLoading && (
-              <div className="absolute inset-0 flex items-center justify-center bg-gray-100/80">
-                <Loader2 className="w-8 h-8 animate-spin text-gray-500" />
-              </div>
-            )}
             <Button
               variant="secondary"
               size="icon"
@@ -187,10 +166,10 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewC
         <Button
           onClick={handleSaveAndDownload}
           className="w-full bg-facebook hover:bg-facebook/90"
-          disabled={isSaving || isLoading}
+          disabled={isSaving}
         >
           {isSaving ? (
-            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            "Saving..."
           ) : (
             <>
               <Save className="w-4 h-4 mr-2" />
