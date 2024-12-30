@@ -1,8 +1,6 @@
 import { useState } from "react";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Edit2, Trash2, PlayCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -16,6 +14,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import EditProjectDialog from "./EditProjectDialog";
+import ProjectCardHeader from "./card/ProjectCardHeader";
+import ProjectProgressDetails from "./card/ProjectProgressDetails";
+import ProjectCardActions from "./card/ProjectCardActions";
 
 interface Project {
   id: string;
@@ -74,49 +75,22 @@ const ProjectCard = ({ project, onUpdate, onStartAdWizard }: ProjectCardProps) =
     return progress;
   };
 
-  const getStatusVariant = () => {
-    const progress = getValidationProgress();
-    if (progress === 100) return "default";
-    if (progress > 50) return "secondary";
-    return "outline";
-  };
-
-  const renderProgressDetails = () => {
-    return (
-      <div className="space-y-2 mt-4 text-sm text-muted-foreground">
-        {project.business_idea && (
-          <div>
-            <strong>Business Idea:</strong> {project.business_idea.description}
-          </div>
-        )}
-        {project.target_audience && (
-          <div>
-            <strong>Target Audience:</strong> {JSON.stringify(project.target_audience)}
-          </div>
-        )}
-        {project.audience_analysis && (
-          <div>
-            <strong>Audience Analysis:</strong> {JSON.stringify(project.audience_analysis)}
-          </div>
-        )}
-      </div>
-    );
-  };
-
   return (
     <>
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span>{project.title}</span>
-            <Badge variant={getStatusVariant()}>{`${getValidationProgress()}% Validated`}</Badge>
-          </CardTitle>
-        </CardHeader>
+        <ProjectCardHeader 
+          title={project.title} 
+          validationProgress={getValidationProgress()} 
+        />
         <CardContent>
           <p className="text-sm text-muted-foreground mb-4">
             {project.business_idea?.description || project.description || "No description provided"}
           </p>
-          {renderProgressDetails()}
+          <ProjectProgressDetails
+            businessIdea={project.business_idea}
+            targetAudience={project.target_audience}
+            audienceAnalysis={project.audience_analysis}
+          />
           {project.tags && project.tags.length > 0 && (
             <div className="mt-4 flex flex-wrap gap-2">
               {project.tags.map((tag) => (
@@ -127,30 +101,12 @@ const ProjectCard = ({ project, onUpdate, onStartAdWizard }: ProjectCardProps) =
             </div>
           )}
         </CardContent>
-        <CardFooter className="flex justify-end space-x-2">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => setIsEditOpen(true)}
-          >
-            <Edit2 className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => setIsDeleteOpen(true)}
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="default"
-            className="gap-2"
-            onClick={onStartAdWizard}
-          >
-            <PlayCircle className="h-4 w-4" />
-            {project.marketing_campaign ? "View Campaign" : "Create Campaign"}
-          </Button>
-        </CardFooter>
+        <ProjectCardActions
+          onEdit={() => setIsEditOpen(true)}
+          onDelete={() => setIsDeleteOpen(true)}
+          onStartAdWizard={onStartAdWizard}
+          hasCampaign={!!project.marketing_campaign}
+        />
       </Card>
 
       <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
