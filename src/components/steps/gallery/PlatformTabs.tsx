@@ -11,9 +11,15 @@ interface PlatformTabsProps {
 const PlatformTabs = ({ platform, onPlatformChange, children }: PlatformTabsProps) => {
   return (
     <Tabs defaultValue={platform} className="w-full" onValueChange={onPlatformChange}>
+      <div className="mb-4">
+        <h3 className="text-lg font-semibold mb-2">Your Generated Ads</h3>
+        <p className="text-gray-600 mb-4">
+          These ads are designed to work across all major social media platforms. Preview how they'll look on each platform:
+        </p>
+      </div>
       <TabsList className="grid w-full grid-cols-4 mb-6">
-        <TabsTrigger value="facebook">Facebook Ads</TabsTrigger>
-        <TabsTrigger value="google">Google Ads</TabsTrigger>
+        <TabsTrigger value="facebook">Facebook</TabsTrigger>
+        <TabsTrigger value="google">Google</TabsTrigger>
         <TabsTrigger value="linkedin" className="flex items-center gap-2">
           <Linkedin className="h-4 w-4" />
           LinkedIn

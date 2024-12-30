@@ -16,37 +16,45 @@ const PlatformContent = ({
   videoAdsEnabled = false 
 }: PlatformContentProps) => {
   // Ensure adVariants is an array before filtering
-  const filteredVariants = Array.isArray(adVariants) 
-    ? adVariants.filter(variant => variant.platform === platformName)
-    : [];
+  const filteredVariants = Array.isArray(adVariants) ? adVariants : [];
 
   if (filteredVariants.length === 0) {
     return (
       <div className="text-center py-8">
-        <p className="text-gray-500">No ad variants available for {platformName}. Please try regenerating the ads.</p>
+        <p className="text-gray-500">No ad variants available. Please try regenerating the ads.</p>
       </div>
     );
   }
 
+  const platformSpecificMessage = {
+    facebook: "Perfect for Facebook Feed, Stories, and Instagram",
+    google: "Optimized for Google Display Network and YouTube",
+    linkedin: "Professional format for LinkedIn Feed and Sponsored Content",
+    tiktok: "Engaging format for TikTok For Business"
+  }[platformName] || "";
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      {filteredVariants.map((variant, index) => (
-        platformName === 'facebook' ? (
-          <FacebookAdPreview
-            key={`${index}-${variant.size?.label || 'default'}`}
-            variant={variant}
-            onCreateProject={onCreateProject}
-            isVideo={videoAdsEnabled}
-          />
-        ) : (
-          <AdPreviewCard
-            key={`${index}-${variant.size?.label || 'default'}`}
-            variant={variant}
-            onCreateProject={onCreateProject}
-            isVideo={videoAdsEnabled}
-          />
-        )
-      ))}
+    <div className="space-y-6">
+      <p className="text-sm text-gray-600 mb-4">{platformSpecificMessage}</p>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {filteredVariants.map((variant, index) => (
+          platformName === 'facebook' ? (
+            <FacebookAdPreview
+              key={`${index}-${variant.size?.label || 'default'}`}
+              variant={variant}
+              onCreateProject={onCreateProject}
+              isVideo={videoAdsEnabled}
+            />
+          ) : (
+            <AdPreviewCard
+              key={`${index}-${variant.size?.label || 'default'}`}
+              variant={variant}
+              onCreateProject={onCreateProject}
+              isVideo={videoAdsEnabled}
+            />
+          )
+        ))}
+      </div>
     </div>
   );
 };
