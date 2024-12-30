@@ -1,142 +1,103 @@
+import { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import { useAdWizardState } from "@/hooks/useAdWizardState";
-import IdeaStep from "./steps/BusinessIdeaStep";
+import WizardHeader from "./wizard/WizardHeader";
+import StepNavigation from "./wizard/StepNavigation";
+import BusinessIdeaStep from "./steps/BusinessIdeaStep";
 import AudienceStep from "./steps/AudienceStep";
 import AudienceAnalysisStep from "./steps/AudienceAnalysisStep";
-import AdGalleryStep from "./steps/AdGalleryStep";
-import WizardHeader from "./wizard/WizardHeader";
-import WizardProgress from "./WizardProgress";
-import { useState, useMemo } from "react";
-import CreateProjectDialog from "./projects/CreateProjectDialog";
-import { useNavigate } from "react-router-dom";
-import { Toggle } from "./ui/toggle";
-import { Video, Image, Save } from "lucide-react";
-import { Switch } from "./ui/switch";
-import { Label } from "./ui/label";
+import HookStep from "./steps/HookStep";
+import AdFormatStep from "./steps/AdFormatStep";
+import AdSizeStep from "./steps/AdSizeStep";
+import CampaignStep from "./steps/CampaignStep";
+import PreviewStep from "./steps/PreviewStep";
+import CompleteStep from "./steps/CompleteStep";
+import { useToast } from "@/hooks/use-toast";
 
 const AdWizard = () => {
-  const [showCreateProject, setShowCreateProject] = useState(false);
-  const [videoAdsEnabled, setVideoAdsEnabled] = useState(false);
+  const { projectId } = useParams();
   const navigate = useNavigate();
-  
-  const {
-    currentStep,
-    businessIdea,
-    targetAudience,
-    audienceAnalysis,
-    selectedHooks,
-    autoSaveEnabled,
-    setAutoSaveEnabled,
-    handleIdeaSubmit,
-    handleAudienceSelect,
-    handleAnalysisComplete,
-    handleBack,
-    handleStartOver,
-    canNavigateToStep,
-    setCurrentStep,
-  } = useAdWizardState();
+  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(true);
+  const wizardState = useAdWizardState();
 
-  const handleCreateProject = () => {
-    setShowCreateProject(true);
-  };
+  useEffect(() => {
+    const loadProjectData = async () => {
+      // Only attempt to load project data if projectId exists and is not "new"
+      if (projectId && projectId !== "new") {
+        try {
+          const { data: project, error } = await supabase
+            .from("projects")
+            .select("*")
+            .eq("id", projectId)
+            .single();
 
-  const handleProjectCreated = (projectId: string) => {
-    setShowCreateProject(false);
-    navigate(`/ad-wizard/${projectId}`);
-  };
+          if (error) throw error;
 
-  // Memoize the current step component to prevent unnecessary re-renders
-  const currentStepComponent = useMemo(() => {
-    switch (currentStep) {
+          if (project) {
+            // Initialize wizard state with project data
+            if (project.business_idea) wizardState.handleIdeaSubmit(project.business_idea);
+            if (project.target_audience) wizardState.handleAudienceSelect(project.target_audience);
+            if (project.audience_analysis) wizardState.handleAnalysisComplete(project.audience_analysis);
+            if (project.selected_hooks) wizardState.setSelectedHooks(project.selected_hooks);
+            if (project.ad_format) wizardState.setAdFormat(project.ad_format);
+            if (project.video_ad_preferences) wizardState.setVideoAdPreferences(project.video_ad_preferences);
+            if (project.ad_dimensions) wizardState.setAdDimensions(project.ad_dimensions);
+            if (project.video_ads_enabled !== undefined) wizardState.setVideoAdsEnabled(project.video_ads_enabled);
+          }
+        } catch (error) {
+          console.error("Error loading project:", error);
+          toast({
+            title: "Error loading project",
+            description: "Failed to load project data. Please try again.",
+            variant: "destructive",
+          });
+          // Redirect to projects page if project loading fails
+          navigate("/projects");
+          return;
+        }
+      }
+      setIsLoading(false);
+    };
+
+    loadProjectData();
+  }, [projectId, navigate, toast, wizardState]);
+
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
+
+  const renderCurrentStep = () => {
+    switch (wizardState.currentStep) {
       case 1:
-        return <IdeaStep onNext={handleIdeaSubmit} />;
+        return <BusinessIdeaStep />;
       case 2:
-        return businessIdea ? (
-          <AudienceStep
-            businessIdea={businessIdea}
-            onNext={handleAudienceSelect}
-            onBack={handleBack}
-          />
-        ) : null;
+        return <AudienceStep />;
       case 3:
-        return businessIdea && targetAudience ? (
-          <AudienceAnalysisStep
-            businessIdea={businessIdea}
-            targetAudience={targetAudience}
-            onNext={handleAnalysisComplete}
-            onBack={handleBack}
-          />
-        ) : null;
+        return <AudienceAnalysisStep />;
       case 4:
-        return businessIdea && targetAudience && audienceAnalysis ? (
-          <AdGalleryStep
-            businessIdea={businessIdea}
-            targetAudience={targetAudience}
-            adHooks={selectedHooks}
-            onStartOver={handleStartOver}
-            onBack={handleBack}
-            onCreateProject={handleCreateProject}
-            videoAdsEnabled={videoAdsEnabled}
-          />
-        ) : null;
+        return <HookStep />;
+      case 5:
+        return <AdFormatStep />;
+      case 6:
+        return <AdSizeStep />;
+      case 7:
+        return <CampaignStep />;
+      case 8:
+        return <PreviewStep />;
+      case 9:
+        return <CompleteStep />;
       default:
-        return null;
+        return <BusinessIdeaStep />;
     }
-  }, [currentStep, businessIdea, targetAudience, audienceAnalysis, selectedHooks, videoAdsEnabled]);
+  };
 
   return (
-    <div className="container max-w-6xl mx-auto px-4 py-8">
-      <WizardHeader
-        title="ProfitPilot"
-        description="Quickly go from idea to ready-to-run ads by testing different audience segments with AI-powered Facebook ad campaigns."
-      />
-
-      <div className="mb-8">
-        <WizardProgress
-          currentStep={currentStep}
-          onStepClick={setCurrentStep}
-          canNavigateToStep={canNavigateToStep}
-        />
-      </div>
-
-      <div className="flex items-center justify-end mb-6 space-x-6">
-        <div className="flex items-center space-x-2">
-          <Switch
-            id="autosave"
-            checked={autoSaveEnabled}
-            onCheckedChange={setAutoSaveEnabled}
-          />
-          <Label htmlFor="autosave" className="text-sm text-gray-600 flex items-center space-x-1">
-            <Save className="h-4 w-4" />
-            <span>Auto-save progress</span>
-          </Label>
-        </div>
-        
-        <div className="flex items-center space-x-2">
-          <span className="text-sm text-gray-600">Image Ads</span>
-          <Toggle
-            pressed={videoAdsEnabled}
-            onPressedChange={setVideoAdsEnabled}
-            aria-label="Toggle video ads"
-            className="data-[state=on]:bg-facebook"
-          >
-            {videoAdsEnabled ? (
-              <Video className="h-4 w-4" />
-            ) : (
-              <Image className="h-4 w-4" />
-            )}
-          </Toggle>
-          <span className="text-sm text-gray-600">Video Ads</span>
-        </div>
-      </div>
-
-      {currentStepComponent}
-
-      <CreateProjectDialog
-        open={showCreateProject}
-        onOpenChange={setShowCreateProject}
-        onSuccess={handleProjectCreated}
-        initialBusinessIdea={businessIdea?.description}
-      />
+    <div className="container mx-auto px-4 py-8">
+      <WizardHeader />
+      {renderCurrentStep()}
+      <StepNavigation />
     </div>
   );
 };
