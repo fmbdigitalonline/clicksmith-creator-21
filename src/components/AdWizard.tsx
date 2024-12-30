@@ -14,6 +14,7 @@ import CampaignStep from "./steps/CampaignStep";
 import PreviewStep from "./steps/PreviewStep";
 import CompleteStep from "./steps/CompleteStep";
 import { useToast } from "@/hooks/use-toast";
+import { BusinessIdea, TargetAudience, AudienceAnalysis, AdHook, AdFormat } from "@/types/adWizard";
 
 const AdWizard = () => {
   const { projectId } = useParams();
@@ -24,7 +25,6 @@ const AdWizard = () => {
 
   useEffect(() => {
     const loadProjectData = async () => {
-      // Only attempt to load project data if projectId exists and is not "new"
       if (projectId && projectId !== "new") {
         try {
           const { data: project, error } = await supabase
@@ -36,15 +36,30 @@ const AdWizard = () => {
           if (error) throw error;
 
           if (project) {
-            // Initialize wizard state with project data
-            if (project.business_idea) wizardState.handleIdeaSubmit(project.business_idea);
-            if (project.target_audience) wizardState.handleAudienceSelect(project.target_audience);
-            if (project.audience_analysis) wizardState.handleAnalysisComplete(project.audience_analysis);
-            if (project.selected_hooks) wizardState.setSelectedHooks(project.selected_hooks);
-            if (project.ad_format) wizardState.setAdFormat(project.ad_format);
-            if (project.video_ad_preferences) wizardState.setVideoAdPreferences(project.video_ad_preferences);
-            if (project.ad_dimensions) wizardState.setAdDimensions(project.ad_dimensions);
-            if (project.video_ads_enabled !== undefined) wizardState.setVideoAdsEnabled(project.video_ads_enabled);
+            if (project.business_idea) {
+              wizardState.handleIdeaSubmit(project.business_idea as BusinessIdea);
+            }
+            if (project.target_audience) {
+              wizardState.handleAudienceSelect(project.target_audience as TargetAudience);
+            }
+            if (project.audience_analysis) {
+              wizardState.handleAnalysisComplete(project.audience_analysis as AudienceAnalysis);
+            }
+            if (project.selected_hooks) {
+              wizardState.handleHooksSelect(project.selected_hooks as AdHook[]);
+            }
+            if (project.ad_format) {
+              wizardState.handleAdFormatSelect(project.ad_format as AdFormat);
+            }
+            if (project.video_ad_settings) {
+              wizardState.handleVideoPreferencesUpdate(project.video_ad_settings);
+            }
+            if (project.ad_dimensions) {
+              wizardState.handleAdDimensionsUpdate(project.ad_dimensions);
+            }
+            if (project.video_ads_enabled !== undefined) {
+              wizardState.handleVideoAdsToggle(project.video_ads_enabled);
+            }
           }
         } catch (error) {
           console.error("Error loading project:", error);
@@ -53,7 +68,6 @@ const AdWizard = () => {
             description: "Failed to load project data. Please try again.",
             variant: "destructive",
           });
-          // Redirect to projects page if project loading fails
           navigate("/projects");
           return;
         }
@@ -71,31 +85,92 @@ const AdWizard = () => {
   const renderCurrentStep = () => {
     switch (wizardState.currentStep) {
       case 1:
-        return <BusinessIdeaStep />;
+        return <BusinessIdeaStep onNext={wizardState.handleIdeaSubmit} />;
       case 2:
-        return <AudienceStep />;
+        return (
+          <AudienceStep
+            businessIdea={wizardState.businessIdea!}
+            onNext={wizardState.handleAudienceSelect}
+            onBack={wizardState.handleBack}
+          />
+        );
       case 3:
-        return <AudienceAnalysisStep />;
+        return (
+          <AudienceAnalysisStep
+            businessIdea={wizardState.businessIdea!}
+            targetAudience={wizardState.targetAudience!}
+            onNext={wizardState.handleAnalysisComplete}
+            onBack={wizardState.handleBack}
+          />
+        );
       case 4:
-        return <HookStep />;
+        return (
+          <HookStep
+            businessIdea={wizardState.businessIdea!}
+            targetAudience={wizardState.targetAudience!}
+            onNext={wizardState.handleHooksSelect}
+            onBack={wizardState.handleBack}
+          />
+        );
       case 5:
-        return <AdFormatStep />;
+        return (
+          <AdFormatStep
+            businessIdea={wizardState.businessIdea!}
+            targetAudience={wizardState.targetAudience!}
+            campaign={wizardState.marketingCampaign!}
+            onNext={wizardState.handleAdFormatSelect}
+            onBack={wizardState.handleBack}
+          />
+        );
       case 6:
-        return <AdSizeStep />;
+        return (
+          <AdSizeStep
+            onNext={wizardState.handleAdDimensionsUpdate}
+            onBack={wizardState.handleBack}
+          />
+        );
       case 7:
-        return <CampaignStep />;
+        return (
+          <CampaignStep
+            businessIdea={wizardState.businessIdea!}
+            targetAudience={wizardState.targetAudience!}
+            audienceAnalysis={wizardState.audienceAnalysis!}
+            onNext={wizardState.handleCampaignComplete}
+            onBack={wizardState.handleBack}
+          />
+        );
       case 8:
-        return <PreviewStep />;
+        return (
+          <PreviewStep
+            businessIdea={wizardState.businessIdea!}
+            audience={wizardState.targetAudience!}
+            hook={wizardState.selectedHooks[0]}
+            onBack={wizardState.handleBack}
+          />
+        );
       case 9:
-        return <CompleteStep />;
+        return (
+          <CompleteStep
+            businessIdea={wizardState.businessIdea!}
+            targetAudience={wizardState.targetAudience!}
+            adHooks={wizardState.selectedHooks}
+            adFormat={wizardState.adFormat!}
+            onStartOver={wizardState.handleStartOver}
+            onBack={wizardState.handleBack}
+            onCreateProject={wizardState.handleCreateProject}
+          />
+        );
       default:
-        return <BusinessIdeaStep />;
+        return <BusinessIdeaStep onNext={wizardState.handleIdeaSubmit} />;
     }
   };
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <WizardHeader />
+      <WizardHeader 
+        title="Create Your Ad Campaign"
+        description="Follow the steps to create your perfect ad campaign"
+      />
       {renderCurrentStep()}
       <StepNavigation />
     </div>

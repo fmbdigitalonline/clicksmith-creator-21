@@ -3,7 +3,9 @@ import {
   BusinessIdea,
   TargetAudience,
   AudienceAnalysis,
-  AdHook
+  AdHook,
+  AdFormat,
+  MarketingCampaign,
 } from "@/types/adWizard";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -15,6 +17,11 @@ export const useAdWizardState = () => {
   const [targetAudience, setTargetAudience] = useState<TargetAudience | null>(null);
   const [audienceAnalysis, setAudienceAnalysis] = useState<AudienceAnalysis | null>(null);
   const [selectedHooks, setSelectedHooks] = useState<AdHook[]>([]);
+  const [adFormat, setAdFormat] = useState<AdFormat | null>(null);
+  const [videoAdPreferences, setVideoAdPreferences] = useState<any>(null);
+  const [adDimensions, setAdDimensions] = useState<any>(null);
+  const [videoAdsEnabled, setVideoAdsEnabled] = useState<boolean>(false);
+  const [marketingCampaign, setMarketingCampaign] = useState<MarketingCampaign | null>(null);
   const [autoSaveEnabled, setAutoSaveEnabled] = useState(true);
   const { toast } = useToast();
   const { projectId } = useParams();
@@ -24,7 +31,6 @@ export const useAdWizardState = () => {
     
     try {
       if (projectId) {
-        // If we have a projectId, update the existing project
         const { error } = await supabase
           .from('projects')
           .update(data)
@@ -32,7 +38,6 @@ export const useAdWizardState = () => {
 
         if (error) throw error;
       } else {
-        // If no projectId, save to wizard_progress
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
@@ -72,7 +77,6 @@ export const useAdWizardState = () => {
       setAudienceAnalysis(analysis);
       await saveProgress({ audience_analysis: analysis });
 
-      // Generate hooks automatically here
       const { data, error } = await supabase.functions.invoke('generate-ad-content', {
         body: { 
           type: 'hooks',
@@ -121,7 +125,6 @@ export const useAdWizardState = () => {
     setSelectedHooks([]);
     setCurrentStep(1);
 
-    // Clear wizard progress only if autosave is enabled
     if (autoSaveEnabled) {
       try {
         const { data: { user } } = await supabase.auth.getUser();
@@ -138,6 +141,45 @@ export const useAdWizardState = () => {
       }
     }
   }, [autoSaveEnabled]);
+
+  const handleHooksSelect = useCallback(async (hooks: AdHook[]) => {
+    setSelectedHooks(hooks);
+    await saveProgress({ selected_hooks: hooks });
+    setCurrentStep(5);
+  }, [autoSaveEnabled]);
+
+  const handleAdFormatSelect = useCallback(async (format: AdFormat) => {
+    setAdFormat(format);
+    await saveProgress({ ad_format: format });
+    setCurrentStep(6);
+  }, [autoSaveEnabled]);
+
+  const handleVideoPreferencesUpdate = useCallback(async (preferences: any) => {
+    setVideoAdPreferences(preferences);
+    await saveProgress({ video_ad_preferences: preferences });
+  }, [autoSaveEnabled]);
+
+  const handleAdDimensionsUpdate = useCallback(async (dimensions: any) => {
+    setAdDimensions(dimensions);
+    await saveProgress({ ad_dimensions: dimensions });
+    setCurrentStep(7);
+  }, [autoSaveEnabled]);
+
+  const handleVideoAdsToggle = useCallback(async (enabled: boolean) => {
+    setVideoAdsEnabled(enabled);
+    await saveProgress({ video_ads_enabled: enabled });
+  }, [autoSaveEnabled]);
+
+  const handleCampaignComplete = useCallback(async (campaign: any) => {
+    setMarketingCampaign(campaign);
+    await saveProgress({ marketing_campaign: campaign });
+    setCurrentStep(8);
+  }, [autoSaveEnabled]);
+
+  const handleCreateProject = useCallback(async () => {
+    // Implementation for project creation
+    setCurrentStep(9);
+  }, []);
 
   const canNavigateToStep = useCallback((step: number): boolean => {
     switch (step) {
@@ -160,6 +202,11 @@ export const useAdWizardState = () => {
     targetAudience,
     audienceAnalysis,
     selectedHooks,
+    adFormat,
+    videoAdPreferences,
+    adDimensions,
+    videoAdsEnabled,
+    marketingCampaign,
     autoSaveEnabled,
     setAutoSaveEnabled,
     handleIdeaSubmit,
@@ -167,6 +214,13 @@ export const useAdWizardState = () => {
     handleAnalysisComplete,
     handleBack,
     handleStartOver,
+    handleHooksSelect,
+    handleAdFormatSelect,
+    handleVideoPreferencesUpdate,
+    handleAdDimensionsUpdate,
+    handleVideoAdsToggle,
+    handleCampaignComplete,
+    handleCreateProject,
     canNavigateToStep,
     setCurrentStep,
   };
