@@ -1,9 +1,9 @@
-export type BusinessIdea = {
+export interface BusinessIdea {
   description: string;
   valueProposition: string;
-};
+}
 
-export type TargetAudience = {
+export interface TargetAudience {
   name: string;
   description: string;
   demographics: string;
@@ -14,49 +14,36 @@ export type TargetAudience = {
   marketingAngle: string;
   messagingApproach: string;
   marketingChannels: string[];
-  audienceAnalysis?: AudienceAnalysis;
-};
+}
 
-export type AudienceAnalysis = {
-  expandedDefinition: string;
-  marketDesire: string;
-  awarenessLevel: string;
-  sophisticationLevel: string;
-  deepPainPoints: string[];
-  potentialObjections: string[];
-};
-
-export type AdHook = {
+export interface AdHook {
   text: string;
   description: string;
-};
+}
 
-export type AdFormat = {
-  format: string;
-  dimensions: {
+export interface AdSize {
+  width: number;
+  height: number;
+  label: string;
+}
+
+export interface AdFormat {
+  format?: string;
+  formats?: string[];
+  dimensions?: {
     width: number;
     height: number;
   };
-  aspectRatio: string;
-  description: string;
-  platform: 'facebook' | 'google';
-};
+  aspectRatio?: string;
+  aspectRatios?: string[];
+  description?: string;
+  platform?: 'facebook' | 'google';
+  commonSizes?: AdSize[];
+}
 
-export type MarketingCampaign = {
-  angles: Array<{
-    description: string;
-    hook: string;
-  }>;
-  adCopies: Array<{
-    type: 'story' | 'short' | 'aida';
-    content: string;
-  }>;
-  headlines: string[];
-};
-
-export type AdImage = {
-  url: string;
-  prompt: string;
-};
-
-export type Step = "idea" | "audience" | "analysis" | "campaign" | "format" | "size" | "hook" | "complete";
+export interface PlatformSpecs {
+  facebook: AdFormat;
+  google: AdFormat;
+  linkedin: AdFormat;
+  tiktok: AdFormat;
+}

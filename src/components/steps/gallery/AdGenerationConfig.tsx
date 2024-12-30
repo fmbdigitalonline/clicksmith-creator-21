@@ -1,11 +1,4 @@
-import { AdFormat } from "@/types/adWizard";
-
-export interface PlatformSpecs {
-  facebook: AdFormat;
-  google: AdFormat;
-  linkedin: AdFormat;
-  tiktok: AdFormat;
-}
+import { AdFormat, PlatformSpecs } from "@/types/adWizard";
 
 export const getVideoAdSpecs = (): PlatformSpecs => ({
   facebook: {
