@@ -1,5 +1,4 @@
 import { AdHook } from "@/types/adWizard";
-import FacebookAdPreview from "./FacebookAdPreview";
 import AdPreviewCard from "./AdPreviewCard";
 
 interface PlatformContentProps {
@@ -12,47 +11,33 @@ interface PlatformContentProps {
 const PlatformContent = ({ 
   platformName, 
   adVariants = [], 
-  onCreateProject, 
-  videoAdsEnabled = false 
+  onCreateProject,
+  videoAdsEnabled = false
 }: PlatformContentProps) => {
-  // Ensure adVariants is an array before filtering
-  const filteredVariants = Array.isArray(adVariants) 
-    ? adVariants.filter(variant => variant.platform === platformName)
-    : [];
+  // Filter variants for the current platform
+  const platformVariants = adVariants.filter(variant => 
+    variant.platform === platformName || 
+    (!variant.platform && platformName === 'facebook') // Default to facebook if no platform specified
+  );
 
-  if (filteredVariants.length === 0) {
+  if (platformVariants.length === 0) {
     return (
       <div className="text-center py-8">
-        <p className="text-gray-500">Generating {platformName} ads... Please wait or try regenerating the ads.</p>
+        <p className="text-gray-500">No ads generated for {platformName} yet. Try regenerating the ads.</p>
       </div>
     );
   }
 
-  const renderAdPreview = (variant: any, index: number) => {
-    if (platformName === 'facebook') {
-      return (
-        <FacebookAdPreview
-          key={`${index}-${variant.size?.label || 'default'}`}
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {platformVariants.map((variant, index) => (
+        <AdPreviewCard
+          key={`${platformName}-${index}`}
           variant={variant}
           onCreateProject={onCreateProject}
           isVideo={videoAdsEnabled}
         />
-      );
-    }
-
-    return (
-      <AdPreviewCard
-        key={`${index}-${variant.size?.label || 'default'}`}
-        variant={variant}
-        onCreateProject={onCreateProject}
-        isVideo={videoAdsEnabled}
-      />
-    );
-  };
-
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      {filteredVariants.map((variant, index) => renderAdPreview(variant, index))}
+      ))}
     </div>
   );
 };
