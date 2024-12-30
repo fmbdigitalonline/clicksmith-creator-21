@@ -10,6 +10,8 @@ export interface BusinessIdea {
 }
 
 export interface TargetAudience {
+  name: string;
+  description: string;
   demographics: {
     ageRange: string;
     gender: string;
@@ -23,12 +25,12 @@ export interface TargetAudience {
   painPoints: string[];
   goals: string[];
   audienceSize?: string;
-  audienceAnalysis?: {
-    deepPainPoints?: string[];
-    motivations?: string[];
-    objections?: string[];
-    buyingStage?: string;
-  };
+  icp: string;
+  coreMessage: string;
+  positioning: string;
+  marketingAngle: string;
+  messagingApproach: string;
+  marketingChannels: string[];
 }
 
 export interface AdHook {
@@ -41,17 +43,15 @@ export interface AdHook {
 }
 
 export interface AdFormat {
-  platform: string;
   type: string;
-  dimensions?: {
+  platform: string;
+  format: string;
+  dimensions: {
     width: number;
     height: number;
   };
-  specifications?: {
-    maxLength?: number;
-    fileType?: string[];
-    requirements?: string[];
-  };
+  aspectRatio: string;
+  description: string;
 }
 
 export interface AdImage {
@@ -61,24 +61,41 @@ export interface AdImage {
   variants?: Record<string, string>;
 }
 
-export interface GoogleAdFormat {
-  headline: string;
-  description: string;
-  imageUrl?: string;
-  callToAction?: string;
-  size?: {
-    width: number;
-    height: number;
-    label: string;
-  };
-  specs?: {
-    designRecommendations?: {
-      fileTypes: string[];
-      aspectRatios: string;
-    };
-    textRecommendations?: {
-      primaryTextLength: string;
-      headlineLength: string;
-    };
-  };
+export interface AudienceAnalysis {
+  expandedDefinition: string;
+  marketDesire: string;
+  awarenessLevel: string;
+  sophisticationLevel: string;
+  deepPainPoints: string[];
+  potentialObjections: string[];
+}
+
+export interface MarketingCampaign {
+  angles: Array<{
+    description: string;
+    hook: string;
+  }>;
+  adCopies: Array<{
+    type: string;
+    content: string;
+  }>;
+  headlines: string[];
+}
+
+export type Json = string | number | boolean | null | { [key: string]: Json } | Json[];
+
+export interface SavedAd {
+  image: AdImage;
+  hook: AdHook;
+  rating: number;
+  feedback: string;
+  savedAt: string;
+}
+
+export interface SavedAdJson {
+  image: Json;
+  hook: Json;
+  rating: Json;
+  feedback: Json;
+  savedAt: Json;
 }

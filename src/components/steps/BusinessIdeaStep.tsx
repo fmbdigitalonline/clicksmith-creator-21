@@ -25,7 +25,6 @@ const BusinessIdeaStep = ({
     }
 
     // Format the value proposition to be more ad-friendly
-    // Remove any "Enhanced version of:" prefix and focus on the core message
     const valueProposition = description
       .replace(/^Enhanced version of:\s*/i, '')
       .split('.')
@@ -33,10 +32,14 @@ const BusinessIdeaStep = ({
       .filter(sentence => sentence.length > 0)
       .join('. ');
 
-    onNext({
+    const businessIdea: BusinessIdea = {
+      name: "New Business Idea",
       description,
       valueProposition,
-    });
+      uniqueSellingPoints: [valueProposition],
+    };
+
+    onNext(businessIdea);
   };
 
   return (
