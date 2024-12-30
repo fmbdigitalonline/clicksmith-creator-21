@@ -15,10 +15,11 @@ import {
 interface AdPreviewCardProps {
   variant: {
     platform: string;
-    image: {
+    image?: {
       url: string;
       prompt: string;
     };
+    imageUrl?: string; // Adding optional imageUrl property
     size: {
       width: number;
       height: number;
@@ -48,6 +49,17 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewC
   const [downloadFormat, setDownloadFormat] = useState<"jpg" | "png">("jpg");
   const { toast } = useToast();
 
+  // Safely get the image URL from either image.url or imageUrl
+  const getImageUrl = () => {
+    if (variant.image?.url) {
+      return variant.image.url;
+    }
+    if (variant.imageUrl) {
+      return variant.imageUrl;
+    }
+    return null;
+  };
+
   const handleVideoPlayPause = (videoElement: HTMLVideoElement) => {
     if (videoElement.paused) {
       videoElement.play();
@@ -59,7 +71,6 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewC
   };
 
   const convertToFormat = async (url: string, format: "jpg" | "png"): Promise<Blob> => {
-    // Create an image element
     const img = new Image();
     await new Promise((resolve, reject) => {
       img.onload = resolve;
@@ -67,7 +78,6 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewC
       img.src = url;
     });
 
-    // Create a canvas and draw the image
     const canvas = document.createElement('canvas');
     canvas.width = img.width;
     canvas.height = img.height;
@@ -75,7 +85,6 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewC
     if (!ctx) throw new Error('Could not get canvas context');
     ctx.drawImage(img, 0, 0);
 
-    // Convert to desired format
     const mimeType = format === 'jpg' ? 'image/jpeg' : 'image/png';
     const quality = format === 'jpg' ? 0.9 : undefined;
     
@@ -92,6 +101,16 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewC
   };
 
   const handleSaveAndDownload = async () => {
+    const imageUrl = getImageUrl();
+    if (!imageUrl) {
+      toast({
+        title: "Error",
+        description: "No image URL available for download",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setSaving(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -113,8 +132,7 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewC
         return;
       }
 
-      // Download and convert the image
-      const response = await fetch(variant.image.url);
+      const response = await fetch(imageUrl);
       const originalBlob = await response.blob();
       const convertedBlob = await convertToFormat(URL.createObjectURL(originalBlob), downloadFormat);
       
@@ -143,6 +161,8 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewC
     }
   };
 
+  const imageUrl = getImageUrl();
+
   return (
     <Card className="overflow-hidden">
       <div 
@@ -153,35 +173,47 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewC
         className="relative group"
       >
         {isVideo ? (
-          <>
-            <video
-              src={variant.image.url}
-              className="object-cover w-full h-full cursor-pointer"
-              playsInline
-              preload="metadata"
-              onClick={(e) => handleVideoPlayPause(e.currentTarget)}
-              onPlay={() => setIsPlaying(true)}
-              onPause={() => setIsPlaying(false)}
-            />
-            <Button
-              variant="secondary"
-              size="icon"
-              className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity"
-              onClick={(e) => {
-                e.stopPropagation();
-                const video = e.currentTarget.parentElement?.querySelector('video');
-                if (video) handleVideoPlayPause(video);
-              }}
-            >
-              {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-            </Button>
-          </>
+          imageUrl ? (
+            <>
+              <video
+                src={imageUrl}
+                className="object-cover w-full h-full cursor-pointer"
+                playsInline
+                preload="metadata"
+                onClick={(e) => handleVideoPlayPause(e.currentTarget)}
+                onPlay={() => setIsPlaying(true)}
+                onPause={() => setIsPlaying(false)}
+              />
+              <Button
+                variant="secondary"
+                size="icon"
+                className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const video = e.currentTarget.parentElement?.querySelector('video');
+                  if (video) handleVideoPlayPause(video);
+                }}
+              >
+                {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+              </Button>
+            </>
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-gray-100">
+              <p className="text-gray-500">Video preview not available</p>
+            </div>
+          )
         ) : (
-          <img
-            src={variant.image.url}
-            alt={variant.headline}
-            className="object-cover w-full h-full"
-          />
+          imageUrl ? (
+            <img
+              src={imageUrl}
+              alt={variant.headline}
+              className="object-cover w-full h-full"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-gray-100">
+              <p className="text-gray-500">Image preview not available</p>
+            </div>
+          )
         )}
       </div>
       <CardContent className="p-4 space-y-4">
@@ -223,7 +255,7 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewC
           <Button
             onClick={handleSaveAndDownload}
             className="flex-1 bg-facebook hover:bg-facebook/90"
-            disabled={isSaving}
+            disabled={isSaving || !imageUrl}
           >
             {isSaving ? (
               "Saving..."
