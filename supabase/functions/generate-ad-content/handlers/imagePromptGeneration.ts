@@ -3,7 +3,6 @@ import { generateWithReplicate } from './utils/replicateUtils.ts';
 import { resizeImage } from './utils/imageResizing.ts';
 import { supabase } from '../utils/supabaseClient.ts';
 
-// Helper function to validate and parse JSON safely
 const safeJSONParse = (str: string) => {
   try {
     const cleaned = str.replace(/[\u0000-\u001F\u007F-\u009F]/g, '')
@@ -23,7 +22,6 @@ export async function generateImagePrompts(
   campaign?: MarketingCampaign
 ) {
   try {
-    // Extract pain points from both target audience and deep analysis
     const audiencePainPoints = targetAudience.painPoints || [];
     const deepPainPoints = targetAudience.audienceAnalysis?.deepPainPoints || [];
     const allPainPoints = [...new Set([...audiencePainPoints, ...deepPainPoints])];

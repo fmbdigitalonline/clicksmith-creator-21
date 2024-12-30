@@ -58,7 +58,9 @@ export interface AdImage {
   url: string;
   prompt?: string;
   variantId?: string;
-  variants?: Record<string, string>;
+  variants?: {
+    [key: string]: string; // Format: "widthxheight": "url"
+  };
 }
 
 export interface AudienceAnalysis {

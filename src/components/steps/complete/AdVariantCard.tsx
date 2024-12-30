@@ -1,16 +1,15 @@
-import { Card, CardContent } from "@/components/ui/card";
-import { AdHook, AdImage } from "@/types/adWizard";
-import AdFeedbackForm from "./AdFeedbackForm";
 import { useState } from "react";
-import { useParams } from "react-router-dom";
-import { SaveAdButton } from "./SaveAdButton";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Download, Save } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface AdVariantCardProps {
-  image: AdImage;
-  hook: AdHook;
-  index: number;
+  variant: any;
   onCreateProject?: () => void;
+  isVideo?: boolean;
 }
 
 const AD_SIZES = [
@@ -19,31 +18,34 @@ const AD_SIZES = [
   { width: 1080, height: 1920, label: "Vertical (9:16)" }
 ];
 
-const AdVariantCard = ({ image, hook, index, onCreateProject }: AdVariantCardProps) => {
-  const [rating, setRating] = useState("");
-  const [feedback, setFeedback] = useState("");
+const AdVariantCard = ({ variant, onCreateProject, isVideo = false }: AdVariantCardProps) => {
   const [selectedSize, setSelectedSize] = useState(`${AD_SIZES[0].width}x${AD_SIZES[0].height}`);
-  const { projectId } = useParams();
+  const { toast } = useToast();
 
   const handleDownload = async () => {
     try {
-      const imageUrl = image.variants?.[selectedSize] || image.url;
+      const imageUrl = variant.variants?.[selectedSize] || variant.url;
       const response = await fetch(imageUrl);
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `ad-variant-${index + 1}-${selectedSize}.jpg`;
+      link.download = `ad-variant-${selectedSize}.jpg`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Error downloading image:', error);
+      toast({
+        title: "Download Failed",
+        description: "Failed to download the image. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
-  const currentImageUrl = image.variants?.[selectedSize] || image.url;
+  const currentImageUrl = variant.variants?.[selectedSize] || variant.url;
   const [width, height] = selectedSize.split('x').map(Number);
 
   return (
@@ -71,44 +73,21 @@ const AdVariantCard = ({ image, hook, index, onCreateProject }: AdVariantCardPro
         >
           <img
             src={currentImageUrl}
-            alt={`Ad variant ${index + 1}`}
+            alt={`Ad variant`}
             className="object-cover w-full h-full"
           />
         </div>
+
+        <div className="space-y-4">
+          <Button
+            onClick={handleDownload}
+            className="w-full bg-facebook hover:bg-facebook/90"
+          >
+            <Download className="w-4 h-4 mr-2" />
+            Download {selectedSize}
+          </Button>
+        </div>
       </div>
-
-      <CardContent className="p-4 space-y-4">
-        <h3 className="font-medium text-lg">Variant {index + 1}</h3>
-        <div className="space-y-2">
-          <div className="bg-gray-50 p-3 rounded-lg">
-            <p className="text-sm font-medium text-gray-600 mb-1">Marketing Angle:</p>
-            <p className="text-gray-800">{hook.description}</p>
-          </div>
-          <div className="bg-facebook/5 p-3 rounded-lg">
-            <p className="text-sm font-medium text-facebook mb-1">Ad Copy:</p>
-            <p className="text-gray-800 font-medium">{hook.text}</p>
-          </div>
-        </div>
-
-        <div className="space-y-4 pt-4 border-t">
-          <AdFeedbackForm
-            rating={rating}
-            feedback={feedback}
-            onRatingChange={setRating}
-            onFeedbackChange={setFeedback}
-          />
-
-          <SaveAdButton
-            image={image}
-            hook={hook}
-            rating={rating}
-            feedback={feedback}
-            projectId={projectId}
-            onCreateProject={onCreateProject}
-            onSaveSuccess={handleDownload}
-          />
-        </div>
-      </CardContent>
     </Card>
   );
 };
