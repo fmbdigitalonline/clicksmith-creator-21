@@ -14,6 +14,16 @@ export type TargetAudience = {
   marketingAngle: string;
   messagingApproach: string;
   marketingChannels: string[];
+  audienceAnalysis?: AudienceAnalysis;
+};
+
+export type AudienceAnalysis = {
+  expandedDefinition: string;
+  marketDesire: string;
+  awarenessLevel: string;
+  sophisticationLevel: string;
+  deepPainPoints: string[];
+  potentialObjections: string[];
 };
 
 export type AdHook = {
@@ -22,20 +32,14 @@ export type AdHook = {
 };
 
 export type AdFormat = {
-  format?: string;
-  dimensions?: {
+  format: string;
+  dimensions: {
     width: number;
     height: number;
   };
-  aspectRatio?: string;
-  description?: string;
-  platform?: 'facebook' | 'google' | 'linkedin' | 'tiktok';
-  formats?: string[];
-  commonSizes?: Array<{
-    width: number;
-    height: number;
-    label: string;
-  }>;
+  aspectRatio: string;
+  description: string;
+  platform: 'facebook' | 'google';
 };
 
 export type MarketingCampaign = {
