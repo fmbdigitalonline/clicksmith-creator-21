@@ -31,3 +31,32 @@ export interface AdFormat {
   description: string;
   platform: 'facebook' | 'google';
 }
+
+export interface GoogleAdFormat {
+  type: 'app' | 'demand-gen' | 'responsive-display' | 'performance-max';
+  text: {
+    headlines: string[];
+    descriptions: string[];
+    businessName?: string;
+    callToAction?: string;
+    finalUrl?: string;
+    longHeadlines?: string[];
+  };
+  images: {
+    horizontal?: AdImage[];
+    vertical?: AdImage[];
+    square?: AdImage[];
+    logo?: AdImage[];
+    logoAlternative?: AdImage[];
+  };
+  videos?: {
+    horizontal?: string[];
+    vertical?: string[];
+    square?: string[];
+  };
+}
+
+export interface AdImage {
+  url: string;
+  prompt: string;
+}
