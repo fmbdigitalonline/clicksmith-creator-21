@@ -14,7 +14,7 @@ import CampaignStep from "./steps/CampaignStep";
 import PreviewStep from "./steps/PreviewStep";
 import CompleteStep from "./steps/CompleteStep";
 import { useToast } from "@/hooks/use-toast";
-import { BusinessIdea, TargetAudience, AudienceAnalysis, AdHook, AdFormat } from "@/types/adWizard";
+import { BusinessIdea, TargetAudience, AudienceAnalysis, AdHook, AdFormat, AdImage } from "@/types/adWizard";
 
 const AdWizard = () => {
   const { projectId } = useParams();
@@ -49,7 +49,15 @@ const AdWizard = () => {
               wizardState.handleHooksSelect(project.selected_hooks as AdHook[]);
             }
             if (project.ad_format) {
-              wizardState.handleAdFormatSelect(project.ad_format as AdFormat);
+              // Convert the string ad_format to AdFormat type
+              const adFormat: AdFormat = {
+                format: project.ad_format,
+                dimensions: project.ad_dimensions || { width: 1200, height: 628 },
+                aspectRatio: "16:9",
+                description: "Facebook Ad Format",
+                platform: "facebook"
+              };
+              wizardState.handleAdFormatSelect(adFormat);
             }
             if (project.video_ad_settings) {
               wizardState.handleVideoPreferencesUpdate(project.video_ad_settings);
@@ -118,7 +126,7 @@ const AdWizard = () => {
             businessIdea={wizardState.businessIdea!}
             targetAudience={wizardState.targetAudience!}
             campaign={wizardState.marketingCampaign!}
-            onNext={wizardState.handleAdFormatSelect}
+            onNext={wizardState.handleGeneratedImages}
             onBack={wizardState.handleBack}
           />
         );

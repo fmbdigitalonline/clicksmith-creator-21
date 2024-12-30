@@ -6,6 +6,7 @@ import {
   AdHook,
   AdFormat,
   MarketingCampaign,
+  AdImage,
 } from "@/types/adWizard";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -181,6 +182,12 @@ export const useAdWizardState = () => {
     setCurrentStep(9);
   }, []);
 
+  const handleGeneratedImages = useCallback(async (images: AdImage[]) => {
+    // Store the generated images and move to the next step
+    await saveProgress({ generated_ads: images });
+    setCurrentStep(6);
+  }, []);
+
   const canNavigateToStep = useCallback((step: number): boolean => {
     switch (step) {
       case 1:
@@ -221,6 +228,7 @@ export const useAdWizardState = () => {
     handleVideoAdsToggle,
     handleCampaignComplete,
     handleCreateProject,
+    handleGeneratedImages,
     canNavigateToStep,
     setCurrentStep,
   };
