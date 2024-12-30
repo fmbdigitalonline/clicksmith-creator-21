@@ -11,9 +11,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import AdPreviewImage from "./AdPreviewImage";
-import AdPreviewVideo from "./AdPreviewVideo";
-import AdPreviewDetails from "./AdPreviewDetails";
 
 interface AdPreviewCardProps {
   variant: {
@@ -22,7 +19,7 @@ interface AdPreviewCardProps {
       url: string;
       prompt: string;
     };
-    imageUrl?: string;
+    imageUrl?: string; // Adding optional imageUrl property
     size: {
       width: number;
       height: number;
@@ -44,20 +41,15 @@ interface AdPreviewCardProps {
   };
   onCreateProject: () => void;
   isVideo?: boolean;
-  resizingOptions?: Array<{
-    width: number;
-    height: number;
-    label: string;
-  }>;
 }
 
-const AdPreviewCard = ({ variant, onCreateProject, isVideo = false, resizingOptions = [] }: AdPreviewCardProps) => {
+const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewCardProps) => {
   const [isSaving, setSaving] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [downloadFormat, setDownloadFormat] = useState<"jpg" | "png">("jpg");
-  const [selectedSize, setSelectedSize] = useState(resizingOptions[0] || variant.size);
   const { toast } = useToast();
 
+  // Safely get the image URL from either image.url or imageUrl
   const getImageUrl = () => {
     if (variant.image?.url) {
       return variant.image.url;
@@ -68,9 +60,48 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false, resizingOpti
     return null;
   };
 
-  const imageUrl = getImageUrl();
+  const handleVideoPlayPause = (videoElement: HTMLVideoElement) => {
+    if (videoElement.paused) {
+      videoElement.play();
+      setIsPlaying(true);
+    } else {
+      videoElement.pause();
+      setIsPlaying(false);
+    }
+  };
+
+  const convertToFormat = async (url: string, format: "jpg" | "png"): Promise<Blob> => {
+    const img = new Image();
+    await new Promise((resolve, reject) => {
+      img.onload = resolve;
+      img.onerror = reject;
+      img.src = url;
+    });
+
+    const canvas = document.createElement('canvas');
+    canvas.width = img.width;
+    canvas.height = img.height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('Could not get canvas context');
+    ctx.drawImage(img, 0, 0);
+
+    const mimeType = format === 'jpg' ? 'image/jpeg' : 'image/png';
+    const quality = format === 'jpg' ? 0.9 : undefined;
+    
+    return new Promise((resolve, reject) => {
+      canvas.toBlob(
+        (blob) => {
+          if (blob) resolve(blob);
+          else reject(new Error('Failed to convert image'));
+        },
+        mimeType,
+        quality
+      );
+    });
+  };
 
   const handleSaveAndDownload = async () => {
+    const imageUrl = getImageUrl();
     if (!imageUrl) {
       toast({
         title: "Error",
@@ -88,14 +119,27 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false, resizingOpti
         throw new Error('User must be logged in to save ad');
       }
 
+      if (!onCreateProject) {
+        toast({
+          title: "No Project Selected",
+          description: "Please create a project to save your ad.",
+          action: (
+            <Button variant="outline" onClick={onCreateProject}>
+              Create Project
+            </Button>
+          ),
+        });
+        return;
+      }
+
       const response = await fetch(imageUrl);
       const originalBlob = await response.blob();
-      const convertedBlob = await convertToFormat(originalBlob, downloadFormat);
+      const convertedBlob = await convertToFormat(URL.createObjectURL(originalBlob), downloadFormat);
       
       const url = URL.createObjectURL(convertedBlob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `${variant.platform}-${isVideo ? 'video' : 'ad'}-${selectedSize.width}x${selectedSize.height}.${downloadFormat}`;
+      link.download = `${variant.platform}-${isVideo ? 'video' : 'ad'}-${variant.size.width}x${variant.size.height}.${downloadFormat}`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -103,7 +147,7 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false, resizingOpti
 
       toast({
         title: "Success!",
-        description: `Your ${selectedSize.label} ${isVideo ? 'video' : 'ad'} has been saved and downloaded as ${downloadFormat.toUpperCase()}.`,
+        description: `Your ${variant.size.label} ${isVideo ? 'video' : 'ad'} has been saved and downloaded as ${downloadFormat.toUpperCase()}.`,
       });
     } catch (error) {
       console.error('Error saving ad:', error);
@@ -117,92 +161,84 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false, resizingOpti
     }
   };
 
-  const convertToFormat = async (blob: Blob, format: "jpg" | "png"): Promise<Blob> => {
-    const img = new Image();
-    await new Promise((resolve, reject) => {
-      img.onload = resolve;
-      img.onerror = reject;
-      img.src = URL.createObjectURL(blob);
-    });
-
-    const canvas = document.createElement('canvas');
-    canvas.width = selectedSize.width;
-    canvas.height = selectedSize.height;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) throw new Error('Could not get canvas context');
-    ctx.drawImage(img, 0, 0, selectedSize.width, selectedSize.height);
-
-    const mimeType = format === 'jpg' ? 'image/jpeg' : 'image/png';
-    const quality = format === 'jpg' ? 0.9 : undefined;
-    
-    return new Promise((resolve, reject) => {
-      canvas.toBlob(
-        (blob) => {
-          if (blob) resolve(blob);
-          else reject(new Error('Failed to convert image'));
-        },
-        mimeType,
-        quality
-      );
-    });
-  };
+  const imageUrl = getImageUrl();
 
   return (
     <Card className="overflow-hidden">
       <div 
         style={{ 
-          aspectRatio: `${selectedSize.width} / ${selectedSize.height}`,
+          aspectRatio: `${variant.size.width} / ${variant.size.height}`,
           maxHeight: '400px'
         }} 
         className="relative group"
       >
         {isVideo ? (
-          <AdPreviewVideo
-            imageUrl={imageUrl}
-            isPlaying={isPlaying}
-            setIsPlaying={setIsPlaying}
-            selectedSize={selectedSize}
-          />
+          imageUrl ? (
+            <>
+              <video
+                src={imageUrl}
+                className="object-cover w-full h-full cursor-pointer"
+                playsInline
+                preload="metadata"
+                onClick={(e) => handleVideoPlayPause(e.currentTarget)}
+                onPlay={() => setIsPlaying(true)}
+                onPause={() => setIsPlaying(false)}
+              />
+              <Button
+                variant="secondary"
+                size="icon"
+                className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const video = e.currentTarget.parentElement?.querySelector('video');
+                  if (video) handleVideoPlayPause(video);
+                }}
+              >
+                {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+              </Button>
+            </>
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-gray-100">
+              <p className="text-gray-500">Video preview not available</p>
+            </div>
+          )
         ) : (
-          <AdPreviewImage
-            imageUrl={imageUrl}
-            selectedSize={selectedSize}
-          />
+          imageUrl ? (
+            <img
+              src={imageUrl}
+              alt={variant.headline}
+              className="object-cover w-full h-full"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-gray-100">
+              <p className="text-gray-500">Image preview not available</p>
+            </div>
+          )
         )}
       </div>
       <CardContent className="p-4 space-y-4">
-        <AdPreviewDetails
-          variant={variant}
-          selectedSize={selectedSize}
-          isVideo={isVideo}
-        />
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <h3 className="font-medium text-lg">{variant.headline}</h3>
+            <span className="text-sm text-gray-500">{variant.size.label}</span>
+          </div>
+          <p className="text-gray-600">{variant.description}</p>
+          <p className="text-facebook font-medium">{variant.callToAction}</p>
+          <div className="text-sm text-gray-500 space-y-1">
+            <p>Size: {variant.size.width}x{variant.size.height}</p>
+            {variant.specs?.designRecommendations && (
+              <>
+                <p>Format: {variant.specs.designRecommendations.fileTypes.join(", ")}</p>
+                <p>Aspect Ratio: {variant.specs.designRecommendations.aspectRatios}</p>
+              </>
+            )}
+            {isVideo && (
+              <p>Type: Video Ad</p>
+            )}
+          </div>
+        </div>
 
         <div className="flex gap-2">
-          {resizingOptions.length > 0 && (
-            <Select
-              value={`${selectedSize.width}x${selectedSize.height}`}
-              onValueChange={(value) => {
-                const [width, height] = value.split('x').map(Number);
-                const size = resizingOptions.find(s => s.width === width && s.height === height);
-                if (size) setSelectedSize(size);
-              }}
-            >
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Select size" />
-              </SelectTrigger>
-              <SelectContent>
-                {resizingOptions.map((size) => (
-                  <SelectItem 
-                    key={`${size.width}x${size.height}`} 
-                    value={`${size.width}x${size.height}`}
-                  >
-                    {size.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-
           <Select
             value={downloadFormat}
             onValueChange={(value: "jpg" | "png") => setDownloadFormat(value)}
