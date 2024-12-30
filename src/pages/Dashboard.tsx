@@ -5,10 +5,72 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { BarChart, Activity, Image, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  // Set up real-time subscriptions
+  useEffect(() => {
+    // Subscribe to projects changes
+    const projectsChannel = supabase
+      .channel('public:projects')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'projects' },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['projectStats'] });
+        }
+      )
+      .subscribe();
+
+    // Subscribe to ad_image_variants changes
+    const adImagesChannel = supabase
+      .channel('public:ad_image_variants')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'ad_image_variants' },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['adStats'] });
+        }
+      )
+      .subscribe();
+
+    // Subscribe to ad_feedback changes
+    const feedbackChannel = supabase
+      .channel('public:ad_feedback')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'ad_feedback' },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['adStats'] });
+        }
+      )
+      .subscribe();
+
+    // Subscribe to subscriptions changes
+    const subscriptionsChannel = supabase
+      .channel('public:subscriptions')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'subscriptions' },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['credits'] });
+        }
+      )
+      .subscribe();
+
+    // Cleanup subscriptions
+    return () => {
+      supabase.removeChannel(projectsChannel);
+      supabase.removeChannel(adImagesChannel);
+      supabase.removeChannel(feedbackChannel);
+      supabase.removeChannel(subscriptionsChannel);
+    };
+  }, [queryClient]);
 
   const { data: projectStats } = useQuery({
     queryKey: ["projectStats"],
