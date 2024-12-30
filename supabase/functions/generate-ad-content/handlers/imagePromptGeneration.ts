@@ -20,16 +20,6 @@ const AD_FORMATS = [
   { width: 1080, height: 1920, label: "Story (9:16)" }
 ];
 
-const sanitizePrompt = (prompt: string): string => {
-  // Remove potentially problematic terms and ensure business-appropriate content
-  const sanitized = prompt
-    .replace(/\b(nsfw|adult|explicit|offensive)\b/gi, '')
-    .trim();
-  
-  // Add business-appropriate context
-  return `Professional business advertisement: ${sanitized}. Style: Clean, professional, business-appropriate, modern marketing visual.`;
-};
-
 export async function generateImagePrompts(
   businessIdea: BusinessIdea,
   targetAudience: TargetAudience,
@@ -58,7 +48,6 @@ Create 1 image prompt that:
 2. Connects emotionally with the target audience by addressing their pain points
 3. Is detailed enough for high-quality image generation
 4. Follows professional advertising best practices
-5. Maintains clean, business-appropriate content
 
 Return ONLY a valid JSON array with exactly 1 item in this format:
 [
@@ -86,7 +75,7 @@ Return ONLY a valid JSON array with exactly 1 item in this format:
         messages: [
           { 
             role: 'system', 
-            content: 'You are an expert at creating detailed, business-appropriate image prompts for marketing visuals that align with business goals and target audiences. Always maintain professional and clean content.'
+            content: 'You are an expert at creating detailed image prompts for marketing visuals that align with business goals and target audiences.'
           },
           { role: 'user', content: prompt }
         ],
@@ -117,31 +106,18 @@ Return ONLY a valid JSON array with exactly 1 item in this format:
         throw new Error('Invalid prompt format: Expected string prompt');
       }
 
-      // Sanitize the prompt before sending to Replicate
-      const sanitizedPrompt = sanitizePrompt(generatedPrompts[0].prompt);
-      console.log('Sanitized prompt:', sanitizedPrompt);
+      const imageUrl = await generateWithReplicate(generatedPrompts[0].prompt, {
+        width: format.width,
+        height: format.height
+      });
 
-      try {
-        const imageUrl = await generateWithReplicate(sanitizedPrompt, {
-          width: format.width,
-          height: format.height
-        });
-
-        return {
-          url: imageUrl,
-          prompt: sanitizedPrompt,
-          width: format.width,
-          height: format.height,
-          label: format.label
-        };
-      } catch (error) {
-        console.error('Error generating image:', error);
-        // Return a fallback image or throw a more specific error
-        if (error.message.includes('NSFW')) {
-          throw new Error('Unable to generate image due to content restrictions. Please try again with different content.');
-        }
-        throw error;
-      }
+      return {
+        url: imageUrl,
+        prompt: generatedPrompts[0].prompt,
+        width: format.width,
+        height: format.height,
+        label: format.label
+      };
     });
 
     const images = await Promise.all(imagePromises);
@@ -150,6 +126,6 @@ Return ONLY a valid JSON array with exactly 1 item in this format:
     return { images };
   } catch (error) {
     console.error('Error in image prompt generation:', error);
-    throw new Error(`Failed to generate images: ${error.message}`);
+    throw error;
   }
 }
