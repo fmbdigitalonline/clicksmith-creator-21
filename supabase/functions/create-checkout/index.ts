@@ -13,30 +13,18 @@ serve(async (req) => {
   }
 
   try {
-    const { priceId } = await req.json();
+    const { priceId, mode = 'subscription' } = await req.json();
     
     if (!priceId) {
       throw new Error('Price ID is required');
     }
 
-    console.log('Received price ID:', priceId);
+    console.log('Received price ID:', priceId, 'mode:', mode);
 
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
     );
-
-    // Verify the price exists in our database
-    const { data: planData, error: planError } = await supabaseClient
-      .from('plans')
-      .select('*')
-      .eq('stripe_price_id', priceId)
-      .single();
-
-    if (planError || !planData) {
-      console.error('Plan not found:', planError);
-      throw new Error(`Invalid price ID: ${priceId}`);
-    }
 
     const authHeader = req.headers.get('Authorization')!;
     const token = authHeader.replace('Bearer ', '');
@@ -72,12 +60,9 @@ serve(async (req) => {
       customerId = customer.id;
     }
 
-    // Determine if this is a one-time payment or subscription based on the plan price
-    const isOneTimePayment = planData.price === 10;
-
     // Create checkout session with appropriate mode and configuration
     console.log('Creating checkout session...');
-    const sessionConfig = {
+    const session = await stripe.checkout.sessions.create({
       customer: customerId,
       line_items: [
         {
@@ -85,28 +70,18 @@ serve(async (req) => {
           quantity: 1,
         },
       ],
-      mode: isOneTimePayment ? 'payment' : 'subscription',
+      mode: mode as 'payment' | 'subscription',
       success_url: `${req.headers.get('origin')}/settings?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${req.headers.get('origin')}/pricing`,
       metadata: {
         supabaseUid: user.id,
-        planId: planData.id,
       },
-    };
-
-    // Add subscription_data only for subscription mode
-    if (!isOneTimePayment) {
-      Object.assign(sessionConfig, {
-        subscription_data: {
-          metadata: {
-            supabaseUid: user.id,
-            planId: planData.id,
-          },
+      subscription_data: mode === 'subscription' ? {
+        metadata: {
+          supabaseUid: user.id,
         },
-      });
-    }
-
-    const session = await stripe.checkout.sessions.create(sessionConfig);
+      } : undefined,
+    });
 
     console.log('Checkout session created successfully');
     return new Response(
