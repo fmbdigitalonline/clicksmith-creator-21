@@ -1,9 +1,19 @@
 import { useState, useEffect } from "react";
 import { BusinessIdea, TargetAudience, AdHook } from "@/types/adWizard";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import StepNavigation from "./complete/StepNavigation";
 import LoadingState from "./complete/LoadingState";
 import PlatformTabs from "./gallery/PlatformTabs";
@@ -34,6 +44,8 @@ const AdGalleryStep = ({
   const [platform, setPlatform] = useState<"facebook" | "google" | "linkedin" | "tiktok">("facebook");
   const [regenerationCount, setRegenerationCount] = useState(0);
   const [generationStatus, setGenerationStatus] = useState<string>("");
+  const [showPlatformChangeDialog, setShowPlatformChangeDialog] = useState(false);
+  const [pendingPlatform, setPendingPlatform] = useState<"facebook" | "google" | "linkedin" | "tiktok" | null>(null);
   const { toast } = useToast();
 
   const validateResponse = (data: any) => {
@@ -134,8 +146,22 @@ const AdGalleryStep = ({
   }, [videoAdsEnabled]);
 
   const handlePlatformChange = (newPlatform: "facebook" | "google" | "linkedin" | "tiktok") => {
-    setPlatform(newPlatform);
-    generateAds(newPlatform);
+    if (adVariants.length > 0) {
+      setPendingPlatform(newPlatform);
+      setShowPlatformChangeDialog(true);
+    } else {
+      setPlatform(newPlatform);
+      generateAds(newPlatform);
+    }
+  };
+
+  const confirmPlatformChange = () => {
+    if (pendingPlatform) {
+      setPlatform(pendingPlatform);
+      generateAds(pendingPlatform);
+      setShowPlatformChangeDialog(false);
+      setPendingPlatform(null);
+    }
   };
 
   const renderPlatformContent = (platformName: string) => (
@@ -189,6 +215,21 @@ const AdGalleryStep = ({
           {renderPlatformContent('tiktok')}
         </PlatformTabs>
       )}
+
+      <AlertDialog open={showPlatformChangeDialog} onOpenChange={setShowPlatformChangeDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Switch Platform?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Switching to a different platform will remove the current ads. Make sure to download or save any ads you want to keep before switching.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setPendingPlatform(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmPlatformChange}>Continue</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
