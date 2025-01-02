@@ -42,7 +42,7 @@ const AdGalleryStep = ({
     adVariants,
     generationStatus,
     generateAds,
-  } = useAdGeneration(businessIdea, targetAudience, adHooks, videoAdsEnabled);
+  } = useAdGeneration(businessIdea, targetAudience, adHooks);
 
   useEffect(() => {
     if (adVariants.length === 0) {

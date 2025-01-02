@@ -44,7 +44,6 @@ export const useAdGeneration = (
       throw new Error(error?.message || result?.[0]?.error_message || 'Failed to deduct credits');
     }
 
-    // Invalidate queries to refresh UI
     queryClient.invalidateQueries({ queryKey: ['credits'] });
     queryClient.invalidateQueries({ queryKey: ['subscription'] });
     return result[0];
@@ -55,7 +54,6 @@ export const useAdGeneration = (
     setGenerationStatus("Checking credits availability...");
     
     try {
-      // First check if user has enough credits
       const { data: creditCheck, error: creditError } = await supabase.rpc(
         'check_user_credits',
         { 
@@ -65,7 +63,6 @@ export const useAdGeneration = (
       );
 
       if (creditError || !creditCheck?.[0]?.has_credits) {
-        // If no credits available, show toast and redirect to pricing
         toast({
           title: "No credits available",
           description: "Please purchase more credits to continue generating ads",
@@ -87,9 +84,7 @@ export const useAdGeneration = (
             name: targetAudience.name,
             description: targetAudience.description,
             demographics: targetAudience.demographics,
-            interests: targetAudience.interests,
-            pain_points: targetAudience.pain_points,
-            goals: targetAudience.goals,
+            painPoints: targetAudience.painPoints
           },
           adHooks,
         },
@@ -104,7 +99,6 @@ export const useAdGeneration = (
 
       setGenerationStatus("Processing generated content...");
       
-      // Process the variants
       const processedVariants = await Promise.all(variants.map(async (variant: any) => {
         if (!variant.imageUrl) {
           console.warn('Variant missing imageUrl:', variant);
@@ -112,7 +106,6 @@ export const useAdGeneration = (
         }
 
         try {
-          // Store the image variant
           const { data: imageVariant, error: storeError } = await supabase
             .from('ad_image_variants')
             .insert({
@@ -140,7 +133,6 @@ export const useAdGeneration = (
         }
       }));
 
-      // Deduct credits after successful generation
       await deductCredits();
 
       console.log('Processed ad variants:', processedVariants);
