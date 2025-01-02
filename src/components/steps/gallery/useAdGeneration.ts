@@ -33,13 +33,26 @@ export const useAdGeneration = (
     setIsGenerating(true);
     setGenerationStatus("Initializing ad generation...");
     try {
-      console.log('Generating ads for platform:', selectedPlatform);
+      console.log('Generating ads for platform:', selectedPlatform, 'with target audience:', targetAudience);
       
       const { data, error } = await supabase.functions.invoke('generate-ad-content', {
         body: { 
           type: videoAdsEnabled ? 'video_ads' : 'complete_ads',
           businessIdea,
-          targetAudience,
+          targetAudience: {
+            ...targetAudience,
+            // Ensure we're using the same target audience data consistently
+            name: targetAudience.name,
+            description: targetAudience.description,
+            demographics: targetAudience.demographics,
+            painPoints: targetAudience.painPoints,
+            icp: targetAudience.icp,
+            coreMessage: targetAudience.coreMessage,
+            positioning: targetAudience.positioning,
+            marketingAngle: targetAudience.marketingAngle,
+            messagingApproach: targetAudience.messagingApproach,
+            marketingChannels: targetAudience.marketingChannels
+          },
           platform: selectedPlatform,
           campaign: {
             hooks: adHooks,
