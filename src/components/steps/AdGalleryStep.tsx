@@ -92,11 +92,7 @@ const AdGalleryStep = ({
         }
       });
 
-      if (error) {
-        console.error('Error from Edge Function:', error);
-        setGenerationStatus("Generation failed. Please try again.");
-        throw error;
-      }
+      if (error) throw error;
 
       console.log('Edge Function response:', data);
 

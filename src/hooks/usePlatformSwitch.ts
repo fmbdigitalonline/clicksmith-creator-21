@@ -8,22 +8,23 @@ export const usePlatformSwitch = (initialPlatform: Platform = "facebook") => {
   const [pendingPlatform, setPendingPlatform] = useState<Platform | null>(null);
 
   const handlePlatformChange = (newPlatform: Platform, hasExistingAds: boolean) => {
-    if (hasExistingAds) {
+    if (hasExistingAds && newPlatform !== platform) {
       setPendingPlatform(newPlatform);
       setShowPlatformChangeDialog(true);
+      return platform; // Return current platform to maintain tab selection
     } else {
       setPlatform(newPlatform);
       return newPlatform;
     }
-    return platform; // Return current platform if dialog is shown
   };
 
   const confirmPlatformChange = () => {
     if (pendingPlatform) {
       setPlatform(pendingPlatform);
       setShowPlatformChangeDialog(false);
+      const confirmedPlatform = pendingPlatform;
       setPendingPlatform(null);
-      return pendingPlatform;
+      return confirmedPlatform;
     }
     return platform;
   };
