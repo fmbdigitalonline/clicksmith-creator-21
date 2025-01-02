@@ -183,6 +183,8 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewC
     }
   };
 
+  const imageUrl = getImageUrl();
+
   return (
     <Card className="overflow-hidden">
       <div 

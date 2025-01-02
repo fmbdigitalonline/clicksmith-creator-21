@@ -1,4 +1,4 @@
-import { Document, Packer, Paragraph, TextRun, ImageRun } from 'docx';
+import { Document, Packer, Paragraph, TextRun } from 'docx';
 import jsPDF from 'jspdf';
 
 export const generatePDF = async (variant: any, imageUrl: string) => {
@@ -64,45 +64,18 @@ export const generateWord = async (variant: any, imageUrl: string) => {
               }),
             ],
           }),
-        ],
-      }],
-    });
-
-    if (imageUrl) {
-      const response = await fetch(imageUrl);
-      const blob = await response.blob();
-      const buffer = await blob.arrayBuffer();
-      
-      doc.addSection({
-        children: [
           new Paragraph({
             children: [
-              new ImageRun({
-                data: buffer,
-                transformation: {
-                  width: 500,
-                  height: 300,
-                },
+              new TextRun({
+                text: variant.callToAction || '',
+                bold: true,
+                size: 28,
               }),
             ],
           }),
         ],
-      });
-    }
-
-    if (variant.callToAction) {
-      doc.addParagraph(
-        new Paragraph({
-          children: [
-            new TextRun({
-              text: variant.callToAction,
-              bold: true,
-              size: 28,
-            }),
-          ],
-        })
-      );
-    }
+      }],
+    });
 
     const buffer = await Packer.toBuffer(doc);
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
