@@ -20,24 +20,32 @@ export const useAdWizardState = () => {
 
   const saveProgress = async (data: any) => {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+
       if (projectId) {
         // If we have a projectId, update the existing project
         const { error } = await supabase
           .from('projects')
-          .update(data)
+          .update({
+            ...data,
+            updated_at: new Date().toISOString()
+          })
           .eq('id', projectId);
 
         if (error) throw error;
       } else {
         // If no projectId, save to wizard_progress
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-
         const { error } = await supabase
           .from('wizard_progress')
           .upsert({
             user_id: user.id,
             ...data,
+            updated_at: new Date().toISOString()
+          }, {
+            onConflict: 'user_id'
           });
 
         if (error) throw error;
@@ -123,16 +131,38 @@ export const useAdWizardState = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { error } = await supabase
-        .from('wizard_progress')
-        .delete()
-        .eq('user_id', user.id);
+      if (projectId) {
+        // If we're in a project, reset project data
+        const { error } = await supabase
+          .from('projects')
+          .update({
+            business_idea: null,
+            target_audience: null,
+            audience_analysis: null,
+            selected_hooks: null,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', projectId);
 
-      if (error) throw error;
+        if (error) throw error;
+      } else {
+        // Clear wizard progress
+        const { error } = await supabase
+          .from('wizard_progress')
+          .delete()
+          .eq('user_id', user.id);
+
+        if (error) throw error;
+      }
     } catch (error) {
       console.error('Error clearing progress:', error);
+      toast({
+        title: "Error",
+        description: "Failed to clear progress",
+        variant: "destructive",
+      });
     }
-  }, []);
+  }, [projectId]);
 
   const canNavigateToStep = useCallback((step: number): boolean => {
     switch (step) {
