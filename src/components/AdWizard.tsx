@@ -33,23 +33,35 @@ const AdWizard = () => {
     setCurrentStep,
   } = useAdWizardState();
 
-  // Check if we're on the "new" route and handle accordingly
+  // Handle project initialization
   useEffect(() => {
     const initializeProject = async () => {
-      if (projectId === "new") {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
+      if (projectId === "new") {
         // Clear any existing wizard progress when starting new
         await supabase
           .from('wizard_progress')
           .delete()
           .eq('user_id', user.id);
+      } else if (projectId) {
+        // If it's an existing project, fetch its data
+        const { data: project } = await supabase
+          .from('projects')
+          .select('*')
+          .eq('id', projectId)
+          .single();
+
+        if (!project) {
+          // If project doesn't exist, redirect to new project
+          navigate('/ad-wizard/new');
+        }
       }
     };
 
     initializeProject();
-  }, [projectId]);
+  }, [projectId, navigate]);
 
   const handleCreateProject = () => {
     setShowCreateProject(true);
