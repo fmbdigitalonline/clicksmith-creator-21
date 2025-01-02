@@ -70,8 +70,8 @@ const CreditDisplay = () => {
     }
     
     const freeUsed = freeUsage?.generations_used || 0;
-    const freeRemaining = 30 - freeUsed;
-    return `${freeRemaining}/30 free generations`;
+    const freeRemaining = 12 - freeUsed; // Updated from 30 to 12
+    return `${freeRemaining}/12 free generations`; // Updated from 30 to 12
   };
 
   return (
