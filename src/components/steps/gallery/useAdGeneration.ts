@@ -18,22 +18,33 @@ export const useAdGeneration = (
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
-  const deductCredits = async () => {
-    const { data: result, error } = await supabase.rpc(
-      'deduct_user_credits',
-      { 
-        input_user_id: (await supabase.auth.getUser()).data.user?.id,
-        credits_to_deduct: 1
-      }
+  const checkCredits = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    const { data: creditCheck, error } = await supabase.rpc(
+      'check_user_credits',
+      { p_user_id: user.id, required_credits: 1 }
     );
 
-    if (error || !result?.[0]?.success) {
-      throw new Error(error?.message || result?.[0]?.error_message || 'Failed to deduct credits');
+    if (error) {
+      throw error;
     }
 
-    queryClient.invalidateQueries({ queryKey: ['credits'] });
-    queryClient.invalidateQueries({ queryKey: ['subscription'] });
-    return result[0];
+    // Check the first element of the returned array
+    const result = creditCheck[0];
+    
+    if (!result.has_credits) {
+      toast({
+        title: "No credits available",
+        description: result.error_message,
+        variant: "destructive",
+      });
+      navigate('/pricing');
+      return false;
+    }
+
+    return true;
   };
 
   const generateAds = async (selectedPlatform: string) => {
@@ -41,21 +52,8 @@ export const useAdGeneration = (
     setGenerationStatus("Checking credits availability...");
     
     try {
-      const { data: creditCheck, error: creditError } = await supabase.rpc(
-        'check_user_credits',
-        { 
-          p_user_id: (await supabase.auth.getUser()).data.user?.id,
-          required_credits: 1
-        }
-      );
-
-      if (creditError || !creditCheck?.[0]?.has_credits) {
-        toast({
-          title: "No credits available",
-          description: "Please purchase more credits to continue generating ads",
-          variant: "destructive",
-        });
-        navigate('/pricing');
+      const hasCredits = await checkCredits();
+      if (!hasCredits) {
         return;
       }
 
@@ -64,7 +62,7 @@ export const useAdGeneration = (
       
       const { data, error } = await supabase.functions.invoke('generate-ad-content', {
         body: {
-          type: 'complete_ads', // Added the required type parameter
+          type: 'complete_ads',
           platform: selectedPlatform,
           businessIdea,
           targetAudience: {
@@ -120,8 +118,6 @@ export const useAdGeneration = (
           return null;
         }
       }));
-
-      await deductCredits();
 
       console.log('Processed ad variants:', processedVariants);
       setAdVariants(processedVariants.filter(Boolean));
