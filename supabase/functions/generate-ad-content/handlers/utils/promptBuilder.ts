@@ -6,7 +6,7 @@ export const buildMainPrompt = (
   targetAudience: TargetAudience,
   hook: MarketingHook
 ): string => {
-  return `Create a hyper-realistic commercial photograph for a professional advertising campaign. The photograph should represent:
+  return `Create a strictly photorealistic commercial photograph for a professional advertising campaign. The photograph must be indistinguishable from a professional DSLR camera shot. The photograph should represent:
 
 "${hook.text}"
 
@@ -18,13 +18,15 @@ Scene Context:
 - Target Audience: ${targetAudience.description}
 - Value Proposition: ${businessIdea.valueProposition}
 
-Photography Requirements:
+Critical Photography Requirements:
 ${getBasePhotographySpecs()}
 
 ${getEnvironmentSpecs()}
 
-Critical Requirements:
-${getStrictRequirements()}`;
+Mandatory Requirements:
+${getStrictRequirements()}
+
+IMPORTANT: This MUST be a photorealistic commercial photograph suitable for professional advertising. No artistic interpretations, cartoons, or illustrations allowed.`;
 };
 
 export const buildVariationPrompt = (
@@ -32,7 +34,8 @@ export const buildVariationPrompt = (
   targetAudience: TargetAudience,
   hook: MarketingHook
 ): string => {
-  return `Create another hyper-realistic commercial photograph for this marketing concept:
+  return `Create another strictly photorealistic commercial photograph for this marketing concept. The image must look like it was taken with a professional DSLR camera:
+
 "${hook.text}"
 
 Key Focus:
@@ -43,6 +46,8 @@ Key Focus:
 Mandatory Requirements:
 ${getStrictRequirements()}
 
-Technical Requirements:
-${getBasePhotographySpecs()}`;
+Technical Photography Requirements:
+${getBasePhotographySpecs()}
+
+IMPORTANT: Generate ONLY photorealistic commercial photography. No artistic styles, illustrations, or digital art allowed.`;
 };

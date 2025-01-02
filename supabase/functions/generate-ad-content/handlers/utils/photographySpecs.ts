@@ -6,8 +6,10 @@ export const getBasePhotographySpecs = (): string => `
 - High resolution output
 - Natural color grading
 - Professional post-processing
-- Photorealistic style only
-- No cartoon, illustration, or artistic styles`;
+- Strictly photorealistic commercial style
+- No artistic interpretations or stylization
+- No cartoon, illustration, or digital art styles
+- No AI-generated looking images`;
 
 export const getStrictRequirements = (): string => `
 - No text overlays (text will be added separately)
@@ -16,7 +18,10 @@ export const getStrictRequirements = (): string => `
 - No offensive or inappropriate content
 - Must be suitable for commercial use
 - Must follow platform-specific guidelines
-- Must be photorealistic, no artistic interpretations`;
+- Must be 100% photorealistic commercial photography
+- No artistic filters or effects
+- No digital art or illustrations
+- No composite images`;
 
 export const getEnvironmentSpecs = (): string => `
 - Professional studio or relevant location setting
@@ -24,4 +29,7 @@ export const getEnvironmentSpecs = (): string => `
 - Controlled lighting environment
 - Clean and modern aesthetic
 - Consistent with brand guidelines
-- Real-world photography standards`;
+- Real-world commercial photography standards
+- Professional grade equipment quality
+- Industry-standard lighting techniques
+- Natural, realistic shadows and highlights`;
