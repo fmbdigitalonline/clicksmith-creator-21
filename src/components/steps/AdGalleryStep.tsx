@@ -1,16 +1,13 @@
-import { useState, useEffect } from "react";
 import { BusinessIdea, TargetAudience, AdHook } from "@/types/adWizard";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 import { TabsContent } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
-import StepNavigation from "./complete/StepNavigation";
 import LoadingState from "./complete/LoadingState";
 import PlatformTabs from "./gallery/PlatformTabs";
 import PlatformContent from "./gallery/PlatformContent";
 import PlatformChangeDialog from "./gallery/PlatformChangeDialog";
-import { RefreshCw } from "lucide-react";
 import { usePlatformSwitch } from "@/hooks/usePlatformSwitch";
+import { useAdGeneration } from "./gallery/useAdGeneration";
+import AdGenerationControls from "./gallery/AdGenerationControls";
+import { useEffect } from "react";
 
 interface AdGalleryStepProps {
   businessIdea: BusinessIdea;
@@ -31,12 +28,6 @@ const AdGalleryStep = ({
   onCreateProject,
   videoAdsEnabled = false,
 }: AdGalleryStepProps) => {
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [adVariants, setAdVariants] = useState<any[]>([]);
-  const [regenerationCount, setRegenerationCount] = useState(0);
-  const [generationStatus, setGenerationStatus] = useState<string>("");
-  const { toast } = useToast();
-  
   const {
     platform,
     showPlatformChangeDialog,
@@ -46,92 +37,12 @@ const AdGalleryStep = ({
     setShowPlatformChangeDialog
   } = usePlatformSwitch();
 
-  const validateResponse = (data: any) => {
-    if (!data) {
-      throw new Error('No data received from server');
-    }
-
-    const variants = data.variants || data;
-    if (!Array.isArray(variants)) {
-      console.error('Invalid variants format:', variants);
-      throw new Error('Invalid response format: variants is not an array');
-    }
-
-    return variants;
-  };
-
-  const generateAds = async (selectedPlatform?: string) => {
-    setIsGenerating(true);
-    setGenerationStatus("Initializing ad generation...");
-    try {
-      console.log('Generating ads for platform:', selectedPlatform || platform);
-      
-      const { data, error } = await supabase.functions.invoke('generate-ad-content', {
-        body: { 
-          type: videoAdsEnabled ? 'video_ads' : 'complete_ads',
-          businessIdea,
-          targetAudience,
-          platform: selectedPlatform || platform,
-          campaign: {
-            hooks: adHooks,
-            specs: videoAdsEnabled ? {
-              [selectedPlatform || platform]: {
-                formats: ['feed', 'sponsored', 'message'],
-                aspectRatios: ['1:1', '16:9']
-              }
-            } : {
-              [selectedPlatform || platform]: {
-                commonSizes: [
-                  { width: 1200, height: 628, label: `${selectedPlatform || platform} Feed` }
-                ]
-              }
-            }
-          },
-          regenerationCount: regenerationCount,
-          timestamp: new Date().getTime()
-        }
-      });
-
-      if (error) throw error;
-
-      console.log('Edge Function response:', data);
-
-      const variants = validateResponse(data);
-
-      const processedVariants = variants.map(variant => ({
-        ...variant,
-        imageUrl: variant.image?.url || variant.imageUrl,
-        platform: selectedPlatform || platform,
-        size: {
-          width: 1200,
-          height: 628,
-          label: `${selectedPlatform || platform} Feed`
-        }
-      }));
-
-      console.log('Processed ad variants:', processedVariants);
-      setAdVariants(processedVariants);
-      setRegenerationCount(prev => prev + 1);
-      setGenerationStatus("Generation completed successfully!");
-      
-      toast({
-        title: `Fresh ${videoAdsEnabled ? 'Video Ads' : 'Image Ads'} Generated!`,
-        description: "Your new ad variants have been generated successfully.",
-      });
-    } catch (error) {
-      console.error('Error generating ads:', error);
-      setGenerationStatus("Generation failed. Please try again.");
-      toast({
-        title: "Generation Failed",
-        description: error instanceof Error 
-          ? `Error: ${error.message}. Please try again or contact support.`
-          : "Failed to generate ads. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsGenerating(false);
-    }
-  };
+  const {
+    isGenerating,
+    adVariants,
+    generationStatus,
+    generateAds,
+  } = useAdGeneration(businessIdea, targetAudience, adHooks, videoAdsEnabled);
 
   useEffect(() => {
     if (adVariants.length === 0) {
@@ -164,30 +75,13 @@ const AdGalleryStep = ({
 
   return (
     <div className="space-y-6 md:space-y-8">
-      <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-4">
-        <StepNavigation
-          onBack={onBack}
-          onStartOver={onStartOver}
-        />
-        <div className="flex flex-col items-end gap-2 w-full md:w-auto">
-          {generationStatus && (
-            <p className="text-sm text-gray-600">{generationStatus}</p>
-          )}
-          <Button
-            onClick={() => generateAds(platform)}
-            disabled={isGenerating}
-            variant="outline"
-            className="w-full md:w-auto"
-          >
-            {isGenerating ? (
-              <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-            ) : (
-              <RefreshCw className="w-4 h-4 mr-2" />
-            )}
-            <span>Regenerate Ads</span>
-          </Button>
-        </div>
-      </div>
+      <AdGenerationControls
+        onBack={onBack}
+        onStartOver={onStartOver}
+        onRegenerate={() => generateAds(platform)}
+        isGenerating={isGenerating}
+        generationStatus={generationStatus}
+      />
 
       {isGenerating ? (
         <LoadingState />
