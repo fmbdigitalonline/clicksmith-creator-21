@@ -48,8 +48,10 @@ const AdFormatStep = ({
 
       if (creditsError) throw creditsError;
 
-      if (!hasCredits?.has_credits) {
-        throw new Error(hasCredits?.error_message || 'Insufficient credits');
+      // Access the first element of the array returned by the function
+      const creditCheck = hasCredits[0];
+      if (!creditCheck.has_credits) {
+        throw new Error(creditCheck.error_message || 'Insufficient credits');
       }
 
       // Generate images
@@ -84,8 +86,10 @@ const AdFormatStep = ({
         throw deductionError;
       }
 
-      if (!deductionResult?.success) {
-        throw new Error(deductionResult?.error_message || 'Failed to deduct credits');
+      // Access the first element of the array returned by the function
+      const deduction = deductionResult[0];
+      if (!deduction.success) {
+        throw new Error(deduction.error_message || 'Failed to deduct credits');
       }
 
       console.log('Generated images:', data.images);
