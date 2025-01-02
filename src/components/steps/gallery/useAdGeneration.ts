@@ -51,7 +51,7 @@ export const useAdGeneration = (
 
       const existingAds = project?.generated_ads || {};
       const updatedAds = {
-        ...existingAds,
+        ...existingAds as Record<string, any>,
         [platform]: newVariants
       };
 
