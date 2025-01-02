@@ -112,6 +112,7 @@ export const useAdGeneration = (
             id: imageVariant.id,
             imageUrl: variant.imageUrl,
             resizedUrls: variant.resizedUrls || {},
+            platform: selectedPlatform // Ensure platform is set for each variant
           };
         } catch (error) {
           console.error('Error processing variant:', error);
