@@ -96,7 +96,6 @@ serve(async (req) => {
         break;
       case 'complete_ads':
       case 'video_ads':
-      case 'images':
         console.log('Generating complete ad campaign with params:', { businessIdea, targetAudience, campaign });
         try {
           // First generate the campaign content
@@ -110,7 +109,7 @@ serve(async (req) => {
           // Sanitize the response data
           responseData = sanitizeJson({
             variants: campaignData.campaign.adCopies.map((copy: any, index: number) => ({
-              platform: campaign?.platform || 'facebook',
+              platform: 'facebook',
               headline: campaignData.campaign.headlines[index % campaignData.campaign.headlines.length],
               description: copy.content,
               imageUrl: imageData.images[0]?.url,
