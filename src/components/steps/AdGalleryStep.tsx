@@ -51,15 +51,21 @@ const AdGalleryStep = ({
   }, [videoAdsEnabled]);
 
   const onPlatformChange = (newPlatform: "facebook" | "google" | "linkedin" | "tiktok") => {
-    const currentPlatform = handlePlatformChange(newPlatform, adVariants.length > 0);
-    if (currentPlatform === newPlatform) {
-      generateAds(newPlatform);
-    }
+    handlePlatformChange(newPlatform, adVariants.length > 0);
   };
 
   const onConfirmPlatformChange = () => {
     const newPlatform = confirmPlatformChange();
     generateAds(newPlatform);
+  };
+
+  const onCancelPlatformChange = () => {
+    const currentPlatform = cancelPlatformChange();
+    // Force update the PlatformTabs to stay on the current platform
+    const tabsElement = document.querySelector(`[data-state="active"][value="${currentPlatform}"]`);
+    if (tabsElement) {
+      (tabsElement as HTMLElement).click();
+    }
   };
 
   const renderPlatformContent = (platformName: string) => (
@@ -101,7 +107,7 @@ const AdGalleryStep = ({
         open={showPlatformChangeDialog}
         onOpenChange={setShowPlatformChangeDialog}
         onConfirm={onConfirmPlatformChange}
-        onCancel={cancelPlatformChange}
+        onCancel={onCancelPlatformChange}
       />
     </div>
   );

@@ -32,6 +32,7 @@ export const usePlatformSwitch = (initialPlatform: Platform = "facebook") => {
   const cancelPlatformChange = () => {
     setPendingPlatform(null);
     setShowPlatformChangeDialog(false);
+    return platform; // Return the current platform to maintain tab selection
   };
 
   return {
