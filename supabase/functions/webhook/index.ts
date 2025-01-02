@@ -34,12 +34,15 @@ serve(async (req) => {
       case 'checkout.session.completed': {
         const session = event.data.object;
         const customerId = session.customer;
-        const subscriptionId = session.subscription;
         const userId = session.metadata.supabaseUid;
+        
+        // Get price ID from the line items
+        const lineItems = await stripe.checkout.sessions.listLineItems(session.id);
+        const priceId = lineItems.data[0]?.price?.id;
 
-        // Get subscription details
-        const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-        const priceId = subscription.items.data[0].price.id;
+        if (!priceId) {
+          throw new Error('No price ID found in session');
+        }
 
         // Get plan details from Supabase
         const { data: planData } = await supabaseClient
@@ -52,22 +55,44 @@ serve(async (req) => {
           throw new Error('Plan not found');
         }
 
-        // Update or create subscription in Supabase
-        const { error: subscriptionError } = await supabaseClient
-          .from('subscriptions')
-          .upsert({
-            user_id: userId,
-            plan_id: planData.id,
-            stripe_subscription_id: subscriptionId,
-            stripe_customer_id: customerId,
-            credits_remaining: planData.credits,
-            current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-            current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
-            active: true,
-          });
+        if (session.mode === 'payment') {
+          // Handle one-time payment
+          const { error: subscriptionError } = await supabaseClient
+            .from('subscriptions')
+            .upsert({
+              user_id: userId,
+              plan_id: planData.id,
+              stripe_customer_id: customerId,
+              credits_remaining: planData.credits,
+              current_period_start: new Date().toISOString(),
+              current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
+              active: true,
+            });
 
-        if (subscriptionError) {
-          throw subscriptionError;
+          if (subscriptionError) {
+            throw subscriptionError;
+          }
+        } else if (session.mode === 'subscription') {
+          // Handle subscription payment
+          const subscriptionId = session.subscription;
+          const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+
+          const { error: subscriptionError } = await supabaseClient
+            .from('subscriptions')
+            .upsert({
+              user_id: userId,
+              plan_id: planData.id,
+              stripe_subscription_id: subscriptionId,
+              stripe_customer_id: customerId,
+              credits_remaining: planData.credits,
+              current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
+              current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+              active: true,
+            });
+
+          if (subscriptionError) {
+            throw subscriptionError;
+          }
         }
         break;
       }
