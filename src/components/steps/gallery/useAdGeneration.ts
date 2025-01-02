@@ -18,19 +18,6 @@ export const useAdGeneration = (
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
-  const validateResponse = (data: any) => {
-    if (!data) {
-      throw new Error("No data received from generation");
-    }
-
-    const variants = data.variants;
-    if (!Array.isArray(variants) || variants.length === 0) {
-      throw new Error("Invalid or empty variants received");
-    }
-
-    return variants;
-  };
-
   const deductCredits = async () => {
     const { data: result, error } = await supabase.rpc(
       'deduct_user_credits',
@@ -77,6 +64,7 @@ export const useAdGeneration = (
       
       const { data, error } = await supabase.functions.invoke('generate-ad-content', {
         body: {
+          type: 'complete_ads', // Added the required type parameter
           platform: selectedPlatform,
           businessIdea,
           targetAudience: {
@@ -154,6 +142,19 @@ export const useAdGeneration = (
       setIsGenerating(false);
       setGenerationStatus("");
     }
+  };
+
+  const validateResponse = (data: any) => {
+    if (!data) {
+      throw new Error("No data received from generation");
+    }
+
+    const variants = data.variants;
+    if (!Array.isArray(variants) || variants.length === 0) {
+      throw new Error("Invalid or empty variants received");
+    }
+
+    return variants;
   };
 
   return {
