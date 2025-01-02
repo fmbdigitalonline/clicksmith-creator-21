@@ -69,6 +69,7 @@ const Login = () => {
           }}
           redirectTo={`${window.location.origin}/`}
           onlyThirdPartyProviders={false}
+          providers={[]}
           magicLink={false}
           showLinks={true}
           view="sign_in"
