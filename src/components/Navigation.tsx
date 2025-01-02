@@ -2,7 +2,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Home, Settings, CreditCard, PlusCircle } from "lucide-react";
-import CreditDisplay from "./CreditDisplay";
+import { CreditDisplay } from "./CreditDisplay";
 
 const Navigation = () => {
   const location = useLocation();
