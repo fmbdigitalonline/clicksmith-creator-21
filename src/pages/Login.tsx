@@ -69,6 +69,11 @@ const Login = () => {
           }}
           providers={['google', 'github']}
           redirectTo={`${window.location.origin}/`}
+          emailRedirectTo={`${window.location.origin}/`}
+          onlyThirdPartyProviders={false}
+          magicLink={false}
+          showLinks={true}
+          view="sign_in"
           localization={{
             variables: {
               sign_up: {
