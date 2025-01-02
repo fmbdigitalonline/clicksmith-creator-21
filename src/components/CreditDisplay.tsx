@@ -23,9 +23,9 @@ export const CreditDisplay = () => {
         .select("*")
         .eq("user_id", user.id)
         .eq("active", true)
-        .single();
+        .maybeSingle();
 
-      if (error) {
+      if (error && error.code !== "PGRST116") {
         toast({
           title: "Error fetching subscription",
           description: error.message,
@@ -47,7 +47,7 @@ export const CreditDisplay = () => {
         .from("free_tier_usage")
         .select("*")
         .eq("user_id", user.id)
-        .single();
+        .maybeSingle();
 
       if (error && error.code !== "PGRST116") {
         toast({
