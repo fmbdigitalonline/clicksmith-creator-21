@@ -1,98 +1,88 @@
 import { useQuery } from "@tanstack/react-query";
-import { Coins } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { useToast } from "@/hooks/use-toast";
 
-const CreditDisplay = () => {
-  const { data: subscription } = useQuery({
-    queryKey: ['subscription'],
+export const CreditDisplay = () => {
+  const { toast } = useToast();
+
+  const { data: user } = useQuery({
+    queryKey: ["user"],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return null;
-
-      // Check if user is admin
-      if (user.email === 'info@fmbonline.nl') {
-        return {
-          credits_remaining: -1,
-          plan: { name: 'Admin' }
-        };
-      }
-
-      const { data, error } = await supabase
-        .from('subscriptions')
-        .select(`
-          credits_remaining,
-          plan:plans(name)
-        `)
-        .eq('user_id', user.id)
-        .eq('active', true)
-        .single();
-
+      const { data: { user }, error } = await supabase.auth.getUser();
       if (error) throw error;
-      return data;
+      return user;
     },
   });
 
-  const { data: freeUsage } = useQuery({
-    queryKey: ['free-tier-usage'],
+  const { data: subscription } = useQuery({
+    queryKey: ["subscription", user?.id],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return null;
+      if (!user?.id) return null;
+      const { data, error } = await supabase
+        .from("subscriptions")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("active", true)
+        .single();
 
-      // Admin doesn't need free tier usage
-      if (user.email === 'info@fmbonline.nl') {
+      if (error) {
+        toast({
+          title: "Error fetching subscription",
+          description: error.message,
+          variant: "destructive",
+        });
         return null;
       }
 
-      const { data, error } = await supabase
-        .from('free_tier_usage')
-        .select('generations_used')
-        .eq('user_id', user.id)
-        .single();
-
-      if (error && error.code !== 'PGRST116') throw error;
       return data;
     },
+    enabled: !!user?.id,
+  });
+
+  const { data: freeUsage } = useQuery({
+    queryKey: ["free_tier_usage", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const { data, error } = await supabase
+        .from("free_tier_usage")
+        .select("*")
+        .eq("user_id", user.id)
+        .single();
+
+      if (error && error.code !== "PGRST116") {
+        toast({
+          title: "Error fetching free tier usage",
+          description: error.message,
+          variant: "destructive",
+        });
+        return null;
+      }
+
+      return data;
+    },
+    enabled: !!user?.id,
   });
 
   const getCreditsDisplay = () => {
-    if (subscription?.credits_remaining === -1) {
-      return 'Unlimited credits';
+    if (!user) return "";
+
+    // Check if user is admin (info@fmbonline.nl)
+    if (user.email === "info@fmbonline.nl") {
+      return "Unlimited credits";
     }
-    
+
     if (subscription?.credits_remaining !== undefined) {
       return `${subscription.credits_remaining} credits`;
     }
     
     const freeUsed = freeUsage?.generations_used || 0;
-    const freeRemaining = 12 - freeUsed; // Updated from 30 to 12
-    return `${freeRemaining}/12 free generations`; // Updated from 30 to 12
+    const freeRemaining = 12 - freeUsed;
+    return `${freeRemaining}/12 free generations`;
   };
 
   return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <div className="flex items-center gap-2 px-3 py-1.5 text-sm bg-accent rounded-md">
-            <Coins className="h-4 w-4" />
-            <span>{getCreditsDisplay()}</span>
-          </div>
-        </TooltipTrigger>
-        <TooltipContent>
-          <p>
-            {subscription?.plan?.name 
-              ? `${subscription.plan.name} Plan`
-              : "Free Plan"}
-          </p>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+    <div className="text-sm font-medium">
+      {getCreditsDisplay()}
+    </div>
   );
 };
-
-export default CreditDisplay;
