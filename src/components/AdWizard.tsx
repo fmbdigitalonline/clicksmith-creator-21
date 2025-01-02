@@ -5,16 +5,18 @@ import AudienceAnalysisStep from "./steps/AudienceAnalysisStep";
 import AdGalleryStep from "./steps/AdGalleryStep";
 import WizardHeader from "./wizard/WizardHeader";
 import WizardProgress from "./WizardProgress";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import CreateProjectDialog from "./projects/CreateProjectDialog";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { Toggle } from "./ui/toggle";
 import { Video, Image } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 const AdWizard = () => {
   const [showCreateProject, setShowCreateProject] = useState(false);
   const [videoAdsEnabled, setVideoAdsEnabled] = useState(false);
   const navigate = useNavigate();
+  const { projectId } = useParams();
   
   const {
     currentStep,
@@ -30,6 +32,24 @@ const AdWizard = () => {
     canNavigateToStep,
     setCurrentStep,
   } = useAdWizardState();
+
+  // Check if we're on the "new" route and handle accordingly
+  useEffect(() => {
+    const initializeProject = async () => {
+      if (projectId === "new") {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        // Clear any existing wizard progress when starting new
+        await supabase
+          .from('wizard_progress')
+          .delete()
+          .eq('user_id', user.id);
+      }
+    };
+
+    initializeProject();
+  }, [projectId]);
 
   const handleCreateProject = () => {
     setShowCreateProject(true);
