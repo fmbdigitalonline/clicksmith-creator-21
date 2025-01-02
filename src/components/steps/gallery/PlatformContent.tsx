@@ -15,8 +15,13 @@ const PlatformContent = ({
   onCreateProject, 
   videoAdsEnabled = false 
 }: PlatformContentProps) => {
-  // Ensure adVariants is an array before filtering
-  const filteredVariants = Array.isArray(adVariants) ? adVariants : [];
+  // Ensure adVariants is an array and map platform names
+  const filteredVariants = Array.isArray(adVariants) 
+    ? adVariants.map(variant => ({
+        ...variant,
+        platform: platformName // Set the platform for each variant
+      }))
+    : [];
 
   if (filteredVariants.length === 0) {
     return (
