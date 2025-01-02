@@ -2,6 +2,7 @@ import { useState } from "react";
 import { BusinessIdea, TargetAudience, AdHook } from "@/types/adWizard";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useQueryClient } from "@tanstack/react-query";
 
 export const useAdGeneration = (
   businessIdea: BusinessIdea,
@@ -14,6 +15,7 @@ export const useAdGeneration = (
   const [regenerationCount, setRegenerationCount] = useState(0);
   const [generationStatus, setGenerationStatus] = useState<string>("");
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const validateResponse = (data: any) => {
     if (!data) {
@@ -29,10 +31,44 @@ export const useAdGeneration = (
     return variants;
   };
 
+  const deductCredits = async () => {
+    const { data: result, error } = await supabase.rpc(
+      'deduct_user_credits',
+      { 
+        input_user_id: (await supabase.auth.getUser()).data.user?.id,
+        credits_to_deduct: 1
+      }
+    );
+
+    if (error || !result?.[0]?.success) {
+      throw new Error(error?.message || result?.[0]?.error_message || 'Failed to deduct credits');
+    }
+
+    // Invalidate queries to refresh UI
+    queryClient.invalidateQueries({ queryKey: ['credits'] });
+    queryClient.invalidateQueries({ queryKey: ['subscription'] });
+    return result[0];
+  };
+
   const generateAds = async (selectedPlatform: string) => {
     setIsGenerating(true);
-    setGenerationStatus("Initializing ad generation...");
+    setGenerationStatus("Checking credits availability...");
+    
     try {
+      // First check if user has enough credits
+      const { data: creditCheck, error: creditError } = await supabase.rpc(
+        'check_user_credits',
+        { 
+          p_user_id: (await supabase.auth.getUser()).data.user?.id,
+          required_credits: 1
+        }
+      );
+
+      if (creditError || !creditCheck?.[0]?.has_credits) {
+        throw new Error(creditError?.message || creditCheck?.[0]?.error_message || 'Insufficient credits');
+      }
+
+      setGenerationStatus("Initializing ad generation...");
       console.log('Generating ads for platform:', selectedPlatform, 'with target audience:', targetAudience);
       
       const { data, error } = await supabase.functions.invoke('generate-ad-content', {
@@ -41,7 +77,6 @@ export const useAdGeneration = (
           businessIdea,
           targetAudience: {
             ...targetAudience,
-            // Ensure we're using the same target audience data consistently
             name: targetAudience.name,
             description: targetAudience.description,
             demographics: targetAudience.demographics,
@@ -90,6 +125,9 @@ export const useAdGeneration = (
           label: `${selectedPlatform} Feed`
         }
       }));
+
+      // Deduct credits after successful generation
+      await deductCredits();
 
       console.log('Processed ad variants:', processedVariants);
       setAdVariants(processedVariants);
