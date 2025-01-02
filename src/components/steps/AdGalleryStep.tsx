@@ -4,21 +4,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import StepNavigation from "./complete/StepNavigation";
 import LoadingState from "./complete/LoadingState";
 import PlatformTabs from "./gallery/PlatformTabs";
 import PlatformContent from "./gallery/PlatformContent";
+import PlatformChangeDialog from "./gallery/PlatformChangeDialog";
 import { RefreshCw } from "lucide-react";
+import { usePlatformSwitch } from "@/hooks/usePlatformSwitch";
 
 interface AdGalleryStepProps {
   businessIdea: BusinessIdea;
@@ -41,12 +33,18 @@ const AdGalleryStep = ({
 }: AdGalleryStepProps) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [adVariants, setAdVariants] = useState<any[]>([]);
-  const [platform, setPlatform] = useState<"facebook" | "google" | "linkedin" | "tiktok">("facebook");
   const [regenerationCount, setRegenerationCount] = useState(0);
   const [generationStatus, setGenerationStatus] = useState<string>("");
-  const [showPlatformChangeDialog, setShowPlatformChangeDialog] = useState(false);
-  const [pendingPlatform, setPendingPlatform] = useState<"facebook" | "google" | "linkedin" | "tiktok" | null>(null);
   const { toast } = useToast();
+  
+  const {
+    platform,
+    showPlatformChangeDialog,
+    handlePlatformChange,
+    confirmPlatformChange,
+    cancelPlatformChange,
+    setShowPlatformChangeDialog
+  } = usePlatformSwitch();
 
   const validateResponse = (data: any) => {
     if (!data) {
@@ -145,23 +143,16 @@ const AdGalleryStep = ({
     }
   }, [videoAdsEnabled]);
 
-  const handlePlatformChange = (newPlatform: "facebook" | "google" | "linkedin" | "tiktok") => {
-    if (adVariants.length > 0) {
-      setPendingPlatform(newPlatform);
-      setShowPlatformChangeDialog(true);
-    } else {
-      setPlatform(newPlatform);
+  const onPlatformChange = (newPlatform: "facebook" | "google" | "linkedin" | "tiktok") => {
+    const currentPlatform = handlePlatformChange(newPlatform, adVariants.length > 0);
+    if (currentPlatform === newPlatform) {
       generateAds(newPlatform);
     }
   };
 
-  const confirmPlatformChange = () => {
-    if (pendingPlatform) {
-      setPlatform(pendingPlatform);
-      generateAds(pendingPlatform);
-      setShowPlatformChangeDialog(false);
-      setPendingPlatform(null);
-    }
+  const onConfirmPlatformChange = () => {
+    const newPlatform = confirmPlatformChange();
+    generateAds(newPlatform);
   };
 
   const renderPlatformContent = (platformName: string) => (
@@ -207,7 +198,7 @@ const AdGalleryStep = ({
       ) : (
         <PlatformTabs 
           platform={platform} 
-          onPlatformChange={handlePlatformChange}
+          onPlatformChange={onPlatformChange}
         >
           {renderPlatformContent('facebook')}
           {renderPlatformContent('google')}
@@ -216,20 +207,12 @@ const AdGalleryStep = ({
         </PlatformTabs>
       )}
 
-      <AlertDialog open={showPlatformChangeDialog} onOpenChange={setShowPlatformChangeDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Switch Platform?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Switching to a different platform will remove the current ads. Make sure to download or save any ads you want to keep before switching.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setPendingPlatform(null)}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmPlatformChange}>Continue</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <PlatformChangeDialog
+        open={showPlatformChangeDialog}
+        onOpenChange={setShowPlatformChangeDialog}
+        onConfirm={onConfirmPlatformChange}
+        onCancel={cancelPlatformChange}
+      />
     </div>
   );
 };
