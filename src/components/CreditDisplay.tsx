@@ -15,6 +15,14 @@ const CreditDisplay = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return null;
 
+      // Check if user is admin
+      if (user.email === 'info@fmbonline.nl') {
+        return {
+          credits_remaining: -1,
+          plan: { name: 'Admin' }
+        };
+      }
+
       const { data, error } = await supabase
         .from('subscriptions')
         .select(`
@@ -36,6 +44,11 @@ const CreditDisplay = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return null;
 
+      // Admin doesn't need free tier usage
+      if (user.email === 'info@fmbonline.nl') {
+        return null;
+      }
+
       const { data, error } = await supabase
         .from('free_tier_usage')
         .select('generations_used')
@@ -48,6 +61,10 @@ const CreditDisplay = () => {
   });
 
   const getCreditsDisplay = () => {
+    if (subscription?.credits_remaining === -1) {
+      return 'Unlimited credits';
+    }
+    
     if (subscription?.credits_remaining !== undefined) {
       return `${subscription.credits_remaining} credits`;
     }

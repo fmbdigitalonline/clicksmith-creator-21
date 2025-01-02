@@ -10,6 +10,11 @@ const CreditsCard = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return 0;
 
+      // Check if user is admin
+      if (user.email === 'info@fmbonline.nl') {
+        return -1; // Special value for unlimited credits
+      }
+
       const { data: subscription, error } = await supabase
         .from("subscriptions")
         .select("credits_remaining")
@@ -33,9 +38,11 @@ const CreditsCard = () => {
         <Activity className="h-4 w-4 text-muted-foreground" />
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold">{credits}</div>
+        <div className="text-2xl font-bold">
+          {credits === -1 ? "∞" : credits}
+        </div>
         <div className="text-xs text-muted-foreground mt-1">
-          Available for new campaigns
+          {credits === -1 ? "Unlimited credits available" : "Available for new campaigns"}
         </div>
       </CardContent>
     </Card>
