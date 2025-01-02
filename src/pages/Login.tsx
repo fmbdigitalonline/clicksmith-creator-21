@@ -77,9 +77,9 @@ const Login = () => {
             variables: {
               sign_up: {
                 email_label: 'Email address',
-                password_label: 'Create a Password',
+                password_label: 'Create a Password (minimum 6 characters)',
                 email_input_placeholder: 'Your email address',
-                password_input_placeholder: 'Your password',
+                password_input_placeholder: 'Password (minimum 6 characters)',
                 button_label: 'Sign up',
                 loading_button_label: 'Creating account ...',
                 social_provider_text: 'Sign in with {{provider}}',
@@ -88,9 +88,9 @@ const Login = () => {
               },
               sign_in: {
                 email_label: 'Email address',
-                password_label: 'Your password',
+                password_label: 'Your password (minimum 6 characters)',
                 email_input_placeholder: 'Your email address',
-                password_input_placeholder: 'Your password',
+                password_input_placeholder: 'Password (minimum 6 characters)',
                 button_label: 'Sign in',
                 loading_button_label: 'Signing in ...',
                 social_provider_text: 'Sign in with {{provider}}',
