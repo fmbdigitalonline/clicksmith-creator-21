@@ -41,6 +41,11 @@ const Login = () => {
           title: "Password Reset Email Sent",
           description: "Please check your email for password reset instructions.",
         });
+      } else if (event === 'USER_DELETED') {
+        toast({
+          title: "Account Deleted",
+          description: "Your account has been deleted successfully.",
+        });
       }
     });
 
@@ -59,12 +64,14 @@ const Login = () => {
             style: {
               button: { background: 'rgb(59 130 246)', color: 'white' },
               anchor: { color: 'rgb(59 130 246)' },
-              input: { background: 'white' }
+              input: { background: 'white' },
+              message: { color: 'rgb(239 68 68)' }, // Red color for error messages
             },
             className: {
               container: 'space-y-4',
               button: 'w-full',
-              input: 'w-full'
+              input: 'w-full',
+              message: 'text-sm font-medium text-destructive', // Style for error messages
             }
           }}
           redirectTo={`${window.location.origin}/`}
