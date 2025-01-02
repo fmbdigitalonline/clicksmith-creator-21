@@ -41,7 +41,6 @@ const AdGalleryStep = ({
       throw new Error('No data received from server');
     }
 
-    // Check for variants array
     const variants = data.variants || data;
     if (!Array.isArray(variants)) {
       console.error('Invalid variants format:', variants);
@@ -51,28 +50,29 @@ const AdGalleryStep = ({
     return variants;
   };
 
-  const generateAds = async () => {
+  const generateAds = async (selectedPlatform?: string) => {
     setIsGenerating(true);
     setGenerationStatus("Initializing ad generation...");
     try {
-      console.log('Generating ads with type:', videoAdsEnabled ? 'video_ads' : 'complete_ads');
+      console.log('Generating ads for platform:', selectedPlatform || platform);
       
       const { data, error } = await supabase.functions.invoke('generate-ad-content', {
         body: { 
           type: videoAdsEnabled ? 'video_ads' : 'complete_ads',
           businessIdea,
           targetAudience,
+          platform: selectedPlatform || platform,
           campaign: {
             hooks: adHooks,
             specs: videoAdsEnabled ? {
-              facebook: {
+              [selectedPlatform || platform]: {
                 formats: ['feed', 'sponsored', 'message'],
                 aspectRatios: ['1:1', '16:9']
               }
             } : {
-              facebook: {
+              [selectedPlatform || platform]: {
                 commonSizes: [
-                  { width: 1200, height: 628, label: "Facebook Feed" }
+                  { width: 1200, height: 628, label: `${selectedPlatform || platform} Feed` }
                 ]
               }
             }
@@ -88,21 +88,18 @@ const AdGalleryStep = ({
         throw error;
       }
 
-      // Log the entire response for debugging
       console.log('Edge Function response:', data);
 
-      // Validate and process the response
       const variants = validateResponse(data);
 
-      // Map the variants to include image URLs if they exist
       const processedVariants = variants.map(variant => ({
         ...variant,
         imageUrl: variant.image?.url || variant.imageUrl,
-        platform: 'facebook',
+        platform: selectedPlatform || platform,
         size: {
           width: 1200,
           height: 628,
-          label: "Facebook Feed"
+          label: `${selectedPlatform || platform} Feed`
         }
       }));
 
@@ -132,15 +129,20 @@ const AdGalleryStep = ({
 
   useEffect(() => {
     if (adVariants.length === 0) {
-      generateAds();
+      generateAds(platform);
     }
   }, [videoAdsEnabled]);
+
+  const handlePlatformChange = (newPlatform: "facebook" | "google" | "linkedin" | "tiktok") => {
+    setPlatform(newPlatform);
+    generateAds(newPlatform);
+  };
 
   const renderPlatformContent = (platformName: string) => (
     <TabsContent value={platformName} className="space-y-4">
       <PlatformContent
         platformName={platformName}
-        adVariants={adVariants}
+        adVariants={adVariants.filter(variant => variant.platform === platformName)}
         onCreateProject={onCreateProject}
         videoAdsEnabled={videoAdsEnabled}
       />
@@ -159,7 +161,7 @@ const AdGalleryStep = ({
             <p className="text-sm text-gray-600">{generationStatus}</p>
           )}
           <Button
-            onClick={generateAds}
+            onClick={() => generateAds(platform)}
             disabled={isGenerating}
             variant="outline"
             className="w-full md:w-auto"
@@ -177,7 +179,10 @@ const AdGalleryStep = ({
       {isGenerating ? (
         <LoadingState />
       ) : (
-        <PlatformTabs platform={platform} onPlatformChange={(value) => setPlatform(value as typeof platform)}>
+        <PlatformTabs 
+          platform={platform} 
+          onPlatformChange={handlePlatformChange}
+        >
           {renderPlatformContent('facebook')}
           {renderPlatformContent('google')}
           {renderPlatformContent('linkedin')}
