@@ -67,7 +67,6 @@ const Login = () => {
               input: 'w-full'
             }
           }}
-          providers={['google', 'github']}
           redirectTo={`${window.location.origin}/`}
           onlyThirdPartyProviders={false}
           magicLink={false}
@@ -82,7 +81,6 @@ const Login = () => {
                 password_input_placeholder: 'Password (minimum 6 characters)',
                 button_label: 'Sign up',
                 loading_button_label: 'Creating account ...',
-                social_provider_text: 'Sign in with {{provider}}',
                 link_text: "Don't have an account? Sign up",
                 confirmation_text: 'Check your email for the confirmation link'
               },
@@ -93,7 +91,6 @@ const Login = () => {
                 password_input_placeholder: 'Password (minimum 6 characters)',
                 button_label: 'Sign in',
                 loading_button_label: 'Signing in ...',
-                social_provider_text: 'Sign in with {{provider}}',
                 link_text: 'Already have an account? Sign in'
               }
             }
