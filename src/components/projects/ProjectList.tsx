@@ -23,7 +23,7 @@ const ProjectList = ({ onStartAdWizard }: ProjectListProps) => {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const { toast } = useToast();
 
-  const { data: projects, refetch } = useQuery({
+  const { data: projects, refetch, error, isLoading } = useQuery({
     queryKey: ["projects"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -37,7 +37,7 @@ const ProjectList = ({ onStartAdWizard }: ProjectListProps) => {
           description: error.message,
           variant: "destructive",
         });
-        return [];
+        throw error;
       }
 
       return data as Project[];
@@ -47,6 +47,22 @@ const ProjectList = ({ onStartAdWizard }: ProjectListProps) => {
   const handleCreateProject = () => {
     setIsCreateOpen(true);
   };
+
+  if (error) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-red-500">Error loading projects. Please try again later.</p>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="text-center py-8">
+        <p>Loading projects...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
