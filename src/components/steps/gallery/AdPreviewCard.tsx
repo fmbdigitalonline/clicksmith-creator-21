@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button"; // Added this import
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useParams } from "react-router-dom";
@@ -7,6 +8,7 @@ import { generatePDF, generateWord } from "@/utils/documentGenerators";
 import MediaPreview from "./components/MediaPreview";
 import AdDetails from "./components/AdDetails";
 import DownloadControls from "./components/DownloadControls";
+
 import { AdHook } from "@/types/adWizard";
 
 interface AdPreviewCardProps {
