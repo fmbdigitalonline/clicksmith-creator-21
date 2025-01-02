@@ -37,6 +37,22 @@ const AdFormatStep = ({
     try {
       console.log('Generating images with params:', { businessIdea, targetAudience, campaign });
       
+      // First check if user has enough credits
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
+      const { data: hasCredits, error: creditsError } = await supabase.rpc(
+        'check_user_credits',
+        { p_user_id: user.id, required_credits: 1 }
+      );
+
+      if (creditsError) throw creditsError;
+
+      if (!hasCredits?.has_credits) {
+        throw new Error(hasCredits?.error_message || 'Insufficient credits');
+      }
+
+      // Generate images
       const { data, error } = await supabase.functions.invoke('generate-ad-content', {
         body: { 
           type: 'complete_ads',
@@ -55,6 +71,21 @@ const AdFormatStep = ({
       if (!data?.images || !Array.isArray(data.images)) {
         console.error('Invalid response format:', data);
         throw new Error('Invalid response format from server');
+      }
+
+      // Deduct credits after successful generation
+      const { data: deductionResult, error: deductionError } = await supabase.rpc(
+        'deduct_user_credits',
+        { input_user_id: user.id, credits_to_deduct: 1 }
+      );
+
+      if (deductionError) {
+        console.error('Error deducting credits:', deductionError);
+        throw deductionError;
+      }
+
+      if (!deductionResult?.success) {
+        throw new Error(deductionResult?.error_message || 'Failed to deduct credits');
       }
 
       console.log('Generated images:', data.images);
