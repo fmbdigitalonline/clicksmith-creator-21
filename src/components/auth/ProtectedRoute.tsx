@@ -3,7 +3,7 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
-type AuthEvent = 'SIGNED_IN' | 'SIGNED_OUT' | 'USER_DELETED' | 'TOKEN_REFRESHED' | 'USER_UPDATED';
+type AuthEvent = 'SIGNED_IN' | 'SIGNED_OUT' | 'TOKEN_REFRESHED' | 'USER_UPDATED';
 
 export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
@@ -43,6 +43,21 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
           return;
         }
 
+        // Initialize free tier usage for new users
+        if (user) {
+          const { data: existingUsage } = await supabase
+            .from('free_tier_usage')
+            .select('*')
+            .eq('user_id', user.id)
+            .single();
+
+          if (!existingUsage) {
+            await supabase
+              .from('free_tier_usage')
+              .insert([{ user_id: user.id, generations_used: 0 }]);
+          }
+        }
+
         setIsAuthenticated(!!user);
       } catch (error) {
         console.error("Auth error:", error);
@@ -63,7 +78,6 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
       const handleAuthEvent = (event: AuthEvent) => {
         switch (event) {
           case 'SIGNED_OUT':
-          case 'USER_DELETED':
             setIsAuthenticated(false);
             navigate('/login', { replace: true });
             toast({
