@@ -11,6 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { generatePDF, generateWord } from "@/utils/documentGenerators";
 
 interface AdPreviewCardProps {
   variant: {
@@ -19,7 +20,7 @@ interface AdPreviewCardProps {
       url: string;
       prompt: string;
     };
-    imageUrl?: string; // Adding optional imageUrl property
+    imageUrl?: string;
     size: {
       width: number;
       height: number;
@@ -46,10 +47,9 @@ interface AdPreviewCardProps {
 const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewCardProps) => {
   const [isSaving, setSaving] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [downloadFormat, setDownloadFormat] = useState<"jpg" | "png">("jpg");
+  const [downloadFormat, setDownloadFormat] = useState<"jpg" | "png" | "pdf" | "docx">("jpg");
   const { toast } = useToast();
 
-  // Safely get the image URL from either image.url or imageUrl
   const getImageUrl = () => {
     if (variant.image?.url) {
       return variant.image.url;
@@ -67,6 +67,54 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewC
     } else {
       videoElement.pause();
       setIsPlaying(false);
+    }
+  };
+
+  const handleDownload = async () => {
+    const imageUrl = getImageUrl();
+    if (!imageUrl) {
+      toast({
+        title: "Error",
+        description: "No image URL available for download",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      switch (downloadFormat) {
+        case "pdf":
+          await generatePDF(variant, imageUrl);
+          break;
+        case "docx":
+          await generateWord(variant, imageUrl);
+          break;
+        default:
+          // Handle image downloads (jpg/png)
+          const response = await fetch(imageUrl);
+          const originalBlob = await response.blob();
+          const convertedBlob = await convertToFormat(URL.createObjectURL(originalBlob), downloadFormat as "jpg" | "png");
+          const url = URL.createObjectURL(convertedBlob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `${variant.platform}-${isVideo ? 'video' : 'ad'}-${variant.size.width}x${variant.size.height}.${downloadFormat}`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+      }
+
+      toast({
+        title: "Success!",
+        description: `Your ${variant.size.label} ${isVideo ? 'video' : 'ad'} has been downloaded as ${downloadFormat.toUpperCase()}.`,
+      });
+    } catch (error) {
+      console.error('Error downloading:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to download file.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -101,16 +149,6 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewC
   };
 
   const handleSaveAndDownload = async () => {
-    const imageUrl = getImageUrl();
-    if (!imageUrl) {
-      toast({
-        title: "Error",
-        description: "No image URL available for download",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setSaving(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -132,36 +170,18 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewC
         return;
       }
 
-      const response = await fetch(imageUrl);
-      const originalBlob = await response.blob();
-      const convertedBlob = await convertToFormat(URL.createObjectURL(originalBlob), downloadFormat);
-      
-      const url = URL.createObjectURL(convertedBlob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${variant.platform}-${isVideo ? 'video' : 'ad'}-${variant.size.width}x${variant.size.height}.${downloadFormat}`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-
-      toast({
-        title: "Success!",
-        description: `Your ${variant.size.label} ${isVideo ? 'video' : 'ad'} has been saved and downloaded as ${downloadFormat.toUpperCase()}.`,
-      });
+      await handleDownload();
     } catch (error) {
       console.error('Error saving ad:', error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to save ad or download image.",
+        description: error instanceof Error ? error.message : "Failed to save ad or download file.",
         variant: "destructive",
       });
     } finally {
       setSaving(false);
     }
   };
-
-  const imageUrl = getImageUrl();
 
   return (
     <Card className="overflow-hidden">
@@ -241,7 +261,7 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewC
         <div className="flex gap-2">
           <Select
             value={downloadFormat}
-            onValueChange={(value: "jpg" | "png") => setDownloadFormat(value)}
+            onValueChange={(value: "jpg" | "png" | "pdf" | "docx") => setDownloadFormat(value)}
           >
             <SelectTrigger className="w-24">
               <SelectValue placeholder="Format" />
@@ -249,13 +269,15 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewC
             <SelectContent>
               <SelectItem value="jpg">JPG</SelectItem>
               <SelectItem value="png">PNG</SelectItem>
+              <SelectItem value="pdf">PDF</SelectItem>
+              <SelectItem value="docx">Word</SelectItem>
             </SelectContent>
           </Select>
 
           <Button
             onClick={handleSaveAndDownload}
             className="flex-1 bg-facebook hover:bg-facebook/90"
-            disabled={isSaving || !imageUrl}
+            disabled={isSaving}
           >
             {isSaving ? (
               "Saving..."
