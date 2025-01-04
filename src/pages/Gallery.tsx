@@ -15,12 +15,9 @@ const Gallery = () => {
 
       const { data, error } = await supabase
         .from("ad_feedback")
-        .select(`
-          *,
-          project:projects(*)
-        `)
+        .select("*")
         .eq("user_id", user.id)
-        .is("saved_images", "not.null");
+        .is("saved_images", "not", null);
 
       if (error) throw error;
       return data;
@@ -69,8 +66,8 @@ const Gallery = () => {
               <div className="p-4 space-y-4">
                 <AdDetails
                   variant={{
-                    headline: ad.project?.title || "Untitled Ad",
-                    description: ad.project?.description || "No description available",
+                    headline: "Saved Ad",
+                    description: "Your saved advertisement",
                     callToAction: "View Details",
                     size: {
                       width: 1200,
