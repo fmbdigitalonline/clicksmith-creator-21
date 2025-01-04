@@ -14,17 +14,12 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     const checkSession = async () => {
       try {
-        const { data: { session }, error } = await supabase.auth.getSession();
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
-        if (error) {
-          console.error("Session error:", error);
+        if (sessionError) {
+          console.error("Session error:", sessionError);
           setIsAuthenticated(false);
           navigate('/login', { replace: true });
-          toast({
-            title: "Session Error",
-            description: "Please sign in again",
-            variant: "destructive",
-          });
           return;
         }
 
@@ -34,31 +29,54 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
           return;
         }
 
-        // Refresh token if needed
-        const { data: { user }, error: refreshError } = await supabase.auth.refreshSession();
-        if (refreshError) {
-          console.error("Token refresh error:", refreshError);
-          setIsAuthenticated(false);
-          navigate('/login', { replace: true });
-          return;
-        }
+        // Only attempt to refresh if we have a valid session
+        if (session) {
+          try {
+            const { data: { user }, error: refreshError } = await supabase.auth.refreshSession();
+            
+            if (refreshError) {
+              if (refreshError.message.includes('refresh_token_not_found')) {
+                console.error("Invalid refresh token, redirecting to login");
+                await supabase.auth.signOut();
+                setIsAuthenticated(false);
+                navigate('/login', { replace: true });
+                toast({
+                  title: "Session Expired",
+                  description: "Please sign in again",
+                  variant: "destructive",
+                });
+                return;
+              }
+              throw refreshError;
+            }
 
-        // Initialize free tier usage for new users
-        if (user) {
-          const { data: existingUsage } = await supabase
-            .from('free_tier_usage')
-            .select('*')
-            .eq('user_id', user.id)
-            .single();
+            // Initialize free tier usage for new users
+            if (user) {
+              const { data: existingUsage } = await supabase
+                .from('free_tier_usage')
+                .select('*')
+                .eq('user_id', user.id)
+                .single();
 
-          if (!existingUsage) {
-            await supabase
-              .from('free_tier_usage')
-              .insert([{ user_id: user.id, generations_used: 0 }]);
+              if (!existingUsage) {
+                await supabase
+                  .from('free_tier_usage')
+                  .insert([{ user_id: user.id, generations_used: 0 }]);
+              }
+              
+              setIsAuthenticated(true);
+            }
+          } catch (error) {
+            console.error("Token refresh error:", error);
+            setIsAuthenticated(false);
+            navigate('/login', { replace: true });
+            toast({
+              title: "Authentication Error",
+              description: "Please sign in again",
+              variant: "destructive",
+            });
           }
         }
-
-        setIsAuthenticated(!!user);
       } catch (error) {
         console.error("Auth error:", error);
         setIsAuthenticated(false);
