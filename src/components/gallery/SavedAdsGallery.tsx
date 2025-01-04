@@ -3,6 +3,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { AdFeedbackControls } from "../steps/gallery/components/AdFeedbackControls";
+import AdDetails from "../steps/gallery/components/AdDetails";
+import MediaPreview from "../steps/gallery/components/MediaPreview";
 
 interface SavedAd {
   id: string;
@@ -33,8 +35,12 @@ export const SavedAdsGallery = () => {
           .not('saved_images', 'is', null)
           .order('created_at', { ascending: false });
 
-        if (error) throw error;
+        if (error) {
+          console.error('Error fetching saved ads:', error);
+          throw error;
+        }
 
+        console.log('Fetched saved ads:', data);
         setSavedAds(data || []);
       } catch (error) {
         console.error('Error fetching saved ads:', error);
@@ -52,7 +58,7 @@ export const SavedAdsGallery = () => {
   }, [toast]);
 
   if (isLoading) {
-    return <div>Loading saved ads...</div>;
+    return <div className="flex items-center justify-center p-8">Loading saved ads...</div>;
   }
 
   if (savedAds.length === 0) {
@@ -69,16 +75,18 @@ export const SavedAdsGallery = () => {
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {savedAds.map((ad) => (
         <Card key={ad.id} className="overflow-hidden">
-          <div className="aspect-video relative">
+          <div className="aspect-video relative group">
             {ad.saved_images && ad.saved_images[0] && (
-              <img
-                src={ad.saved_images[0]}
-                alt="Saved ad"
-                className="object-cover w-full h-full"
+              <MediaPreview
+                imageUrl={ad.saved_images[0]}
+                isVideo={false}
               />
             )}
           </div>
           <CardContent className="p-4">
+            {ad.saved_images && ad.saved_images.variant && (
+              <AdDetails variant={ad.saved_images.variant} />
+            )}
             <AdFeedbackControls
               adId={ad.id}
               onFeedbackSubmit={() => {
