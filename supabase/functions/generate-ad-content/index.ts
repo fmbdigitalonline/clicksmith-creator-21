@@ -9,7 +9,6 @@ import { corsHeaders } from "../_shared/cors.ts";
 // Helper function to sanitize JSON strings
 const sanitizeJson = (obj: unknown): unknown => {
   if (typeof obj === 'string') {
-    // Remove control characters and properly escape special characters
     return obj.replace(/[\u0000-\u001F\u007F-\u009F]/g, '')
              .replace(/\\/g, '\\\\')
              .replace(/"/g, '\\"')
@@ -28,16 +27,24 @@ const sanitizeJson = (obj: unknown): unknown => {
   return obj;
 };
 
+// Valid generation types
+const VALID_GENERATION_TYPES = [
+  'audience',
+  'hooks',
+  'complete_ads',
+  'video_ads',
+  'audience_analysis',
+  'images'
+];
+
 serve(async (req) => {
   try {
-    // Log incoming request details
     console.log('Edge Function received request:', { 
       method: req.method,
       url: req.url,
       headers: Object.fromEntries(req.headers.entries())
     });
 
-    // Handle CORS preflight requests
     if (req.method === 'OPTIONS') {
       return new Response(null, { 
         status: 204,
@@ -49,12 +56,10 @@ serve(async (req) => {
       });
     }
 
-    // Validate request method
     if (!['GET', 'POST'].includes(req.method)) {
       throw new Error(`Method ${req.method} not allowed. Only GET and POST requests are accepted.`);
     }
 
-    // Parse and validate the request body
     let body;
     try {
       const text = await req.text();
@@ -62,7 +67,6 @@ serve(async (req) => {
       
       if (text) {
         body = JSON.parse(text);
-        // Sanitize the parsed JSON
         body = sanitizeJson(body);
         console.log('Sanitized request body:', body);
       }
@@ -75,11 +79,14 @@ serve(async (req) => {
       throw new Error('Empty request body');
     }
 
-    // Validate required fields
     const { type, businessIdea, targetAudience, regenerationCount = 0, timestamp, forceRegenerate = false, campaign } = body;
     
     if (!type) {
       throw new Error('type is required in request body');
+    }
+
+    if (!VALID_GENERATION_TYPES.includes(type)) {
+      throw new Error(`Invalid generation type: ${type}. Valid types are: ${VALID_GENERATION_TYPES.join(', ')}`);
     }
 
     console.log('Processing request:', { type, timestamp });
@@ -98,15 +105,12 @@ serve(async (req) => {
       case 'video_ads':
         console.log('Generating complete ad campaign with params:', { businessIdea, targetAudience, campaign });
         try {
-          // First generate the campaign content
           const campaignData = await generateCampaign(businessIdea, targetAudience);
           console.log('Campaign data generated:', campaignData);
           
-          // Then generate images based on the campaign
           const imageData = await generateImagePrompts(businessIdea, targetAudience, campaignData.campaign);
           console.log('Image data generated:', imageData);
           
-          // Sanitize the response data
           responseData = sanitizeJson({
             variants: campaignData.campaign.adCopies.map((copy: any, index: number) => ({
               platform: 'facebook',
@@ -129,15 +133,17 @@ serve(async (req) => {
         console.log('Analyzing audience with params:', { businessIdea, targetAudience, regenerationCount });
         responseData = await analyzeAudience(businessIdea, targetAudience, regenerationCount);
         break;
+      case 'images':
+        console.log('Generating images with params:', { businessIdea, targetAudience, campaign });
+        responseData = await generateImagePrompts(businessIdea, targetAudience, campaign);
+        break;
       default:
         throw new Error(`Unsupported generation type: ${type}`);
     }
 
-    // Sanitize the final response data
     const sanitizedResponse = sanitizeJson(responseData);
     console.log('Edge Function response data:', sanitizedResponse);
 
-    // Return success response with CORS headers
     return new Response(JSON.stringify(sanitizedResponse), {
       status: 200,
       headers: { 
@@ -148,7 +154,6 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in generate-ad-content function:', error);
     
-    // Return error response with CORS headers
     return new Response(JSON.stringify({
       error: error.message,
       details: error.stack
