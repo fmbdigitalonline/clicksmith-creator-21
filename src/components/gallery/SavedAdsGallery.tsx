@@ -54,9 +54,9 @@ export const SavedAdsGallery = () => {
         const convertedAds: SavedAd[] = (data as AdFeedbackRow[]).map(ad => ({
           ...ad,
           saved_images: Array.isArray(ad.saved_images) 
-            ? ad.saved_images
+            ? (ad.saved_images as string[])
             : typeof ad.saved_images === 'string'
-              ? [ad.saved_images]
+              ? [ad.saved_images as string]
               : []
         }));
 
