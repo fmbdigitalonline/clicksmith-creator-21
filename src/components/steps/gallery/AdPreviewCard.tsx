@@ -1,15 +1,14 @@
 import { useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { useParams } from "react-router-dom";
-import { generatePDF, generateWord } from "@/utils/documentGenerators";
+import { Card, CardContent } from "@/components/ui/card";
+import { supabase } from "@/integrations/supabase/client";
 import MediaPreview from "./components/MediaPreview";
 import AdDetails from "./components/AdDetails";
 import DownloadControls from "./components/DownloadControls";
 import { AdFeedbackControls } from "./components/AdFeedbackControls";
 import { AdSizeSelector, AD_FORMATS } from "./components/AdSizeSelector";
+import { convertToFormat } from "@/utils/imageUtils";
 
 interface AdPreviewCardProps {
   variant: {
@@ -24,16 +23,6 @@ interface AdPreviewCardProps {
       height: number;
       label: string;
     };
-    specs?: {
-      designRecommendations?: {
-        fileTypes: string[];
-        aspectRatios: string;
-      };
-      textRecommendations?: {
-        primaryTextLength: string;
-        headlineLength: string;
-      };
-    };
     headline: string;
     description: string;
     callToAction: string;
@@ -45,8 +34,8 @@ interface AdPreviewCardProps {
 
 const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewCardProps) => {
   const [selectedFormat, setSelectedFormat] = useState(AD_FORMATS[0]);
-  const [isSaving, setSaving] = useState(false);
   const [downloadFormat, setDownloadFormat] = useState<"jpg" | "png" | "pdf" | "docx">("jpg");
+  const [isSaving, setSaving] = useState(false);
   const { toast } = useToast();
   const { projectId } = useParams();
 
@@ -58,6 +47,14 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewC
       return variant.imageUrl;
     }
     return null;
+  };
+
+  const handleFormatChange = async (format: { width: number; height: number; label: string }) => {
+    setSelectedFormat(format);
+    toast({
+      title: "Ad Size Updated",
+      description: `Preview updated to ${format.label} format`,
+    });
   };
 
   const handleDownload = async () => {
@@ -72,27 +69,17 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewC
     }
 
     try {
-      switch (downloadFormat) {
-        case "pdf":
-          await generatePDF(variant, imageUrl);
-          break;
-        case "docx":
-          await generateWord(variant, imageUrl);
-          break;
-        default:
-          // Handle image downloads (jpg/png)
-          const response = await fetch(imageUrl);
-          const originalBlob = await response.blob();
-          const convertedBlob = await convertToFormat(URL.createObjectURL(originalBlob), downloadFormat as "jpg" | "png");
-          const url = URL.createObjectURL(convertedBlob);
-          const link = document.createElement('a');
-          link.href = url;
-          link.download = `${variant.platform}-${isVideo ? 'video' : 'ad'}-${selectedFormat.width}x${selectedFormat.height}.${downloadFormat}`;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          URL.revokeObjectURL(url);
-      }
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      const convertedBlob = await convertToFormat(URL.createObjectURL(blob), downloadFormat as "jpg" | "png");
+      const url = URL.createObjectURL(convertedBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${variant.platform}-${isVideo ? 'video' : 'ad'}-${selectedFormat.width}x${selectedFormat.height}.${downloadFormat}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
 
       toast({
         title: "Success!",
@@ -117,7 +104,6 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewC
         throw new Error('User must be logged in to save ad');
       }
 
-      // Save the ad to user's favorites
       const { error: saveError } = await supabase
         .from('ad_feedback')
         .insert({
@@ -128,19 +114,6 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewC
         });
 
       if (saveError) throw saveError;
-
-      if (!onCreateProject) {
-        toast({
-          title: "No Project Selected",
-          description: "Please create a project to save your ad.",
-          action: (
-            <Button variant="outline" onClick={onCreateProject}>
-              Create Project
-            </Button>
-          ),
-        });
-        return;
-      }
 
       await handleDownload();
       
@@ -166,20 +139,22 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewC
         <div className="flex justify-between items-center mb-4">
           <AdSizeSelector
             selectedFormat={selectedFormat}
-            onFormatChange={setSelectedFormat}
+            onFormatChange={handleFormatChange}
           />
         </div>
 
         <div 
           style={{ 
             aspectRatio: `${selectedFormat.width} / ${selectedFormat.height}`,
-            maxHeight: '600px'
+            maxHeight: '600px',
+            transition: 'aspect-ratio 0.3s ease-in-out'
           }} 
-          className="relative group"
+          className="relative group rounded-lg overflow-hidden"
         >
           <MediaPreview
             imageUrl={getImageUrl()}
             isVideo={isVideo}
+            format={selectedFormat}
           />
         </div>
 
@@ -187,7 +162,7 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewC
           <AdDetails variant={variant} isVideo={isVideo} />
           <DownloadControls
             downloadFormat={downloadFormat}
-            onFormatChange={(value) => setDownloadFormat(value)}
+            onFormatChange={(value) => setDownloadFormat(value as "jpg" | "png" | "pdf" | "docx")}
             onSaveAndDownload={handleSaveAndDownload}
             isSaving={isSaving}
           />
@@ -199,34 +174,6 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewC
       </div>
     </Card>
   );
-};
-
-// Helper function to convert image format
-const convertToFormat = async (imageUrl: string, format: 'jpg' | 'png'): Promise<Blob> => {
-  const img = new Image();
-  const canvas = document.createElement('canvas');
-  const ctx = canvas.getContext('2d');
-
-  return new Promise((resolve, reject) => {
-    img.onload = () => {
-      canvas.width = img.width;
-      canvas.height = img.height;
-      ctx?.drawImage(img, 0, 0);
-      canvas.toBlob(
-        (blob) => {
-          if (blob) {
-            resolve(blob);
-          } else {
-            reject(new Error('Failed to convert image format'));
-          }
-        },
-        `image/${format}`,
-        0.95
-      );
-    };
-    img.onerror = () => reject(new Error('Failed to load image'));
-    img.src = imageUrl;
-  });
 };
 
 export default AdPreviewCard;
