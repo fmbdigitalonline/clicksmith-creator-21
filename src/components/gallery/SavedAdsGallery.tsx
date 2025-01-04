@@ -6,7 +6,9 @@ import { AdFeedbackControls } from "../steps/gallery/components/AdFeedbackContro
 
 interface SavedAd {
   id: string;
-  saved_images: any;
+  saved_images: string[];
+  headline?: string;
+  primary_text?: string;
   rating: number;
   feedback: string;
   created_at: string;
@@ -69,6 +71,17 @@ export const SavedAdsGallery = () => {
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {savedAds.map((ad) => (
         <Card key={ad.id} className="overflow-hidden">
+          {/* Primary Text Section - First */}
+          {ad.primary_text && (
+            <CardContent className="p-4">
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-gray-600">Primary Text:</p>
+                <p className="text-gray-800">{ad.primary_text}</p>
+              </div>
+            </CardContent>
+          )}
+          
+          {/* Image Section - Second */}
           <div className="aspect-video relative">
             {ad.saved_images && ad.saved_images[0] && (
               <img
@@ -78,6 +91,18 @@ export const SavedAdsGallery = () => {
               />
             )}
           </div>
+
+          {/* Headline Section - Third */}
+          {ad.headline && (
+            <CardContent className="p-4">
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-gray-600">Headline:</p>
+                <h3 className="text-lg font-semibold text-facebook">{ad.headline}</h3>
+              </div>
+            </CardContent>
+          )}
+
+          {/* Feedback Controls - Last */}
           <CardContent className="p-4">
             <AdFeedbackControls
               adId={ad.id}
