@@ -64,15 +64,22 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false, selectedForm
     }
 
     try {
+      // Create a new fetch request for each download
       const response = await fetch(imageUrl);
       const blob = await response.blob();
-      const convertedBlob = await convertToFormat(URL.createObjectURL(blob), downloadFormat as "jpg" | "png");
+      
+      // Convert the blob to the desired format
+      const convertedBlob = await convertToFormat(URL.createObjectURL(blob), downloadFormat);
+      
+      // Create a download link
       const url = URL.createObjectURL(convertedBlob);
       const link = document.createElement('a');
       link.href = url;
       link.download = `${variant.platform}-${isVideo ? 'video' : 'ad'}-${format.width}x${format.height}.${downloadFormat}`;
       document.body.appendChild(link);
       link.click();
+      
+      // Clean up
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
 
@@ -99,6 +106,18 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false, selectedForm
         throw new Error('User must be logged in to save ad');
       }
 
+      // Check if projectId is "new" and handle accordingly
+      if (projectId === "new" && onCreateProject) {
+        onCreateProject();
+        return;
+      }
+
+      // Validate UUID format if projectId exists and isn't "new"
+      const isValidUUID = projectId && 
+                         /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(projectId);
+
+      if (isValidUUID) {
+        // Save to database logic here
       const { error: saveError } = await supabase
         .from('ad_feedback')
         .insert({
@@ -109,18 +128,16 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false, selectedForm
         });
 
       if (saveError) throw saveError;
+      }
 
+      // Proceed with download regardless of save status
       await handleDownload();
       
-      toast({
-        title: "Success!",
-        description: "Ad saved to your gallery and downloaded successfully.",
-      });
     } catch (error) {
-      console.error('Error saving ad:', error);
+      console.error('Error in save and download:', error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to save ad or download file.",
+        description: error instanceof Error ? error.message : "Failed to process your request.",
         variant: "destructive",
       });
     } finally {
