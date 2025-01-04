@@ -91,7 +91,7 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false, selectedForm
     }
   };
 
-  const handleSaveAndDownload = async () => {
+  const handleSave = async () => {
     setSaving(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -111,27 +111,29 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false, selectedForm
                          /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(projectId);
 
       if (isValidUUID) {
-        // Save to database logic here
-      const { error: saveError } = await supabase
-        .from('ad_feedback')
-        .insert({
-          user_id: user.id,
-          project_id: projectId,
-          saved_images: [getImageUrl()],
-          feedback: 'saved'
+        const { error: saveError } = await supabase
+          .from('ad_feedback')
+          .insert({
+            user_id: user.id,
+            project_id: projectId,
+            saved_images: [getImageUrl()],
+            primary_text: variant.description,
+            headline: variant.headline,
+            feedback: 'saved'
+          });
+
+        if (saveError) throw saveError;
+
+        toast({
+          title: "Success!",
+          description: "Ad saved successfully.",
         });
-
-      if (saveError) throw saveError;
       }
-
-      // Proceed with download regardless of save status
-      await handleDownload();
-      
     } catch (error) {
-      console.error('Error in save and download:', error);
+      console.error('Error saving ad:', error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to process your request.",
+        description: error instanceof Error ? error.message : "Failed to save ad.",
         variant: "destructive",
       });
     } finally {
@@ -177,7 +179,8 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false, selectedForm
           <DownloadControls
             downloadFormat={downloadFormat}
             onFormatChange={(value) => setDownloadFormat(value as "jpg" | "png" | "pdf" | "docx")}
-            onSaveAndDownload={handleSaveAndDownload}
+            onSave={handleSave}
+            onDownload={handleDownload}
             isSaving={isSaving}
           />
 

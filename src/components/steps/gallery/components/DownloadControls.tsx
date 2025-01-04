@@ -11,14 +11,16 @@ import {
 interface DownloadControlsProps {
   downloadFormat: "jpg" | "png" | "pdf" | "docx";
   onFormatChange: (value: "jpg" | "png" | "pdf" | "docx") => void;
-  onSaveAndDownload: () => void;
+  onSave: () => void;
+  onDownload: () => void;
   isSaving: boolean;
 }
 
 const DownloadControls = ({ 
   downloadFormat, 
   onFormatChange, 
-  onSaveAndDownload,
+  onSave,
+  onDownload,
   isSaving 
 }: DownloadControlsProps) => {
   return (
@@ -40,7 +42,7 @@ const DownloadControls = ({
         </Select>
 
         <Button
-          onClick={onSaveAndDownload}
+          onClick={onSave}
           className="flex-1 bg-facebook hover:bg-facebook/90"
           disabled={isSaving}
         >
@@ -56,7 +58,7 @@ const DownloadControls = ({
       </div>
       
       <Button
-        onClick={onSaveAndDownload}
+        onClick={onDownload}
         variant="outline"
         className="w-full"
         disabled={isSaving}
