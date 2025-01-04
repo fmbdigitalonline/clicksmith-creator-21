@@ -56,12 +56,15 @@ export const SaveAdButton = ({
 
       console.log('User authenticated:', user.id);
 
-      // Only include project_id if it's a valid UUID
-      const isValidUUID = projectId && projectId !== "new" && /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(projectId);
+      // Only include project_id if it's a valid UUID and not "new"
+      const isValidUUID = projectId && 
+                         projectId !== "new" && 
+                         /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(projectId);
       const validProjectId = isValidUUID ? projectId : null;
 
       console.log('Project ID validation:', { projectId, isValidUUID, validProjectId });
 
+      // If we have a valid project ID, update the project's generated ads
       if (validProjectId) {
         const { data: project, error: projectError } = await supabase
           .from('projects')
@@ -124,8 +127,9 @@ export const SaveAdButton = ({
       }
 
       // Save feedback with proper data transformation
+      const feedbackId = uuidv4();
       const feedbackData = {
-        id: uuidv4(),
+        id: feedbackId,
         user_id: user.id,
         project_id: validProjectId,
         rating: parseInt(rating, 10),
