@@ -3,10 +3,21 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { AdFeedbackControls } from "../steps/gallery/components/AdFeedbackControls";
+import { Json } from "@/integrations/supabase/types";
 
 interface SavedAd {
   id: string;
   saved_images: string[];
+  headline?: string;
+  primary_text?: string;
+  rating: number;
+  feedback: string;
+  created_at: string;
+}
+
+interface AdFeedbackRow {
+  id: string;
+  saved_images: Json;
   headline?: string;
   primary_text?: string;
   rating: number;
@@ -37,7 +48,15 @@ export const SavedAdsGallery = () => {
 
         if (error) throw error;
 
-        setSavedAds(data || []);
+        // Convert the data to match SavedAd interface
+        const convertedAds: SavedAd[] = (data as AdFeedbackRow[]).map(ad => ({
+          ...ad,
+          saved_images: Array.isArray(ad.saved_images) 
+            ? ad.saved_images as string[]
+            : [ad.saved_images as string]
+        }));
+
+        setSavedAds(convertedAds);
       } catch (error) {
         console.error('Error fetching saved ads:', error);
         toast({
