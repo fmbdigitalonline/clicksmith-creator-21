@@ -27,6 +27,7 @@ const AudienceAnalysisStep = ({
 }: AudienceAnalysisStepProps) => {
   const [analysis, setAnalysis] = useState<AudienceAnalysis | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const [regenerationCount, setRegenerationCount] = useState(0);
   const { toast } = useToast();
 
@@ -38,8 +39,8 @@ const AudienceAnalysisStep = ({
           type: 'audience_analysis',
           businessIdea,
           targetAudience,
-          regenerationCount: regenerationCount, // Add variation factor
-          timestamp: new Date().getTime() // Add timestamp for variation
+          regenerationCount: regenerationCount,
+          timestamp: new Date().getTime()
         }
       });
 
@@ -70,9 +71,16 @@ const AudienceAnalysisStep = ({
     }
   }, []);
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (analysis) {
-      onNext(analysis);
+      setIsTransitioning(true);
+      try {
+        // Simulate a small delay to ensure smooth transition
+        await new Promise(resolve => setTimeout(resolve, 300));
+        onNext(analysis);
+      } finally {
+        setIsTransitioning(false);
+      }
     }
   };
 
@@ -82,6 +90,7 @@ const AudienceAnalysisStep = ({
         <Button
           variant="outline"
           onClick={onBack}
+          disabled={isTransitioning}
           className="space-x-2 w-full md:w-auto"
         >
           <ArrowLeft className="w-4 h-4" />
@@ -90,7 +99,7 @@ const AudienceAnalysisStep = ({
         <div className="flex gap-2">
           <Button
             onClick={generateAnalysis}
-            disabled={isLoading}
+            disabled={isLoading || isTransitioning}
             variant="outline"
             className="w-full md:w-auto"
           >
@@ -103,11 +112,20 @@ const AudienceAnalysisStep = ({
           </Button>
           <Button
             onClick={handleNext}
-            disabled={!analysis || isLoading}
-            className="bg-facebook hover:bg-facebook/90 text-white w-full md:w-auto"
+            disabled={!analysis || isLoading || isTransitioning}
+            className="bg-facebook hover:bg-facebook/90 text-white w-full md:w-auto relative"
           >
-            <span>Next Step</span>
-            <ArrowRight className="w-4 h-4 ml-2" />
+            {isTransitioning ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                <span>Loading...</span>
+              </>
+            ) : (
+              <>
+                <span>Next Step</span>
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </>
+            )}
           </Button>
         </div>
       </div>
