@@ -56,6 +56,9 @@ const AdWizard = () => {
         if (!project) {
           // If project doesn't exist, redirect to new project
           navigate('/ad-wizard/new');
+        } else {
+          // Set video ads enabled based on project settings
+          setVideoAdsEnabled(project.video_ads_enabled || false);
         }
       }
     };
@@ -70,6 +73,22 @@ const AdWizard = () => {
   const handleProjectCreated = (projectId: string) => {
     setShowCreateProject(false);
     navigate(`/ad-wizard/${projectId}`);
+  };
+
+  const handleVideoAdsToggle = async (enabled: boolean) => {
+    setVideoAdsEnabled(enabled);
+    if (projectId && projectId !== 'new') {
+      await supabase
+        .from('projects')
+        .update({ 
+          video_ads_enabled: enabled,
+          video_ad_preferences: enabled ? {
+            format: 'landscape',
+            duration: 30
+          } : null
+        })
+        .eq('id', projectId);
+    }
   };
 
   // Memoize the current step component to prevent unnecessary re-renders
@@ -130,7 +149,7 @@ const AdWizard = () => {
         <span className="text-sm text-gray-600">Image Ads</span>
         <Toggle
           pressed={videoAdsEnabled}
-          onPressedChange={setVideoAdsEnabled}
+          onPressedChange={handleVideoAdsToggle}
           aria-label="Toggle video ads"
           className="data-[state=on]:bg-facebook"
         >
