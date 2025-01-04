@@ -6,7 +6,6 @@ import { useToast } from "@/hooks/use-toast";
 import { SavedAd, SavedAdJson } from "@/types/savedAd";
 import { AdHook, AdImage } from "@/types/adWizard";
 import { Json } from "@/integrations/supabase/types";
-import { v4 as uuidv4 } from 'uuid';
 
 interface SaveAdButtonProps {
   image: AdImage;
@@ -132,18 +131,15 @@ export const SaveAdButton = ({
         return;
       }
 
-      // Save feedback with proper data transformation
-      const feedbackId = uuidv4();
+      // Prepare feedback data, only including project_id if valid
       const feedbackData = {
-        id: feedbackId,
         user_id: user.id,
-        project_id: validProjectId,
+        ...(validProjectId && { project_id: validProjectId }),
         rating: parseInt(rating, 10),
         feedback,
         saved_images: [image.url],
         primary_text: primaryText || null,
         headline: headline || null,
-        created_at: new Date().toISOString()
       };
 
       console.log('Saving feedback data:', feedbackData);
