@@ -67,6 +67,8 @@ const AdVariantCard = ({ image, hook, index, onCreateProject }: AdVariantCardPro
           <SaveAdButton
             image={image}
             hook={hook}
+            primaryText={hook.text}
+            headline={hook.description}
             rating={rating}
             feedback={feedback}
             projectId={projectId}

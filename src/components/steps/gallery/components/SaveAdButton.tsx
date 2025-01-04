@@ -74,8 +74,8 @@ export const SaveAdButton = ({
         rating: parseInt(rating, 10),
         feedback,
         saved_images: [image.url],
-        primary_text: primaryText || null,
-        headline: headline || null,
+        primary_text: primaryText || hook.text || null,
+        headline: headline || hook.description || null,
         created_at: new Date().toISOString()
       };
 
