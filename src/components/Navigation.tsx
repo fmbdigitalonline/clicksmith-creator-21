@@ -1,7 +1,7 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Home, Settings, CreditCard, PlusCircle, BookmarkIcon } from "lucide-react";
+import { Home, Settings, CreditCard, PlusCircle } from "lucide-react";
 import { CreditDisplay } from "./CreditDisplay";
 
 const Navigation = () => {
@@ -50,20 +50,6 @@ const Navigation = () => {
               <Link to="/">
                 <Home className="h-4 w-4" />
                 <span>Home</span>
-              </Link>
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              asChild
-              className={cn(
-                "gap-2",
-                isActive("/saved-ads") && "bg-accent"
-              )}
-            >
-              <Link to="/saved-ads">
-                <BookmarkIcon className="h-4 w-4" />
-                <span>Saved Ads</span>
               </Link>
             </Button>
             <Button
