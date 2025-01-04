@@ -29,7 +29,7 @@ interface AdPreviewCardProps {
   };
   onCreateProject: () => void;
   isVideo?: boolean;
-  selectedFormat?: { width: number; height: number; label: string };
+  selectedFormat?: { width: number; height: number; label: string; };
 }
 
 const AdPreviewCard = ({ variant, onCreateProject, isVideo = false, selectedFormat }: AdPreviewCardProps) => {
@@ -163,8 +163,8 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false, selectedForm
           <p className="text-gray-800 font-medium">{variant.headline}</p>
         </div>
 
+        {/* Controls and Feedback */}
         <CardContent className="p-4 space-y-4">
-          <AdDetails variant={variant} isVideo={isVideo} />
           <DownloadControls
             downloadFormat={downloadFormat}
             onFormatChange={(value) => setDownloadFormat(value as "jpg" | "png" | "pdf" | "docx")}
