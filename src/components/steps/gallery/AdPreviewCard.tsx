@@ -143,6 +143,18 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewC
         throw new Error('User must be logged in to save ad');
       }
 
+      // Save the ad to user's favorites
+      const { error: saveError } = await supabase
+        .from('ad_feedback')
+        .insert({
+          user_id: user.id,
+          project_id: projectId,
+          saved_images: [getImageUrl()],
+          feedback: 'saved'
+        });
+
+      if (saveError) throw saveError;
+
       if (!onCreateProject) {
         toast({
           title: "No Project Selected",
@@ -157,6 +169,11 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewC
       }
 
       await handleDownload();
+      
+      toast({
+        title: "Success!",
+        description: "Ad saved to your gallery and downloaded successfully.",
+      });
     } catch (error) {
       console.error('Error saving ad:', error);
       toast({
@@ -169,8 +186,6 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewC
     }
   };
 
-  const imageUrl = getImageUrl();
-
   return (
     <Card className="overflow-hidden">
       <div 
@@ -181,7 +196,7 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewC
         className="relative group"
       >
         <MediaPreview
-          imageUrl={imageUrl}
+          imageUrl={getImageUrl()}
           isVideo={isVideo}
         />
       </div>
