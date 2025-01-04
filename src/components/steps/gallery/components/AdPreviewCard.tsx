@@ -4,8 +4,10 @@ import { useParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import MediaPreview from "./MediaPreview";
+import AdDetails from "./AdDetails";
 import DownloadControls from "./DownloadControls";
 import { AdFeedbackControls } from "./AdFeedbackControls";
+import { AdSizeSelector, AD_FORMATS } from "./AdSizeSelector";
 import { convertToFormat } from "@/utils/imageUtils";
 
 interface AdPreviewCardProps {
@@ -28,7 +30,7 @@ interface AdPreviewCardProps {
   };
   onCreateProject: () => void;
   isVideo?: boolean;
-  selectedFormat?: { width: number; height: number; label: string; };
+  selectedFormat?: { width: number; height: number; label: string };
 }
 
 const AdPreviewCard = ({ variant, onCreateProject, isVideo = false, selectedFormat }: AdPreviewCardProps) => {
@@ -36,6 +38,9 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false, selectedForm
   const [isSaving, setSaving] = useState(false);
   const { toast } = useToast();
   const { projectId } = useParams();
+
+  // Use the selected format if provided, otherwise fall back to the variant's size
+  const format = selectedFormat || variant.size;
 
   const getImageUrl = () => {
     if (variant.image?.url) {
@@ -65,7 +70,7 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false, selectedForm
       const url = URL.createObjectURL(convertedBlob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `${variant.platform}-${isVideo ? 'video' : 'ad'}-${selectedFormat?.width || variant.size.width}x${selectedFormat?.height || variant.size.height}.${downloadFormat}`;
+      link.download = `${variant.platform}-${isVideo ? 'video' : 'ad'}-${format.width}x${format.height}.${downloadFormat}`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -73,7 +78,7 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false, selectedForm
 
       toast({
         title: "Success!",
-        description: `Your ${selectedFormat?.label || variant.size.label} ${isVideo ? 'video' : 'ad'} has been downloaded as ${downloadFormat.toUpperCase()}.`,
+        description: `Your ${format.label} ${isVideo ? 'video' : 'ad'} has been downloaded as ${downloadFormat.toUpperCase()}.`,
       });
     } catch (error) {
       console.error('Error downloading:', error);
@@ -94,17 +99,12 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false, selectedForm
         throw new Error('User must be logged in to save ad');
       }
 
-      const imageUrl = getImageUrl();
-      if (!imageUrl) {
-        throw new Error('No image URL available');
-      }
-
       const { error: saveError } = await supabase
         .from('ad_feedback')
         .insert({
           user_id: user.id,
           project_id: projectId,
-          saved_images: [imageUrl],
+          saved_images: [getImageUrl()],
           feedback: 'saved'
         });
 
@@ -130,17 +130,10 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false, selectedForm
 
   return (
     <Card className="overflow-hidden">
-      <div className="space-y-3">
-        {/* Description */}
-        <div className="p-4 bg-facebook/5 rounded-lg">
-          <p className="text-sm font-medium text-facebook mb-1">Ad Copy:</p>
-          <p className="text-gray-800">{variant.description}</p>
-        </div>
-
-        {/* Image Preview */}
+      <div className="p-4 space-y-4">
         <div 
           style={{ 
-            aspectRatio: `${selectedFormat?.width || variant.size.width} / ${selectedFormat?.height || variant.size.height}`,
+            aspectRatio: `${format.width} / ${format.height}`,
             maxHeight: '600px',
             transition: 'aspect-ratio 0.3s ease-in-out'
           }} 
@@ -149,18 +142,12 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false, selectedForm
           <MediaPreview
             imageUrl={getImageUrl()}
             isVideo={isVideo}
-            format={selectedFormat || variant.size}
+            format={format}
           />
         </div>
 
-        {/* Headline */}
-        <div className="px-4 bg-gray-50 py-3 rounded-lg">
-          <p className="text-sm font-medium text-gray-600 mb-1">Headline:</p>
-          <p className="text-gray-800 font-medium">{variant.headline}</p>
-        </div>
-
-        {/* Controls and Feedback */}
-        <div className="px-4 py-3 space-y-3">
+        <CardContent className="p-4 space-y-4">
+          <AdDetails variant={variant} isVideo={isVideo} />
           <DownloadControls
             downloadFormat={downloadFormat}
             onFormatChange={(value) => setDownloadFormat(value as "jpg" | "png" | "pdf" | "docx")}
@@ -171,7 +158,7 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false, selectedForm
             adId={variant.id}
             projectId={projectId}
           />
-        </div>
+        </CardContent>
       </div>
     </Card>
   );
