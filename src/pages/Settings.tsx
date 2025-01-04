@@ -1,8 +1,8 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import ProfileSettings from "@/components/settings/ProfileSettings";
-import NotificationSettings from "@/components/settings/NotificationSettings";
-import SecuritySettings from "@/components/settings/SecuritySettings";
-import SubscriptionSettings from "@/components/settings/SubscriptionSettings";
+import { ProfileSettings } from "@/components/settings/ProfileSettings";
+import { NotificationSettings } from "@/components/settings/NotificationSettings";
+import { SecuritySettings } from "@/components/settings/SecuritySettings";
+import { SubscriptionSettings } from "@/components/settings/SubscriptionSettings";
 
 const Settings = () => {
   return (

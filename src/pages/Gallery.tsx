@@ -60,7 +60,7 @@ const Gallery = () => {
             <Card key={ad.id} className="overflow-hidden">
               <div className="aspect-video relative group">
                 <MediaPreview 
-                  imageUrl={Array.isArray(ad.saved_images) ? ad.saved_images[0] : null} 
+                  imageUrl={Array.isArray(ad.saved_images) && ad.saved_images.length > 0 ? String(ad.saved_images[0]) : null} 
                 />
               </div>
               <div className="p-4 space-y-4">
