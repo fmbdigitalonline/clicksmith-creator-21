@@ -86,21 +86,21 @@ export const PricingCard = ({ plan, onSubscribe }: PricingCardProps) => {
       <CardContent className="flex-grow">
         <div className="mb-6">
           <span className="text-4xl font-bold">${plan.price}</span>
-          <span className="text-muted-foreground">/month</span>
+          <span className="text-muted-foreground">/{plan.price === 10 ? 'one-time' : 'month'}</span>
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger>
                 <Info className="inline-block ml-2 h-4 w-4 text-muted-foreground hover:text-foreground cursor-help" />
               </TooltipTrigger>
               <TooltipContent>
-                <p>Billed monthly. Cancel anytime.</p>
+                <p>{plan.price === 10 ? 'One-time payment' : 'Billed monthly. Cancel anytime.'}</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
         </div>
         <div className="space-y-4">
           <div className="font-medium text-lg flex items-center gap-2">
-            {plan.credits} credits included
+            {plan.credits} credits {plan.price === 10 ? '' : 'per month'}
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger>
@@ -128,7 +128,7 @@ export const PricingCard = ({ plan, onSubscribe }: PricingCardProps) => {
           onClick={handleSubscribe}
           size="lg"
         >
-          Subscribe Now
+          {plan.price === 10 ? 'Buy Now' : 'Subscribe Now'}
         </Button>
       </CardFooter>
     </Card>

@@ -5,7 +5,7 @@ export const PricingHeader = () => {
     <div className="text-center mb-12">
       <h1 className="text-4xl font-bold mb-4">Simple, Transparent Pricing</h1>
       <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-6">
-        Choose the perfect plan for your business needs. All plans include access to our core features.
+        Choose the perfect plan for your business needs. Get up to 600 AI-powered ad generations per month.
       </p>
       <div className="flex flex-col sm:flex-row items-center justify-center gap-4 text-sm text-muted-foreground">
         <div className="flex items-center gap-2">

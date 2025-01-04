@@ -5,7 +5,7 @@ export const PricingFAQ = () => {
       <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto text-left">
         <div>
           <h3 className="font-medium mb-2">What are credits?</h3>
-          <p className="text-muted-foreground">Credits are used to generate AI-powered content and ads. Each generation consumes one credit. Unused credits roll over to the next month.</p>
+          <p className="text-muted-foreground">Credits are used to generate AI-powered content and ads. Each generation consumes one credit. Monthly credits are refreshed at the start of each billing cycle.</p>
         </div>
         <div>
           <h3 className="font-medium mb-2">Can I change plans?</h3>
@@ -17,7 +17,7 @@ export const PricingFAQ = () => {
         </div>
         <div>
           <h3 className="font-medium mb-2">Is there a free trial?</h3>
-          <p className="text-muted-foreground">Yes! All new users get 60 free generations to try out our platform before subscribing to a paid plan.</p>
+          <p className="text-muted-foreground">Yes! All new users get 12 free generations to try out our platform before subscribing to a paid plan.</p>
         </div>
       </div>
     </div>
