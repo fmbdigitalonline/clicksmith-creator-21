@@ -19,13 +19,20 @@ export const saveWizardProgress = async (data: any, projectId: string | undefine
 
       if (error) throw error;
     } else {
+      // Use upsert with on_conflict parameter
       const { error } = await supabase
         .from('wizard_progress')
-        .upsert({
-          user_id: user.id,
-          ...data,
-          updated_at: new Date().toISOString()
-        });
+        .upsert(
+          {
+            user_id: user.id,
+            ...data,
+            updated_at: new Date().toISOString()
+          },
+          {
+            onConflict: 'user_id',
+            ignoreDuplicates: false
+          }
+        );
 
       if (error) throw error;
     }
