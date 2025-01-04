@@ -3,12 +3,14 @@ import { useToast } from "@/hooks/use-toast";
 import { useParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
 import MediaPreview from "./MediaPreview";
 import AdDetails from "./AdDetails";
 import DownloadControls from "./DownloadControls";
 import { AdFeedbackControls } from "./AdFeedbackControls";
-import { AdSizeSelector } from "./AdSizeSelector";
+import { AdSizeSelector, AD_FORMATS } from "./AdSizeSelector";
 import { convertToFormat } from "@/utils/imageUtils";
+import { generatePDF, generateWord } from "@/utils/documentGenerators";
 
 interface AdPreviewCardProps {
   variant: {
@@ -57,6 +59,54 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewC
       return variant.imageUrl;
     }
     return null;
+  };
+
+  const handleDownload = async () => {
+    const imageUrl = getImageUrl();
+    if (!imageUrl) {
+      toast({
+        title: "Error",
+        description: "No image URL available for download",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      switch (downloadFormat) {
+        case "pdf":
+          await generatePDF(variant, imageUrl);
+          break;
+        case "docx":
+          await generateWord(variant, imageUrl);
+          break;
+        default:
+          // Handle image downloads (jpg/png)
+          const response = await fetch(imageUrl);
+          const originalBlob = await response.blob();
+          const convertedBlob = await convertToFormat(URL.createObjectURL(originalBlob), downloadFormat as "jpg" | "png");
+          const url = URL.createObjectURL(convertedBlob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `${variant.platform}-${isVideo ? 'video' : 'ad'}-${selectedFormat.width}x${selectedFormat.height}.${downloadFormat}`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+      }
+
+      toast({
+        title: "Success!",
+        description: `Your ${selectedFormat.label} ${isVideo ? 'video' : 'ad'} has been downloaded as ${downloadFormat.toUpperCase()}.`,
+      });
+    } catch (error) {
+      console.error('Error downloading:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to download file.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleSaveAndDownload = async () => {
