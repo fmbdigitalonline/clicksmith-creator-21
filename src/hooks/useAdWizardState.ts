@@ -25,7 +25,7 @@ export const useAdWizardState = () => {
         throw new Error('User not authenticated');
       }
 
-      if (projectId) {
+      if (projectId && projectId !== 'new') {
         // If we have a projectId, update the existing project
         const { error } = await supabase
           .from('projects')
@@ -37,7 +37,7 @@ export const useAdWizardState = () => {
 
         if (error) throw error;
       } else {
-        // If no projectId, save to wizard_progress
+        // If no projectId or it's 'new', save to wizard_progress
         const { error } = await supabase
           .from('wizard_progress')
           .upsert({
@@ -50,6 +50,8 @@ export const useAdWizardState = () => {
 
         if (error) throw error;
       }
+
+      console.log('Progress saved successfully:', data);
     } catch (error) {
       console.error('Error saving progress:', error);
       toast({
@@ -120,18 +122,11 @@ export const useAdWizardState = () => {
   }, []);
 
   const handleStartOver = useCallback(async () => {
-    setBusinessIdea(null);
-    setTargetAudience(null);
-    setAudienceAnalysis(null);
-    setSelectedHooks([]);
-    setCurrentStep(1);
-
-    // Clear wizard progress
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      if (projectId) {
+      if (projectId && projectId !== 'new') {
         // If we're in a project, reset project data
         const { error } = await supabase
           .from('projects')
@@ -154,6 +149,17 @@ export const useAdWizardState = () => {
 
         if (error) throw error;
       }
+
+      setBusinessIdea(null);
+      setTargetAudience(null);
+      setAudienceAnalysis(null);
+      setSelectedHooks([]);
+      setCurrentStep(1);
+
+      toast({
+        title: "Progress Reset",
+        description: "Your progress has been cleared successfully.",
+      });
     } catch (error) {
       console.error('Error clearing progress:', error);
       toast({
