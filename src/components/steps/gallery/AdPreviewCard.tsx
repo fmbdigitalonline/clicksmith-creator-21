@@ -9,6 +9,13 @@ import MediaPreview from "./components/MediaPreview";
 import AdDetails from "./components/AdDetails";
 import DownloadControls from "./components/DownloadControls";
 import { AdFeedbackControls } from "./components/AdFeedbackControls";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+const AD_FORMATS = [
+  { width: 1200, height: 628, label: "Landscape (1.91:1)" },
+  { width: 1080, height: 1080, label: "Square (1:1)" },
+  { width: 1080, height: 1920, label: "Story (9:16)" }
+];
 
 interface AdPreviewCardProps {
   variant: {
@@ -42,35 +49,8 @@ interface AdPreviewCardProps {
   isVideo?: boolean;
 }
 
-// Helper function to convert image format
-const convertToFormat = async (imageUrl: string, format: 'jpg' | 'png'): Promise<Blob> => {
-  const img = new Image();
-  const canvas = document.createElement('canvas');
-  const ctx = canvas.getContext('2d');
-
-  return new Promise((resolve, reject) => {
-    img.onload = () => {
-      canvas.width = img.width;
-      canvas.height = img.height;
-      ctx?.drawImage(img, 0, 0);
-      canvas.toBlob(
-        (blob) => {
-          if (blob) {
-            resolve(blob);
-          } else {
-            reject(new Error('Failed to convert image format'));
-          }
-        },
-        `image/${format}`,
-        0.95
-      );
-    };
-    img.onerror = () => reject(new Error('Failed to load image'));
-    img.src = imageUrl;
-  });
-};
-
 const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewCardProps) => {
+  const [selectedFormat, setSelectedFormat] = useState(AD_FORMATS[0]);
   const [isSaving, setSaving] = useState(false);
   const [downloadFormat, setDownloadFormat] = useState<"jpg" | "png" | "pdf" | "docx">("jpg");
   const { toast } = useToast();
@@ -113,7 +93,7 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewC
           const url = URL.createObjectURL(convertedBlob);
           const link = document.createElement('a');
           link.href = url;
-          link.download = `${variant.platform}-${isVideo ? 'video' : 'ad'}-${variant.size.width}x${variant.size.height}.${downloadFormat}`;
+          link.download = `${variant.platform}-${isVideo ? 'video' : 'ad'}-${selectedFormat.width}x${selectedFormat.height}.${downloadFormat}`;
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
@@ -122,7 +102,7 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewC
 
       toast({
         title: "Success!",
-        description: `Your ${variant.size.label} ${isVideo ? 'video' : 'ad'} has been downloaded as ${downloadFormat.toUpperCase()}.`,
+        description: `Your ${selectedFormat.label} ${isVideo ? 'video' : 'ad'} has been downloaded as ${downloadFormat.toUpperCase()}.`,
       });
     } catch (error) {
       console.error('Error downloading:', error);
@@ -188,33 +168,89 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewC
 
   return (
     <Card className="overflow-hidden">
-      <div 
-        style={{ 
-          aspectRatio: `${variant.size.width} / ${variant.size.height}`,
-          maxHeight: '400px'
-        }} 
-        className="relative group"
-      >
-        <MediaPreview
-          imageUrl={getImageUrl()}
-          isVideo={isVideo}
-        />
+      <div className="p-4 space-y-4">
+        <div className="flex justify-between items-center mb-4">
+          <Select
+            value={`${selectedFormat.width}x${selectedFormat.height}`}
+            onValueChange={(value) => {
+              const [width, height] = value.split('x').map(Number);
+              const format = AD_FORMATS.find(f => f.width === width && f.height === height);
+              if (format) setSelectedFormat(format);
+            }}
+          >
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Select format" />
+            </SelectTrigger>
+            <SelectContent>
+              {AD_FORMATS.map((format) => (
+                <SelectItem 
+                  key={`${format.width}x${format.height}`} 
+                  value={`${format.width}x${format.height}`}
+                >
+                  {format.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div 
+          style={{ 
+            aspectRatio: `${selectedFormat.width} / ${selectedFormat.height}`,
+            maxHeight: '600px'
+          }} 
+          className="relative group"
+        >
+          <MediaPreview
+            imageUrl={getImageUrl()}
+            isVideo={isVideo}
+          />
+        </div>
+
+        <CardContent className="p-4 space-y-4">
+          <AdDetails variant={variant} isVideo={isVideo} />
+          <DownloadControls
+            downloadFormat={downloadFormat}
+            onFormatChange={(value) => setDownloadFormat(value)}
+            onSaveAndDownload={handleSaveAndDownload}
+            isSaving={isSaving}
+          />
+          <AdFeedbackControls
+            adId={variant.id}
+            projectId={projectId}
+          />
+        </CardContent>
       </div>
-      <CardContent className="p-4 space-y-4">
-        <AdDetails variant={variant} isVideo={isVideo} />
-        <DownloadControls
-          downloadFormat={downloadFormat}
-          onFormatChange={(value) => setDownloadFormat(value)}
-          onSaveAndDownload={handleSaveAndDownload}
-          isSaving={isSaving}
-        />
-        <AdFeedbackControls
-          adId={variant.id}
-          projectId={projectId}
-        />
-      </CardContent>
     </Card>
   );
+};
+
+// Helper function to convert image format
+const convertToFormat = async (imageUrl: string, format: 'jpg' | 'png'): Promise<Blob> => {
+  const img = new Image();
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+
+  return new Promise((resolve, reject) => {
+    img.onload = () => {
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx?.drawImage(img, 0, 0);
+      canvas.toBlob(
+        (blob) => {
+          if (blob) {
+            resolve(blob);
+          } else {
+            reject(new Error('Failed to convert image format'));
+          }
+        },
+        `image/${format}`,
+        0.95
+      );
+    };
+    img.onerror = () => reject(new Error('Failed to load image'));
+    img.src = imageUrl;
+  });
 };
 
 export default AdPreviewCard;
