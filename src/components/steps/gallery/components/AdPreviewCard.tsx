@@ -131,6 +131,13 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false, selectedForm
   return (
     <Card className="overflow-hidden">
       <div className="p-4 space-y-4">
+        {/* Primary Text Section - First */}
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-gray-600">Primary Text:</p>
+          <p className="text-gray-800">{variant.description}</p>
+        </div>
+
+        {/* Image Preview - Second */}
         <div 
           style={{ 
             aspectRatio: `${format.width} / ${format.height}`,
@@ -147,13 +154,23 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false, selectedForm
         </div>
 
         <CardContent className="p-4 space-y-4">
-          <AdDetails variant={variant} isVideo={isVideo} />
+          {/* Headline Section - Third */}
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-gray-600">Headline:</p>
+            <h3 className="text-lg font-semibold text-facebook">
+              {variant.headline}
+            </h3>
+          </div>
+
+          {/* Download Controls - Fourth */}
           <DownloadControls
             downloadFormat={downloadFormat}
             onFormatChange={(value) => setDownloadFormat(value as "jpg" | "png" | "pdf" | "docx")}
             onSaveAndDownload={handleSaveAndDownload}
             isSaving={isSaving}
           />
+
+          {/* Feedback Controls - Last */}
           <AdFeedbackControls
             adId={variant.id}
             projectId={projectId}
