@@ -1,15 +1,13 @@
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button"; // Added this import
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useParams } from "react-router-dom";
 import { generatePDF, generateWord } from "@/utils/documentGenerators";
 import MediaPreview from "./components/MediaPreview";
 import AdDetails from "./components/AdDetails";
 import DownloadControls from "./components/DownloadControls";
-
-import { AdHook } from "@/types/adWizard";
+import { AdFeedbackControls } from "./components/AdFeedbackControls";
 
 interface AdPreviewCardProps {
   variant: {
@@ -37,6 +35,7 @@ interface AdPreviewCardProps {
     headline: string;
     description: string;
     callToAction: string;
+    id: string;
   };
   onCreateProject: () => void;
   isVideo?: boolean;
@@ -56,14 +55,6 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewC
       return variant.imageUrl;
     }
     return null;
-  };
-
-  const handleVideoPlayPause = (videoElement: HTMLVideoElement) => {
-    if (videoElement.paused) {
-      videoElement.play();
-    } else {
-      videoElement.pause();
-    }
   };
 
   const handleDownload = async () => {
@@ -112,36 +103,6 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewC
         variant: "destructive",
       });
     }
-  };
-
-  const convertToFormat = async (url: string, format: "jpg" | "png"): Promise<Blob> => {
-    const img = new Image();
-    await new Promise((resolve, reject) => {
-      img.onload = resolve;
-      img.onerror = reject;
-      img.src = url;
-    });
-
-    const canvas = document.createElement('canvas');
-    canvas.width = img.width;
-    canvas.height = img.height;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) throw new Error('Could not get canvas context');
-    ctx.drawImage(img, 0, 0);
-
-    const mimeType = format === 'jpg' ? 'image/jpeg' : 'image/png';
-    const quality = format === 'jpg' ? 0.9 : undefined;
-    
-    return new Promise((resolve, reject) => {
-      canvas.toBlob(
-        (blob) => {
-          if (blob) resolve(blob);
-          else reject(new Error('Failed to convert image'));
-        },
-        mimeType,
-        quality
-      );
-    });
   };
 
   const handleSaveAndDownload = async () => {
@@ -193,7 +154,6 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewC
         <MediaPreview
           imageUrl={imageUrl}
           isVideo={isVideo}
-          onVideoPlayPause={handleVideoPlayPause}
         />
       </div>
       <CardContent className="p-4 space-y-4">
@@ -203,6 +163,10 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewC
           onFormatChange={(value) => setDownloadFormat(value)}
           onSaveAndDownload={handleSaveAndDownload}
           isSaving={isSaving}
+        />
+        <AdFeedbackControls
+          adId={variant.id}
+          projectId={projectId}
         />
       </CardContent>
     </Card>
