@@ -1,5 +1,6 @@
 import { Card } from "@/components/ui/card";
 import { AdFormat } from "@/types/adWizard";
+import { Check } from "lucide-react";
 
 interface FacebookAdFormatsProps {
   selectedFormat: AdFormat | null;
@@ -72,20 +73,33 @@ const FacebookAdFormats = ({ selectedFormat, onFormatSelect }: FacebookAdFormats
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      {facebookAdFormats.map((format) => (
-        <Card
-          key={format.id}
-          className={`p-6 cursor-pointer transition-all ${
-            selectedFormat?.format === format.format.format
-              ? "ring-2 ring-facebook"
-              : "hover:border-facebook/50"
-          }`}
-          onClick={() => onFormatSelect(format.format)}
-        >
-          <h3 className="font-semibold mb-2">{format.title}</h3>
-          <p className="text-sm text-gray-600">{format.description}</p>
-        </Card>
-      ))}
+      {facebookAdFormats.map((format) => {
+        const isSelected = selectedFormat?.format === format.format.format;
+        return (
+          <Card
+            key={format.id}
+            className={`relative p-6 cursor-pointer transition-all ${
+              isSelected
+                ? "ring-2 ring-facebook bg-facebook/5"
+                : "hover:border-facebook/50 hover:bg-gray-50"
+            }`}
+            onClick={() => onFormatSelect(format.format)}
+          >
+            {isSelected && (
+              <div className="absolute top-3 right-3">
+                <Check className="w-5 h-5 text-facebook" />
+              </div>
+            )}
+            <div className="space-y-2">
+              <h3 className="font-semibold">{format.title}</h3>
+              <p className="text-sm text-gray-600">{format.description}</p>
+              <div className="mt-2 inline-flex items-center text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                {format.format.aspectRatio}
+              </div>
+            </div>
+          </Card>
+        )
+      })}
     </div>
   );
 };
