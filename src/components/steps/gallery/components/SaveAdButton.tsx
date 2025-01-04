@@ -1,11 +1,9 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Save } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { SavedAd, SavedAdJson } from "@/types/savedAd";
 import { AdHook, AdImage } from "@/types/adWizard";
-import { Json } from "@/integrations/supabase/types";
+import { saveAd } from "@/utils/adSaving";
 
 interface SaveAdButtonProps {
   image: AdImage;
@@ -34,111 +32,43 @@ export const SaveAdButton = ({
   const { toast } = useToast();
 
   const handleSave = async () => {
-    if (!rating) {
-      toast({
-        title: "Rating Required",
-        description: "Please provide a rating before saving.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setSaving(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        throw new Error('User must be logged in to save feedback');
-      }
+      const result = await saveAd({
+        image,
+        hook,
+        rating,
+        feedback,
+        projectId,
+        primaryText,
+        headline
+      });
 
-      if (projectId) {
-        const { data: project, error: projectError } = await supabase
-          .from('projects')
-          .select('generated_ads')
-          .eq('id', projectId)
-          .single();
-
-        if (projectError) throw projectError;
-
-        const existingAds = ((project?.generated_ads as SavedAdJson[]) || []).map(ad => ({
-          image: ad.image as AdImage,
-          hook: ad.hook as AdHook,
-          rating: ad.rating as number,
-          feedback: ad.feedback as string,
-          savedAt: ad.savedAt as string,
-        }));
-
-        const newAd: SavedAd = {
-          image,
-          hook,
-          rating: parseInt(rating, 10),
-          feedback,
-          savedAt: new Date().toISOString()
-        };
-
-        const jsonAds: SavedAdJson[] = [...existingAds, newAd].map(ad => ({
-          image: ad.image as Json,
-          hook: ad.hook as Json,
-          rating: ad.rating as Json,
-          feedback: ad.feedback as Json,
-          savedAt: ad.savedAt as Json,
-        }));
-
-        const { error: updateError } = await supabase
-          .from('projects')
-          .update({
-            generated_ads: jsonAds
-          })
-          .eq('id', projectId);
-
-        if (updateError) throw updateError;
-
+      if (result.success) {
+        onSaveSuccess();
         toast({
           title: "Success!",
-          description: "Ad saved to project successfully.",
+          description: result.message,
         });
-      } else if (onCreateProject) {
-        toast({
-          title: "No Project Selected",
-          description: "Please create a project to save your ad.",
-          action: (
-            <Button variant="outline" onClick={onCreateProject}>
-              Create Project
-            </Button>
-          ),
-        });
-        return;
+      } else {
+        if (result.shouldCreateProject && onCreateProject) {
+          toast({
+            title: result.message,
+            description: "Please create a project to save your ad.",
+            action: (
+              <Button variant="outline" onClick={onCreateProject}>
+                Create Project
+              </Button>
+            ),
+          });
+        } else {
+          toast({
+            title: "Error",
+            description: result.message,
+            variant: "destructive",
+          });
+        }
       }
-
-      const { error: feedbackError } = await supabase
-        .from('ad_feedback')
-        .insert({
-          user_id: user.id,
-          project_id: projectId,
-          rating: parseInt(rating, 10),
-          feedback,
-          saved_images: [image.url],
-          primary_text: primaryText,
-          headline: headline
-        });
-
-      if (feedbackError) throw feedbackError;
-
-      onSaveSuccess();
-
-      toast({
-        title: "Success!",
-        description: projectId 
-          ? "Your feedback has been saved and ad added to project."
-          : "Your feedback has been saved.",
-      });
-    } catch (error) {
-      console.error('Error saving feedback:', error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to save feedback.",
-        variant: "destructive",
-      });
     } finally {
       setSaving(false);
     }

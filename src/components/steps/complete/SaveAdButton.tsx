@@ -1,12 +1,9 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Save } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { SavedAd, SavedAdJson } from "@/types/savedAd";
 import { AdHook, AdImage } from "@/types/adWizard";
-import { Json } from "@/integrations/supabase/types";
-import { v4 as uuidv4 } from 'uuid';
+import { saveAd } from "@/utils/adSaving";
 
 interface SaveAdButtonProps {
   image: AdImage;
@@ -35,139 +32,43 @@ export const SaveAdButton = ({
   const { toast } = useToast();
 
   const handleSave = async () => {
-    console.log('Starting save process...', { image, hook, rating, feedback, projectId });
-    
-    if (!rating) {
-      toast({
-        title: "Rating Required",
-        description: "Please provide a rating before saving.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setSaving(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        throw new Error('User must be logged in to save feedback');
-      }
-
-      // Only include project_id if it's a valid UUID and not "new"
-      const isValidUUID = projectId && 
-                         projectId !== "new" && 
-                         /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(projectId);
-      const validProjectId = isValidUUID ? projectId : null;
-
-      console.log('Project ID validation:', { projectId, isValidUUID, validProjectId });
-
-      if (validProjectId) {
-        const { data: project, error: projectError } = await supabase
-          .from('projects')
-          .select('generated_ads')
-          .eq('id', validProjectId)
-          .single();
-
-        if (projectError) {
-          console.error('Error fetching project:', projectError);
-          throw projectError;
-        }
-
-        const existingAds = ((project?.generated_ads as SavedAdJson[]) || []).map(ad => ({
-          image: ad.image as AdImage,
-          hook: ad.hook as AdHook,
-          rating: ad.rating as number,
-          feedback: ad.feedback as string,
-          savedAt: ad.savedAt as string,
-        }));
-
-        const newAd: SavedAd = {
-          image,
-          hook,
-          rating: parseInt(rating, 10),
-          feedback,
-          savedAt: new Date().toISOString()
-        };
-
-        const jsonAds: SavedAdJson[] = [...existingAds, newAd].map(ad => ({
-          image: ad.image as Json,
-          hook: ad.hook as Json,
-          rating: ad.rating as Json,
-          feedback: ad.feedback as Json,
-          savedAt: ad.savedAt as Json,
-        }));
-
-        const { error: updateError } = await supabase
-          .from('projects')
-          .update({
-            generated_ads: jsonAds
-          })
-          .eq('id', validProjectId);
-
-        if (updateError) {
-          console.error('Error updating project:', updateError);
-          throw updateError;
-        }
-
-        console.log('Project updated successfully');
-      } else if (onCreateProject) {
-        toast({
-          title: "No Project Selected",
-          description: "Please create a project to save your ad.",
-          action: (
-            <Button variant="outline" onClick={onCreateProject}>
-              Create Project
-            </Button>
-          ),
-        });
-        return;
-      }
-
-      // Create base feedback data without project_id
-      const baseFeedbackData = {
-        id: uuidv4(),
-        user_id: user.id,
-        rating: parseInt(rating, 10),
+      const result = await saveAd({
+        image,
+        hook,
+        rating,
         feedback,
-        saved_images: [image.url],
-        primary_text: primaryText || null,
-        headline: headline || null,
-        created_at: new Date().toISOString()
-      };
+        projectId,
+        primaryText,
+        headline
+      });
 
-      // Only add project_id if it's valid
-      const feedbackData = validProjectId 
-        ? { ...baseFeedbackData, project_id: validProjectId }
-        : baseFeedbackData;
-
-      console.log('Saving feedback data:', feedbackData);
-
-      const { error: feedbackError } = await supabase
-        .from('ad_feedback')
-        .insert(feedbackData);
-
-      if (feedbackError) {
-        console.error('Error saving feedback:', feedbackError);
-        throw feedbackError;
+      if (result.success) {
+        onSaveSuccess();
+        toast({
+          title: "Success!",
+          description: result.message,
+        });
+      } else {
+        if (result.shouldCreateProject && onCreateProject) {
+          toast({
+            title: result.message,
+            description: "Please create a project to save your ad.",
+            action: (
+              <Button variant="outline" onClick={onCreateProject}>
+                Create Project
+              </Button>
+            ),
+          });
+        } else {
+          toast({
+            title: "Error",
+            description: result.message,
+            variant: "destructive",
+          });
+        }
       }
-
-      console.log('Feedback saved successfully');
-      onSaveSuccess();
-
-      toast({
-        title: "Success!",
-        description: validProjectId 
-          ? "Your feedback has been saved and ad added to project."
-          : "Your feedback has been saved.",
-      });
-    } catch (error) {
-      console.error('Error saving feedback:', error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to save feedback.",
-        variant: "destructive",
-      });
     } finally {
       setSaving(false);
     }
