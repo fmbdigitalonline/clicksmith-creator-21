@@ -35,7 +35,7 @@ export const SaveAdButton = ({
   const { toast } = useToast();
 
   const handleSave = async () => {
-    console.log('Starting save process...', { image, hook, rating, feedback });
+    console.log('Starting save process...', { image, hook, rating, feedback, projectId });
     
     if (!rating) {
       toast({
@@ -72,7 +72,10 @@ export const SaveAdButton = ({
           .eq('id', validProjectId)
           .single();
 
-        if (projectError) throw projectError;
+        if (projectError) {
+          console.error('Error fetching project:', projectError);
+          throw projectError;
+        }
 
         const existingAds = ((project?.generated_ads as SavedAdJson[]) || []).map(ad => ({
           image: ad.image as AdImage,
@@ -105,7 +108,10 @@ export const SaveAdButton = ({
           })
           .eq('id', validProjectId);
 
-        if (updateError) throw updateError;
+        if (updateError) {
+          console.error('Error updating project:', updateError);
+          throw updateError;
+        }
 
         console.log('Project updated successfully');
 
