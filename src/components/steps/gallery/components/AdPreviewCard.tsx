@@ -7,8 +7,7 @@ import MediaPreview from "./MediaPreview";
 import AdDetails from "./AdDetails";
 import DownloadControls from "./DownloadControls";
 import { AdFeedbackControls } from "./AdFeedbackControls";
-import { AdSizeSelector, AD_FORMATS } from "./AdSizeSelector";
-import { convertToFormat } from "@/utils/imageUtils";
+import { convertImage } from "@/utils/imageUtils";
 
 interface AdPreviewCardProps {
   variant: {
@@ -39,7 +38,6 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false, selectedForm
   const { toast } = useToast();
   const { projectId } = useParams();
 
-  // Use the selected format if provided, otherwise fall back to the variant's size
   const format = selectedFormat || variant.size;
 
   const getImageUrl = () => {
@@ -64,14 +62,11 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false, selectedForm
     }
 
     try {
-      // Create a new fetch request for each download
       const response = await fetch(imageUrl);
       const blob = await response.blob();
       
-      // Convert the blob to the desired format
-      const convertedBlob = await convertToFormat(URL.createObjectURL(blob), downloadFormat);
+      const convertedBlob = await convertImage(URL.createObjectURL(blob), downloadFormat, variant);
       
-      // Create a download link
       const url = URL.createObjectURL(convertedBlob);
       const link = document.createElement('a');
       link.href = url;
@@ -79,7 +74,6 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false, selectedForm
       document.body.appendChild(link);
       link.click();
       
-      // Clean up
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
 
