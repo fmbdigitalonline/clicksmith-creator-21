@@ -135,6 +135,13 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false, selectedForm
   return (
     <Card className="overflow-hidden">
       <div className="p-4 space-y-4">
+        {/* Description */}
+        <div className="bg-facebook/5 p-3 rounded-lg">
+          <p className="text-sm font-medium text-facebook mb-1">Ad Copy:</p>
+          <p className="text-gray-800">{variant.description}</p>
+        </div>
+
+        {/* Image Preview */}
         <div 
           style={{ 
             aspectRatio: `${format.width} / ${format.height}`,
@@ -148,6 +155,12 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false, selectedForm
             isVideo={isVideo}
             format={format}
           />
+        </div>
+
+        {/* Headline */}
+        <div className="bg-gray-50 p-3 rounded-lg">
+          <p className="text-sm font-medium text-gray-600 mb-1">Headline:</p>
+          <p className="text-gray-800 font-medium">{variant.headline}</p>
         </div>
 
         <CardContent className="p-4 space-y-4">
