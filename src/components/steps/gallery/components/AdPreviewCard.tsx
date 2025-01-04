@@ -7,7 +7,6 @@ import MediaPreview from "./MediaPreview";
 import AdDetails from "./AdDetails";
 import DownloadControls from "./DownloadControls";
 import { AdFeedbackControls } from "./AdFeedbackControls";
-import { AdSizeSelector, AD_FORMATS } from "./AdSizeSelector";
 import { convertToFormat } from "@/utils/imageUtils";
 
 interface AdPreviewCardProps {
@@ -99,12 +98,17 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false, selectedForm
         throw new Error('User must be logged in to save ad');
       }
 
+      const imageUrl = getImageUrl();
+      if (!imageUrl) {
+        throw new Error('No image URL available');
+      }
+
       const { error: saveError } = await supabase
         .from('ad_feedback')
         .insert({
           user_id: user.id,
           project_id: projectId,
-          saved_images: [getImageUrl()],
+          saved_images: [imageUrl],
           feedback: 'saved'
         });
 
