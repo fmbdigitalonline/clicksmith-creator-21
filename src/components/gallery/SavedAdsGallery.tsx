@@ -48,14 +48,19 @@ export const SavedAdsGallery = () => {
 
         if (error) throw error;
 
+        console.log('Fetched ad feedback data:', data); // Debug log
+
         // Convert the data to match SavedAd interface
         const convertedAds: SavedAd[] = (data as AdFeedbackRow[]).map(ad => ({
           ...ad,
           saved_images: Array.isArray(ad.saved_images) 
-            ? ad.saved_images as string[]
-            : [ad.saved_images as string]
+            ? ad.saved_images
+            : typeof ad.saved_images === 'string'
+              ? [ad.saved_images]
+              : []
         }));
 
+        console.log('Converted ads:', convertedAds); // Debug log
         setSavedAds(convertedAds);
       } catch (error) {
         console.error('Error fetching saved ads:', error);
@@ -100,7 +105,7 @@ export const SavedAdsGallery = () => {
             </CardContent>
           )}
           
-          {/* Image Section - Second */}
+          {/* Image Preview - Second */}
           <div className="aspect-video relative">
             {ad.saved_images && ad.saved_images[0] && (
               <img
