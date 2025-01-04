@@ -9,8 +9,6 @@ import AdDetails from "./AdDetails";
 import DownloadControls from "./DownloadControls";
 import { AdFeedbackControls } from "./AdFeedbackControls";
 import { AdSizeSelector, AD_FORMATS } from "./AdSizeSelector";
-import { convertToFormat } from "@/utils/imageUtils";
-import { generatePDF, generateWord } from "@/utils/documentGenerators";
 
 interface AdPreviewCardProps {
   variant: {
@@ -24,16 +22,6 @@ interface AdPreviewCardProps {
       width: number;
       height: number;
       label: string;
-    };
-    specs?: {
-      designRecommendations?: {
-        fileTypes: string[];
-        aspectRatios: string;
-      };
-      textRecommendations?: {
-        primaryTextLength: string;
-        headlineLength: string;
-      };
     };
     headline: string;
     description: string;
@@ -61,8 +49,12 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewC
     return null;
   };
 
-  const handleFormatChange = (format: { width: number; height: number; label: string }) => {
+  const handleFormatChange = async (format: { width: number; height: number; label: string }) => {
     setSelectedFormat(format);
+    toast({
+      title: "Ad Size Updated",
+      description: `Preview updated to ${format.label} format`,
+    });
   };
 
   const handleDownload = async () => {
@@ -77,27 +69,16 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewC
     }
 
     try {
-      switch (downloadFormat) {
-        case "pdf":
-          await generatePDF(variant, imageUrl);
-          break;
-        case "docx":
-          await generateWord(variant, imageUrl);
-          break;
-        default:
-          // Handle image downloads (jpg/png)
-          const response = await fetch(imageUrl);
-          const originalBlob = await response.blob();
-          const convertedBlob = await convertToFormat(URL.createObjectURL(originalBlob), downloadFormat as "jpg" | "png");
-          const url = URL.createObjectURL(convertedBlob);
-          const link = document.createElement('a');
-          link.href = url;
-          link.download = `${variant.platform}-${isVideo ? 'video' : 'ad'}-${selectedFormat.width}x${selectedFormat.height}.${downloadFormat}`;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          URL.revokeObjectURL(url);
-      }
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${variant.platform}-${isVideo ? 'video' : 'ad'}-${selectedFormat.width}x${selectedFormat.height}.${downloadFormat}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
 
       toast({
         title: "Success!",
@@ -122,7 +103,6 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewC
         throw new Error('User must be logged in to save ad');
       }
 
-      // Save the ad to user's favorites
       const { error: saveError } = await supabase
         .from('ad_feedback')
         .insert({
@@ -133,19 +113,6 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewC
         });
 
       if (saveError) throw saveError;
-
-      if (!onCreateProject) {
-        toast({
-          title: "No Project Selected",
-          description: "Please create a project to save your ad.",
-          action: (
-            <Button variant="outline" onClick={onCreateProject}>
-              Create Project
-            </Button>
-          ),
-        });
-        return;
-      }
 
       await handleDownload();
       
@@ -178,13 +145,15 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewC
         <div 
           style={{ 
             aspectRatio: `${selectedFormat.width} / ${selectedFormat.height}`,
-            maxHeight: '600px'
+            maxHeight: '600px',
+            transition: 'aspect-ratio 0.3s ease-in-out'
           }} 
-          className="relative group"
+          className="relative group rounded-lg overflow-hidden"
         >
           <MediaPreview
             imageUrl={getImageUrl()}
             isVideo={isVideo}
+            format={selectedFormat}
           />
         </div>
 
@@ -192,7 +161,7 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewC
           <AdDetails variant={variant} isVideo={isVideo} />
           <DownloadControls
             downloadFormat={downloadFormat}
-            onFormatChange={(value) => setDownloadFormat(value)}
+            onFormatChange={(value) => setDownloadFormat(value as "jpg" | "png" | "pdf" | "docx")}
             onSaveAndDownload={handleSaveAndDownload}
             isSaving={isSaving}
           />

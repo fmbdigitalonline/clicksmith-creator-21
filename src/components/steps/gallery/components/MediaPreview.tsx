@@ -1,9 +1,14 @@
 interface MediaPreviewProps {
   imageUrl: string | null;
   isVideo?: boolean;
+  format: {
+    width: number;
+    height: number;
+    label: string;
+  };
 }
 
-const MediaPreview = ({ imageUrl, isVideo }: MediaPreviewProps) => {
+const MediaPreview = ({ imageUrl, isVideo, format }: MediaPreviewProps) => {
   if (isVideo) {
     return (
       <div className="w-full h-full flex items-center justify-center bg-gray-100">
@@ -23,8 +28,8 @@ const MediaPreview = ({ imageUrl, isVideo }: MediaPreviewProps) => {
   return (
     <img
       src={imageUrl}
-      alt="Ad preview"
-      className="object-cover w-full h-full"
+      alt={`Ad preview (${format.label})`}
+      className="object-cover w-full h-full transition-transform duration-300 ease-in-out"
     />
   );
 };
