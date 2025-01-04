@@ -30,64 +30,132 @@ export function OnboardingDialog() {
   }, []);
 
   const checkOnboardingStatus = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-    const { data: onboarding } = await supabase
-      .from("onboarding")
-      .select("*")
-      .eq("user_id", user.id)
-      .single();
+      const { data: onboarding, error } = await supabase
+        .from("onboarding")
+        .select("*")
+        .eq("user_id", user.id)
+        .maybeSingle();
 
-    if (!onboarding || !onboarding.completed) {
-      setOpen(true);
-      if (!onboarding) {
-        await supabase.from("onboarding").insert([
-          { user_id: user.id, steps_completed: [] }
-        ]);
+      if (error && error.code !== "PGRST116") {
+        console.error("Error fetching onboarding status:", error);
+        toast({
+          title: "Error checking onboarding status",
+          description: error.message,
+          variant: "destructive",
+        });
+        return;
       }
+
+      if (!onboarding || !onboarding.completed) {
+        setOpen(true);
+        if (!onboarding) {
+          // Create new onboarding record if none exists
+          const { error: insertError } = await supabase
+            .from("onboarding")
+            .insert([{ user_id: user.id, steps_completed: [] }]);
+
+          if (insertError) {
+            console.error("Error creating onboarding record:", insertError);
+            toast({
+              title: "Error initializing onboarding",
+              description: insertError.message,
+              variant: "destructive",
+            });
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error in checkOnboardingStatus:", error);
+      toast({
+        title: "Error",
+        description: "Failed to check onboarding status",
+        variant: "destructive",
+      });
     }
   };
 
   const handleStepComplete = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-    if (currentStep === 0 && fullName) {
-      await supabase
-        .from("profiles")
-        .update({ full_name: fullName })
-        .eq("id", user.id);
-    }
+      if (currentStep === 0 && fullName) {
+        const { error: profileError } = await supabase
+          .from("profiles")
+          .update({ full_name: fullName })
+          .eq("id", user.id);
 
-    const { data: onboarding } = await supabase
-      .from("onboarding")
-      .select("steps_completed")
-      .eq("user_id", user.id)
-      .single();
-
-    const stepsCompleted = onboarding?.steps_completed || [];
-    if (Array.isArray(stepsCompleted)) {
-      stepsCompleted.push(steps[currentStep].id);
-
-      await supabase
-        .from("onboarding")
-        .update({
-          steps_completed: stepsCompleted,
-          completed: currentStep === steps.length - 1
-        })
-        .eq("user_id", user.id);
-
-      if (currentStep < steps.length - 1) {
-        setCurrentStep(prev => prev + 1);
-      } else {
-        setOpen(false);
-        toast({
-          title: "Welcome aboard! 🎉",
-          description: "You're all set to start creating amazing ads!"
-        });
-        navigate("/");
+        if (profileError) {
+          console.error("Error updating profile:", profileError);
+          toast({
+            title: "Error updating profile",
+            description: profileError.message,
+            variant: "destructive",
+          });
+          return;
+        }
       }
+
+      const { data: onboarding, error: fetchError } = await supabase
+        .from("onboarding")
+        .select("steps_completed")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (fetchError) {
+        console.error("Error fetching onboarding steps:", fetchError);
+        toast({
+          title: "Error updating onboarding progress",
+          description: fetchError.message,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const stepsCompleted = onboarding?.steps_completed || [];
+      if (Array.isArray(stepsCompleted)) {
+        stepsCompleted.push(steps[currentStep].id);
+
+        const { error: updateError } = await supabase
+          .from("onboarding")
+          .update({
+            steps_completed: stepsCompleted,
+            completed: currentStep === steps.length - 1
+          })
+          .eq("user_id", user.id);
+
+        if (updateError) {
+          console.error("Error updating onboarding:", updateError);
+          toast({
+            title: "Error saving progress",
+            description: updateError.message,
+            variant: "destructive",
+          });
+          return;
+        }
+
+        if (currentStep < steps.length - 1) {
+          setCurrentStep(prev => prev + 1);
+        } else {
+          setOpen(false);
+          toast({
+            title: "Welcome aboard! 🎉",
+            description: "You're all set to start creating amazing ads!"
+          });
+          navigate("/");
+        }
+      }
+    } catch (error) {
+      console.error("Error in handleStepComplete:", error);
+      toast({
+        title: "Error",
+        description: "Failed to complete onboarding step",
+        variant: "destructive",
+      });
     }
   };
 
