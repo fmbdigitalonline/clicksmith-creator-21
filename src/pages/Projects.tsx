@@ -13,7 +13,7 @@ const Projects = () => {
   };
 
   return (
-    <div className="container mx-auto">
+    <div className="container mx-auto px-4 py-6">
       <ProjectList onStartAdWizard={handleStartAdWizard} />
     </div>
   );
