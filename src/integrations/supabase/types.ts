@@ -14,7 +14,9 @@ export type Database = {
           ad_id: string | null
           created_at: string
           feedback: string | null
+          headline: string | null
           id: string
+          primary_text: string | null
           project_id: string | null
           rating: number | null
           saved_images: Json | null
@@ -25,7 +27,9 @@ export type Database = {
           ad_id?: string | null
           created_at?: string
           feedback?: string | null
+          headline?: string | null
           id?: string
+          primary_text?: string | null
           project_id?: string | null
           rating?: number | null
           saved_images?: Json | null
@@ -36,7 +40,9 @@ export type Database = {
           ad_id?: string | null
           created_at?: string
           feedback?: string | null
+          headline?: string | null
           id?: string
+          primary_text?: string | null
           project_id?: string | null
           rating?: number | null
           saved_images?: Json | null
