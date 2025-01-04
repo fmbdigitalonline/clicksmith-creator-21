@@ -10,6 +10,8 @@ import { Json } from "@/integrations/supabase/types";
 interface SaveAdButtonProps {
   image: AdImage;
   hook: AdHook;
+  primaryText?: string;
+  headline?: string;
   rating: string;
   feedback: string;
   projectId?: string;
@@ -20,6 +22,8 @@ interface SaveAdButtonProps {
 export const SaveAdButton = ({
   image,
   hook,
+  primaryText,
+  headline,
   rating,
   feedback,
   projectId,
@@ -47,7 +51,10 @@ export const SaveAdButton = ({
         throw new Error('User must be logged in to save feedback');
       }
 
-      if (projectId) {
+      // Only include project_id if it's a valid UUID (not "new")
+      const isValidUUID = projectId && projectId !== "new";
+
+      if (isValidUUID) {
         const { data: project, error: projectError } = await supabase
           .from('projects')
           .select('generated_ads')
@@ -110,10 +117,12 @@ export const SaveAdButton = ({
         .from('ad_feedback')
         .insert({
           user_id: user.id,
-          project_id: projectId,
+          project_id: isValidUUID ? projectId : null,
           rating: parseInt(rating, 10),
           feedback,
-          saved_images: [image]
+          saved_images: [image.url],
+          primary_text: primaryText,
+          headline: headline
         });
 
       if (feedbackError) throw feedbackError;
@@ -122,7 +131,7 @@ export const SaveAdButton = ({
 
       toast({
         title: "Success!",
-        description: projectId 
+        description: isValidUUID 
           ? "Your feedback has been saved and ad added to project."
           : "Your feedback has been saved.",
       });
