@@ -13,27 +13,30 @@ interface AdSizeSelectorProps {
 
 export const AdSizeSelector = ({ selectedFormat, onFormatChange }: AdSizeSelectorProps) => {
   return (
-    <Select
-      value={`${selectedFormat.width}x${selectedFormat.height}`}
-      onValueChange={(value) => {
-        const [width, height] = value.split('x').map(Number);
-        const format = AD_FORMATS.find(f => f.width === width && f.height === height);
-        if (format) onFormatChange(format);
-      }}
-    >
-      <SelectTrigger className="w-[180px]">
-        <SelectValue placeholder="Select format" />
-      </SelectTrigger>
-      <SelectContent>
-        {AD_FORMATS.map((format) => (
-          <SelectItem 
-            key={`${format.width}x${format.height}`} 
-            value={`${format.width}x${format.height}`}
-          >
-            {format.label}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <div className="flex items-center gap-2">
+      <span className="text-sm text-gray-600">Format:</span>
+      <Select
+        value={`${selectedFormat.width}x${selectedFormat.height}`}
+        onValueChange={(value) => {
+          const [width, height] = value.split('x').map(Number);
+          const format = AD_FORMATS.find(f => f.width === width && f.height === height);
+          if (format) onFormatChange(format);
+        }}
+      >
+        <SelectTrigger className="w-[180px]">
+          <SelectValue placeholder="Select format" />
+        </SelectTrigger>
+        <SelectContent>
+          {AD_FORMATS.map((format) => (
+            <SelectItem 
+              key={`${format.width}x${format.height}`} 
+              value={`${format.width}x${format.height}`}
+            >
+              {format.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
   );
 };
