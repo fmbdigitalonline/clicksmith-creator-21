@@ -6,6 +6,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { SavedAd, SavedAdJson } from "@/types/savedAd";
 import { AdHook, AdImage } from "@/types/adWizard";
 import { Json } from "@/integrations/supabase/types";
+import { v4 as uuidv4 } from 'uuid';
 
 interface SaveAdButtonProps {
   image: AdImage;
@@ -51,14 +52,15 @@ export const SaveAdButton = ({
         throw new Error('User must be logged in to save feedback');
       }
 
-      // Only include project_id if it's a valid UUID (not "new")
-      const isValidUUID = projectId && projectId !== "new";
+      // Only include project_id if it's a valid UUID
+      const isValidUUID = projectId && projectId !== "new" && /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(projectId);
+      const validProjectId = isValidUUID ? projectId : null;
 
-      if (isValidUUID) {
+      if (validProjectId) {
         const { data: project, error: projectError } = await supabase
           .from('projects')
           .select('generated_ads')
-          .eq('id', projectId)
+          .eq('id', validProjectId)
           .single();
 
         if (projectError) throw projectError;
@@ -92,7 +94,7 @@ export const SaveAdButton = ({
           .update({
             generated_ads: jsonAds
           })
-          .eq('id', projectId);
+          .eq('id', validProjectId);
 
         if (updateError) throw updateError;
 
@@ -113,16 +115,19 @@ export const SaveAdButton = ({
         return;
       }
 
+      // Save feedback with proper data transformation
       const { error: feedbackError } = await supabase
         .from('ad_feedback')
         .insert({
+          id: uuidv4(), // Generate a proper UUID
           user_id: user.id,
-          project_id: isValidUUID ? projectId : null,
+          project_id: validProjectId,
           rating: parseInt(rating, 10),
           feedback,
           saved_images: [image.url],
-          primary_text: primaryText,
-          headline: headline
+          primary_text: primaryText || null,
+          headline: headline || null,
+          created_at: new Date().toISOString()
         });
 
       if (feedbackError) throw feedbackError;
@@ -131,7 +136,7 @@ export const SaveAdButton = ({
 
       toast({
         title: "Success!",
-        description: isValidUUID 
+        description: validProjectId 
           ? "Your feedback has been saved and ad added to project."
           : "Your feedback has been saved.",
       });
