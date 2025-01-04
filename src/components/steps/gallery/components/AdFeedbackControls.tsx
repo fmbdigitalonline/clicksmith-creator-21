@@ -34,14 +34,12 @@ export const AdFeedbackControls = ({ adId, projectId, onFeedbackSubmit }: AdFeed
         project_id: projectId,
         ad_id: adId,
         rating: newRating,
-        saved_images: null // Initialize saved_images as null for feedback
       };
 
       const { error } = await supabase
         .from('ad_feedback')
         .upsert(feedbackData, {
-          onConflict: 'user_id, ad_id',
-          ignoreDuplicates: false,
+          onConflict: 'user_id, ad_id'
         });
 
       if (error) throw error;
@@ -81,12 +79,14 @@ export const AdFeedbackControls = ({ adId, projectId, onFeedbackSubmit }: AdFeed
         project_id: projectId,
         ad_id: adId,
         feedback: 'saved',
-        saved_images: [adId] // Store the ad ID in saved_images array
+        saved_images: [adId]
       };
 
       const { error } = await supabase
         .from('ad_feedback')
-        .insert(feedbackData);
+        .upsert(feedbackData, {
+          onConflict: 'user_id, ad_id'
+        });
 
       if (error) throw error;
 

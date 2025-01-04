@@ -11,6 +11,7 @@ export type Database = {
     Tables: {
       ad_feedback: {
         Row: {
+          ad_id: string | null
           created_at: string
           feedback: string | null
           id: string
@@ -21,6 +22,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          ad_id?: string | null
           created_at?: string
           feedback?: string | null
           id?: string
@@ -31,6 +33,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          ad_id?: string | null
           created_at?: string
           feedback?: string | null
           id?: string
