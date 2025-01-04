@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { SavedAd, SavedAdJson } from "@/types/savedAd";
 import { AdHook, AdImage } from "@/types/adWizard";
 import { Json } from "@/integrations/supabase/types";
+import { v4 as uuidv4 } from 'uuid';
 
 interface SaveAdButtonProps {
   image: AdImage;
@@ -53,8 +54,6 @@ export const SaveAdButton = ({
         throw new Error('User must be logged in to save feedback');
       }
 
-      console.log('User authenticated:', user.id);
-
       // Only include project_id if it's a valid UUID and not "new"
       const isValidUUID = projectId && 
                          projectId !== "new" && 
@@ -63,7 +62,6 @@ export const SaveAdButton = ({
 
       console.log('Project ID validation:', { projectId, isValidUUID, validProjectId });
 
-      // If we have a valid project ID, update the project's generated ads
       if (validProjectId) {
         const { data: project, error: projectError } = await supabase
           .from('projects')
@@ -113,11 +111,6 @@ export const SaveAdButton = ({
         }
 
         console.log('Project updated successfully');
-
-        toast({
-          title: "Success!",
-          description: "Ad saved to project successfully.",
-        });
       } else if (onCreateProject) {
         toast({
           title: "No Project Selected",
@@ -131,16 +124,22 @@ export const SaveAdButton = ({
         return;
       }
 
-      // Prepare feedback data, only including project_id if valid
-      const feedbackData = {
+      // Create base feedback data without project_id
+      const baseFeedbackData = {
+        id: uuidv4(),
         user_id: user.id,
-        ...(validProjectId && { project_id: validProjectId }),
         rating: parseInt(rating, 10),
         feedback,
         saved_images: [image.url],
         primary_text: primaryText || null,
         headline: headline || null,
+        created_at: new Date().toISOString()
       };
+
+      // Only add project_id if it's valid
+      const feedbackData = validProjectId 
+        ? { ...baseFeedbackData, project_id: validProjectId }
+        : baseFeedbackData;
 
       console.log('Saving feedback data:', feedbackData);
 
