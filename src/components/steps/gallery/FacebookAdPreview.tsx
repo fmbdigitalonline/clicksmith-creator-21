@@ -71,7 +71,7 @@ const FacebookAdPreview = ({ variant, onCreateProject, isVideo = false }: Facebo
           </Select>
         </div>
 
-        {/* Primary Text Section */}
+        {/* Primary Text Section - Now before the image */}
         <div className="space-y-2">
           <p className="text-sm font-medium text-gray-600">Primary Text:</p>
           <p className="text-gray-800">{variant.primaryText || variant.description}</p>
