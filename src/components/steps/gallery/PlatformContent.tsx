@@ -1,6 +1,4 @@
 import { AdHook } from "@/types/adWizard";
-import FacebookAdPreview from "./FacebookAdPreview";
-import AdPreviewCard from "./AdPreviewCard";
 import { AdFeedbackControls } from "./components/AdFeedbackControls";
 import { Card, CardContent } from "@/components/ui/card";
 import { useParams } from "react-router-dom";
@@ -42,33 +40,38 @@ const PlatformContent = ({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {filteredVariants.map((variant, index) => (
           <Card key={`${index}-${variant.size?.label || 'default'}`} className="overflow-hidden">
-            <div className="aspect-video relative">
-              <img
-                src={variant.imageUrl}
-                alt={`Ad variant ${index + 1}`}
-                className="object-cover w-full h-full"
-              />
-            </div>
             <CardContent className="p-4 space-y-4">
-              <div className="space-y-2">
-                <h3 className="font-medium text-lg">Variant {index + 1}</h3>
-                <div className="bg-gray-50 p-3 rounded-lg">
-                  <p className="text-sm font-medium text-gray-600 mb-1">Headline:</p>
-                  <p className="text-gray-800">{variant.headline}</p>
-                </div>
-                <div className="bg-facebook/5 p-3 rounded-lg">
-                  <p className="text-sm font-medium text-facebook mb-1">Description:</p>
-                  <p className="text-gray-800">{variant.description}</p>
-                </div>
+              {/* Description Section */}
+              <div className="bg-facebook/5 p-3 rounded-lg">
+                <p className="text-sm font-medium text-facebook mb-1">Description:</p>
+                <p className="text-gray-800">{variant.description}</p>
               </div>
-              
-              <AdFeedbackControls
-                adId={variant.id}
-                projectId={projectId}
-                onFeedbackSubmit={() => {
-                  // Optionally refresh the gallery or show a success message
-                }}
-              />
+
+              {/* Image Section */}
+              <div className="aspect-video relative">
+                <img
+                  src={variant.imageUrl}
+                  alt={`Ad variant ${index + 1}`}
+                  className="object-cover w-full h-full rounded-lg"
+                />
+              </div>
+
+              {/* Headline Section */}
+              <div className="bg-gray-50 p-3 rounded-lg">
+                <p className="text-sm font-medium text-gray-600 mb-1">Headline:</p>
+                <h3 className="text-lg font-medium text-gray-800">{variant.headline}</h3>
+              </div>
+
+              {/* Feedback and Save Controls */}
+              <div className="pt-4 border-t">
+                <AdFeedbackControls
+                  adId={variant.id}
+                  projectId={projectId}
+                  onFeedbackSubmit={() => {
+                    // Optionally refresh the gallery or show a success message
+                  }}
+                />
+              </div>
             </CardContent>
           </Card>
         ))}
