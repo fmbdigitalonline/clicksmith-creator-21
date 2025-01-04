@@ -29,9 +29,9 @@ export async function generateImagePrompts(
   const deepPainPoints = targetAudience.audienceAnalysis?.deepPainPoints || [];
   const allPainPoints = [...new Set([...audiencePainPoints, ...deepPainPoints])];
 
-  const prompt = `Generate creative image prompt for marketing visual based on this business and target audience:
+  const prompt = `Generate a highly detailed, photorealistic commercial advertising image prompt. The image must be indistinguishable from a professional DSLR photograph, with absolutely no artistic interpretations, illustrations, or cartoon elements.
 
-Business:
+Business Context:
 ${JSON.stringify(businessIdea, null, 2)}
 
 Target Audience:
@@ -43,16 +43,22 @@ ${JSON.stringify(campaign, null, 2)}` : ''}
 Key Pain Points to Address:
 ${allPainPoints.map(point => `- ${point}`).join('\n')}
 
-Create 1 image prompt that:
-1. Visually represents the value proposition
-2. Connects emotionally with the target audience by addressing their pain points
-3. Is detailed enough for high-quality image generation
-4. Follows professional advertising best practices
+Critical Requirements:
+1. MUST be a photorealistic commercial photograph
+2. NO cartoon styles, illustrations, or artistic interpretations
+3. NO text overlays or graphics
+4. Professional studio quality lighting and composition
+5. High-end commercial photography aesthetic
+6. Natural, realistic colors and textures
+7. Clean, professional business environment
+8. Absolutely NO AI-generated looking elements
+9. Must follow professional advertising photography standards
+10. Crystal clear focus and professional depth of field
 
 Return ONLY a valid JSON array with exactly 1 item in this format:
 [
   {
-    "prompt": "detailed_image_prompt"
+    "prompt": "detailed_photorealistic_image_prompt"
   }
 ]`;
 
@@ -75,7 +81,7 @@ Return ONLY a valid JSON array with exactly 1 item in this format:
         messages: [
           { 
             role: 'system', 
-            content: 'You are an expert at creating detailed image prompts for marketing visuals that align with business goals and target audiences.'
+            content: 'You are an expert at creating detailed prompts for photorealistic commercial photography. You NEVER include artistic or cartoon elements in your prompts. You focus solely on professional, high-end commercial photography aesthetics.'
           },
           { role: 'user', content: prompt }
         ],
@@ -106,14 +112,17 @@ Return ONLY a valid JSON array with exactly 1 item in this format:
         throw new Error('Invalid prompt format: Expected string prompt');
       }
 
-      const imageUrl = await generateWithReplicate(generatedPrompts[0].prompt, {
+      const enhancedPrompt = `${generatedPrompts[0].prompt} 
+      Style requirements: ultra realistic, professional DSLR photo, commercial photography, absolutely no cartoon elements, no illustrations, photorealistic, high-end advertising, studio lighting, 8k quality`;
+
+      const imageUrl = await generateWithReplicate(enhancedPrompt, {
         width: format.width,
         height: format.height
       });
 
       return {
         url: imageUrl,
-        prompt: generatedPrompts[0].prompt,
+        prompt: enhancedPrompt,
         width: format.width,
         height: format.height,
         label: format.label
