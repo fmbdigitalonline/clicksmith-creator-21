@@ -10,6 +10,7 @@ import Settings from "@/pages/Settings";
 import Pricing from "@/pages/Pricing";
 import AdWizard from "@/components/AdWizard";
 import Dashboard from "@/pages/Dashboard";
+import { SavedAdsGallery } from "@/components/gallery/SavedAdsGallery";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const queryClient = new QueryClient();
@@ -48,6 +49,16 @@ function App() {
                 <ProtectedRoute>
                   <AppLayout>
                     <Settings />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/saved-ads"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <SavedAdsGallery />
                   </AppLayout>
                 </ProtectedRoute>
               }
