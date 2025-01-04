@@ -108,29 +108,46 @@ serve(async (req) => {
           const campaignData = await generateCampaign(businessIdea, targetAudience);
           console.log('Campaign data generated:', campaignData);
           
-          if (!campaignData || !campaignData.campaign || !campaignData.campaign.adCopies) {
-            throw new Error('Invalid campaign data structure');
+          if (!campaignData?.campaign?.adCopies || !Array.isArray(campaignData.campaign.adCopies)) {
+            console.error('Invalid campaign data structure:', campaignData);
+            throw new Error('Invalid campaign data structure: missing or invalid adCopies');
+          }
+
+          if (!campaignData?.campaign?.headlines || !Array.isArray(campaignData.campaign.headlines)) {
+            console.error('Invalid campaign headlines:', campaignData);
+            throw new Error('Invalid campaign data structure: missing or invalid headlines');
           }
 
           const imageData = await generateImagePrompts(businessIdea, targetAudience, campaignData.campaign);
           console.log('Image data generated:', imageData);
           
           if (!Array.isArray(imageData) || imageData.length === 0) {
-            throw new Error('No images generated');
+            console.error('Invalid image data:', imageData);
+            throw new Error('No valid images generated');
           }
 
           responseData = sanitizeJson({
-            variants: campaignData.campaign.adCopies.map((copy: any, index: number) => ({
-              platform: 'facebook',
-              headline: campaignData.campaign.headlines[index % campaignData.campaign.headlines.length],
-              description: copy.content,
-              imageUrl: imageData[0]?.url,
-              size: {
-                width: 1200,
-                height: 628,
-                label: "Facebook Feed"
+            variants: campaignData.campaign.adCopies.map((copy: any, index: number) => {
+              const headline = campaignData.campaign.headlines[index % campaignData.campaign.headlines.length];
+              const imageUrl = imageData[0]?.url;
+              
+              if (!headline || !imageUrl || !copy?.content) {
+                console.error('Invalid variant data:', { headline, imageUrl, copy });
+                throw new Error('Invalid variant data structure');
               }
-            }))
+
+              return {
+                platform: 'facebook',
+                headline,
+                description: copy.content,
+                imageUrl,
+                size: {
+                  width: 1200,
+                  height: 628,
+                  label: "Facebook Feed"
+                }
+              };
+            })
           });
         } catch (error) {
           console.error('Error generating ad content:', error);
