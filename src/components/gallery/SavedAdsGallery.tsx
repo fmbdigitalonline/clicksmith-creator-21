@@ -33,11 +33,15 @@ export const SavedAdsGallery = () => {
   useEffect(() => {
     const fetchSavedAds = async () => {
       try {
+        console.log('Fetching saved ads...');
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) {
+          console.log('No user found');
           setIsLoading(false);
           return;
         }
+
+        console.log('User authenticated:', user.id);
 
         const { data, error } = await supabase
           .from('ad_feedback')
@@ -46,9 +50,12 @@ export const SavedAdsGallery = () => {
           .not('saved_images', 'is', null)
           .order('created_at', { ascending: false });
 
-        if (error) throw error;
+        if (error) {
+          console.error('Error fetching ad feedback:', error);
+          throw error;
+        }
 
-        console.log('Fetched ad feedback data:', data); // Debug log
+        console.log('Fetched ad feedback data:', data);
 
         // Convert the data to match SavedAd interface
         const convertedAds: SavedAd[] = (data as AdFeedbackRow[]).map(ad => ({
@@ -60,7 +67,7 @@ export const SavedAdsGallery = () => {
               : []
         }));
 
-        console.log('Converted ads:', convertedAds); // Debug log
+        console.log('Converted ads:', convertedAds);
         setSavedAds(convertedAds);
       } catch (error) {
         console.error('Error fetching saved ads:', error);

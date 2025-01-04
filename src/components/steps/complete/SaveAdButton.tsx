@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Save } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { SavedAd, SavedAdJson } from "@/types/savedAd";
 import { AdHook, AdImage } from "@/types/adWizard";
 import { Json } from "@/integrations/supabase/types";
@@ -35,6 +35,8 @@ export const SaveAdButton = ({
   const { toast } = useToast();
 
   const handleSave = async () => {
+    console.log('Starting save process...', { image, hook, rating, feedback });
+    
     if (!rating) {
       toast({
         title: "Rating Required",
@@ -52,9 +54,13 @@ export const SaveAdButton = ({
         throw new Error('User must be logged in to save feedback');
       }
 
+      console.log('User authenticated:', user.id);
+
       // Only include project_id if it's a valid UUID
       const isValidUUID = projectId && projectId !== "new" && /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(projectId);
       const validProjectId = isValidUUID ? projectId : null;
+
+      console.log('Project ID validation:', { projectId, isValidUUID, validProjectId });
 
       if (validProjectId) {
         const { data: project, error: projectError } = await supabase
@@ -98,6 +104,8 @@ export const SaveAdButton = ({
 
         if (updateError) throw updateError;
 
+        console.log('Project updated successfully');
+
         toast({
           title: "Success!",
           description: "Ad saved to project successfully.",
@@ -116,22 +124,30 @@ export const SaveAdButton = ({
       }
 
       // Save feedback with proper data transformation
+      const feedbackData = {
+        id: uuidv4(),
+        user_id: user.id,
+        project_id: validProjectId,
+        rating: parseInt(rating, 10),
+        feedback,
+        saved_images: [image.url],
+        primary_text: primaryText || null,
+        headline: headline || null,
+        created_at: new Date().toISOString()
+      };
+
+      console.log('Saving feedback data:', feedbackData);
+
       const { error: feedbackError } = await supabase
         .from('ad_feedback')
-        .insert({
-          id: uuidv4(), // Generate a proper UUID
-          user_id: user.id,
-          project_id: validProjectId,
-          rating: parseInt(rating, 10),
-          feedback,
-          saved_images: [image.url],
-          primary_text: primaryText || null,
-          headline: headline || null,
-          created_at: new Date().toISOString()
-        });
+        .insert(feedbackData);
 
-      if (feedbackError) throw feedbackError;
+      if (feedbackError) {
+        console.error('Error saving feedback:', feedbackError);
+        throw feedbackError;
+      }
 
+      console.log('Feedback saved successfully');
       onSaveSuccess();
 
       toast({
