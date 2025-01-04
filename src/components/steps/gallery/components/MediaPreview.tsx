@@ -3,15 +3,7 @@ interface MediaPreviewProps {
   isVideo?: boolean;
 }
 
-const MediaPreview = ({ imageUrl, isVideo = false }: MediaPreviewProps) => {
-  if (!imageUrl) {
-    return (
-      <div className="w-full h-full flex items-center justify-center bg-gray-100">
-        <p className="text-gray-500">No media available</p>
-      </div>
-    );
-  }
-
+const MediaPreview = ({ imageUrl, isVideo }: MediaPreviewProps) => {
   if (isVideo) {
     return (
       <div className="w-full h-full flex items-center justify-center bg-gray-100">
@@ -20,11 +12,19 @@ const MediaPreview = ({ imageUrl, isVideo = false }: MediaPreviewProps) => {
     );
   }
 
+  if (!imageUrl) {
+    return (
+      <div className="w-full h-full flex items-center justify-center bg-gray-100">
+        <p className="text-gray-500">No image available</p>
+      </div>
+    );
+  }
+
   return (
     <img
       src={imageUrl}
       alt="Ad preview"
-      className="object-cover w-full h-full rounded-lg"
+      className="object-cover w-full h-full"
     />
   );
 };

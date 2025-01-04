@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useParams } from "react-router-dom";
@@ -9,13 +8,7 @@ import MediaPreview from "./components/MediaPreview";
 import AdDetails from "./components/AdDetails";
 import DownloadControls from "./components/DownloadControls";
 import { AdFeedbackControls } from "./components/AdFeedbackControls";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-
-const AD_FORMATS = [
-  { width: 1200, height: 628, label: "Landscape (1.91:1)" },
-  { width: 1080, height: 1080, label: "Square (1:1)" },
-  { width: 1080, height: 1920, label: "Story (9:16)" }
-];
+import { AdSizeSelector, AD_FORMATS } from "./components/AdSizeSelector";
 
 interface AdPreviewCardProps {
   variant: {
@@ -170,28 +163,10 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewC
     <Card className="overflow-hidden">
       <div className="p-4 space-y-4">
         <div className="flex justify-between items-center mb-4">
-          <Select
-            value={`${selectedFormat.width}x${selectedFormat.height}`}
-            onValueChange={(value) => {
-              const [width, height] = value.split('x').map(Number);
-              const format = AD_FORMATS.find(f => f.width === width && f.height === height);
-              if (format) setSelectedFormat(format);
-            }}
-          >
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Select format" />
-            </SelectTrigger>
-            <SelectContent>
-              {AD_FORMATS.map((format) => (
-                <SelectItem 
-                  key={`${format.width}x${format.height}`} 
-                  value={`${format.width}x${format.height}`}
-                >
-                  {format.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <AdSizeSelector
+            selectedFormat={selectedFormat}
+            onFormatChange={setSelectedFormat}
+          />
         </div>
 
         <div 
