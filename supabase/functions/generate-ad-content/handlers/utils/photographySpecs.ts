@@ -32,4 +32,5 @@ export const getEnvironmentSpecs = (): string => `
 - Real-world commercial photography standards
 - Professional grade equipment quality
 - Industry-standard lighting techniques
-- Natural, realistic shadows and highlights`;
+- Natural, realistic shadows and highlights
+- Authentic, non-staged looking scenes`;
