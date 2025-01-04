@@ -1,7 +1,7 @@
 import { Document, Packer, Paragraph, TextRun } from 'docx';
 import jsPDF from 'jspdf';
 
-export const generatePDF = async (variant: any, imageUrl: string) => {
+export const generatePDF = async (variant: any, imageUrl: string): Promise<Blob> => {
   try {
     const doc = new jsPDF();
     
@@ -34,14 +34,15 @@ export const generatePDF = async (variant: any, imageUrl: string) => {
       doc.addImage(img, 'JPEG', 20, 80, imgWidth, imgHeight);
     }
     
-    doc.save(`ad-${variant.platform}-${Date.now()}.pdf`);
+    // Return blob instead of saving
+    return doc.output('blob');
   } catch (error) {
     console.error('Error generating PDF:', error);
     throw error;
   }
 };
 
-export const generateWord = async (variant: any, imageUrl: string) => {
+export const generateWord = async (variant: any, imageUrl: string): Promise<Blob> => {
   try {
     const doc = new Document({
       sections: [{
@@ -77,16 +78,12 @@ export const generateWord = async (variant: any, imageUrl: string) => {
       }],
     });
 
-    const buffer = await Packer.toBuffer(doc);
-    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `ad-${variant.platform}-${Date.now()}.docx`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
+    // Return blob instead of handling download
+    return await Packer.toBuffer(doc).then(buffer => {
+      return new Blob([buffer], { 
+        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' 
+      });
+    });
   } catch (error) {
     console.error('Error generating Word document:', error);
     throw error;
