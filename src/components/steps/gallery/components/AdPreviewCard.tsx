@@ -61,6 +61,10 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewC
     return null;
   };
 
+  const handleFormatChange = (format: { width: number; height: number; label: string }) => {
+    setSelectedFormat(format);
+  };
+
   const handleDownload = async () => {
     const imageUrl = getImageUrl();
     if (!imageUrl) {
@@ -167,7 +171,7 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewC
         <div className="flex justify-between items-center mb-4">
           <AdSizeSelector
             selectedFormat={selectedFormat}
-            onFormatChange={setSelectedFormat}
+            onFormatChange={handleFormatChange}
           />
         </div>
 
