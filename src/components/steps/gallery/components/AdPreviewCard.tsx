@@ -2,13 +2,13 @@ import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import MediaPreview from "./MediaPreview";
 import AdDetails from "./AdDetails";
 import DownloadControls from "./DownloadControls";
 import { AdFeedbackControls } from "./AdFeedbackControls";
 import { AdSizeSelector, AD_FORMATS } from "./AdSizeSelector";
+import { convertToFormat } from "@/utils/imageUtils";
 
 interface AdPreviewCardProps {
   variant: {
@@ -52,14 +52,6 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false, selectedForm
     return null;
   };
 
-  const handleFormatChange = async (format: { width: number; height: number; label: string }) => {
-    setSelectedFormat(format);
-    toast({
-      title: "Ad Size Updated",
-      description: `Preview updated to ${format.label} format`,
-    });
-  };
-
   const handleDownload = async () => {
     const imageUrl = getImageUrl();
     if (!imageUrl) {
@@ -74,10 +66,11 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false, selectedForm
     try {
       const response = await fetch(imageUrl);
       const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
+      const convertedBlob = await convertToFormat(URL.createObjectURL(blob), downloadFormat as "jpg" | "png");
+      const url = URL.createObjectURL(convertedBlob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `${variant.platform}-${isVideo ? 'video' : 'ad'}-${selectedFormat.width}x${selectedFormat.height}.${downloadFormat}`;
+      link.download = `${variant.platform}-${isVideo ? 'video' : 'ad'}-${format.width}x${format.height}.${downloadFormat}`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -85,7 +78,7 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false, selectedForm
 
       toast({
         title: "Success!",
-        description: `Your ${selectedFormat.label} ${isVideo ? 'video' : 'ad'} has been downloaded as ${downloadFormat.toUpperCase()}.`,
+        description: `Your ${format.label} ${isVideo ? 'video' : 'ad'} has been downloaded as ${downloadFormat.toUpperCase()}.`,
       });
     } catch (error) {
       console.error('Error downloading:', error);

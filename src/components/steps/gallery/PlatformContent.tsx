@@ -1,5 +1,5 @@
 import { AdHook } from "@/types/adWizard";
-import AdPreviewCard from "./AdPreviewCard";
+import AdPreviewCard from "./components/AdPreviewCard";
 
 interface PlatformContentProps {
   platformName: string;
