@@ -4,7 +4,6 @@ import { useParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import MediaPreview from "./MediaPreview";
-import AdDetails from "./AdDetails";
 import DownloadControls from "./DownloadControls";
 import { AdFeedbackControls } from "./AdFeedbackControls";
 import { convertToFormat } from "@/utils/imageUtils";
@@ -38,9 +37,6 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false, selectedForm
   const { toast } = useToast();
   const { projectId } = useParams();
 
-  // Use the selected format if provided, otherwise fall back to the variant's size
-  const format = selectedFormat || variant.size;
-
   const getImageUrl = () => {
     if (variant.image?.url) {
       return variant.image.url;
@@ -69,7 +65,7 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false, selectedForm
       const url = URL.createObjectURL(convertedBlob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `${variant.platform}-${isVideo ? 'video' : 'ad'}-${format.width}x${format.height}.${downloadFormat}`;
+      link.download = `${variant.platform}-${isVideo ? 'video' : 'ad'}-${selectedFormat?.width || variant.size.width}x${selectedFormat?.height || variant.size.height}.${downloadFormat}`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -77,7 +73,7 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false, selectedForm
 
       toast({
         title: "Success!",
-        description: `Your ${format.label} ${isVideo ? 'video' : 'ad'} has been downloaded as ${downloadFormat.toUpperCase()}.`,
+        description: `Your ${selectedFormat?.label || variant.size.label} ${isVideo ? 'video' : 'ad'} has been downloaded as ${downloadFormat.toUpperCase()}.`,
       });
     } catch (error) {
       console.error('Error downloading:', error);
@@ -134,9 +130,9 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false, selectedForm
 
   return (
     <Card className="overflow-hidden">
-      <div className="p-4 space-y-4">
+      <div className="space-y-3">
         {/* Description */}
-        <div className="bg-facebook/5 p-3 rounded-lg">
+        <div className="p-4 bg-facebook/5 rounded-lg">
           <p className="text-sm font-medium text-facebook mb-1">Ad Copy:</p>
           <p className="text-gray-800">{variant.description}</p>
         </div>
@@ -144,7 +140,7 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false, selectedForm
         {/* Image Preview */}
         <div 
           style={{ 
-            aspectRatio: `${format.width} / ${format.height}`,
+            aspectRatio: `${selectedFormat?.width || variant.size.width} / ${selectedFormat?.height || variant.size.height}`,
             maxHeight: '600px',
             transition: 'aspect-ratio 0.3s ease-in-out'
           }} 
@@ -153,18 +149,18 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false, selectedForm
           <MediaPreview
             imageUrl={getImageUrl()}
             isVideo={isVideo}
-            format={format}
+            format={selectedFormat || variant.size}
           />
         </div>
 
         {/* Headline */}
-        <div className="bg-gray-50 p-3 rounded-lg">
+        <div className="px-4 bg-gray-50 py-3 rounded-lg">
           <p className="text-sm font-medium text-gray-600 mb-1">Headline:</p>
           <p className="text-gray-800 font-medium">{variant.headline}</p>
         </div>
 
         {/* Controls and Feedback */}
-        <CardContent className="p-4 space-y-4">
+        <div className="px-4 py-3 space-y-3">
           <DownloadControls
             downloadFormat={downloadFormat}
             onFormatChange={(value) => setDownloadFormat(value as "jpg" | "png" | "pdf" | "docx")}
@@ -175,7 +171,7 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false, selectedForm
             adId={variant.id}
             projectId={projectId}
           />
-        </CardContent>
+        </div>
       </div>
     </Card>
   );
