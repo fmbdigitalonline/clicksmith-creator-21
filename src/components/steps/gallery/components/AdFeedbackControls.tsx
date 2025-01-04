@@ -35,14 +35,12 @@ export const AdFeedbackControls = ({ adId, projectId, onFeedbackSubmit }: AdFeed
         rating: newRating
       };
 
-      // First try to update existing feedback
       const { error: updateError } = await supabase
         .from('ad_feedback')
         .update(feedbackData)
         .eq('user_id', user.id)
         .eq('ad_id', adId);
 
-      // If no existing feedback was found, insert new feedback
       if (updateError) {
         const { error: insertError } = await supabase
           .from('ad_feedback')

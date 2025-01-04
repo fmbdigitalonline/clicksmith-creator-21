@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { AdFeedbackControls } from "@/components/steps/gallery/components/AdFeedbackControls";
+import { AdCard } from "./components/AdCard";
 import { Json } from "@/integrations/supabase/types";
 
 interface SavedAd {
@@ -33,15 +33,11 @@ export const SavedAdsGallery = () => {
   useEffect(() => {
     const fetchSavedAds = async () => {
       try {
-        console.log('Fetching saved ads...');
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) {
-          console.log('No user found');
           setIsLoading(false);
           return;
         }
-
-        console.log('User authenticated:', user.id);
 
         const { data, error } = await supabase
           .from('ad_feedback')
@@ -50,14 +46,8 @@ export const SavedAdsGallery = () => {
           .not('saved_images', 'is', null)
           .order('created_at', { ascending: false });
 
-        if (error) {
-          console.error('Error fetching ad feedback:', error);
-          throw error;
-        }
+        if (error) throw error;
 
-        console.log('Fetched ad feedback data:', data);
-
-        // Convert the data to match SavedAd interface
         const convertedAds: SavedAd[] = (data as AdFeedbackRow[]).map(ad => ({
           ...ad,
           saved_images: Array.isArray(ad.saved_images) 
@@ -67,7 +57,6 @@ export const SavedAdsGallery = () => {
               : []
         }));
 
-        console.log('Converted ads:', convertedAds);
         setSavedAds(convertedAds);
       } catch (error) {
         console.error('Error fetching saved ads:', error);
@@ -101,49 +90,14 @@ export const SavedAdsGallery = () => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {savedAds.map((ad) => (
-        <Card key={ad.id} className="overflow-hidden">
-          {/* Primary Text Section - First */}
-          {ad.primary_text && (
-            <CardContent className="p-4">
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-gray-600">Primary Text:</p>
-                <p className="text-gray-800">{ad.primary_text}</p>
-              </div>
-            </CardContent>
-          )}
-          
-          {/* Image Preview - Second */}
-          <div className="aspect-video relative">
-            {ad.saved_images && ad.saved_images[0] && (
-              <img
-                src={ad.saved_images[0]}
-                alt="Saved ad"
-                className="object-cover w-full h-full"
-              />
-            )}
-          </div>
-
-          {/* Headline Section - Third */}
-          {ad.headline && (
-            <CardContent className="p-4">
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-gray-600">Headline:</p>
-                <h3 className="text-lg font-semibold text-facebook">{ad.headline}</h3>
-              </div>
-            </CardContent>
-          )}
-
-          {/* Feedback Controls - Last */}
-          <CardContent className="p-4">
-            <AdFeedbackControls
-              adId={ad.id}
-              onFeedbackSubmit={() => {
-                // Refresh the gallery
-                window.location.reload();
-              }}
-            />
-          </CardContent>
-        </Card>
+        <AdCard
+          key={ad.id}
+          id={ad.id}
+          primaryText={ad.primary_text}
+          headline={ad.headline}
+          imageUrl={ad.saved_images[0]}
+          onFeedbackSubmit={() => window.location.reload()}
+        />
       ))}
     </div>
   );
