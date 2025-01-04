@@ -17,7 +17,7 @@ const Gallery = () => {
         .from("ad_feedback")
         .select("*")
         .eq("user_id", user.id)
-        .is("saved_images", "not", null);
+        .not("saved_images", "is", null);
 
       if (error) throw error;
       return data;
