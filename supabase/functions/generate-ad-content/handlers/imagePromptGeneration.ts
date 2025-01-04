@@ -1,44 +1,56 @@
 import { BusinessIdea, TargetAudience, MarketingCampaign } from '../Types.ts';
 import { generateWithReplicate } from './utils/replicateUtils.ts';
 
-const safeJSONParse = (str: string) => {
-  try {
-    const cleaned = str.replace(/[\u0000-\u001F\u007F-\u009F]/g, '')
-                      .replace(/\n/g, ' ')
-                      .trim();
-    return JSON.parse(cleaned);
-  } catch (error) {
-    console.error('JSON Parse Error:', error);
-    console.log('Problematic string:', str);
-    throw new Error(`Failed to parse JSON: ${error.message}`);
-  }
+interface ImageFormat {
+  width: number;
+  height: number;
+  label: string;
+}
+
+const DEFAULT_FORMAT = {
+  width: 1200,
+  height: 628,
+  label: "Facebook Feed"
 };
 
-const AD_FORMATS = [
-  { width: 1200, height: 628, label: "Landscape (1.91:1)" },
-  { width: 1080, height: 1080, label: "Square (1:1)" },
-  { width: 1080, height: 1920, label: "Story (9:16)" }
-];
+const IMAGE_FORMATS = {
+  landscape: [
+    { width: 1200, height: 628, label: "Facebook Feed" },
+    { width: 1080, height: 566, label: "Facebook Link" },
+    { width: 1080, height: 1080, label: "Facebook Square" }
+  ],
+  portrait: [
+    { width: 1080, height: 1350, label: "Instagram Portrait" },
+    { width: 1080, height: 1920, label: "Instagram Story" }
+  ],
+  square: [
+    { width: 1080, height: 1080, label: "Instagram Square" },
+    { width: 1080, height: 1080, label: "Facebook Square" }
+  ]
+};
 
 export async function generateImagePrompts(
   businessIdea: BusinessIdea,
   targetAudience: TargetAudience,
   campaign?: MarketingCampaign
-) {
-  const audiencePainPoints = targetAudience.painPoints || [];
-  const deepPainPoints = targetAudience.audienceAnalysis?.deepPainPoints || [];
-  const allPainPoints = [...new Set([...audiencePainPoints, ...deepPainPoints])];
+): Promise<Array<{ url: string; prompt: string; width: number; height: number; label: string }>> {
+  try {
+    console.log('Generating image prompts with params:', { businessIdea, targetAudience, campaign });
+    
+    const audiencePainPoints = targetAudience.painPoints || [];
+    const deepPainPoints = targetAudience.audienceAnalysis?.deepPainPoints || [];
+    const allPainPoints = [...new Set([...audiencePainPoints, ...deepPainPoints])];
 
-  const prompt = `Generate a highly detailed, photorealistic commercial advertising image prompt. The image must be indistinguishable from a professional DSLR photograph, with absolutely no artistic interpretations, illustrations, or cartoon elements.
+    const prompt = `Generate a highly detailed, photorealistic commercial advertising image prompt. The image must be indistinguishable from a professional DSLR photograph, with absolutely no artistic interpretations, illustrations, or cartoon elements.
 
 Business Context:
 ${JSON.stringify(businessIdea, null, 2)}
 
 Target Audience:
-${JSON.stringify({ ...targetAudience, painPoints: allPainPoints }, null, 2)}
+${JSON.stringify(targetAudience, null, 2)}
 
-${campaign ? `Campaign Details:
-${JSON.stringify(campaign, null, 2)}` : ''}
+Marketing Campaign:
+${campaign ? JSON.stringify(campaign, null, 2) : 'No specific campaign provided'}
 
 Key Pain Points to Address:
 ${allPainPoints.map(point => `- ${point}`).join('\n')}
@@ -62,22 +74,21 @@ Return ONLY a valid JSON array with exactly 1 item in this format:
   }
 ]`;
 
-  try {
-    console.log('Generating image prompts with:', { 
-      businessIdea, 
-      targetAudience, 
-      campaign,
-      combinedPainPoints: allPainPoints 
-    });
+    console.log('Sending prompt to OpenAI:', prompt);
+
+    const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+    if (!openAIApiKey) {
+      throw new Error('OpenAI API key is not configured');
+    }
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+        'Authorization': `Bearer ${openAIApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4',
         messages: [
           { 
             role: 'system', 
@@ -85,11 +96,15 @@ Return ONLY a valid JSON array with exactly 1 item in this format:
           },
           { role: 'user', content: prompt }
         ],
+        temperature: 0.7,
+        max_tokens: 1000,
       }),
     });
 
     if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`);
+      const error = await response.text();
+      console.error('OpenAI API error:', error);
+      throw new Error(`OpenAI API error: ${error}`);
     }
 
     const data = await response.json();
@@ -99,42 +114,43 @@ Return ONLY a valid JSON array with exactly 1 item in this format:
       throw new Error('Invalid response format from OpenAI');
     }
 
-    const generatedPrompts = safeJSONParse(data.choices[0].message.content);
-    console.log('Generated prompts:', generatedPrompts);
+    const generatedPrompts = JSON.parse(data.choices[0].message.content);
+    console.log('Parsed prompts:', generatedPrompts);
 
-    if (!Array.isArray(generatedPrompts) || generatedPrompts.length === 0) {
-      throw new Error('Invalid prompts format: Expected non-empty array');
+    if (!Array.isArray(generatedPrompts) || !generatedPrompts[0]?.prompt || typeof generatedPrompts[0].prompt !== 'string') {
+      throw new Error('Invalid prompt format: Expected string prompt');
     }
 
-    // Generate images for each format
-    const imagePromises = AD_FORMATS.map(async (format) => {
-      if (!generatedPrompts[0].prompt || typeof generatedPrompts[0].prompt !== 'string') {
-        throw new Error('Invalid prompt format: Expected string prompt');
-      }
+    const enhancedPrompt = `${generatedPrompts[0].prompt} 
+    Style requirements: ultra realistic, professional DSLR photo, commercial photography, absolutely no cartoon elements, no illustrations, photorealistic, high-end advertising, studio lighting, 8k quality`;
 
-      const enhancedPrompt = `${generatedPrompts[0].prompt} 
-      Style requirements: ultra realistic, professional DSLR photo, commercial photography, absolutely no cartoon elements, no illustrations, photorealistic, high-end advertising, studio lighting, 8k quality`;
+    // Determine which formats to generate based on campaign settings or default to landscape
+    const formatType = campaign?.format || 'landscape';
+    const formatsToGenerate = IMAGE_FORMATS[formatType as keyof typeof IMAGE_FORMATS] || [DEFAULT_FORMAT];
 
-      const imageUrl = await generateWithReplicate(enhancedPrompt, {
-        width: format.width,
-        height: format.height
-      });
+    // Generate images for all required formats
+    const generatedImages = await Promise.all(
+      formatsToGenerate.map(async (format) => {
+        const imageUrl = await generateWithReplicate(enhancedPrompt, {
+          width: format.width,
+          height: format.height
+        });
 
-      return {
-        url: imageUrl,
-        prompt: enhancedPrompt,
-        width: format.width,
-        height: format.height,
-        label: format.label
-      };
-    });
+        return {
+          url: imageUrl,
+          prompt: enhancedPrompt,
+          width: format.width,
+          height: format.height,
+          label: format.label
+        };
+      })
+    );
 
-    const images = await Promise.all(imagePromises);
-    console.log('Successfully generated images:', images);
-    
-    return { images };
+    console.log('Generated images:', generatedImages);
+    return generatedImages;
+
   } catch (error) {
-    console.error('Error in image prompt generation:', error);
+    console.error('Error in generateImagePrompts:', error);
     throw error;
   }
 }
