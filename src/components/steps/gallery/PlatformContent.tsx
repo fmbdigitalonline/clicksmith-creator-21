@@ -1,22 +1,21 @@
 import { AdHook } from "@/types/adWizard";
-import { AdFeedbackControls } from "./components/AdFeedbackControls";
-import { Card, CardContent } from "@/components/ui/card";
-import { useParams } from "react-router-dom";
+import AdPreviewCard from "./AdPreviewCard";
 
 interface PlatformContentProps {
   platformName: string;
   adVariants: any[];
   onCreateProject: () => void;
   videoAdsEnabled?: boolean;
+  selectedFormat?: { width: number; height: number; label: string };
 }
 
 const PlatformContent = ({ 
   platformName, 
   adVariants = [], 
-  onCreateProject, 
-  videoAdsEnabled = false 
+  onCreateProject,
+  videoAdsEnabled = false,
+  selectedFormat
 }: PlatformContentProps) => {
-  const { projectId } = useParams();
   const filteredVariants = Array.isArray(adVariants) ? adVariants : [];
 
   if (filteredVariants.length === 0) {
@@ -39,41 +38,13 @@ const PlatformContent = ({
       <p className="text-sm text-gray-600 mb-4">{platformSpecificMessage}</p>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {filteredVariants.map((variant, index) => (
-          <Card key={`${index}-${variant.size?.label || 'default'}`} className="overflow-hidden">
-            <CardContent className="p-4 space-y-4">
-              {/* Description Section */}
-              <div className="bg-facebook/5 p-3 rounded-lg">
-                <p className="text-sm font-medium text-facebook mb-1">Description:</p>
-                <p className="text-gray-800">{variant.description}</p>
-              </div>
-
-              {/* Image Section */}
-              <div className="aspect-video relative">
-                <img
-                  src={variant.imageUrl}
-                  alt={`Ad variant ${index + 1}`}
-                  className="object-cover w-full h-full rounded-lg"
-                />
-              </div>
-
-              {/* Headline Section */}
-              <div className="bg-gray-50 p-3 rounded-lg">
-                <p className="text-sm font-medium text-gray-600 mb-1">Headline:</p>
-                <h3 className="text-lg font-medium text-gray-800">{variant.headline}</h3>
-              </div>
-
-              {/* Feedback and Save Controls */}
-              <div className="pt-4 border-t">
-                <AdFeedbackControls
-                  adId={variant.id}
-                  projectId={projectId}
-                  onFeedbackSubmit={() => {
-                    // Optionally refresh the gallery or show a success message
-                  }}
-                />
-              </div>
-            </CardContent>
-          </Card>
+          <AdPreviewCard
+            key={`${index}-${variant.size?.label || 'default'}`}
+            variant={variant}
+            onCreateProject={onCreateProject}
+            isVideo={videoAdsEnabled}
+            selectedFormat={selectedFormat}
+          />
         ))}
       </div>
     </div>

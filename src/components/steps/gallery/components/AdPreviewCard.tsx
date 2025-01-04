@@ -30,14 +30,17 @@ interface AdPreviewCardProps {
   };
   onCreateProject: () => void;
   isVideo?: boolean;
+  selectedFormat?: { width: number; height: number; label: string };
 }
 
-const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewCardProps) => {
-  const [selectedFormat, setSelectedFormat] = useState(AD_FORMATS[0]);
+const AdPreviewCard = ({ variant, onCreateProject, isVideo = false, selectedFormat }: AdPreviewCardProps) => {
   const [downloadFormat, setDownloadFormat] = useState<"jpg" | "png" | "pdf" | "docx">("jpg");
   const [isSaving, setSaving] = useState(false);
   const { toast } = useToast();
   const { projectId } = useParams();
+
+  // Use the selected format if provided, otherwise fall back to the variant's size
+  const format = selectedFormat || variant.size;
 
   const getImageUrl = () => {
     if (variant.image?.url) {
@@ -135,16 +138,9 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewC
   return (
     <Card className="overflow-hidden">
       <div className="p-4 space-y-4">
-        <div className="flex justify-between items-center mb-4">
-          <AdSizeSelector
-            selectedFormat={selectedFormat}
-            onFormatChange={handleFormatChange}
-          />
-        </div>
-
         <div 
           style={{ 
-            aspectRatio: `${selectedFormat.width} / ${selectedFormat.height}`,
+            aspectRatio: `${format.width} / ${format.height}`,
             maxHeight: '600px',
             transition: 'aspect-ratio 0.3s ease-in-out'
           }} 
@@ -153,7 +149,7 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewC
           <MediaPreview
             imageUrl={getImageUrl()}
             isVideo={isVideo}
-            format={selectedFormat}
+            format={format}
           />
         </div>
 
