@@ -29,13 +29,18 @@ export const AdFeedbackControls = ({ adId, projectId, onFeedbackSubmit }: AdFeed
         return;
       }
 
+      const feedbackData = {
+        user_id: user.id,
+        project_id: projectId,
+        ad_id: adId,
+        rating: newRating,
+      };
+
       const { error } = await supabase
         .from('ad_feedback')
-        .upsert({
-          user_id: user.id,
-          project_id: projectId,
-          ad_id: adId,
-          rating: newRating,
+        .upsert(feedbackData, {
+          onConflict: 'user_id, ad_id',
+          ignoreDuplicates: false,
         });
 
       if (error) throw error;
@@ -70,14 +75,16 @@ export const AdFeedbackControls = ({ adId, projectId, onFeedbackSubmit }: AdFeed
         return;
       }
 
+      const feedbackData = {
+        user_id: user.id,
+        project_id: projectId,
+        ad_id: adId,
+        feedback: 'saved',
+      };
+
       const { error } = await supabase
         .from('ad_feedback')
-        .insert({
-          user_id: user.id,
-          project_id: projectId,
-          ad_id: adId,
-          feedback: 'saved',
-        });
+        .insert(feedbackData);
 
       if (error) throw error;
 

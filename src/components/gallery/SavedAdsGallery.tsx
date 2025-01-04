@@ -21,7 +21,10 @@ export const SavedAdsGallery = () => {
     const fetchSavedAds = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
+        if (!user) {
+          setIsLoading(false);
+          return;
+        }
 
         const { data, error } = await supabase
           .from('ad_feedback')
