@@ -33,16 +33,24 @@ export const AdFeedbackControls = ({ adId, projectId, onFeedbackSubmit }: AdFeed
         user_id: user.id,
         project_id: projectId,
         ad_id: adId,
-        rating: newRating,
+        rating: newRating
       };
 
-      const { error } = await supabase
+      // First try to update existing feedback
+      const { error: updateError } = await supabase
         .from('ad_feedback')
-        .upsert(feedbackData, {
-          onConflict: 'user_id, ad_id'
-        });
+        .update(feedbackData)
+        .eq('user_id', user.id)
+        .eq('ad_id', adId);
 
-      if (error) throw error;
+      // If no existing feedback was found, insert new feedback
+      if (updateError) {
+        const { error: insertError } = await supabase
+          .from('ad_feedback')
+          .insert(feedbackData);
+
+        if (insertError) throw insertError;
+      }
 
       setRating(newRating);
       onFeedbackSubmit?.();
@@ -82,13 +90,21 @@ export const AdFeedbackControls = ({ adId, projectId, onFeedbackSubmit }: AdFeed
         saved_images: [adId]
       };
 
-      const { error } = await supabase
+      // First try to update existing feedback
+      const { error: updateError } = await supabase
         .from('ad_feedback')
-        .upsert(feedbackData, {
-          onConflict: 'user_id, ad_id'
-        });
+        .update(feedbackData)
+        .eq('user_id', user.id)
+        .eq('ad_id', adId);
 
-      if (error) throw error;
+      // If no existing feedback was found, insert new feedback
+      if (updateError) {
+        const { error: insertError } = await supabase
+          .from('ad_feedback')
+          .insert(feedbackData);
+
+        if (insertError) throw insertError;
+      }
 
       setIsFavorite(true);
       onFeedbackSubmit?.();
