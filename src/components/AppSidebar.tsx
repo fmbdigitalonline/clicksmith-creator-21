@@ -5,7 +5,6 @@ import {
   Settings,
   ChevronRight,
   PlusCircle,
-  BookmarkIcon,
 } from "lucide-react";
 import {
   Sidebar,
@@ -29,11 +28,6 @@ const menuItems = [
     title: "Projects",
     icon: FolderKanban,
     url: "/projects",
-  },
-  {
-    title: "Saved Ads",
-    icon: BookmarkIcon,
-    url: "/saved-ads",
   },
   {
     title: "Settings",
