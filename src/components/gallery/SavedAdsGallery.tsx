@@ -30,6 +30,7 @@ export const SavedAdsGallery = () => {
           .from('ad_feedback')
           .select('*')
           .eq('user_id', user.id)
+          .not('saved_images', 'is', null)
           .order('created_at', { ascending: false });
 
         if (error) throw error;

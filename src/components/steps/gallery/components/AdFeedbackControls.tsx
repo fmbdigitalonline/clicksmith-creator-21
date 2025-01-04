@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ThumbsUp, ThumbsDown, Heart, Save } from "lucide-react";
+import { ThumbsUp, ThumbsDown, Heart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -34,6 +34,7 @@ export const AdFeedbackControls = ({ adId, projectId, onFeedbackSubmit }: AdFeed
         project_id: projectId,
         ad_id: adId,
         rating: newRating,
+        saved_images: null // Initialize saved_images as null for feedback
       };
 
       const { error } = await supabase
@@ -80,6 +81,7 @@ export const AdFeedbackControls = ({ adId, projectId, onFeedbackSubmit }: AdFeed
         project_id: projectId,
         ad_id: adId,
         feedback: 'saved',
+        saved_images: [adId] // Store the ad ID in saved_images array
       };
 
       const { error } = await supabase
