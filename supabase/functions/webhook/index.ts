@@ -32,26 +32,29 @@ serve(async (req) => {
 
     // Log important information for debugging
     const body = await req.text();
-    console.log('Received webhook body:', body);
-    console.log('Signature:', signature);
-    console.log('Using webhook secret (first 10 chars):', webhookSecret.substring(0, 10));
+    console.log('=== WEBHOOK DEBUG INFO ===');
+    console.log('Webhook Secret (first 10 chars):', webhookSecret.substring(0, 10));
+    console.log('Stripe Signature:', signature);
+    console.log('Request Body (first 100 chars):', body.substring(0, 100));
+    console.log('========================');
 
     let event;
     try {
+      console.log('Attempting to construct event with provided secret...');
       event = stripe.webhooks.constructEvent(
         body,
         signature,
         webhookSecret
       );
+      console.log('Event successfully constructed:', event.type);
     } catch (err) {
-      console.error(`⚠️ Webhook signature verification failed:`, err.message);
+      console.error(`⚠️ Webhook signature verification failed with secret ${webhookSecret.substring(0, 10)}...`);
+      console.error('Error details:', err.message);
       return new Response(
         JSON.stringify({ error: `Webhook signature verification failed: ${err.message}` }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-
-    console.log('Successfully constructed event:', event.type);
 
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
