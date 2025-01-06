@@ -47,6 +47,8 @@ const CreditsCard = () => {
       return subscription?.credits_remaining || 0;
     },
     refetchInterval: 5000, // Refresh every 5 seconds
+    refetchOnWindowFocus: true,
+    staleTime: 0, // Consider data immediately stale
   });
 
   return (

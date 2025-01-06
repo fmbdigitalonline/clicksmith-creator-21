@@ -37,6 +37,8 @@ export const CreditDisplay = () => {
       return data;
     },
     enabled: !!user?.id,
+    refetchInterval: 5000, // Refetch every 5 seconds
+    refetchOnWindowFocus: true,
   });
 
   const { data: freeUsage } = useQuery({
@@ -61,6 +63,8 @@ export const CreditDisplay = () => {
       return data;
     },
     enabled: !!user?.id,
+    refetchInterval: 5000, // Refetch every 5 seconds
+    refetchOnWindowFocus: true,
   });
 
   const getCreditsDisplay = () => {
