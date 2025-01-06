@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { AdFeedbackControls } from "../steps/gallery/components/AdFeedbackControls";
+import { AdFeedbackControls } from "@/components/steps/gallery/components/AdFeedbackControls";
 import { Json } from "@/integrations/supabase/types";
 
 interface SavedAd {
