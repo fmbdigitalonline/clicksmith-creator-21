@@ -11,7 +11,7 @@ const ForgotPassword = () => {
         appearance={{ theme: ThemeSupa }}
         theme="light"
         providers={[]}
-        view="forgot_password"
+        view="forgotten_password"
       />
     </div>
   );
