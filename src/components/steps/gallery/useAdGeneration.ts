@@ -22,6 +22,7 @@ export const useAdGeneration = (
   // Load saved ad variants when component mounts
   useEffect(() => {
     const loadSavedAds = async () => {
+      console.log('Loading saved ads for project:', projectId);
       if (projectId && projectId !== 'new') {
         const { data: project } = await supabase
           .from('projects')
@@ -29,7 +30,10 @@ export const useAdGeneration = (
           .eq('id', projectId)
           .single();
         
+        console.log('Loaded project data:', project);
+        
         if (project?.generated_ads && Array.isArray(project.generated_ads)) {
+          console.log('Setting ad variants from project:', project.generated_ads);
           setAdVariants(project.generated_ads);
         }
       }
@@ -137,10 +141,14 @@ export const useAdGeneration = (
 
           // Save to project if we have a project ID
           if (projectId && projectId !== 'new') {
+            // Merge new variants with existing ones
+            const updatedVariants = [...adVariants, newVariant];
+            console.log('Saving updated variants to project:', updatedVariants);
+            
             const { error: updateError } = await supabase
               .from('projects')
               .update({
-                generated_ads: adVariants.concat([newVariant])
+                generated_ads: updatedVariants
               })
               .eq('id', projectId);
 
