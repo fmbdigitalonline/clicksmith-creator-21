@@ -20,14 +20,17 @@ serve(async (req) => {
 
     const signature = req.headers.get('stripe-signature');
     if (!signature) {
+      console.error('No Stripe signature found in request headers');
       throw new Error('No Stripe signature found');
     }
 
     const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET');
     if (!webhookSecret) {
+      console.error('Webhook secret not configured');
       throw new Error('Webhook secret not configured');
     }
 
+    // Log important information for debugging
     const body = await req.text();
     console.log('Received webhook body:', body);
     console.log('Signature:', signature);
@@ -41,12 +44,14 @@ serve(async (req) => {
         webhookSecret
       );
     } catch (err) {
-      console.error(`Webhook signature verification failed:`, err.message);
+      console.error(`⚠️ Webhook signature verification failed:`, err.message);
       return new Response(
         JSON.stringify({ error: `Webhook signature verification failed: ${err.message}` }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    console.log('Successfully constructed event:', event.type);
 
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
