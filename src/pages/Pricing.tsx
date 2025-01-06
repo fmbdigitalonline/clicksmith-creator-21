@@ -28,7 +28,7 @@ const Pricing = () => {
       const { data, error } = await supabase
         .from('plans')
         .select('*')
-        .in('price', [10, 29, 99])
+        .in('price', [10, 29, 99]) // Updated to include 99 instead of duplicate 29
         .order('price')
         .limit(3);
       
