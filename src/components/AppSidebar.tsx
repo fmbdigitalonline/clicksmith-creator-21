@@ -4,10 +4,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Menu } from "lucide-react";
 import { NavLink } from "react-router-dom";
-import { useSidebarContext } from "./ui/sidebar";
+import { useSidebar } from "./ui/sidebar";
 
 export function AppSidebar() {
-  const { isOpen, setIsOpen } = useSidebarContext();
+  const { isOpen, setIsOpen } = useSidebar();
 
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
