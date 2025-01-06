@@ -308,6 +308,45 @@ export type Database = {
         }
         Relationships: []
       }
+      payments: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string
+          customer_email: string | null
+          id: string
+          status: string
+          stripe_payment_intent: string | null
+          stripe_session_id: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          currency: string
+          customer_email?: string | null
+          id?: string
+          status: string
+          stripe_payment_intent?: string | null
+          stripe_session_id: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          customer_email?: string | null
+          id?: string
+          status?: string
+          stripe_payment_intent?: string | null
+          stripe_session_id?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       plans: {
         Row: {
           active: boolean | null
@@ -354,6 +393,7 @@ export type Database = {
           full_name: string | null
           id: string
           is_active: boolean | null
+          payment_status: string | null
           updated_at: string
           username: string | null
         }
@@ -363,6 +403,7 @@ export type Database = {
           full_name?: string | null
           id: string
           is_active?: boolean | null
+          payment_status?: string | null
           updated_at?: string
           username?: string | null
         }
@@ -372,6 +413,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           is_active?: boolean | null
+          payment_status?: string | null
           updated_at?: string
           username?: string | null
         }
