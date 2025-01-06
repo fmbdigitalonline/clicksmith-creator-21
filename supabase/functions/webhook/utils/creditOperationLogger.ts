@@ -3,30 +3,34 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 export const creditOperationLogger = async (
   supabaseClient: ReturnType<typeof createClient>,
   userId: string,
-  operationType: string,
+  operationType: 'add' | 'deduct',
   creditsAmount: number,
   errorMessage?: string
 ) => {
-  console.log('Logging credit operation:', {
-    userId,
-    operationType,
-    creditsAmount,
-    errorMessage
-  });
+  try {
+    const { error } = await supabaseClient
+      .from('credit_operations')
+      .insert({
+        user_id: userId,
+        operation_type: operationType,
+        credits_amount: creditsAmount,
+        status: errorMessage ? 'failed' : 'success',
+        error_message: errorMessage
+      });
 
-  const { error: logError } = await supabaseClient.rpc('log_credit_operation', {
-    p_user_id: userId,
-    p_operation_type: operationType,
-    p_credits_amount: creditsAmount,
-    p_status: errorMessage ? 'failed' : 'success',
-    p_error_message: errorMessage || null
-  });
+    if (error) {
+      console.error('Error logging credit operation:', error);
+      throw error;
+    }
 
-  if (logError) {
-    console.error('Error logging credit operation:', logError);
-    // Don't throw here, as credits were already handled
-    console.error('Credit operation logging failed but credits were processed');
-  } else {
-    console.log('Successfully logged credit operation');
+    console.log('Successfully logged credit operation:', {
+      userId,
+      operationType,
+      creditsAmount,
+      status: errorMessage ? 'failed' : 'success'
+    });
+  } catch (error) {
+    console.error('Failed to log credit operation:', error);
+    // We don't throw here to prevent breaking the main flow
   }
 };
