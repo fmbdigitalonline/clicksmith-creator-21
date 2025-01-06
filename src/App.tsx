@@ -26,11 +26,9 @@ function App() {
               <Route
                 path="/"
                 element={
-                  <ProtectedRoute>
-                    <AppLayout>
-                      <Index />
-                    </AppLayout>
-                  </ProtectedRoute>
+                  <AppLayout>
+                    <Index />
+                  </AppLayout>
                 }
               />
               <Route
