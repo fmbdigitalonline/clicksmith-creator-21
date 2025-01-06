@@ -32,7 +32,6 @@ serve(async (req) => {
 
     console.log('Processing webhook event:', event.type);
 
-    // Handle the event
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object;
@@ -75,24 +74,67 @@ serve(async (req) => {
 
         console.log('Retrieved plan data:', planData);
 
+        // Check for existing subscription
+        const { data: existingSubscription } = await supabaseClient
+          .from('subscriptions')
+          .select('*')
+          .eq('user_id', userId)
+          .eq('active', true)
+          .maybeSingle();
+
         if (session.mode === 'payment') {
           console.log('Processing one-time payment');
-          // Handle one-time payment
-          const { error: subscriptionError } = await supabaseClient
-            .from('subscriptions')
-            .upsert({
-              user_id: userId,
-              plan_id: planData.id,
-              stripe_customer_id: customerId,
-              credits_remaining: planData.credits,
-              current_period_start: new Date().toISOString(),
-              current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
-              active: true,
-            });
+          
+          const creditsToAdd = planData.credits;
+          const currentCredits = existingSubscription?.credits_remaining || 0;
+          const newCredits = currentCredits + creditsToAdd;
 
-          if (subscriptionError) {
-            console.error('Error updating subscription:', subscriptionError);
-            throw subscriptionError;
+          if (existingSubscription) {
+            // Update existing subscription with additional credits
+            const { error: updateError } = await supabaseClient
+              .from('subscriptions')
+              .update({
+                credits_remaining: newCredits,
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', existingSubscription.id);
+
+            if (updateError) {
+              console.error('Error updating subscription credits:', updateError);
+              throw updateError;
+            }
+          } else {
+            // Create new subscription entry
+            const { error: subscriptionError } = await supabaseClient
+              .from('subscriptions')
+              .insert({
+                user_id: userId,
+                plan_id: planData.id,
+                stripe_customer_id: customerId,
+                credits_remaining: creditsToAdd,
+                current_period_start: new Date().toISOString(),
+                current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
+                active: true,
+              });
+
+            if (subscriptionError) {
+              console.error('Error creating subscription:', subscriptionError);
+              throw subscriptionError;
+            }
+          }
+
+          // Log the credit operation
+          const { error: logError } = await supabaseClient.rpc('log_credit_operation', {
+            p_user_id: userId,
+            p_operation_type: 'add',
+            p_credits_amount: creditsToAdd,
+            p_status: 'success',
+            p_error_message: null
+          });
+
+          if (logError) {
+            console.error('Error logging credit operation:', logError);
+            // Don't throw here, as credits were already added
           }
 
           console.log('Successfully processed one-time payment and updated credits');
