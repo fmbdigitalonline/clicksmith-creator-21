@@ -43,8 +43,8 @@ const AdWizard = () => {
       const { data: { user } } = await supabase.auth.getUser();
       setIsAuthenticated(!!user);
 
-      // Redirect if trial used and not authenticated
-      if (!user && hasUsedTrial) {
+      // Only redirect if trial used and not authenticated
+      if (!user && hasUsedTrial && projectId === 'new') {
         toast({
           title: "Free Trial Used",
           description: "Please sign up to continue using ProfitPilot and get 11 more free credits!",
@@ -55,7 +55,7 @@ const AdWizard = () => {
     };
 
     checkAuth();
-  }, [hasUsedTrial, navigate]);
+  }, [hasUsedTrial, navigate, projectId]);
 
   // Handle project initialization
   useEffect(() => {
@@ -138,6 +138,7 @@ const AdWizard = () => {
     const props = {
       isAnonymous: !isAuthenticated,
       onMarkSessionUsed: markSessionAsUsed,
+      sessionId,
     };
 
     switch (currentStep) {
@@ -179,7 +180,7 @@ const AdWizard = () => {
       default:
         return null;
     }
-  }, [currentStep, businessIdea, targetAudience, audienceAnalysis, selectedHooks, videoAdsEnabled, isAuthenticated]);
+  }, [currentStep, businessIdea, targetAudience, audienceAnalysis, selectedHooks, videoAdsEnabled, isAuthenticated, sessionId]);
 
   return (
     <div className="container max-w-6xl mx-auto px-4 py-8">
