@@ -30,9 +30,12 @@ serve(async (req) => {
 
     const body = await req.text();
     console.log('Received webhook body:', body);
+    console.log('Signature:', signature);
+    console.log('Using webhook secret (first 10 chars):', webhookSecret.substring(0, 10));
 
     let event;
     try {
+      // Try constructing the event with the provided signature
       event = stripe.webhooks.constructEvent(
         body,
         signature,
@@ -41,7 +44,7 @@ serve(async (req) => {
     } catch (err) {
       console.error(`Webhook signature verification failed:`, err.message);
       return new Response(
-        JSON.stringify({ error: `Webhook signature verification failed` }),
+        JSON.stringify({ error: `Webhook signature verification failed: ${err.message}` }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
