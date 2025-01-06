@@ -18,8 +18,21 @@ serve(async (req: Request) => {
   }
 
   try {
-    // Get the raw request body
+    // Get the raw request body and signature header
     const body = await req.text()
+    const signature = req.headers.get('stripe-signature')
+    
+    if (!signature) {
+      console.error('No Stripe signature found in request headers')
+      return new Response(
+        JSON.stringify({ error: 'No Stripe signature found' }), 
+        { 
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      )
+    }
+
     console.log('Request body received:', body)
 
     // Initialize Stripe with the secret key
@@ -39,17 +52,21 @@ serve(async (req: Request) => {
       }
     )
 
-    // Parse the event
+    // Verify the event using the webhook secret and signature
     let event: Stripe.Event
     try {
-      event = JSON.parse(body)
-      console.log('Successfully parsed Stripe event:', event.type)
+      event = stripe.webhooks.constructEvent(
+        body,
+        signature,
+        Deno.env.get('STRIPE_WEBHOOK_SECRET') || ''
+      )
+      console.log('Successfully verified Stripe event:', event.type)
     } catch (err) {
-      console.error('Error parsing webhook body:', err)
+      console.error('Error verifying webhook signature:', err)
       return new Response(
-        JSON.stringify({ error: 'Error parsing webhook body' }), 
+        JSON.stringify({ error: 'Invalid signature' }), 
         { 
-          status: 400, 
+          status: 401,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       )
