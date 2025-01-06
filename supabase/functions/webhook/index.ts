@@ -9,7 +9,14 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  console.log('Webhook received request:', {
+    method: req.method,
+    url: req.url,
+    headers: Object.fromEntries(req.headers.entries()),
+  });
+
   if (req.method === 'OPTIONS') {
+    console.log('Handling CORS preflight request');
     return new Response(null, { headers: corsHeaders });
   }
 
@@ -19,37 +26,40 @@ serve(async (req) => {
     });
 
     const signature = req.headers.get('stripe-signature');
-    if (!signature) {
-      console.error('No Stripe signature found in request headers');
-      throw new Error('No Stripe signature found');
-    }
+    console.log('Stripe signature:', signature);
 
     const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET');
     if (!webhookSecret) {
-      console.error('Webhook secret not configured');
+      console.error('STRIPE_WEBHOOK_SECRET is not configured');
       throw new Error('Webhook secret not configured');
     }
+    console.log('Webhook secret configured (first 10 chars):', webhookSecret.substring(0, 10));
 
     // Log important information for debugging
     const body = await req.text();
-    console.log('=== WEBHOOK DEBUG INFO ===');
+    console.log('=== WEBHOOK REQUEST DEBUG INFO ===');
+    console.log('Request URL:', req.url);
+    console.log('Request Method:', req.method);
+    console.log('Stripe-Signature:', signature);
     console.log('Webhook Secret (first 10 chars):', webhookSecret.substring(0, 10));
-    console.log('Stripe Signature:', signature);
     console.log('Request Body (first 100 chars):', body.substring(0, 100));
+    console.log('Full Request Body:', body);
     console.log('========================');
 
     let event;
     try {
-      console.log('Attempting to construct event with provided secret...');
+      console.log('Attempting to construct Stripe event...');
       event = stripe.webhooks.constructEvent(
         body,
-        signature,
+        signature || '',
         webhookSecret
       );
       console.log('Event successfully constructed:', event.type);
     } catch (err) {
-      console.error(`⚠️ Webhook signature verification failed with secret ${webhookSecret.substring(0, 10)}...`);
+      console.error('⚠️ Webhook signature verification failed');
       console.error('Error details:', err.message);
+      console.error('Webhook secret used (first 10 chars):', webhookSecret.substring(0, 10));
+      console.error('Signature received:', signature);
       return new Response(
         JSON.stringify({ error: `Webhook signature verification failed: ${err.message}` }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -61,7 +71,9 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     );
 
+    console.log('Processing Stripe event:', event.type);
     await handleStripeEvent(event, stripe, supabaseClient);
+    console.log('Successfully processed Stripe event:', event.type);
 
     return new Response(JSON.stringify({ received: true }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -69,6 +81,7 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error('Webhook error:', error.message);
+    console.error('Full error:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
       {

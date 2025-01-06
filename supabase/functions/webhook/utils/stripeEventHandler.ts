@@ -1,6 +1,5 @@
 import { Stripe } from 'https://esm.sh/stripe@14.21.0';
 import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
-import { handleSubscriptionChange } from './subscriptionHandler.ts';
 import { handleCheckoutComplete } from './checkoutHandler.ts';
 
 export async function handleStripeEvent(
@@ -49,6 +48,7 @@ export async function handleStripeEvent(
           }
 
           if (existingSubscription) {
+            console.log('Updating existing subscription for user:', userId);
             // Update existing subscription
             const { error: updateError } = await supabaseClient
               .from('subscriptions')
@@ -63,6 +63,7 @@ export async function handleStripeEvent(
               throw updateError;
             }
           } else {
+            console.log('Creating new subscription for user:', userId);
             // Create new subscription record
             const { error: insertError } = await supabaseClient
               .from('subscriptions')
@@ -97,12 +98,24 @@ export async function handleStripeEvent(
         }
       } else {
         // Handle subscription payment
+        console.log('Handling subscription payment');
         await handleCheckoutComplete(session, supabaseClient);
       }
       break;
     }
     case 'customer.subscription.deleted': {
-      await handleSubscriptionChange(event.data.object as Stripe.Subscription, supabaseClient);
+      console.log('Processing subscription deletion');
+      const subscription = event.data.object as Stripe.Subscription;
+      // Handle subscription deletion
+      const { error } = await supabaseClient
+        .from('subscriptions')
+        .update({ active: false })
+        .eq('stripe_subscription_id', subscription.id);
+      
+      if (error) {
+        console.error('Error updating subscription status:', error);
+        throw error;
+      }
       break;
     }
     default:
