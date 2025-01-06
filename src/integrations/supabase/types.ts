@@ -97,6 +97,27 @@ export type Database = {
           },
         ]
       }
+      anonymous_usage: {
+        Row: {
+          created_at: string
+          id: string
+          session_id: string
+          used: boolean | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          session_id: string
+          used?: boolean | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          session_id?: string
+          used?: boolean | null
+        }
+        Relationships: []
+      }
       credit_operations: {
         Row: {
           created_at: string
