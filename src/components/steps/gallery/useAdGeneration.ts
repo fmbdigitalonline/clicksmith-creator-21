@@ -2,8 +2,8 @@ import { BusinessIdea, TargetAudience, AdHook } from "@/types/adWizard";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { useState, useEffect } from "react";
 
 export const useAdGeneration = (
   businessIdea: BusinessIdea,
@@ -17,6 +17,26 @@ export const useAdGeneration = (
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const { projectId } = useParams();
+
+  // Load saved ad variants when component mounts
+  useEffect(() => {
+    const loadSavedAds = async () => {
+      if (projectId && projectId !== 'new') {
+        const { data: project } = await supabase
+          .from('projects')
+          .select('generated_ads')
+          .eq('id', projectId)
+          .single();
+        
+        if (project?.generated_ads) {
+          setAdVariants(project.generated_ads);
+        }
+      }
+    };
+
+    loadSavedAds();
+  }, [projectId]);
 
   const checkCredits = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -31,7 +51,6 @@ export const useAdGeneration = (
       throw error;
     }
 
-    // Check the first element of the returned array
     const result = creditCheck[0];
     
     if (!result.has_credits) {
@@ -97,7 +116,8 @@ export const useAdGeneration = (
             .insert({
               original_image_url: variant.imageUrl,
               resized_image_urls: variant.resizedUrls || {},
-              user_id: (await supabase.auth.getUser()).data.user?.id
+              user_id: (await supabase.auth.getUser()).data.user?.id,
+              project_id: projectId !== 'new' ? projectId : null
             })
             .select()
             .single();
@@ -107,13 +127,29 @@ export const useAdGeneration = (
             return null;
           }
 
-          return {
+          const newVariant = {
             ...variant,
             id: imageVariant.id,
             imageUrl: variant.imageUrl,
             resizedUrls: variant.resizedUrls || {},
-            platform: selectedPlatform // Ensure platform is set for each variant
+            platform: selectedPlatform
           };
+
+          // Save to project if we have a project ID
+          if (projectId && projectId !== 'new') {
+            const { error: updateError } = await supabase
+              .from('projects')
+              .update({
+                generated_ads: adVariants.concat([newVariant])
+              })
+              .eq('id', projectId);
+
+            if (updateError) {
+              console.error('Error updating project:', updateError);
+            }
+          }
+
+          return newVariant;
         } catch (error) {
           console.error('Error processing variant:', error);
           return null;
@@ -121,7 +157,7 @@ export const useAdGeneration = (
       }));
 
       console.log('Processed ad variants:', processedVariants);
-      setAdVariants(processedVariants.filter(Boolean));
+      setAdVariants(prev => [...prev, ...processedVariants.filter(Boolean)]);
       setRegenerationCount(prev => prev + 1);
       
       toast({
