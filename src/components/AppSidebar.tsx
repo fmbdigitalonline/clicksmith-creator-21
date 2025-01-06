@@ -5,6 +5,7 @@ import {
   Settings,
   ChevronRight,
   PlusCircle,
+  Images,
 } from "lucide-react";
 import {
   Sidebar,
@@ -30,6 +31,12 @@ const menuItems = [
     url: "/projects",
   },
   {
+    title: "Ad Gallery",
+    icon: Images,
+    url: "/ad-wizard",
+    showCondition: (pathname: string) => pathname.includes('/ad-wizard'),
+  },
+  {
     title: "Settings",
     icon: Settings,
     url: "/settings",
@@ -44,6 +51,9 @@ export function AppSidebar() {
   const isActive = (path: string) => {
     if (path === "/") {
       return currentPath === "/" || currentPath === "/projects";
+    }
+    if (path === "/ad-wizard") {
+      return currentPath.includes('/ad-wizard');
     }
     return currentPath === path;
   };
@@ -68,7 +78,9 @@ export function AppSidebar() {
           <SidebarGroupLabel>Menu</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {menuItems.map((item) => (
+              {menuItems
+                .filter(item => !item.showCondition || item.showCondition(currentPath))
+                .map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild
