@@ -6,12 +6,12 @@ import "./App.css";
 import { Routes, Route } from "react-router-dom";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { AppLayout } from "./components/layout/AppLayout";
-import { Login } from "./pages/Login";
-import { Index } from "./pages/Index";
-import { Projects } from "./pages/Projects";
-import { Settings } from "./pages/Settings";
-import { Pricing } from "./pages/Pricing";
-import { Dashboard } from "./pages/Dashboard";
+import Login from "./pages/Login";
+import Index from "./pages/Index";
+import Projects from "./pages/Projects";
+import Settings from "./pages/Settings";
+import Pricing from "./pages/Pricing";
+import Dashboard from "./pages/Dashboard";
 
 const queryClient = new QueryClient();
 
