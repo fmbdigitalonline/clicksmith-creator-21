@@ -13,7 +13,14 @@ import Dashboard from "@/pages/Dashboard";
 import { SavedAdsGallery } from "@/components/gallery/SavedAdsGallery";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: true,
+      staleTime: 0,
+    },
+  },
+});
 
 function App() {
   return (
@@ -55,6 +62,16 @@ function App() {
             />
             <Route
               path="/saved-ads"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <SavedAdsGallery />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/ad-gallery"
               element={
                 <ProtectedRoute>
                   <AppLayout>
