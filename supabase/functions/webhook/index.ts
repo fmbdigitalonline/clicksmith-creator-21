@@ -26,8 +26,11 @@ serve(async (req) => {
     try {
       event = stripe.webhooks.constructEvent(body, signature, endpointSecret || '');
     } catch (err) {
+      console.error('Webhook signature verification failed:', err.message);
       return new Response(`Webhook Error: ${err.message}`, { status: 400 });
     }
+
+    console.log('Processing webhook event:', event.type);
 
     // Handle the event
     switch (event.type) {
@@ -36,6 +39,13 @@ serve(async (req) => {
         const customerId = session.customer;
         const userId = session.metadata.supabaseUid;
         
+        console.log('Processing completed checkout session:', {
+          sessionId: session.id,
+          customerId,
+          userId,
+          mode: session.mode
+        });
+
         // Get price ID from the line items
         const lineItems = await stripe.checkout.sessions.listLineItems(session.id);
         const priceId = lineItems.data[0]?.price?.id;
@@ -44,18 +54,29 @@ serve(async (req) => {
           throw new Error('No price ID found in session');
         }
 
+        console.log('Retrieved price ID:', priceId);
+
         // Get plan details from Supabase
-        const { data: planData } = await supabaseClient
+        const { data: planData, error: planError } = await supabaseClient
           .from('plans')
           .select('*')
           .eq('stripe_price_id', priceId)
           .single();
 
+        if (planError) {
+          console.error('Error fetching plan:', planError);
+          throw planError;
+        }
+
         if (!planData) {
+          console.error('Plan not found for price ID:', priceId);
           throw new Error('Plan not found');
         }
 
+        console.log('Retrieved plan data:', planData);
+
         if (session.mode === 'payment') {
+          console.log('Processing one-time payment');
           // Handle one-time payment
           const { error: subscriptionError } = await supabaseClient
             .from('subscriptions')
@@ -70,9 +91,13 @@ serve(async (req) => {
             });
 
           if (subscriptionError) {
+            console.error('Error updating subscription:', subscriptionError);
             throw subscriptionError;
           }
+
+          console.log('Successfully processed one-time payment and updated credits');
         } else if (session.mode === 'subscription') {
+          console.log('Processing subscription payment');
           // Handle subscription payment
           const subscriptionId = session.subscription;
           const subscription = await stripe.subscriptions.retrieve(subscriptionId);
@@ -91,8 +116,11 @@ serve(async (req) => {
             });
 
           if (subscriptionError) {
+            console.error('Error updating subscription:', subscriptionError);
             throw subscriptionError;
           }
+
+          console.log('Successfully processed subscription payment and updated credits');
         }
         break;
       }
@@ -106,8 +134,11 @@ serve(async (req) => {
           .eq('stripe_subscription_id', subscription.id);
 
         if (deactivationError) {
+          console.error('Error deactivating subscription:', deactivationError);
           throw deactivationError;
         }
+
+        console.log('Successfully deactivated subscription');
         break;
       }
     }
@@ -117,7 +148,7 @@ serve(async (req) => {
       status: 200,
     });
   } catch (error) {
-    console.error('Error:', error);
+    console.error('Error processing webhook:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
       { status: 400 }
