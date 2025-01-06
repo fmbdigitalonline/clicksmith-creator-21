@@ -29,7 +29,7 @@ export const useAdGeneration = (
           .eq('id', projectId)
           .single();
         
-        if (project?.generated_ads) {
+        if (project?.generated_ads && Array.isArray(project.generated_ads)) {
           setAdVariants(project.generated_ads);
         }
       }
