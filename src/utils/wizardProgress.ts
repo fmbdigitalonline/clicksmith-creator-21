@@ -5,8 +5,7 @@ export const saveWizardProgress = async (data: any, projectId: string | undefine
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      console.log('Anonymous session - skipping progress save');
-      return;
+      throw new Error('User not authenticated');
     }
 
     if (projectId && projectId !== 'new') {
@@ -20,6 +19,7 @@ export const saveWizardProgress = async (data: any, projectId: string | undefine
 
       if (error) throw error;
     } else {
+      // Use upsert with on_conflict parameter
       const { error } = await supabase
         .from('wizard_progress')
         .upsert(
@@ -40,13 +40,11 @@ export const saveWizardProgress = async (data: any, projectId: string | undefine
     console.log('Progress saved successfully:', data);
   } catch (error) {
     console.error('Error saving progress:', error);
-    if (error.message !== "User not authenticated") {
-      toast({
-        title: "Error saving progress",
-        description: error instanceof Error ? error.message : "Failed to save progress",
-        variant: "destructive",
-      });
-    }
+    toast({
+      title: "Error saving progress",
+      description: error instanceof Error ? error.message : "Failed to save progress",
+      variant: "destructive",
+    });
   }
 };
 

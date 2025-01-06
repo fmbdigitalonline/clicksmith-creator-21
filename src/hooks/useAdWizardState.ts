@@ -20,58 +20,21 @@ export const useAdWizardState = () => {
   const { projectId } = useParams();
 
   const handleIdeaSubmit = useCallback(async (idea: BusinessIdea) => {
-    try {
-      setBusinessIdea(idea);
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (user) {
-        await saveWizardProgress({ business_idea: idea }, projectId);
-      }
-      
-      setCurrentStep(2);
-    } catch (error) {
-      console.error('Error in handleIdeaSubmit:', error);
-      // Don't show error toast for anonymous users
-      if (error.message !== "User not authenticated") {
-        toast({
-          title: "Error saving progress",
-          description: error instanceof Error ? error.message : "Failed to save progress",
-          variant: "destructive",
-        });
-      }
-    }
-  }, [projectId, toast]);
+    setBusinessIdea(idea);
+    await saveWizardProgress({ business_idea: idea }, projectId);
+    setCurrentStep(2);
+  }, [projectId]);
 
   const handleAudienceSelect = useCallback(async (audience: TargetAudience) => {
-    try {
-      setTargetAudience(audience);
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (user) {
-        await saveWizardProgress({ target_audience: audience }, projectId);
-      }
-      
-      setCurrentStep(3);
-    } catch (error) {
-      console.error('Error in handleAudienceSelect:', error);
-      if (error.message !== "User not authenticated") {
-        toast({
-          title: "Error saving audience",
-          description: error instanceof Error ? error.message : "Failed to save audience",
-          variant: "destructive",
-        });
-      }
-    }
-  }, [projectId, toast]);
+    setTargetAudience(audience);
+    await saveWizardProgress({ target_audience: audience }, projectId);
+    setCurrentStep(3);
+  }, [projectId]);
 
   const handleAnalysisComplete = useCallback(async (analysis: AudienceAnalysis) => {
     try {
       setAudienceAnalysis(analysis);
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (user) {
-        await saveWizardProgress({ audience_analysis: analysis }, projectId);
-      }
+      await saveWizardProgress({ audience_analysis: analysis }, projectId);
 
       const { data, error } = await supabase.functions.invoke('generate-ad-content', {
         body: { 
@@ -84,13 +47,18 @@ export const useAdWizardState = () => {
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        toast({
+          title: "Error generating hooks",
+          description: error.message,
+          variant: "destructive",
+        });
+        return;
+      }
 
       if (data?.hooks && Array.isArray(data.hooks)) {
         setSelectedHooks(data.hooks);
-        if (user) {
-          await saveWizardProgress({ selected_hooks: data.hooks }, projectId);
-        }
+        await saveWizardProgress({ selected_hooks: data.hooks }, projectId);
         setCurrentStep(4);
       } else {
         throw new Error('Invalid hooks data received');
@@ -98,12 +66,12 @@ export const useAdWizardState = () => {
     } catch (error) {
       console.error('Error in handleAnalysisComplete:', error);
       toast({
-        title: "Error generating hooks",
+        title: "Error",
         description: error instanceof Error ? error.message : "Failed to generate hooks",
         variant: "destructive",
       });
     }
-  }, [businessIdea, targetAudience, projectId, toast]);
+  }, [businessIdea, targetAudience, toast, projectId]);
 
   const handleBack = useCallback(() => {
     setCurrentStep(prev => Math.max(1, prev - 1));
@@ -112,22 +80,22 @@ export const useAdWizardState = () => {
   const handleStartOver = useCallback(async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const success = await clearWizardProgress(projectId, user.id);
       
-      if (user) {
-        const success = await clearWizardProgress(projectId, user.id);
-        if (success) {
-          toast({
-            title: "Progress Reset",
-            description: "Your progress has been cleared successfully.",
-          });
-        }
+      if (success) {
+        setBusinessIdea(null);
+        setTargetAudience(null);
+        setAudienceAnalysis(null);
+        setSelectedHooks([]);
+        setCurrentStep(1);
+
+        toast({
+          title: "Progress Reset",
+          description: "Your progress has been cleared successfully.",
+        });
       }
-      
-      setBusinessIdea(null);
-      setTargetAudience(null);
-      setAudienceAnalysis(null);
-      setSelectedHooks([]);
-      setCurrentStep(1);
     } catch (error) {
       console.error('Error in handleStartOver:', error);
       toast({

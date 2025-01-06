@@ -1,55 +1,84 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import AdWizard from './components/AdWizard';
-import { ThemeProvider } from './components/theme-provider';
-import { Toaster } from './components/ui/toaster';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
-import Login from './components/auth/Login';
-import Register from './components/auth/Register';
-import ForgotPassword from './components/auth/ForgotPassword';
-import ResetPassword from './components/auth/ResetPassword';
-import Dashboard from './components/dashboard/Dashboard';
-import Projects from './components/projects/Projects';
-import Settings from './components/settings/Settings';
-import Pricing from './components/pricing/Pricing';
-import PrivateRoute from './components/auth/PrivateRoute';
-import LandingPage from './components/marketing/LandingPage';
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { Toaster } from "@/components/ui/toaster";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { AppLayout } from "@/components/layout/AppLayout";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { OnboardingDialog } from "@/components/onboarding/OnboardingDialog";
+import Login from "@/pages/Login";
+import Projects from "@/pages/Projects";
+import Settings from "@/pages/Settings";
+import Pricing from "@/pages/Pricing";
+import AdWizard from "@/components/AdWizard";
+import Dashboard from "@/pages/Dashboard";
+import { SavedAdsGallery } from "@/components/gallery/SavedAdsGallery";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const queryClient = new QueryClient();
 
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider defaultTheme="light" storageKey="ui-theme">
+      <SidebarProvider>
         <Router>
           <Routes>
-            <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/pricing" element={<Pricing />} />
-            <Route path="/ad-wizard/:projectId" element={<AdWizard />} />
-            <Route path="/dashboard" element={
-              <PrivateRoute>
-                <Dashboard />
-              </PrivateRoute>
-            } />
-            <Route path="/projects" element={
-              <PrivateRoute>
-                <Projects />
-              </PrivateRoute>
-            } />
-            <Route path="/settings" element={
-              <PrivateRoute>
-                <Settings />
-              </PrivateRoute>
-            } />
+            <Route
+              path="/"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <Dashboard />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/projects"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <Projects />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/settings"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <Settings />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/saved-ads"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <SavedAdsGallery />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/ad-wizard/:projectId"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <AdWizard />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
+          <OnboardingDialog />
           <Toaster />
         </Router>
-      </ThemeProvider>
-      <ReactQueryDevtools initialIsOpen={false} />
+      </SidebarProvider>
     </QueryClientProvider>
   );
 }

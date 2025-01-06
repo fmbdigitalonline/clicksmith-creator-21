@@ -6,23 +6,15 @@ import { useToast } from "@/components/ui/use-toast";
 import { Wand2, Lightbulb, ArrowRight } from "lucide-react";
 import { Card } from "@/components/ui/card";
 
-interface BusinessIdeaStepProps {
-  onNext: (idea: BusinessIdea) => void;
-  isAnonymous?: boolean;
-  onMarkSessionUsed?: () => void;
-  sessionId?: string | null;
-}
-
 const BusinessIdeaStep = ({
   onNext,
-  isAnonymous = false,
-  onMarkSessionUsed,
-  sessionId,
-}: BusinessIdeaStepProps) => {
+}: {
+  onNext: (idea: BusinessIdea) => void;
+}) => {
   const [description, setDescription] = useState("");
   const { toast } = useToast();
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     if (description.length < 10) {
       toast({
         title: "Description too short",
@@ -32,13 +24,8 @@ const BusinessIdeaStep = ({
       return;
     }
 
-    // If this is an anonymous session, mark it as used
-    if (isAnonymous && onMarkSessionUsed && sessionId) {
-      console.log('Marking anonymous session as used:', sessionId);
-      await onMarkSessionUsed();
-    }
-
     // Format the value proposition to be more ad-friendly
+    // Remove any "Enhanced version of:" prefix and focus on the core message
     const valueProposition = description
       .replace(/^Enhanced version of:\s*/i, '')
       .split('.')

@@ -7,13 +7,7 @@ export const useCredits = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const checkCredits = async (requiredCredits: number = 1, isAnonymous: boolean = false) => {
-    if (isAnonymous) {
-      // For anonymous users, we don't need to check credits
-      // They can only use the service once, which is handled by the anonymous session
-      return true;
-    }
-
+  const checkCredits = async (requiredCredits: number = 1) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
 
@@ -57,9 +51,9 @@ export const useCredits = () => {
         toast({
           title: "Last free generation used",
           description: "This was your last free generation. Please upgrade to continue using the service.",
-          variant: "default",
+          variant: "warning",
         });
-        setTimeout(() => navigate('/pricing'), 2000);
+        setTimeout(() => navigate('/pricing'), 2000); // Navigate after showing the toast
       }
     }
 
