@@ -38,7 +38,9 @@ serve(async (req) => {
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
       apiVersion: '2023-10-16',
       // Set Stripe to test mode if we're not in production
-      typescript: true
+      typescript: true,
+      apiKey: Deno.env.get('STRIPE_SECRET_KEY'),
+      stripeAccount: undefined,
     });
 
     // Check if customer exists
