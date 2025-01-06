@@ -35,7 +35,6 @@ serve(async (req) => {
 
     let event;
     try {
-      // Try constructing the event with the provided signature
       event = stripe.webhooks.constructEvent(
         body,
         signature,
@@ -53,7 +52,8 @@ serve(async (req) => {
 
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      // Use service role key for admin access
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     );
 
     switch (event.type) {
