@@ -4,7 +4,7 @@ import { creditOperationLogger } from './creditOperationLogger.ts';
 export const handleSubscriptionPayment = async (
   supabaseClient: ReturnType<typeof createClient>,
   userId: string,
-  planData: { credits: number },
+  planData: { id: string; credits: number },
   customerId: string,
   subscription: any
 ) => {
@@ -31,13 +31,13 @@ export const handleSubscriptionPayment = async (
   // Log the credit operation
   await creditOperationLogger(supabaseClient, userId, 'add', planData.credits);
 
-  console.log('Successfully processed subscription payment');
+  console.log('Successfully processed subscription payment and allocated credits:', planData.credits);
 };
 
 export const handleOneTimePayment = async (
   supabaseClient: ReturnType<typeof createClient>,
   userId: string,
-  planData: { credits: number },
+  planData: { id: string; credits: number },
   customerId: string
 ) => {
   console.log('Processing one-time payment for user:', userId, 'credits:', planData.credits);
@@ -83,7 +83,7 @@ export const handleOneTimePayment = async (
 
     console.log('Successfully updated subscription credits to:', newCredits);
   } else {
-    // Create new subscription entry
+    // Create new subscription entry for one-time payment
     const { error: subscriptionError } = await supabaseClient
       .from('subscriptions')
       .insert({
@@ -92,7 +92,7 @@ export const handleOneTimePayment = async (
         stripe_customer_id: customerId,
         credits_remaining: creditsToAdd,
         current_period_start: new Date().toISOString(),
-        current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
+        current_period_end: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(), // 1 year from now for one-time
         active: true,
       });
 

@@ -46,6 +46,10 @@ serve(async (req) => {
           mode: session.mode
         });
 
+        if (!userId) {
+          throw new Error('No user ID found in session metadata');
+        }
+
         // Get price ID from the line items
         const lineItems = await stripe.checkout.sessions.listLineItems(session.id);
         const priceId = lineItems.data[0]?.price?.id;
