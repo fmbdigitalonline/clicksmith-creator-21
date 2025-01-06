@@ -68,9 +68,18 @@ const Settings = () => {
         `)
         .eq('user_id', user.id)
         .eq('active', true)
-        .single();
+        .maybeSingle();  // Changed from .single() to .maybeSingle()
 
-      if (error) throw error;
+      if (error && error.code !== "PGRST116") {
+        console.error("Error fetching subscription:", error);
+        toast({
+          title: "Error fetching subscription",
+          description: "Failed to load subscription details. Please try again later.",
+          variant: "destructive",
+        });
+        return null;
+      }
+
       return data;
     },
     enabled: !!user,
