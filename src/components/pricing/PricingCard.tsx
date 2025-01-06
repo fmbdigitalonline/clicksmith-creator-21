@@ -43,8 +43,9 @@ export const PricingCard = ({ plan, onSubscribe }: PricingCardProps) => {
         return;
       }
 
-      // Use test price IDs in development
-      const priceId = import.meta.env.DEV ? TEST_PRICE_IDS[plan.price] : plan.stripe_price_id;
+      // Force using test price IDs for now (remove this later)
+      const priceId = TEST_PRICE_IDS[plan.price];
+      console.log('Using price ID:', priceId, 'for plan price:', plan.price);
 
       if (!priceId) {
         toast({
@@ -62,12 +63,15 @@ export const PricingCard = ({ plan, onSubscribe }: PricingCardProps) => {
         }
       });
 
+      console.log('Checkout response:', data, error);
+
       if (error) {
         console.error('Checkout error:', error);
         throw error;
       }
 
       if (data?.url) {
+        console.log('Redirecting to:', data.url);
         window.location.href = data.url;
       } else {
         throw new Error('No checkout URL received');
