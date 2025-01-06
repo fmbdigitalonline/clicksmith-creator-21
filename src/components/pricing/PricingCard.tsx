@@ -25,9 +25,9 @@ export const PricingCard = ({ plan, onSubscribe }: PricingCardProps) => {
 
   // Test price IDs for development
   const TEST_PRICE_IDS: Record<number, string> = {
-    10: 'price_1OeXXXXXXXXXXXXXXXXXXXXX', // Replace with your test price ID for one-time payment
-    29: 'price_1OeXXXXXXXXXXXXXXXXXXXXX', // Replace with your test price ID for monthly subscription
-    99: 'price_1OeXXXXXXXXXXXXXXXXXXXXX'  // Replace with your test price ID for pro subscription
+    10: 'price_1OeXXXXXXXXXXXXXXXXXXXXX', // Bundle (one-time)
+    29: 'price_1OeXXXXXXXXXXXXXXXXXXXXX', // Starter (monthly)
+    99: 'price_1OeXXXXXXXXXXXXXXXXXXXXX'  // Pro (monthly)
   };
 
   const handleSubscribe = async () => {
