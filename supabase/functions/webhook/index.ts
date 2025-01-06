@@ -28,20 +28,20 @@ serve(async (req) => {
     const signature = req.headers.get('stripe-signature');
     console.log('Stripe signature:', signature);
 
-    const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET');
+    // Use the known webhook secret directly
+    const webhookSecret = 'f8ba22f4bcbb8e72c2c51192276f19e233b192e350f9be5774131d24a845949f';
+    
     if (!webhookSecret) {
-      console.error('STRIPE_WEBHOOK_SECRET is not configured');
+      console.error('Webhook secret not configured');
       throw new Error('Webhook secret not configured');
     }
-    console.log('Webhook secret configured (first 10 chars):', webhookSecret.substring(0, 10));
+    console.log('Using webhook secret for verification');
 
-    // Log important information for debugging
     const body = await req.text();
     console.log('=== WEBHOOK REQUEST DEBUG INFO ===');
     console.log('Request URL:', req.url);
     console.log('Request Method:', req.method);
     console.log('Stripe-Signature:', signature);
-    console.log('Webhook Secret (first 10 chars):', webhookSecret.substring(0, 10));
     console.log('Request Body (first 100 chars):', body.substring(0, 100));
     console.log('Full Request Body:', body);
     console.log('========================');
@@ -58,7 +58,6 @@ serve(async (req) => {
     } catch (err) {
       console.error('⚠️ Webhook signature verification failed');
       console.error('Error details:', err.message);
-      console.error('Webhook secret used (first 10 chars):', webhookSecret.substring(0, 10));
       console.error('Signature received:', signature);
       return new Response(
         JSON.stringify({ error: `Webhook signature verification failed: ${err.message}` }),
