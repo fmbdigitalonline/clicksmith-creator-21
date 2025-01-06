@@ -16,16 +16,23 @@ serve(async (req) => {
   const signature = req.headers.get('stripe-signature');
 
   if (!signature) {
-    return new Response('No signature', { status: 400 });
+    console.error('No Stripe signature found');
+    return new Response('No signature', { status: 401 });
   }
 
   try {
     const body = await req.text();
     const endpointSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET');
     
+    if (!endpointSecret) {
+      console.error('No webhook secret found');
+      return new Response('Webhook secret not configured', { status: 500 });
+    }
+
     let event;
     try {
-      event = stripe.webhooks.constructEvent(body, signature, endpointSecret || '');
+      event = stripe.webhooks.constructEvent(body, signature, endpointSecret);
+      console.log('Successfully verified webhook signature');
     } catch (err) {
       console.error('Webhook signature verification failed:', err.message);
       return new Response(`Webhook Error: ${err.message}`, { status: 400 });
