@@ -3,22 +3,25 @@ import Stripe from 'https://esm.sh/stripe@14.21.0';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import { handleStripeEvent } from './utils/stripeEventHandler.ts';
 
-// Basic CORS headers
+// Most permissive CORS headers for webhook endpoint
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, stripe-signature',
+  'Access-Control-Allow-Methods': '*',
+  'Access-Control-Allow-Headers': '*',
 };
 
 serve(async (req) => {
-  // Log incoming request details
-  console.log('Webhook received:', {
-    method: req.method,
-    headers: Object.fromEntries(req.headers.entries()),
-  });
+  console.log('=============== WEBHOOK REQUEST RECEIVED ===============');
+  console.log('Request method:', req.method);
+  console.log('Request headers:', Object.fromEntries(req.headers.entries()));
 
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    console.log('Handling CORS preflight request');
+    return new Response(null, { 
+      headers: corsHeaders,
+      status: 200
+    });
   }
 
   try {
@@ -26,55 +29,67 @@ serve(async (req) => {
       apiVersion: '2023-10-16',
     });
 
-    const signature = req.headers.get('stripe-signature');
-    console.log('Stripe signature received:', signature);
+    // Get raw body before parsing
+    const rawBody = await req.text();
+    console.log('Raw request body:', rawBody);
 
-    // Get the raw body as text
-    const body = await req.text();
-    console.log('Webhook body:', body);
+    const signature = req.headers.get('stripe-signature');
+    console.log('Stripe signature:', signature);
 
     let event;
     try {
-      // Use the known webhook secret
+      // Webhook secret should be exactly as configured in Stripe
       const webhookSecret = 'f8ba22f4bcbb8e72c2c51192276f19e233b192e350f9be5774131d24a845949f';
-      event = stripe.webhooks.constructEvent(body, signature || '', webhookSecret);
-      console.log('Event constructed successfully:', event.type);
+      event = stripe.webhooks.constructEvent(rawBody, signature || '', webhookSecret);
+      console.log('Successfully constructed Stripe event:', event.type);
     } catch (err) {
-      console.error('⚠️ Webhook signature verification failed:', err.message);
+      console.error('Failed to construct Stripe event:', err);
       return new Response(
-        JSON.stringify({ error: `Webhook signature verification failed: ${err.message}` }),
+        JSON.stringify({ 
+          error: 'Webhook Error',
+          details: err.message,
+          receivedSignature: signature,
+          receivedBody: rawBody.substring(0, 100) + '...' // Log first 100 chars for debugging
+        }),
         { 
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400
         }
       );
     }
 
+    console.log('Creating Supabase client...');
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      // Use service role key for admin operations
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    console.log('Processing Stripe event:', event.type);
+    console.log('Processing event:', event.type);
+    console.log('Event data:', JSON.stringify(event.data, null, 2));
+
     await handleStripeEvent(event, stripe, supabaseClient);
-    console.log('Successfully processed event:', event.type);
+    console.log('Event processed successfully');
 
     return new Response(
-      JSON.stringify({ received: true }),
+      JSON.stringify({ received: true, eventType: event.type }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200
       }
     );
   } catch (error) {
-    console.error('Webhook error:', error.message);
-    console.error('Full error:', error);
+    console.error('Webhook handler error:', error);
+    console.error('Full error object:', JSON.stringify(error, null, 2));
+    
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: 'Internal Server Error',
+        message: error.message,
+        stack: error.stack
+      }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400
+        status: 500
       }
     );
   }
