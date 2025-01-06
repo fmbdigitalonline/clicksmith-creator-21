@@ -89,6 +89,12 @@ serve(async (req) => {
           const currentCredits = existingSubscription?.credits_remaining || 0;
           const newCredits = currentCredits + creditsToAdd;
 
+          console.log('Credit calculation:', {
+            creditsToAdd,
+            currentCredits,
+            newCredits
+          });
+
           if (existingSubscription) {
             // Update existing subscription with additional credits
             const { error: updateError } = await supabaseClient
@@ -103,6 +109,8 @@ serve(async (req) => {
               console.error('Error updating subscription credits:', updateError);
               throw updateError;
             }
+
+            console.log('Successfully updated subscription credits to:', newCredits);
           } else {
             // Create new subscription entry
             const { error: subscriptionError } = await supabaseClient
@@ -121,6 +129,8 @@ serve(async (req) => {
               console.error('Error creating subscription:', subscriptionError);
               throw subscriptionError;
             }
+
+            console.log('Successfully created new subscription with credits:', creditsToAdd);
           }
 
           // Log the credit operation
