@@ -37,7 +37,7 @@ serve(async (req) => {
       case 'checkout.session.completed': {
         const session = event.data.object;
         const customerId = session.customer;
-        const userId = session.metadata.supabaseUid;
+        const userId = session.metadata?.supabaseUid;
         
         console.log('Processing completed checkout session:', {
           sessionId: session.id,

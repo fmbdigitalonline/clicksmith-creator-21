@@ -28,6 +28,9 @@ export const handleSubscriptionPayment = async (
     throw subscriptionError;
   }
 
+  // Log the credit operation
+  await creditOperationLogger(supabaseClient, userId, 'add', planData.credits);
+
   console.log('Successfully processed subscription payment');
 };
 
