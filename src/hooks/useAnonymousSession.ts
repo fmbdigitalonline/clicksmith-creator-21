@@ -17,11 +17,15 @@ export const useAnonymousSession = () => {
       }
 
       // Check if this session has already been used
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('anonymous_usage')
         .select('used')
         .eq('session_id', existingSession)
-        .single();
+        .maybeSingle();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error checking anonymous usage:', error);
+      }
 
       setHasUsedTrial(!!data?.used);
       setSessionId(existingSession);
@@ -33,12 +37,17 @@ export const useAnonymousSession = () => {
   const markSessionAsUsed = async () => {
     if (!sessionId) return;
 
-    await supabase
+    const { error } = await supabase
       .from('anonymous_usage')
       .upsert({ 
         session_id: sessionId,
         used: true 
       });
+
+    if (error) {
+      console.error('Error marking session as used:', error);
+      return;
+    }
 
     setHasUsedTrial(true);
   };
