@@ -18,11 +18,19 @@ serve(async (req) => {
     // Get the stripe signature from headers
     const signature = req.headers.get('stripe-signature')
     if (!signature) {
-      throw new Error('No stripe signature found')
+      console.error('No stripe signature found in headers')
+      return new Response(
+        JSON.stringify({ error: 'No stripe signature found' }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 401 
+        }
+      )
     }
 
     // Get the raw body
     const body = await req.text()
+    console.log('Received webhook payload:', body.substring(0, 100) + '...') // Log first 100 chars for debugging
 
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
       apiVersion: '2023-10-16',
@@ -31,17 +39,35 @@ serve(async (req) => {
     // Verify the webhook signature
     const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET')
     if (!webhookSecret) {
-      throw new Error('Webhook secret not configured')
+      console.error('Webhook secret not configured in environment')
+      return new Response(
+        JSON.stringify({ error: 'Webhook secret not configured' }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500 
+        }
+      )
     }
 
-    // Construct and verify the event
-    const event = stripe.webhooks.constructEvent(
-      body,
-      signature,
-      webhookSecret
-    )
+    let event;
+    try {
+      event = stripe.webhooks.constructEvent(
+        body,
+        signature,
+        webhookSecret
+      )
+    } catch (err) {
+      console.error(`⚠️ Webhook signature verification failed:`, err.message)
+      return new Response(
+        JSON.stringify({ error: `Webhook signature verification failed: ${err.message}` }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400
+        }
+      )
+    }
 
-    console.log('Webhook event received:', event.type)
+    console.log(`✅ Successfully verified webhook signature for event: ${event.type}`)
 
     // Initialize Supabase client with service role key to bypass RLS
     const supabaseAdmin = createClient(
@@ -123,15 +149,20 @@ serve(async (req) => {
         }
       }
 
-      console.log('Successfully processed checkout session')
+      console.log('✅ Successfully processed checkout session')
+    } else {
+      console.log(`⚠️ Unhandled event type: ${event.type}`)
     }
 
-    return new Response(JSON.stringify({ received: true }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 200,
-    })
+    return new Response(
+      JSON.stringify({ received: true }), 
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      }
+    )
   } catch (error) {
-    console.error('Webhook error:', error.message)
+    console.error('❌ Webhook error:', error.message)
     return new Response(
       JSON.stringify({ error: error.message }),
       { 
