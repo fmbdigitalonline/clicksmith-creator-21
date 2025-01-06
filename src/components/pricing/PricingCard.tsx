@@ -23,6 +23,13 @@ interface PricingCardProps {
 export const PricingCard = ({ plan, onSubscribe }: PricingCardProps) => {
   const { toast } = useToast();
 
+  // Test price IDs for development
+  const TEST_PRICE_IDS: Record<number, string> = {
+    10: 'price_1OeXXXXXXXXXXXXXXXXXXXXX', // Replace with your test price ID for one-time payment
+    29: 'price_1OeXXXXXXXXXXXXXXXXXXXXX', // Replace with your test price ID for monthly subscription
+    99: 'price_1OeXXXXXXXXXXXXXXXXXXXXX'  // Replace with your test price ID for pro subscription
+  };
+
   const handleSubscribe = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -36,7 +43,10 @@ export const PricingCard = ({ plan, onSubscribe }: PricingCardProps) => {
         return;
       }
 
-      if (!plan.stripe_price_id) {
+      // Use test price IDs in development
+      const priceId = import.meta.env.DEV ? TEST_PRICE_IDS[plan.price] : plan.stripe_price_id;
+
+      if (!priceId) {
         toast({
           title: "Configuration error",
           description: "This plan is not properly configured. Please try another plan or contact support.",
@@ -47,7 +57,7 @@ export const PricingCard = ({ plan, onSubscribe }: PricingCardProps) => {
 
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: { 
-          priceId: plan.stripe_price_id,
+          priceId,
           mode: plan.price === 10 ? 'payment' : 'subscription'
         }
       });

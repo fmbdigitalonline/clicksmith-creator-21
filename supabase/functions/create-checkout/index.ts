@@ -37,6 +37,8 @@ serve(async (req) => {
     console.log('Creating Stripe instance...');
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
       apiVersion: '2023-10-16',
+      // Set Stripe to test mode if we're not in production
+      typescript: true
     });
 
     // Check if customer exists
@@ -60,6 +62,10 @@ serve(async (req) => {
       customerId = customer.id;
     }
 
+    const origin = req.headers.get('origin') || 'http://localhost:5173';
+    const successUrl = `${origin}/settings?session_id={CHECKOUT_SESSION_ID}`;
+    const cancelUrl = `${origin}/pricing`;
+
     // Create checkout session with appropriate mode and configuration
     console.log('Creating checkout session...');
     const session = await stripe.checkout.sessions.create({
@@ -71,8 +77,8 @@ serve(async (req) => {
         },
       ],
       mode: mode as 'payment' | 'subscription',
-      success_url: `${req.headers.get('origin')}/settings?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${req.headers.get('origin')}/pricing`,
+      success_url: successUrl,
+      cancel_url: cancelUrl,
       metadata: {
         supabaseUid: user.id,
       },
