@@ -1,9 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 
 export const useCredits = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const checkCredits = async (requiredCredits: number = 1) => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -28,11 +30,31 @@ export const useCredits = () => {
     
     if (!result.has_credits) {
       toast({
-        title: "Insufficient credits",
+        title: "No credits available",
         description: result.error_message,
         variant: "destructive",
       });
+      
+      // Navigate to pricing page when credits are exhausted
+      navigate('/pricing');
       throw new Error(result.error_message);
+    }
+
+    // If this is the last free generation, show a warning toast
+    if (result.error_message && result.error_message.includes('Free tier generation')) {
+      const [current, total] = result.error_message
+        .match(/(\d+)\/(\d+)/)
+        ?.slice(1)
+        .map(Number) || [0, 0];
+      
+      if (current === total) {
+        toast({
+          title: "Last free generation used",
+          description: "This was your last free generation. Please upgrade to continue using the service.",
+          variant: "warning",
+        });
+        setTimeout(() => navigate('/pricing'), 2000); // Navigate after showing the toast
+      }
     }
 
     return true;
