@@ -48,7 +48,10 @@ serve(async (req: Request) => {
       console.error('Error parsing webhook body:', err)
       return new Response(
         JSON.stringify({ error: 'Error parsing webhook body' }), 
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }}
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
       )
     }
 
