@@ -1,7 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from 'https://esm.sh/stripe@14.21.0';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
-import { handleSubscriptionPayment, handleOneTimePayment } from './utils/subscriptionHandler.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -14,11 +13,11 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
-    apiVersion: '2023-10-16',
-  });
-
   try {
+    const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
+      apiVersion: '2023-10-16',
+    });
+
     const signature = req.headers.get('stripe-signature');
     if (!signature) {
       throw new Error('No Stripe signature found');
@@ -32,11 +31,20 @@ serve(async (req) => {
     const body = await req.text();
     console.log('Received webhook body:', body);
 
-    const event = stripe.webhooks.constructEvent(
-      body,
-      signature,
-      webhookSecret
-    );
+    let event;
+    try {
+      event = stripe.webhooks.constructEvent(
+        body,
+        signature,
+        webhookSecret
+      );
+    } catch (err) {
+      console.error(`Webhook signature verification failed:`, err.message);
+      return new Response(
+        JSON.stringify({ error: `Webhook signature verification failed` }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     console.log('Webhook event type:', event.type);
 
@@ -50,11 +58,12 @@ serve(async (req) => {
         const session = event.data.object as Stripe.Checkout.Session;
         console.log('Processing completed checkout session:', session.id);
 
-        // Get the customer details
-        const customer = await stripe.customers.retrieve(session.customer as string);
-        console.log('Customer details:', customer);
+        const userId = session.metadata?.supabaseUid;
+        if (!userId) {
+          throw new Error('No user ID found in session metadata');
+        }
 
-        // Get the price details
+        // Get the price details from Stripe
         const lineItems = await stripe.checkout.sessions.listLineItems(session.id);
         const priceId = lineItems.data[0].price?.id;
 
@@ -78,32 +87,77 @@ serve(async (req) => {
           throw new Error('No plan found for price ID: ' + priceId);
         }
 
-        // Get the user ID from metadata
-        const userId = session.metadata?.supabaseUid;
-        if (!userId) {
-          throw new Error('No user ID found in session metadata');
-        }
-
-        console.log('Processing payment for user:', userId, 'plan:', planData.name);
-
-        // Handle the payment based on the mode
+        // Handle subscription vs one-time payment
         if (session.mode === 'subscription') {
-          await handleSubscriptionPayment(
-            supabaseClient,
-            userId,
-            planData,
-            session.customer as string,
-            session.subscription as string
-          );
-        } else {
-          await handleOneTimePayment(
-            supabaseClient,
-            userId,
-            planData,
-            session.customer as string
-          );
-        }
+          console.log('Processing subscription payment');
+          const { error: subscriptionError } = await supabaseClient
+            .from('subscriptions')
+            .upsert({
+              user_id: userId,
+              plan_id: planData.id,
+              stripe_subscription_id: session.subscription,
+              stripe_customer_id: session.customer,
+              credits_remaining: planData.credits,
+              current_period_start: new Date(session.current_period_start * 1000).toISOString(),
+              current_period_end: new Date(session.current_period_end * 1000).toISOString(),
+              active: true,
+            });
 
+          if (subscriptionError) {
+            console.error('Error updating subscription:', subscriptionError);
+            throw subscriptionError;
+          }
+        } else {
+          console.log('Processing one-time payment');
+          // Check for existing subscription
+          const { data: existingSubscription, error: fetchError } = await supabaseClient
+            .from('subscriptions')
+            .select('*')
+            .eq('user_id', userId)
+            .eq('active', true)
+            .maybeSingle();
+
+          if (fetchError) {
+            console.error('Error fetching existing subscription:', fetchError);
+            throw fetchError;
+          }
+
+          const creditsToAdd = planData.credits;
+          const currentCredits = existingSubscription?.credits_remaining || 0;
+          const newCredits = currentCredits + creditsToAdd;
+
+          if (existingSubscription) {
+            const { error: updateError } = await supabaseClient
+              .from('subscriptions')
+              .update({
+                credits_remaining: newCredits,
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', existingSubscription.id);
+
+            if (updateError) {
+              console.error('Error updating subscription credits:', updateError);
+              throw updateError;
+            }
+          } else {
+            const { error: subscriptionError } = await supabaseClient
+              .from('subscriptions')
+              .insert({
+                user_id: userId,
+                plan_id: planData.id,
+                stripe_customer_id: session.customer,
+                credits_remaining: creditsToAdd,
+                current_period_start: new Date().toISOString(),
+                current_period_end: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(), // 1 year from now
+                active: true,
+              });
+
+            if (subscriptionError) {
+              console.error('Error creating subscription:', subscriptionError);
+              throw subscriptionError;
+            }
+          }
+        }
         break;
       }
 
@@ -111,22 +165,16 @@ serve(async (req) => {
         const subscription = event.data.object as Stripe.Subscription;
         console.log('Processing subscription deletion:', subscription.id);
 
-        // Get the customer details
-        const customer = await stripe.customers.retrieve(subscription.customer as string);
-        console.log('Customer details:', customer);
-
         // Update subscription status in database
         const { error: updateError } = await supabaseClient
           .from('subscriptions')
           .update({ active: false })
-          .eq('stripe_customer_id', subscription.customer)
-          .eq('active', true);
+          .eq('stripe_subscription_id', subscription.id);
 
         if (updateError) {
           console.error('Error updating subscription status:', updateError);
           throw updateError;
         }
-
         break;
       }
 
