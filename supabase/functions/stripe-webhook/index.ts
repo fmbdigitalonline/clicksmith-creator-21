@@ -21,7 +21,8 @@ serve(async (req: Request) => {
       method: req.method,
       hasSignature: !!signature,
       bodyLength: rawBody.length,
-      headers: Object.fromEntries(req.headers.entries())
+      signatureHeader: signature,
+      rawBody: rawBody.substring(0, 100) + '...' // Log first 100 chars for debugging
     });
 
     const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET');
@@ -29,6 +30,8 @@ serve(async (req: Request) => {
       console.error('Webhook secret not configured');
       return createErrorResponse('Webhook secret not configured', 500);
     }
+
+    console.log('Using webhook secret starting with:', webhookSecret.substring(0, 10) + '...');
 
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
       apiVersion: '2023-10-16',
@@ -45,7 +48,11 @@ serve(async (req: Request) => {
       );
       console.log('Event verified successfully:', event.type);
     } catch (err) {
-      console.error('Stripe signature verification failed:', err.message);
+      console.error('Stripe signature verification failed:', {
+        error: err.message,
+        rawBodyPreview: rawBody.substring(0, 100),
+        signatureHeader: signature
+      });
       return new Response(
         JSON.stringify({ error: 'Invalid stripe signature' }),
         { 
