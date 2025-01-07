@@ -1,13 +1,13 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
+import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import { Stripe } from 'https://esm.sh/stripe@14.21.0';
 
 export async function handleCheckoutSession(
   session: Stripe.Checkout.Session,
-  supabaseAdmin: ReturnType<typeof createClient>
+  supabaseAdmin: SupabaseClient
 ) {
-  const userId = session.metadata?.supabaseUid;
   console.log('Processing checkout session:', session.id);
-
+  
+  const userId = session.metadata?.supabaseUid;
   if (!userId) {
     throw new Error('No user ID in session metadata');
   }
@@ -40,7 +40,7 @@ export async function handleCheckoutSession(
 
 async function handleSubscription(
   session: Stripe.Checkout.Session,
-  supabaseAdmin: ReturnType<typeof createClient>,
+  supabaseAdmin: SupabaseClient,
   userId: string
 ) {
   console.log('Processing subscription payment');
@@ -75,7 +75,7 @@ async function handleSubscription(
 
 async function handleOneTimePayment(
   session: Stripe.Checkout.Session,
-  supabaseAdmin: ReturnType<typeof createClient>,
+  supabaseAdmin: SupabaseClient,
   userId: string
 ) {
   const amountPaid = session.amount_total ? session.amount_total / 100 : 0;

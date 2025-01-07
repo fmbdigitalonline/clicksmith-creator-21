@@ -27,6 +27,9 @@ serve(async (req: Request) => {
 
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') ?? '', {
       apiVersion: '2023-10-16',
+      httpClient: Stripe.createFetchHttpClient(),
+      // Add authorization header to Stripe requests
+      apiKey: Deno.env.get('STRIPE_SECRET_KEY') ?? '',
     });
 
     const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET');
@@ -55,7 +58,7 @@ serve(async (req: Request) => {
         },
         global: {
           headers: {
-            Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`
+            Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
           }
         }
       }

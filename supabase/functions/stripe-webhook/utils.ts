@@ -1,23 +1,30 @@
-import { BaseHeaders, WebhookResponse } from './types.ts';
-
-export const baseHeaders: BaseHeaders = {
+// Base headers for CORS and content type
+export const baseHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'stripe-signature, content-type',
+  'Access-Control-Allow-Headers': 'stripe-signature, content-type, authorization',
   'Content-Type': 'application/json',
+  'Authorization': `Bearer ${Deno.env.get('STRIPE_SECRET_KEY')}`,
 };
 
-export function createErrorResponse(message: string, status: number) {
-  console.error(`Error: ${message}`);
+// Create a standardized error response
+export const createErrorResponse = (message: string, status: number) => {
   return new Response(
-    JSON.stringify({ error: message, type: 'webhook_processing_error' }), 
-    { status, headers: baseHeaders }
+    JSON.stringify({ error: message }), 
+    { 
+      status, 
+      headers: baseHeaders 
+    }
   );
-}
+};
 
-export function createSuccessResponse(data: WebhookResponse) {
+// Create a standardized success response
+export const createSuccessResponse = (data: any) => {
   return new Response(
-    JSON.stringify(data),
-    { status: 200, headers: baseHeaders }
+    JSON.stringify(data), 
+    { 
+      status: 200, 
+      headers: baseHeaders 
+    }
   );
-}
+};
