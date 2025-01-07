@@ -3,38 +3,58 @@ import { Stripe } from 'https://esm.sh/stripe@14.21.0';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': '*',
+  'Access-Control-Allow-Headers': 'stripe-signature, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
 console.log('Starting webhook handler...');
 
 serve(async (req) => {
-  // Log all incoming requests
-  console.log('Request received:', {
-    method: req.method,
-    url: req.url
-  });
-
-  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { 
-      headers: corsHeaders,
-      status: 200 
-    });
+    return new Response('ok', { headers: corsHeaders });
   }
 
   try {
+    // Log all headers for debugging
+    console.log('All request headers:', Object.fromEntries(req.headers.entries()));
+
     const signature = req.headers.get('stripe-signature');
+    console.log('Stripe signature present:', !!signature);
+    if (signature) {
+      console.log('Signature preview:', signature.substring(0, 50));
+    }
+
+    const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET');
+    console.log('Webhook secret configured:', !!webhookSecret);
+    if (webhookSecret) {
+      console.log('Secret preview:', webhookSecret.substring(0, 10) + '...');
+    }
+
     const body = await req.text();
+    console.log('Request body length:', body.length);
+    console.log('Body preview:', body.substring(0, 100));
 
-    console.log('Request details:', {
-      hasSignature: !!signature,
-      bodyLength: body.length,
-      bodyPreview: body.substring(0, 100)
-    });
+    // Verify we have both required pieces
+    if (!signature || !webhookSecret) {
+      console.error('Missing required components:', {
+        hasSignature: !!signature,
+        hasSecret: !!webhookSecret
+      });
+      return new Response(
+        JSON.stringify({ 
+          error: 'Missing required webhook components',
+          details: {
+            hasSignature: !!signature,
+            hasSecret: !!webhookSecret
+          }
+        }), 
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400
+        }
+      );
+    }
 
-    // Initialize Stripe
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
       apiVersion: '2023-10-16',
       httpClient: Stripe.createFetchHttpClient(),
@@ -44,17 +64,25 @@ serve(async (req) => {
     try {
       event = stripe.webhooks.constructEvent(
         body,
-        signature || '',
-        Deno.env.get('STRIPE_WEBHOOK_SECRET') || ''
+        signature,
+        webhookSecret
       );
-      console.log('Event verified:', {
+      console.log('Successfully constructed event:', {
         type: event.type,
         id: event.id
       });
     } catch (err) {
-      console.error('Signature verification failed:', err.message);
+      console.error('Signature verification failed:', {
+        error: err.message,
+        signatureLength: signature?.length,
+        bodyLength: body.length,
+        secretConfigured: !!webhookSecret
+      });
       return new Response(
-        JSON.stringify({ error: 'Invalid signature' }), 
+        JSON.stringify({ 
+          error: 'Invalid signature',
+          details: err.message 
+        }), 
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 400
@@ -62,7 +90,6 @@ serve(async (req) => {
       );
     }
 
-    // For now, just acknowledge the event
     return new Response(
       JSON.stringify({ 
         received: true,
@@ -76,9 +103,15 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Webhook error:', error);
+    console.error('Webhook processing error:', {
+      message: error.message,
+      stack: error.stack
+    });
     return new Response(
-      JSON.stringify({ error: error.message }), 
+      JSON.stringify({ 
+        error: error.message,
+        type: 'webhook_processing_error'
+      }), 
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400
