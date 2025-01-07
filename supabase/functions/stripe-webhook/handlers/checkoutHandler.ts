@@ -1,5 +1,5 @@
-import { SupabaseClient } from '@supabase/supabase-js'
-import { Stripe } from 'stripe'
+import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0'
+import { Stripe } from 'https://esm.sh/stripe@14.21.0'
 
 export async function handleCheckoutSession(
   session: Stripe.Checkout.Session,
@@ -80,13 +80,12 @@ export async function handleCheckoutSession(
   } else if (session.mode === 'payment') {
     console.log('Processing one-time payment for user:', userId)
     
-    // Retrieve line items with better error handling
+    // Fetch complete session with line items
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
       apiVersion: '2023-10-16',
       httpClient: Stripe.createFetchHttpClient(),
     })
 
-    // Fetch complete session with line items
     const fullSession = await stripe.checkout.sessions.retrieve(session.id, {
       expand: ['line_items']
     })
