@@ -576,6 +576,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_user_credits: {
+        Args: {
+          p_user_id: string
+          credits_to_add: number
+        }
+        Returns: {
+          success: boolean
+          current_credits: number
+          error_message: string
+        }[]
+      }
       check_user_credits: {
         Args: {
           p_user_id: string

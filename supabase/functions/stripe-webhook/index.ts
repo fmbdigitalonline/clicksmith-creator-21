@@ -55,6 +55,13 @@ serve(async (req) => {
       console.log('Processing checkout session event');
       
       const session = event.data.object as Stripe.Checkout.Session;
+      
+      // Validate required session data
+      if (!session.client_reference_id) {
+        console.error('Missing client_reference_id in session');
+        throw new Error('No client_reference_id found in session');
+      }
+
       console.log('Session details:', {
         id: session.id,
         clientReferenceId: session.client_reference_id,
@@ -74,6 +81,21 @@ serve(async (req) => {
             }
           }
         );
+
+        // Verify user exists in profiles table
+        const { data: profile, error: profileError } = await supabaseAdmin
+          .from('profiles')
+          .select('id')
+          .eq('id', session.client_reference_id)
+          .single();
+
+        if (profileError || !profile) {
+          console.error('Profile verification failed:', {
+            error: profileError,
+            userId: session.client_reference_id
+          });
+          throw new Error(`User profile not found: ${session.client_reference_id}`);
+        }
 
         await handleCheckoutSession(session, supabaseAdmin);
       } catch (err) {
