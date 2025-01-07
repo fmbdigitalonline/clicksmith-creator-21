@@ -82,19 +82,45 @@ serve(async (req) => {
           }
         );
 
-        // Verify user exists in profiles table
-        const { data: profile, error: profileError } = await supabaseAdmin
-          .from('profiles')
-          .select('id')
-          .eq('id', session.client_reference_id)
+        // Get plan details based on price ID
+        const { data: planData, error: planError } = await supabaseAdmin
+          .from('plans')
+          .select('*')
+          .eq('stripe_price_id', session.line_items?.data[0]?.price?.id)
           .single();
 
-        if (profileError || !profile) {
-          console.error('Profile verification failed:', {
-            error: profileError,
-            userId: session.client_reference_id
+        if (planError || !planData) {
+          console.error('Failed to fetch plan:', planError);
+          throw new Error('Failed to fetch plan details');
+        }
+
+        // Create credit operation record
+        const { error: creditOpError } = await supabaseAdmin
+          .from('credit_operations')
+          .insert({
+            user_id: session.client_reference_id,
+            operation_type: session.mode === 'subscription' ? 'subscription' : 'purchase',
+            credits_amount: planData.credits,
+            status: 'success'
           });
-          throw new Error(`User profile not found: ${session.client_reference_id}`);
+
+        if (creditOpError) {
+          console.error('Failed to create credit operation:', creditOpError);
+          throw creditOpError;
+        }
+
+        // Add credits to user's account
+        const { data: creditsResult, error: creditsError } = await supabaseAdmin.rpc(
+          'add_user_credits',
+          {
+            p_user_id: session.client_reference_id,
+            p_credits: planData.credits
+          }
+        );
+
+        if (creditsError || !creditsResult?.success) {
+          console.error('Failed to add credits:', creditsError || creditsResult?.error_message);
+          throw new Error(creditsError?.message || creditsResult?.error_message || 'Failed to add credits');
         }
 
         await handleCheckoutSession(session, supabaseAdmin);
