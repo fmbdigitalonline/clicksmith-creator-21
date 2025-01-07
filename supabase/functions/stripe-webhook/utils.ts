@@ -2,9 +2,8 @@
 export const baseHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'stripe-signature, content-type, authorization',
+  'Access-Control-Allow-Headers': 'stripe-signature, content-type',
   'Content-Type': 'application/json',
-  'Authorization': `Bearer ${Deno.env.get('STRIPE_SECRET_KEY')}`,
 };
 
 // Create a standardized error response
