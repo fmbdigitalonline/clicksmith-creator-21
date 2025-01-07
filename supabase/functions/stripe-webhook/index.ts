@@ -19,22 +19,11 @@ serve(async (req) => {
     const signature = req.headers.get('stripe-signature');
     const body = await req.text();
     
-    console.log('Request details:', {
+    console.log('Webhook request details:', {
       hasSignature: !!signature,
-      bodyLength: body.length
+      bodyLength: body.length,
+      bodyPreview: body.substring(0, 100)
     });
-
-    const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET');
-    if (!webhookSecret) {
-      console.error('Webhook secret not configured');
-      return new Response(
-        JSON.stringify({ error: 'Webhook secret not configured' }), 
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 400
-        }
-      );
-    }
 
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
       apiVersion: '2023-10-16',
@@ -46,115 +35,119 @@ serve(async (req) => {
       event = await stripe.webhooks.constructEventAsync(
         body,
         signature || '',
-        webhookSecret
+        Deno.env.get('STRIPE_WEBHOOK_SECRET') || ''
       );
-      console.log('Successfully verified event:', {
+      console.log('Event constructed:', {
         type: event.type,
         id: event.id
       });
     } catch (err) {
-      console.error('Signature verification failed:', err.message);
-      return new Response(
-        JSON.stringify({ error: 'Invalid signature', details: err.message }), 
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 400
-        }
-      );
+      console.error('Webhook construction failed:', {
+        error: err.message,
+        signature: signature?.substring(0, 20),
+        hasWebhookSecret: !!Deno.env.get('STRIPE_WEBHOOK_SECRET')
+      });
+      throw err;
     }
 
-    // Only process checkout.session.completed events
     if (event.type === 'checkout.session.completed') {
-      console.log('Processing checkout session completed event');
+      console.log('Processing checkout session event');
       
       const session = event.data.object as Stripe.Checkout.Session;
-      const userId = session.client_reference_id;
-      const customerId = session.customer as string;
-      const subscriptionId = session.subscription as string;
+      console.log('Session details:', {
+        id: session.id,
+        clientReferenceId: session.client_reference_id,
+        customerId: session.customer,
+        mode: session.mode
+      });
 
-      if (!userId) {
-        throw new Error('No user ID found in session metadata');
-      }
-
-      // Initialize Supabase client
-      const supabaseAdmin = createClient(
-        Deno.env.get('SUPABASE_URL') || '',
-        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '',
-        {
-          auth: {
-            autoRefreshToken: false,
-            persistSession: false
+      try {
+        // Initialize Supabase
+        const supabaseAdmin = createClient(
+          Deno.env.get('SUPABASE_URL') || '',
+          Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '',
+          {
+            auth: {
+              autoRefreshToken: false,
+              persistSession: false
+            }
           }
-        }
-      );
+        );
 
-      // Create payment record
-      const { error: paymentError } = await supabaseAdmin
-        .from('payments')
-        .insert({
-          user_id: userId,
-          stripe_session_id: session.id,
-          stripe_payment_intent: session.payment_intent as string,
-          amount: session.amount_total,
-          currency: session.currency,
-          status: 'completed',
-          customer_email: session.customer_details?.email
-        });
-
-      if (paymentError) {
-        console.error('Error creating payment record:', paymentError);
-        throw paymentError;
-      }
-
-      // Handle subscription if this is a subscription payment
-      if (session.mode === 'subscription') {
-        console.log('Processing subscription payment');
-        
-        const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-        const priceId = subscription.items.data[0].price.id;
-
-        // Get plan details
-        const { data: planData, error: planError } = await supabaseAdmin
-          .from('plans')
-          .select('*')
-          .eq('stripe_price_id', priceId)
-          .single();
-
-        if (planError) {
-          console.error('Error fetching plan:', planError);
-          throw planError;
-        }
-
-        // Update subscription
-        const { error: subscriptionError } = await supabaseAdmin
-          .from('subscriptions')
-          .upsert({
-            user_id: userId,
-            plan_id: planData.id,
-            stripe_customer_id: customerId,
-            credits_remaining: planData.credits,
-            active: true,
-            current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-            current_period_end: new Date(subscription.current_period_end * 1000).toISOString()
+        // Create payment record
+        const { error: paymentError } = await supabaseAdmin
+          .from('payments')
+          .insert({
+            user_id: session.client_reference_id,
+            stripe_session_id: session.id,
+            stripe_payment_intent: session.payment_intent as string,
+            amount: session.amount_total,
+            currency: session.currency,
+            status: 'completed',
+            customer_email: session.customer_details?.email
           });
 
-        if (subscriptionError) {
-          console.error('Error updating subscription:', subscriptionError);
-          throw subscriptionError;
+        if (paymentError) {
+          console.error('Payment record creation failed:', paymentError);
+          throw paymentError;
         }
-        
-        console.log('Successfully processed subscription payment');
-      }
 
-      console.log('Successfully processed checkout session');
+        console.log('Payment record created successfully');
+
+        if (session.mode === 'subscription' && session.subscription) {
+          console.log('Processing subscription details');
+          
+          const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
+          const priceId = subscription.items.data[0].price.id;
+
+          console.log('Subscription details:', {
+            id: subscription.id,
+            priceId: priceId,
+            status: subscription.status
+          });
+
+          const { data: planData, error: planError } = await supabaseAdmin
+            .from('plans')
+            .select('*')
+            .eq('stripe_price_id', priceId)
+            .single();
+
+          if (planError) {
+            console.error('Plan fetch failed:', planError);
+            throw planError;
+          }
+
+          const { error: subscriptionError } = await supabaseAdmin
+            .from('subscriptions')
+            .upsert({
+              user_id: session.client_reference_id,
+              plan_id: planData.id,
+              stripe_customer_id: session.customer as string,
+              credits_remaining: planData.credits,
+              active: true,
+              current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
+              current_period_end: new Date(subscription.current_period_end * 1000).toISOString()
+            });
+
+          if (subscriptionError) {
+            console.error('Subscription update failed:', subscriptionError);
+            throw subscriptionError;
+          }
+
+          console.log('Subscription processed successfully');
+        }
+      } catch (err) {
+        console.error('Database operation failed:', {
+          error: err.message,
+          code: err.code,
+          details: err.details
+        });
+        throw err;
+      }
     }
 
     return new Response(
-      JSON.stringify({ 
-        received: true,
-        type: event.type,
-        id: event.id 
-      }), 
+      JSON.stringify({ received: true, type: event.type }), 
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200
@@ -162,9 +155,17 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Webhook processing error:', error);
+    console.error('Webhook handler error:', {
+      message: error.message,
+      name: error.name,
+      stack: error.stack
+    });
+    
     return new Response(
-      JSON.stringify({ error: error.message }), 
+      JSON.stringify({ 
+        error: error.message,
+        type: error.name 
+      }), 
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400
