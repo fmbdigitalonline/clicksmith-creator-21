@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { Stripe } from 'https://esm.sh/stripe@14.21.0';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
+import { handleCheckoutSession } from './handlers/checkoutHandler.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -74,68 +75,7 @@ serve(async (req) => {
           }
         );
 
-        // Create payment record
-        const { error: paymentError } = await supabaseAdmin
-          .from('payments')
-          .insert({
-            user_id: session.client_reference_id,
-            stripe_session_id: session.id,
-            stripe_payment_intent: session.payment_intent as string,
-            amount: session.amount_total,
-            currency: session.currency,
-            status: 'completed',
-            customer_email: session.customer_details?.email
-          });
-
-        if (paymentError) {
-          console.error('Payment record creation failed:', paymentError);
-          throw paymentError;
-        }
-
-        console.log('Payment record created successfully');
-
-        if (session.mode === 'subscription' && session.subscription) {
-          console.log('Processing subscription details');
-          
-          const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
-          const priceId = subscription.items.data[0].price.id;
-
-          console.log('Subscription details:', {
-            id: subscription.id,
-            priceId: priceId,
-            status: subscription.status
-          });
-
-          const { data: planData, error: planError } = await supabaseAdmin
-            .from('plans')
-            .select('*')
-            .eq('stripe_price_id', priceId)
-            .single();
-
-          if (planError) {
-            console.error('Plan fetch failed:', planError);
-            throw planError;
-          }
-
-          const { error: subscriptionError } = await supabaseAdmin
-            .from('subscriptions')
-            .upsert({
-              user_id: session.client_reference_id,
-              plan_id: planData.id,
-              stripe_customer_id: session.customer as string,
-              credits_remaining: planData.credits,
-              active: true,
-              current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-              current_period_end: new Date(subscription.current_period_end * 1000).toISOString()
-            });
-
-          if (subscriptionError) {
-            console.error('Subscription update failed:', subscriptionError);
-            throw subscriptionError;
-          }
-
-          console.log('Subscription processed successfully');
-        }
+        await handleCheckoutSession(session, supabaseAdmin);
       } catch (err) {
         console.error('Database operation failed:', {
           error: err.message,
