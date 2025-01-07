@@ -1,6 +1,6 @@
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { createClient } from '@supabase/supabase-js'
-import Stripe from 'stripe'
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
+import Stripe from 'https://esm.sh/stripe@14.21.0';
 
 // Basic headers required for the function to work
 const baseHeaders = {
@@ -8,12 +8,11 @@ const baseHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Access-Control-Allow-Headers': 'stripe-signature, content-type',
   'Content-Type': 'application/json',
-}
+};
 
-console.log('Webhook handler starting...')
+console.log('Webhook handler starting...');
 
 serve(async (req: Request) => {
-  // Log the start of request processing
   console.log('Received request:', req.method)
   
   // Handle preflight requests
@@ -40,7 +39,7 @@ serve(async (req: Request) => {
     // Initialize Stripe
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') ?? '', {
       apiVersion: '2023-10-16',
-    })
+    });
 
     // Get webhook secret
     const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET')
@@ -82,19 +81,17 @@ serve(async (req: Request) => {
           }
         }
       }
-    )
+    );
 
     // Handle checkout.session.completed event
     if (event.type === 'checkout.session.completed') {
-      const session = event.data.object as Stripe.Checkout.Session
-      const userId = session.client_reference_id
-      const customerId = session.customer as string
-      const subscriptionId = session.subscription as string
+      const session = event.data.object as Stripe.Checkout.Session;
+      const userId = session.metadata?.supabaseUid;
 
-      console.log('Processing checkout session:', session.id)
+      console.log('Processing checkout session:', session.id);
 
       if (!userId) {
-        throw new Error('No user ID found in session metadata')
+        throw new Error('No user ID in session metadata');
       }
 
       // Create payment record
@@ -108,30 +105,30 @@ serve(async (req: Request) => {
           currency: session.currency,
           status: 'completed',
           customer_email: session.customer_details?.email
-        })
+        });
 
       if (paymentError) {
-        console.error('Error creating payment record:', paymentError)
-        throw paymentError
+        console.error('Error creating payment record:', paymentError);
+        throw paymentError;
       }
 
       // If this is a subscription (not one-time payment)
       if (session.mode === 'subscription') {
-        console.log('Processing subscription payment')
+        console.log('Processing subscription payment');
         // Get subscription details from Stripe
-        const subscription = await stripe.subscriptions.retrieve(subscriptionId)
-        const priceId = subscription.items.data[0].price.id
+        const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
+        const priceId = subscription.items.data[0].price.id;
 
         // Get plan details from your database
         const { data: planData, error: planError } = await supabaseAdmin
           .from('plans')
           .select('*')
           .eq('stripe_price_id', priceId)
-          .single()
+          .single();
 
         if (planError) {
-          console.error('Error fetching plan:', planError)
-          throw planError
+          console.error('Error fetching plan:', planError);
+          throw planError;
         }
 
         // Update or create subscription record
@@ -140,27 +137,27 @@ serve(async (req: Request) => {
           .upsert({
             user_id: userId,
             plan_id: planData.id,
-            stripe_customer_id: customerId,
+            stripe_customer_id: session.customer as string,
             credits_remaining: planData.credits,
             active: true,
             current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
             current_period_end: new Date(subscription.current_period_end * 1000).toISOString()
-          })
+          });
 
         if (subscriptionError) {
-          console.error('Error updating subscription:', subscriptionError)
-          throw subscriptionError
+          console.error('Error updating subscription:', subscriptionError);
+          throw subscriptionError;
         }
       } else if (session.mode === 'payment') {
         // Handle one-time payment
-        const amountPaid = session.amount_total ? session.amount_total / 100 : 0
-        console.log('Amount paid:', amountPaid)
+        const amountPaid = session.amount_total ? session.amount_total / 100 : 0;
+        console.log('Amount paid:', amountPaid);
         
         // Map payment amount to credits (10 EUR = 10 credits)
-        const creditsToAdd = amountPaid === 10 ? 10 : 0
+        const creditsToAdd = amountPaid === 10 ? 10 : 0;
         
         if (creditsToAdd > 0) {
-          console.log('Adding credits to user:', userId, 'credits:', creditsToAdd)
+          console.log('Adding credits to user:', userId, 'credits:', creditsToAdd);
           
           // First check if user has an active subscription
           const { data: existingSubscription, error: fetchError } = await supabaseAdmin
@@ -168,29 +165,29 @@ serve(async (req: Request) => {
             .select('*')
             .eq('user_id', userId)
             .eq('active', true)
-            .maybeSingle()
+            .maybeSingle();
 
           if (fetchError && fetchError.code !== 'PGRST116') {
-            console.error('Error fetching subscription:', fetchError)
-            throw fetchError
+            console.error('Error fetching subscription:', fetchError);
+            throw fetchError;
           }
 
           if (existingSubscription) {
-            console.log('Updating existing subscription for user:', userId)
+            console.log('Updating existing subscription for user:', userId);
             const { error: updateError } = await supabaseAdmin
               .from('subscriptions')
               .update({
                 credits_remaining: existingSubscription.credits_remaining + creditsToAdd,
                 updated_at: new Date().toISOString()
               })
-              .eq('id', existingSubscription.id)
+              .eq('id', existingSubscription.id);
 
             if (updateError) {
-              console.error('Error updating subscription:', updateError)
-              throw updateError
+              console.error('Error updating subscription:', updateError);
+              throw updateError;
             }
           } else {
-            console.log('Creating new subscription for user:', userId)
+            console.log('Creating new subscription for user:', userId);
             const { error: insertError } = await supabaseAdmin
               .from('subscriptions')
               .insert({
@@ -199,11 +196,11 @@ serve(async (req: Request) => {
                 active: true,
                 current_period_start: new Date().toISOString(),
                 current_period_end: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(), // 1 year from now
-              })
+              });
 
             if (insertError) {
-              console.error('Error creating subscription:', insertError)
-              throw insertError
+              console.error('Error creating subscription:', insertError);
+              throw insertError;
             }
           }
 
@@ -215,31 +212,31 @@ serve(async (req: Request) => {
               operation_type: 'add',
               credits_amount: creditsToAdd,
               status: 'success'
-            })
+            });
 
           if (logError) {
-            console.error('Error logging credit operation:', logError)
+            console.error('Error logging credit operation:', logError);
             // Don't throw here as credits were already added
           }
         }
       }
 
-      console.log('✅ Successfully processed checkout session')
+      console.log('✅ Successfully processed checkout session');
     }
 
     return new Response(
       JSON.stringify({ received: true }), 
       { status: 200, headers: baseHeaders }
-    )
+    );
 
   } catch (error) {
-    console.error('Webhook processing error:', error)
+    console.error('Webhook processing error:', error);
     return new Response(
       JSON.stringify({ 
         error: error.message,
         type: 'webhook_processing_error' 
       }), 
       { status: 500, headers: baseHeaders }
-    )
+    );
   }
-})
+});
