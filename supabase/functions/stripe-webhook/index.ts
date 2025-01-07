@@ -56,7 +56,6 @@ serve(async (req) => {
       
       const session = event.data.object as Stripe.Checkout.Session;
       
-      // Validate required session data
       if (!session.client_reference_id) {
         console.error('Missing client_reference_id in session');
         throw new Error('No client_reference_id found in session');
@@ -70,7 +69,6 @@ serve(async (req) => {
       });
 
       try {
-        // Initialize Supabase
         const supabaseAdmin = createClient(
           Deno.env.get('SUPABASE_URL') || '',
           Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '',
@@ -99,7 +97,7 @@ serve(async (req) => {
           .from('credit_operations')
           .insert({
             user_id: session.client_reference_id,
-            operation_type: session.mode === 'subscription' ? 'subscription' : 'purchase',
+            operation_type: 'add', // Changed to 'add' to match the constraint
             credits_amount: planData.credits,
             status: 'success'
           });
