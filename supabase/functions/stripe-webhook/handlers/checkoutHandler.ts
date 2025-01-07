@@ -1,142 +1,132 @@
-import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0'
-import { Stripe } from 'https://esm.sh/stripe@14.21.0'
+import { Stripe } from 'https://esm.sh/stripe@14.21.0';
+import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 
 export async function handleCheckoutSession(
   session: Stripe.Checkout.Session,
   supabaseAdmin: SupabaseClient
 ) {
-  const userId = session.client_reference_id
-  const customerId = session.customer as string
-  const subscriptionId = session.subscription as string
-
-  if (!userId) {
-    throw new Error('No user ID found in session metadata')
-  }
-
-  console.log('Processing completed checkout for user:', userId)
+  console.log('Processing checkout session:', {
+    id: session.id,
+    mode: session.mode,
+    userId: session.client_reference_id
+  });
 
   // Create payment record
   const { error: paymentError } = await supabaseAdmin
     .from('payments')
     .insert({
-      user_id: userId,
+      user_id: session.client_reference_id,
       stripe_session_id: session.id,
       stripe_payment_intent: session.payment_intent as string,
       amount: session.amount_total,
       currency: session.currency,
       status: 'completed',
       customer_email: session.customer_details?.email
-    })
+    });
 
   if (paymentError) {
-    console.error('Error creating payment record:', paymentError)
-    throw paymentError
+    console.error('Error creating payment record:', paymentError);
+    throw paymentError;
   }
 
-  // If this is a subscription (not one-time payment)
-  if (session.mode === 'subscription') {
-    console.log('Processing subscription for user:', userId)
+  console.log('Payment record created successfully');
+
+  // Handle subscription payment
+  if (session.mode === 'subscription' && session.subscription) {
+    console.log('Processing subscription payment');
     
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
       apiVersion: '2023-10-16',
       httpClient: Stripe.createFetchHttpClient(),
-    })
+    });
 
-    // Get subscription details from Stripe
-    const subscription = await stripe.subscriptions.retrieve(subscriptionId)
-    const priceId = subscription.items.data[0].price.id
+    const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
+    const priceId = subscription.items.data[0].price.id;
 
-    // Get plan details from your database
+    console.log('Subscription details:', {
+      id: subscription.id,
+      priceId: priceId,
+      status: subscription.status
+    });
+
+    // Get plan details
     const { data: planData, error: planError } = await supabaseAdmin
       .from('plans')
       .select('*')
       .eq('stripe_price_id', priceId)
-      .single()
+      .single();
 
     if (planError) {
-      console.error('Error fetching plan:', planError)
-      throw planError
+      console.error('Error fetching plan:', planError);
+      throw planError;
     }
 
-    // Update or create subscription record
+    // Update subscription
     const { error: subscriptionError } = await supabaseAdmin
       .from('subscriptions')
       .upsert({
-        user_id: userId,
+        user_id: session.client_reference_id,
         plan_id: planData.id,
-        stripe_customer_id: customerId,
+        stripe_customer_id: session.customer as string,
         credits_remaining: planData.credits,
         active: true,
         current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
         current_period_end: new Date(subscription.current_period_end * 1000).toISOString()
-      })
+      });
 
     if (subscriptionError) {
-      console.error('Error updating subscription:', subscriptionError)
-      throw subscriptionError
+      console.error('Error updating subscription:', subscriptionError);
+      throw subscriptionError;
     }
-    
-    console.log('Successfully processed subscription update')
+
+    console.log('Subscription processed successfully');
   } else if (session.mode === 'payment') {
-    console.log('Processing one-time payment for user:', userId)
-    
-    // Fetch complete session with line items
+    // Handle one-time payment
+    console.log('Processing one-time payment');
+
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
       apiVersion: '2023-10-16',
       httpClient: Stripe.createFetchHttpClient(),
-    })
+    });
 
-    const fullSession = await stripe.checkout.sessions.retrieve(session.id, {
-      expand: ['line_items']
-    })
+    // Get price ID from line items
+    const lineItems = await stripe.checkout.sessions.listLineItems(session.id);
+    const priceId = lineItems.data[0].price?.id;
 
-    const lineItems = fullSession.line_items?.data
-    if (!lineItems || lineItems.length === 0) {
-      console.error('No line items found in session:', session.id)
-      throw new Error('No line items found in session')
-    }
-
-    const priceId = lineItems[0]?.price?.id
     if (!priceId) {
-      console.error('No price ID found in line items for session:', session.id)
-      throw new Error('No price ID found in line items')
+      throw new Error('No price ID found in line items');
     }
 
-    // Get plan details from your database
+    // Get plan details
     const { data: planData, error: planError } = await supabaseAdmin
       .from('plans')
       .select('*')
       .eq('stripe_price_id', priceId)
-      .single()
+      .single();
 
     if (planError) {
-      console.error('Error fetching plan:', planError)
-      throw planError
+      console.error('Error fetching plan:', planError);
+      throw planError;
     }
 
-    // For one-time payments, create a subscription record with a one-year validity
-    const oneYearFromNow = new Date()
-    oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1)
-
+    // Create a one-time subscription with 1 year validity
     const { error: subscriptionError } = await supabaseAdmin
       .from('subscriptions')
       .upsert({
-        user_id: userId,
+        user_id: session.client_reference_id,
         plan_id: planData.id,
-        stripe_customer_id: customerId,
+        stripe_customer_id: session.customer as string,
         credits_remaining: planData.credits,
         active: true,
         current_period_start: new Date().toISOString(),
-        current_period_end: oneYearFromNow.toISOString()
-      })
+        current_period_end: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString() // 1 year from now
+      });
 
     if (subscriptionError) {
-      console.error('Error creating one-time payment subscription:', subscriptionError)
-      throw subscriptionError
+      console.error('Error creating one-time subscription:', subscriptionError);
+      throw subscriptionError;
     }
 
-    console.log('Successfully processed one-time payment')
+    console.log('One-time payment processed successfully');
   }
-
-  console.log('✅ Successfully processed checkout session')
 }
