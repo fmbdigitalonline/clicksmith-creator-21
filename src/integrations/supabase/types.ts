@@ -579,7 +579,7 @@ export type Database = {
       add_user_credits: {
         Args: {
           p_user_id: string
-          credits_to_add: number
+          p_credits: number
         }
         Returns: {
           success: boolean
