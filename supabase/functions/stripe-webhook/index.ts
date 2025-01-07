@@ -15,39 +15,19 @@ serve(async (req) => {
   }
 
   try {
-    // Log all headers for debugging
-    console.log('All request headers:', Object.fromEntries(req.headers.entries()));
-
     const signature = req.headers.get('stripe-signature');
-    console.log('Stripe signature present:', !!signature);
-    if (signature) {
-      console.log('Signature preview:', signature.substring(0, 50));
-    }
+    const body = await req.text();
+    
+    console.log('Request details:', {
+      hasSignature: !!signature,
+      bodyLength: body.length
+    });
 
     const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET');
-    console.log('Webhook secret configured:', !!webhookSecret);
-    if (webhookSecret) {
-      console.log('Secret preview:', webhookSecret.substring(0, 10) + '...');
-    }
-
-    const body = await req.text();
-    console.log('Request body length:', body.length);
-    console.log('Body preview:', body.substring(0, 100));
-
-    // Verify we have both required pieces
-    if (!signature || !webhookSecret) {
-      console.error('Missing required components:', {
-        hasSignature: !!signature,
-        hasSecret: !!webhookSecret
-      });
+    if (!webhookSecret) {
+      console.error('Webhook secret not configured');
       return new Response(
-        JSON.stringify({ 
-          error: 'Missing required webhook components',
-          details: {
-            hasSignature: !!signature,
-            hasSecret: !!webhookSecret
-          }
-        }), 
+        JSON.stringify({ error: 'Webhook secret not configured' }), 
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 400
@@ -62,22 +42,18 @@ serve(async (req) => {
 
     let event;
     try {
-      event = stripe.webhooks.constructEvent(
+      // Use constructEventAsync instead of constructEvent
+      event = await stripe.webhooks.constructEventAsync(
         body,
-        signature,
+        signature || '',
         webhookSecret
       );
-      console.log('Successfully constructed event:', {
+      console.log('Successfully verified event:', {
         type: event.type,
         id: event.id
       });
     } catch (err) {
-      console.error('Signature verification failed:', {
-        error: err.message,
-        signatureLength: signature?.length,
-        bodyLength: body.length,
-        secretConfigured: !!webhookSecret
-      });
+      console.error('Signature verification failed:', err.message);
       return new Response(
         JSON.stringify({ 
           error: 'Invalid signature',
@@ -89,6 +65,9 @@ serve(async (req) => {
         }
       );
     }
+
+    // Log the event type we received
+    console.log('Processing event type:', event.type);
 
     return new Response(
       JSON.stringify({ 
@@ -103,15 +82,9 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Webhook processing error:', {
-      message: error.message,
-      stack: error.stack
-    });
+    console.error('Webhook processing error:', error);
     return new Response(
-      JSON.stringify({ 
-        error: error.message,
-        type: 'webhook_processing_error'
-      }), 
+      JSON.stringify({ error: error.message }), 
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400
