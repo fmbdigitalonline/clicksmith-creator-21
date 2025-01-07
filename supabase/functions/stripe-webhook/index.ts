@@ -1,93 +1,82 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import Stripe from 'https://esm.sh/stripe@14.21.0';
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
+import { Stripe } from 'https://esm.sh/stripe@14.21.0';
 import { handleCheckoutSession } from './handlers/checkoutHandler.ts';
-import { baseHeaders } from './utils.ts';
+
+// Define headers explicitly for Stripe webhooks
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': '*',
+  'Content-Type': 'application/json',
+};
 
 serve(async (req) => {
+  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { 
-      headers: {
-        ...baseHeaders,
-        Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`
-      }
-    });
+    return new Response('ok', { headers: CORS_HEADERS });
   }
 
   try {
-    // Get the raw request body
-    const body = await req.text();
-    console.log('Received webhook body:', body);
-
-    // Get the Stripe signature from headers
     const signature = req.headers.get('stripe-signature');
-    console.log('Received Stripe signature:', signature);
+    const body = await req.text();
+    
+    console.log('Received webhook request');
+    console.log('Signature:', signature);
 
-    if (!signature) {
-      throw new Error('No Stripe signature found in request headers');
-    }
-
+    // Initialize Stripe
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
       apiVersion: '2023-10-16',
+      httpClient: Stripe.createFetchHttpClient(),
     });
 
-    // Initialize Supabase client with auth headers
+    // Verify Stripe signature
+    let event;
+    try {
+      event = stripe.webhooks.constructEvent(
+        body,
+        signature || '',
+        Deno.env.get('STRIPE_WEBHOOK_SECRET') || ''
+      );
+    } catch (err) {
+      console.error(`Webhook signature verification failed:`, err.message);
+      return new Response(
+        JSON.stringify({ error: 'Invalid signature' }), 
+        { status: 400, headers: CORS_HEADERS }
+      );
+    }
+
+    console.log('Event verified:', event.type);
+
+    // Initialize Supabase with service role
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') || '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '',
       {
         auth: {
           autoRefreshToken: false,
-          persistSession: false,
-        },
-        global: {
-          headers: {
-            Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`
-          }
+          persistSession: false
         }
       }
     );
 
-    // Verify the event
-    const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET');
-    if (!webhookSecret) {
-      throw new Error('Webhook secret is not configured');
-    }
-
-    console.log('Constructing Stripe event...');
-    const event = stripe.webhooks.constructEvent(
-      body,
-      signature,
-      webhookSecret
-    );
-    console.log('Event constructed successfully:', event.type);
-
     // Handle the event
     if (event.type === 'checkout.session.completed') {
-      await handleCheckoutSession(event.data.object, supabaseAdmin);
+      console.log('Processing checkout.session.completed event');
+      await handleCheckoutSession(event.data.object as Stripe.Checkout.Session, supabaseAdmin);
+      console.log('Checkout session processed successfully');
     }
 
     return new Response(
       JSON.stringify({ received: true }), 
-      {
-        headers: { 
-          ...baseHeaders, 
-          Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}` 
-        },
-        status: 200,
-      }
+      { status: 200, headers: CORS_HEADERS }
     );
+
   } catch (error) {
-    console.error('Webhook error:', error.message);
+    console.error('Webhook error:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
-      {
-        headers: { 
-          ...baseHeaders, 
-          Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}` 
-        },
-        status: 400,
-      }
+      JSON.stringify({ error: error.message }), 
+      { status: 400, headers: CORS_HEADERS }
     );
   }
 });
