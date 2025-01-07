@@ -7,8 +7,6 @@ import { handleCheckoutSession } from './handlers/checkoutHandler.ts';
 console.log('Webhook handler starting...');
 
 serve(async (req: Request) => {
-  console.log('Received request:', req.method);
-  
   // Handle preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: baseHeaders });
@@ -16,27 +14,41 @@ serve(async (req: Request) => {
 
   try {
     const rawBody = await req.text();
-    console.log('Request body length:', rawBody.length);
-
     const stripeSignature = req.headers.get('stripe-signature');
-    console.log('Stripe signature present:', !!stripeSignature);
+    
+    console.log('Request received:', {
+      method: req.method,
+      contentType: req.headers.get('content-type'),
+      hasStripeSignature: !!stripeSignature,
+      bodyLength: rawBody.length
+    });
 
     if (!stripeSignature) {
-      console.error('No stripe signature found in request headers');
-      return createErrorResponse('No stripe signature found', 400);
+      console.error('Missing stripe-signature header');
+      return new Response(
+        JSON.stringify({ error: 'Missing stripe-signature header' }),
+        { 
+          status: 400,
+          headers: { ...baseHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET');
+    if (!webhookSecret) {
+      console.error('Webhook secret not configured');
+      return new Response(
+        JSON.stringify({ error: 'Webhook secret not configured' }),
+        { 
+          status: 500,
+          headers: { ...baseHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') ?? '', {
       apiVersion: '2023-10-16',
     });
-
-    const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET');
-    console.log('Webhook secret present:', !!webhookSecret);
-
-    if (!webhookSecret) {
-      console.error('Webhook secret not configured in environment');
-      return createErrorResponse('Webhook secret not configured', 500);
-    }
 
     let event: Stripe.Event;
     try {
@@ -48,7 +60,13 @@ serve(async (req: Request) => {
       console.log('Event verified successfully:', event.type);
     } catch (err) {
       console.error('Stripe signature verification failed:', err.message);
-      return createErrorResponse(`Webhook signature verification failed: ${err.message}`, 400);
+      return new Response(
+        JSON.stringify({ error: 'Invalid stripe signature' }),
+        { 
+          status: 400,
+          headers: { ...baseHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     const supabaseAdmin = createClient(
@@ -58,7 +76,7 @@ serve(async (req: Request) => {
         auth: {
           autoRefreshToken: false,
           persistSession: false,
-        },
+        }
       }
     );
 
@@ -66,10 +84,22 @@ serve(async (req: Request) => {
       await handleCheckoutSession(event.data.object as Stripe.Checkout.Session, supabaseAdmin);
     }
 
-    return createSuccessResponse({ received: true });
+    return new Response(
+      JSON.stringify({ received: true }),
+      { 
+        status: 200,
+        headers: { ...baseHeaders, 'Content-Type': 'application/json' }
+      }
+    );
 
   } catch (error) {
     console.error('Webhook processing error:', error);
-    return createErrorResponse(error.message, 500);
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      { 
+        status: 500,
+        headers: { ...baseHeaders, 'Content-Type': 'application/json' }
+      }
+    );
   }
 });

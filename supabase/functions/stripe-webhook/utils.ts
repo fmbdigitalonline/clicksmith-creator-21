@@ -1,9 +1,8 @@
-// Base headers for CORS and content type
+// Base headers for CORS
 export const baseHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Access-Control-Allow-Headers': 'stripe-signature, content-type',
-  'Content-Type': 'application/json',
 };
 
 // Create a standardized error response
@@ -12,7 +11,7 @@ export const createErrorResponse = (message: string, status: number) => {
     JSON.stringify({ error: message }), 
     { 
       status, 
-      headers: baseHeaders 
+      headers: { ...baseHeaders, 'Content-Type': 'application/json' }
     }
   );
 };
@@ -23,7 +22,7 @@ export const createSuccessResponse = (data: any) => {
     JSON.stringify(data), 
     { 
       status: 200, 
-      headers: baseHeaders 
+      headers: { ...baseHeaders, 'Content-Type': 'application/json' }
     }
   );
 };
