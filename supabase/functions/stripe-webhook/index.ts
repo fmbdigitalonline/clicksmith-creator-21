@@ -13,48 +13,34 @@ serve(async (req: Request) => {
   }
 
   try {
+    // Get the raw body as text for signature verification
     const rawBody = await req.text();
-    const stripeSignature = req.headers.get('stripe-signature');
-    
+    const signature = req.headers.get('stripe-signature');
+
     console.log('Request received:', {
       method: req.method,
-      contentType: req.headers.get('content-type'),
-      hasStripeSignature: !!stripeSignature,
-      bodyLength: rawBody.length
+      hasSignature: !!signature,
+      bodyLength: rawBody.length,
+      headers: Object.fromEntries(req.headers.entries())
     });
-
-    if (!stripeSignature) {
-      console.error('Missing stripe-signature header');
-      return new Response(
-        JSON.stringify({ error: 'Missing stripe-signature header' }),
-        { 
-          status: 400,
-          headers: { ...baseHeaders, 'Content-Type': 'application/json' }
-        }
-      );
-    }
 
     const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET');
     if (!webhookSecret) {
       console.error('Webhook secret not configured');
-      return new Response(
-        JSON.stringify({ error: 'Webhook secret not configured' }),
-        { 
-          status: 500,
-          headers: { ...baseHeaders, 'Content-Type': 'application/json' }
-        }
-      );
+      return createErrorResponse('Webhook secret not configured', 500);
     }
 
-    const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') ?? '', {
+    const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
       apiVersion: '2023-10-16',
+      httpClient: Stripe.createFetchHttpClient(),
     });
 
     let event: Stripe.Event;
     try {
+      // Verify the event with the raw body and signature
       event = stripe.webhooks.constructEvent(
         rawBody,
-        stripeSignature,
+        signature || '',
         webhookSecret
       );
       console.log('Event verified successfully:', event.type);
@@ -70,8 +56,8 @@ serve(async (req: Request) => {
     }
 
     const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      Deno.env.get('SUPABASE_URL') || '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '',
       {
         auth: {
           autoRefreshToken: false,
@@ -84,22 +70,10 @@ serve(async (req: Request) => {
       await handleCheckoutSession(event.data.object as Stripe.Checkout.Session, supabaseAdmin);
     }
 
-    return new Response(
-      JSON.stringify({ received: true }),
-      { 
-        status: 200,
-        headers: { ...baseHeaders, 'Content-Type': 'application/json' }
-      }
-    );
+    return createSuccessResponse({ received: true });
 
   } catch (error) {
     console.error('Webhook processing error:', error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { 
-        status: 500,
-        headers: { ...baseHeaders, 'Content-Type': 'application/json' }
-      }
-    );
+    return createErrorResponse(error.message, 500);
   }
 });
