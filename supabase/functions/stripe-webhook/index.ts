@@ -22,7 +22,8 @@ serve(async (req: Request) => {
     console.log('Stripe signature present:', !!stripeSignature);
 
     if (!stripeSignature) {
-      return createErrorResponse('Stripe signature required', 400);
+      console.error('No stripe signature found in request headers');
+      return createErrorResponse('No stripe signature found', 400);
     }
 
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') ?? '', {
@@ -33,16 +34,21 @@ serve(async (req: Request) => {
     console.log('Webhook secret present:', !!webhookSecret);
 
     if (!webhookSecret) {
+      console.error('Webhook secret not configured in environment');
       return createErrorResponse('Webhook secret not configured', 500);
     }
 
     let event: Stripe.Event;
     try {
-      event = stripe.webhooks.constructEvent(rawBody, stripeSignature, webhookSecret);
-      console.log('Event verified:', event.type);
+      event = stripe.webhooks.constructEvent(
+        rawBody,
+        stripeSignature,
+        webhookSecret
+      );
+      console.log('Event verified successfully:', event.type);
     } catch (err) {
       console.error('Stripe signature verification failed:', err.message);
-      return createErrorResponse('Invalid signature', 400);
+      return createErrorResponse(`Webhook signature verification failed: ${err.message}`, 400);
     }
 
     const supabaseAdmin = createClient(
@@ -53,11 +59,6 @@ serve(async (req: Request) => {
           autoRefreshToken: false,
           persistSession: false,
         },
-        global: {
-          headers: {
-            Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
-          }
-        }
       }
     );
 
