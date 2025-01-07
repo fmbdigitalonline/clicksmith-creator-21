@@ -2,15 +2,16 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from 'https://esm.sh/stripe@14.21.0';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import { handleCheckoutSession } from './handlers/checkoutHandler.ts';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, stripe-signature',
-};
+import { baseHeaders } from './utils.ts';
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response('ok', { 
+      headers: {
+        ...baseHeaders,
+        Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`
+      }
+    });
   }
 
   try {
@@ -30,6 +31,23 @@ serve(async (req) => {
       apiVersion: '2023-10-16',
     });
 
+    // Initialize Supabase client with auth headers
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') || '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '',
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+        global: {
+          headers: {
+            Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`
+          }
+        }
+      }
+    );
+
     // Verify the event
     const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET');
     if (!webhookSecret) {
@@ -46,19 +64,28 @@ serve(async (req) => {
 
     // Handle the event
     if (event.type === 'checkout.session.completed') {
-      await handleCheckoutSession(event.data.object);
+      await handleCheckoutSession(event.data.object, supabaseAdmin);
     }
 
-    return new Response(JSON.stringify({ received: true }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 200,
-    });
+    return new Response(
+      JSON.stringify({ received: true }), 
+      {
+        headers: { 
+          ...baseHeaders, 
+          Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}` 
+        },
+        status: 200,
+      }
+    );
   } catch (error) {
     console.error('Webhook error:', error.message);
     return new Response(
       JSON.stringify({ error: error.message }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { 
+          ...baseHeaders, 
+          Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}` 
+        },
         status: 400,
       }
     );
