@@ -93,14 +93,16 @@ serve(async (req) => {
         }
 
         // Create credit operation record
-        const { error: creditOpError } = await supabaseAdmin
-          .from('credit_operations')
-          .insert({
-            user_id: session.client_reference_id,
-            operation_type: 'add', // Changed to 'add' to match the constraint
-            credits_amount: planData.credits,
-            status: 'success'
-          });
+
+// Update the operation type to match the constraint
+const { error: creditOpError } = await supabaseAdmin
+  .from('credit_operations')
+  .insert({
+    user_id: session.client_reference_id,
+    operation_type: 'add',  // This matches our constraint
+    credits_amount: planData.credits,
+    status: 'success'
+  });
 
         if (creditOpError) {
           console.error('Failed to create credit operation:', creditOpError);
