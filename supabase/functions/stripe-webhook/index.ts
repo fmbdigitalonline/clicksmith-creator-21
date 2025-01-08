@@ -1,4 +1,4 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import Stripe from "https://esm.sh/stripe@12.0.0";
 
@@ -18,7 +18,7 @@ async function handleCreditsAllocation(
     p_user_id: userId,
     p_credits: planData.credits,
     p_payment_id: sessionId,
-    p_description: 'Credits from subscription purchase'
+    p_description: `Credits from ${planData.name} plan purchase`
   });
 
   if (transactionError) {
