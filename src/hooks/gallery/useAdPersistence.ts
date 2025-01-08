@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { AdVariant, convertAdVariantToJson } from "@/types/adVariant";
 
 export const useAdPersistence = (projectId: string | undefined) => {
   const [savedAds, setSavedAds] = useState<any[]>([]);
@@ -30,12 +31,14 @@ export const useAdPersistence = (projectId: string | undefined) => {
     }
   };
 
-  const saveGeneratedAds = async (newAds: any[]) => {
+  const saveGeneratedAds = async (newAds: AdVariant[]) => {
     if (!projectId || projectId === 'new') return;
 
     try {
+      const jsonAds = newAds.map(convertAdVariantToJson);
+      
       // Merge new ads with existing ones, avoiding duplicates
-      const updatedAds = [...savedAds, ...newAds].filter((ad, index, self) => 
+      const updatedAds = [...savedAds, ...jsonAds].filter((ad, index, self) => 
         index === self.findIndex((t) => t.id === ad.id)
       );
 

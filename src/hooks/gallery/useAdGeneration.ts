@@ -1,10 +1,12 @@
+import { useState, useEffect } from "react";
 import { BusinessIdea, TargetAudience, AdHook } from "@/types/adWizard";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
-import { useState, useEffect } from "react";
 import { AdVariant, convertJsonToAdVariant, convertAdVariantToJson } from "@/types/adVariant";
+import { useAdPersistence } from "./useAdPersistence";
+import { useAdGeneration } from "./useAdGeneration";
+import { useAdValidation } from "./useAdValidation";
 
 export const useAdGeneration = (
   businessIdea: BusinessIdea,
@@ -13,79 +15,21 @@ export const useAdGeneration = (
 ) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [adVariants, setAdVariants] = useState<AdVariant[]>([]);
-  const [regenerationCount, setRegenerationCount] = useState(0);
   const [generationStatus, setGenerationStatus] = useState<string>("");
   const { toast } = useToast();
-  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { projectId } = useParams();
+  const { savedAds, isLoading, saveGeneratedAds } = useAdPersistence(projectId);
 
   // Load saved ad variants when component mounts
   useEffect(() => {
-    const loadSavedAds = async () => {
-      if (projectId && projectId !== 'new') {
-        const { data: project } = await supabase
-          .from('projects')
-          .select('generated_ads')
-          .eq('id', projectId)
-          .single();
-        
-        if (project?.generated_ads && Array.isArray(project.generated_ads)) {
-          const validVariants = project.generated_ads
-            .map(json => convertJsonToAdVariant(json))
-            .filter((variant): variant is AdVariant => variant !== null);
-          setAdVariants(validVariants);
-        }
-      }
-    };
-
-    loadSavedAds();
-  }, [projectId]);
-
-  const checkCredits = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('User not authenticated');
-
-    const { data: creditCheck, error } = await supabase.rpc(
-      'check_user_credits',
-      { p_user_id: user.id, required_credits: 1 }
-    );
-
-    if (error) throw error;
-
-    const result = creditCheck[0];
-    
-    if (!result.has_credits) {
-      toast({
-        title: "No credits available",
-        description: result.error_message,
-        variant: "destructive",
-      });
-      navigate('/pricing');
-      return false;
+    if (savedAds && savedAds.length > 0) {
+      const validVariants = savedAds
+        .map(json => convertJsonToAdVariant(json))
+        .filter((variant): variant is AdVariant => variant !== null);
+      setAdVariants(validVariants);
     }
-
-    return true;
-  };
-
-  const persistGeneratedAds = async (newVariants: AdVariant[]) => {
-    if (!projectId || projectId === 'new') return;
-
-    const updatedVariants = [...adVariants, ...newVariants];
-    const jsonVariants = updatedVariants.map(convertAdVariantToJson);
-    
-    const { error: updateError } = await supabase
-      .from('projects')
-      .update({ generated_ads: jsonVariants })
-      .eq('id', projectId);
-
-    if (updateError) {
-      console.error('Error persisting generated ads:', updateError);
-      throw updateError;
-    }
-
-    return updatedVariants;
-  };
+  }, [savedAds]);
 
   const generateAds = async (selectedPlatform: string) => {
     setIsGenerating(true);
@@ -102,13 +46,7 @@ export const useAdGeneration = (
           type: 'complete_ads',
           platform: selectedPlatform,
           businessIdea,
-          targetAudience: {
-            ...targetAudience,
-            name: targetAudience.name,
-            description: targetAudience.description,
-            demographics: targetAudience.demographics,
-            painPoints: targetAudience.painPoints
-          },
+          targetAudience,
           adHooks,
         },
       });
@@ -156,11 +94,12 @@ export const useAdGeneration = (
 
       const validVariants = processedVariants.filter((variant): variant is AdVariant => variant !== null);
       
-      // Persist the new variants
-      await persistGeneratedAds(validVariants);
+      // Save to project if we have a project ID
+      if (projectId && projectId !== 'new') {
+        await saveGeneratedAds(validVariants);
+      }
       
       setAdVariants(prev => [...prev, ...validVariants]);
-      setRegenerationCount(prev => prev + 1);
       
       toast({
         title: "Ads generated successfully",
@@ -179,23 +118,9 @@ export const useAdGeneration = (
     }
   };
 
-  const validateResponse = (data: any) => {
-    if (!data) {
-      throw new Error("No data received from generation");
-    }
-
-    const variants = data.variants;
-    if (!Array.isArray(variants) || variants.length === 0) {
-      throw new Error("Invalid or empty variants received");
-    }
-
-    return variants;
-  };
-
   return {
     isGenerating,
     adVariants,
-    regenerationCount,
     generationStatus,
     generateAds,
   };
