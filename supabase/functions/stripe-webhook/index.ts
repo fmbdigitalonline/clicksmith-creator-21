@@ -12,18 +12,83 @@ async function handleCreditsAllocation(
   supabase: any,
   userId: string,
   planData: any,
-  sessionId: string
+  sessionId: string,
+  description: string
 ) {
-  const { error: transactionError } = await supabase.rpc('allocate_credits', {
-    p_user_id: userId,
-    p_credits: planData.credits,
-    p_payment_id: sessionId,
-    p_description: `Credits from ${planData.name} plan purchase`
-  });
+  // First, log the payment
+  const { error: paymentError } = await supabase
+    .from('payments')
+    .insert({
+      user_id: userId,
+      stripe_session_id: sessionId,
+      amount: planData.credits, // Using credits as amount since it represents the value
+      currency: 'credits',
+      status: 'completed',
+      description: description
+    });
 
-  if (transactionError) {
-    console.error('Credits allocation failed:', transactionError);
-    throw transactionError;
+  if (paymentError) {
+    console.error('Payment logging failed:', paymentError);
+    throw paymentError;
+  }
+
+  // Check if user has an active subscription
+  const { data: existingSubscription, error: subscriptionError } = await supabase
+    .from('subscriptions')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('active', true)
+    .single();
+
+  if (subscriptionError && subscriptionError.code !== 'PGRST116') {
+    console.error('Error checking subscription:', subscriptionError);
+    throw subscriptionError;
+  }
+
+  if (existingSubscription) {
+    // Update existing subscription
+    const { error: updateError } = await supabase
+      .from('subscriptions')
+      .update({
+        credits_remaining: existingSubscription.credits_remaining + planData.credits,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', existingSubscription.id);
+
+    if (updateError) {
+      console.error('Subscription update failed:', updateError);
+      throw updateError;
+    }
+  } else {
+    // Create new subscription
+    const { error: insertError } = await supabase
+      .from('subscriptions')
+      .insert({
+        user_id: userId,
+        credits_remaining: planData.credits,
+        active: true,
+        current_period_start: new Date().toISOString()
+      });
+
+    if (insertError) {
+      console.error('Subscription creation failed:', insertError);
+      throw insertError;
+    }
+  }
+
+  // Log the credit operation
+  const { error: operationError } = await supabase
+    .from('credit_operations')
+    .insert({
+      user_id: userId,
+      operation_type: 'credit_add',
+      credits_amount: planData.credits,
+      status: 'success'
+    });
+
+  if (operationError) {
+    console.error('Credit operation logging failed:', operationError);
+    throw operationError;
   }
 }
 
@@ -46,7 +111,6 @@ serve(async (req) => {
       apiVersion: '2023-10-16',
     });
 
-    // Use constructEventAsync instead of constructEvent
     const event = await stripe.webhooks.constructEventAsync(
       body,
       signature || '',
@@ -62,14 +126,15 @@ serve(async (req) => {
       console.log('Processing checkout session event');
       
       const session = event.data.object as Stripe.Checkout.Session;
+      const userId = session.metadata?.supabaseUid;
       
-      if (!session.client_reference_id) {
-        throw new Error('No user ID provided in session');
+      if (!userId) {
+        throw new Error('No user ID provided in session metadata');
       }
 
       console.log('Session details:', {
         id: session.id,
-        clientReferenceId: session.client_reference_id,
+        metadata: session.metadata,
         customerId: session.customer,
         mode: session.mode
       });
@@ -107,15 +172,18 @@ serve(async (req) => {
         throw new Error('Failed to fetch plan details');
       }
 
+      const description = `Purchase of ${planData.name} plan - ${planData.credits} credits`;
+
       // Allocate credits using our transaction function
       await handleCreditsAllocation(
         supabaseAdmin,
-        session.client_reference_id,
+        userId,
         planData,
-        session.id
+        session.id,
+        description
       );
 
-      console.log('Successfully allocated credits for user:', session.client_reference_id);
+      console.log('Successfully allocated credits for user:', userId);
     }
 
     return new Response(

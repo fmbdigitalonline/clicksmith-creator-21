@@ -314,6 +314,7 @@ export type Database = {
           created_at: string
           currency: string
           customer_email: string | null
+          description: string | null
           id: string
           status: string
           stripe_payment_intent: string | null
@@ -326,6 +327,7 @@ export type Database = {
           created_at?: string
           currency: string
           customer_email?: string | null
+          description?: string | null
           id?: string
           status: string
           stripe_payment_intent?: string | null
@@ -338,6 +340,7 @@ export type Database = {
           created_at?: string
           currency?: string
           customer_email?: string | null
+          description?: string | null
           id?: string
           status?: string
           stripe_payment_intent?: string | null
