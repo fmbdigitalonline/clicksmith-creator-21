@@ -4,14 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
-
-// Separate types into their own file later
-interface AdVariant {
-  id: string;
-  imageUrl: string;
-  platform: string;
-  resizedUrls?: Record<string, string>;
-}
+import { AdVariant, convertJsonToAdVariant, convertAdVariantToJson } from "@/types/adVariant";
 
 export const useAdGeneration = (
   businessIdea: BusinessIdea,
@@ -38,7 +31,10 @@ export const useAdGeneration = (
           .single();
         
         if (project?.generated_ads && Array.isArray(project.generated_ads)) {
-          setAdVariants(project.generated_ads);
+          const validVariants = project.generated_ads
+            .map(json => convertJsonToAdVariant(json))
+            .filter((variant): variant is AdVariant => variant !== null);
+          setAdVariants(validVariants);
         }
       }
     };
@@ -76,10 +72,11 @@ export const useAdGeneration = (
     if (!projectId || projectId === 'new') return;
 
     const updatedVariants = [...adVariants, ...newVariants];
+    const jsonVariants = updatedVariants.map(convertAdVariantToJson);
     
     const { error: updateError } = await supabase
       .from('projects')
-      .update({ generated_ads: updatedVariants })
+      .update({ generated_ads: jsonVariants })
       .eq('id', projectId);
 
     if (updateError) {
@@ -150,14 +147,14 @@ export const useAdGeneration = (
             imageUrl: variant.imageUrl,
             resizedUrls: variant.resizedUrls || {},
             platform: selectedPlatform
-          };
+          } as AdVariant;
         } catch (error) {
           console.error('Error processing variant:', error);
           return null;
         }
       }));
 
-      const validVariants = processedVariants.filter(Boolean);
+      const validVariants = processedVariants.filter((variant): variant is AdVariant => variant !== null);
       
       // Persist the new variants
       await persistGeneratedAds(validVariants);
