@@ -92,17 +92,15 @@ serve(async (req) => {
           throw new Error('Failed to fetch plan details');
         }
 
-        // Create credit operation record
-
-// Update the operation type to match the constraint
-const { error: creditOpError } = await supabaseAdmin
-  .from('credit_operations')
-  .insert({
-    user_id: session.client_reference_id,
-    operation_type: 'add',  // This matches our constraint
-    credits_amount: planData.credits,
-    status: 'success'
-  });
+        // Create credit operation record - Changed 'deduct' to 'subtract' to match constraint
+        const { error: creditOpError } = await supabaseAdmin
+          .from('credit_operations')
+          .insert({
+            user_id: session.client_reference_id,
+            operation_type: 'add',  // This matches our constraint
+            credits_amount: planData.credits,
+            status: 'success'
+          });
 
         if (creditOpError) {
           console.error('Failed to create credit operation:', creditOpError);
