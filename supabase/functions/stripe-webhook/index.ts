@@ -8,7 +8,24 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
-console.log('Starting webhook handler...');
+async function handleCreditsAllocation(
+  supabase: any,
+  userId: string,
+  planData: any,
+  sessionId: string
+) {
+  const { error: transactionError } = await supabase.rpc('allocate_credits', {
+    p_user_id: userId,
+    p_credits: planData.credits,
+    p_payment_id: sessionId,
+    p_description: 'Credits from subscription purchase'
+  });
+
+  if (transactionError) {
+    console.error('Credits allocation failed:', transactionError);
+    throw transactionError;
+  }
+}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -29,25 +46,17 @@ serve(async (req) => {
       apiVersion: '2023-10-16',
     });
 
-    let event;
-    try {
-      event = await stripe.webhooks.constructEvent(
-        body,
-        signature || '',
-        Deno.env.get('STRIPE_WEBHOOK_SECRET') || ''
-      );
-      console.log('Event constructed:', {
-        type: event.type,
-        id: event.id
-      });
-    } catch (err) {
-      console.error('Webhook construction failed:', {
-        error: err.message,
-        signature: signature?.substring(0, 20),
-        hasWebhookSecret: !!Deno.env.get('STRIPE_WEBHOOK_SECRET')
-      });
-      throw err;
-    }
+    // Use constructEventAsync instead of constructEvent
+    const event = await stripe.webhooks.constructEventAsync(
+      body,
+      signature || '',
+      Deno.env.get('STRIPE_WEBHOOK_SECRET') || ''
+    );
+
+    console.log('Event constructed:', {
+      type: event.type,
+      id: event.id
+    });
 
     if (event.type === 'checkout.session.completed') {
       console.log('Processing checkout session event');
@@ -55,7 +64,7 @@ serve(async (req) => {
       const session = event.data.object as Stripe.Checkout.Session;
       
       if (!session.client_reference_id) {
-        throw new Error('No client_reference_id found in session');
+        throw new Error('No user ID provided in session');
       }
 
       console.log('Session details:', {
@@ -98,23 +107,15 @@ serve(async (req) => {
         throw new Error('Failed to fetch plan details');
       }
 
-      // Allocate credits using our new transaction function
-      const { data: allocationResult, error: allocationError } = await supabaseAdmin.rpc(
-        'allocate_credits',
-        {
-          p_user_id: session.client_reference_id,
-          p_credits: planData.credits,
-          p_payment_id: session.id,
-          p_description: `Credits from ${planData.name} plan purchase`
-        }
+      // Allocate credits using our transaction function
+      await handleCreditsAllocation(
+        supabaseAdmin,
+        session.client_reference_id,
+        planData,
+        session.id
       );
 
-      if (allocationError) {
-        console.error('Credits allocation failed:', allocationError);
-        throw allocationError;
-      }
-
-      console.log('Credits allocation result:', allocationResult);
+      console.log('Successfully allocated credits for user:', session.client_reference_id);
     }
 
     return new Response(
