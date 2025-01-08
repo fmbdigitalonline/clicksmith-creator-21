@@ -1,4 +1,4 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { serve } from "std/http/server";
 import { Stripe } from 'stripe';
 import { createClient } from '@supabase/supabase-js';
 import { handleCheckoutSession } from './handlers/checkoutHandler.ts';
