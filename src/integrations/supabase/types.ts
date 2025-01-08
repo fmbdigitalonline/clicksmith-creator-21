@@ -124,7 +124,7 @@ export type Database = {
           credits_amount: number
           error_message: string | null
           id: string
-          operation_type: string
+          operation_type: Database["public"]["Enums"]["credit_operation_type"]
           status: string
           user_id: string
         }
@@ -133,7 +133,7 @@ export type Database = {
           credits_amount: number
           error_message?: string | null
           id?: string
-          operation_type: string
+          operation_type?: Database["public"]["Enums"]["credit_operation_type"]
           status: string
           user_id: string
         }
@@ -142,7 +142,7 @@ export type Database = {
           credits_amount?: number
           error_message?: string | null
           id?: string
-          operation_type?: string
+          operation_type?: Database["public"]["Enums"]["credit_operation_type"]
           status?: string
           user_id?: string
         }
@@ -632,7 +632,7 @@ export type Database = {
       }
     }
     Enums: {
-      [_ in never]: never
+      credit_operation_type: "credit_add" | "credit_deduct" | "credit_refund"
     }
     CompositeTypes: {
       [_ in never]: never
