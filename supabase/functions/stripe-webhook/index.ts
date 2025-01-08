@@ -1,7 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { Stripe } from 'https://esm.sh/stripe@14.21.0';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
-import { handleStripeEvent } from './utils/stripeEventHandler.ts';
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import Stripe from "https://esm.sh/stripe@12.0.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -28,12 +27,11 @@ serve(async (req) => {
 
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
       apiVersion: '2023-10-16',
-      httpClient: Stripe.createFetchHttpClient(),
     });
 
     let event;
     try {
-      event = await stripe.webhooks.constructEventAsync(
+      event = await stripe.webhooks.constructEvent(
         body,
         signature || '',
         Deno.env.get('STRIPE_WEBHOOK_SECRET') || ''
@@ -57,7 +55,6 @@ serve(async (req) => {
       const session = event.data.object as Stripe.Checkout.Session;
       
       if (!session.client_reference_id) {
-        console.error('Missing client_reference_id in session');
         throw new Error('No client_reference_id found in session');
       }
 
@@ -80,17 +77,44 @@ serve(async (req) => {
       );
 
       // Get price ID and plan
-      const priceId = await getPriceIdFromSession(stripe, session);
-      const planData = await getPlanFromPriceId(supabaseAdmin, priceId);
-      
-      // Add credits with the correct operation type
-      await addCreditsToUser(
-        supabaseAdmin,
-        session.client_reference_id,
-        planData.credits
+      const lineItems = await stripe.checkout.sessions.listLineItems(session.id, {
+        expand: ['data.price.product']
+      });
+      const priceId = lineItems.data[0].price?.id;
+
+      if (!priceId) {
+        throw new Error('No price found in session');
+      }
+
+      // Get plan details from database
+      const { data: planData, error: planError } = await supabaseAdmin
+        .from('plans')
+        .select('*')
+        .eq('stripe_price_id', priceId)
+        .single();
+
+      if (planError || !planData) {
+        console.error('Plan fetch error:', planError);
+        throw new Error('Failed to fetch plan details');
+      }
+
+      // Allocate credits using our new transaction function
+      const { data: allocationResult, error: allocationError } = await supabaseAdmin.rpc(
+        'allocate_credits',
+        {
+          p_user_id: session.client_reference_id,
+          p_credits: planData.credits,
+          p_payment_id: session.id,
+          p_description: `Credits from ${planData.name} plan purchase`
+        }
       );
 
-      await handleCheckoutSession(session, supabaseAdmin);
+      if (allocationError) {
+        console.error('Credits allocation failed:', allocationError);
+        throw allocationError;
+      }
+
+      console.log('Credits allocation result:', allocationResult);
     }
 
     return new Response(
