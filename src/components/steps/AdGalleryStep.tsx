@@ -1,4 +1,4 @@
-import { BusinessIdea, TargetAudience, AdHook } from "@/types/adWizard";
+import { BusinessIdea, TargetAudience, AdHook, AdImage } from "@/types/adWizard";
 import { TabsContent } from "@/components/ui/tabs";
 import LoadingState from "./complete/LoadingState";
 import PlatformTabs from "./gallery/PlatformTabs";
@@ -14,6 +14,7 @@ interface AdGalleryStepProps {
   businessIdea: BusinessIdea;
   targetAudience: TargetAudience;
   adHooks: AdHook[];
+  generatedImages?: AdImage[];
   onStartOver: () => void;
   onBack: () => void;
   onCreateProject: () => void;
@@ -24,6 +25,7 @@ const AdGalleryStep = ({
   businessIdea,
   targetAudience,
   adHooks,
+  generatedImages,
   onStartOver,
   onBack,
   onCreateProject,
@@ -44,7 +46,7 @@ const AdGalleryStep = ({
     adVariants,
     generationStatus,
     generateAds,
-  } = useAdGeneration(businessIdea, targetAudience, adHooks);
+  } = useAdGeneration(businessIdea, targetAudience, adHooks, generatedImages);
 
   useEffect(() => {
     if (adVariants.length === 0) {
