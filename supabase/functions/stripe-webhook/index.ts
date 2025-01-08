@@ -68,6 +68,30 @@ serve(async (req) => {
         mode: session.mode
       });
 
+      // Get price ID
+      let priceId;
+      try {
+        if (session.mode === 'subscription' && session.subscription) {
+          const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
+          priceId = subscription.items.data[0].price.id;
+          console.log('Retrieved price ID from subscription:', priceId);
+        } else {
+          const lineItems = await stripe.checkout.sessions.listLineItems(session.id, {
+            expand: ['data.price']
+          });
+          priceId = lineItems.data[0].price?.id;
+          console.log('Retrieved price ID from line items:', priceId);
+        }
+
+        if (!priceId) {
+          console.error('No price ID found in session data');
+          throw new Error('No price ID found');
+        }
+      } catch (err) {
+        console.error('Failed to retrieve price ID:', err);
+        throw err;
+      }
+
       try {
         const supabaseAdmin = createClient(
           Deno.env.get('SUPABASE_URL') || '',
@@ -80,22 +104,52 @@ serve(async (req) => {
           }
         );
 
-        // Get plan details based on price ID
+        // Debug: Log all available plans
+        const { data: allPlans, error: plansError } = await supabaseAdmin
+          .from('plans')
+          .select('*');
+        
+        if (plansError) {
+          console.error('Error fetching all plans:', plansError);
+        } else {
+          console.log('Available plans:', {
+            count: allPlans?.length || 0,
+            plans: allPlans?.map(p => ({
+              id: p.id,
+              name: p.name,
+              stripe_price_id: p.stripe_price_id
+            }))
+          });
+        }
+
+        // Fetch specific plan
         const { data: planData, error: planError } = await supabaseAdmin
           .from('plans')
           .select('*')
-          .eq('stripe_price_id', session.line_items?.data[0]?.price?.id)
+          .eq('stripe_price_id', priceId)
           .single();
 
-        if (planError || !planData) {
-          console.error('Failed to fetch plan:', planError);
-          throw new Error('Failed to fetch plan details');
+        if (planError) {
+          console.error('Failed to fetch plan:', {
+            error: planError,
+            priceId: priceId,
+            errorCode: planError.code,
+            errorMessage: planError.message,
+            errorDetails: planError.details
+          });
+          throw planError;
+        }
+
+        if (!planData) {
+          console.error('No plan found for price ID:', priceId);
+          throw new Error('No matching plan found');
         }
 
         console.log('Plan details retrieved:', {
           planId: planData.id,
           credits: planData.credits,
-          name: planData.name
+          name: planData.name,
+          stripe_price_id: planData.stripe_price_id
         });
 
         // Create credit operation record
@@ -103,7 +157,7 @@ serve(async (req) => {
           .from('credit_operations')
           .insert({
             user_id: session.client_reference_id,
-            operation_type: 'purchase',  // Using 'purchase' operation type
+            operation_type: 'purchase',
             credits_amount: planData.credits,
             status: 'success'
           });
@@ -134,7 +188,8 @@ serve(async (req) => {
 
         console.log('Credits added successfully:', {
           userId: session.client_reference_id,
-          creditsAdded: planData.credits
+          creditsAdded: planData.credits,
+          currentCredits: creditsResult.current_credits
         });
 
         await handleCheckoutSession(session, supabaseAdmin);
