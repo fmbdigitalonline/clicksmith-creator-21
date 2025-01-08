@@ -1,11 +1,11 @@
 import { Stripe } from 'https://esm.sh/stripe@14.21.0';
-import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import { handleCheckoutComplete } from './checkoutHandler.ts';
 
 export async function handleStripeEvent(
   event: Stripe.Event,
   stripe: Stripe,
-  supabaseClient: SupabaseClient
+  supabaseClient: ReturnType<typeof createClient>
 ) {
   console.log('Processing event:', event.type);
   console.log('Event data:', JSON.stringify(event.data.object, null, 2));
