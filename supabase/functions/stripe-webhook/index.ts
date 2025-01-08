@@ -92,12 +92,18 @@ serve(async (req) => {
           throw new Error('Failed to fetch plan details');
         }
 
-        // Create credit operation record - Changed operation_type to 'purchase'
+        console.log('Plan details retrieved:', {
+          planId: planData.id,
+          credits: planData.credits,
+          name: planData.name
+        });
+
+        // Create credit operation record
         const { error: creditOpError } = await supabaseAdmin
           .from('credit_operations')
           .insert({
             user_id: session.client_reference_id,
-            operation_type: 'purchase',  // Changed from 'add' to 'purchase'
+            operation_type: 'purchase',  // Using 'purchase' operation type
             credits_amount: planData.credits,
             status: 'success'
           });
@@ -106,6 +112,8 @@ serve(async (req) => {
           console.error('Failed to create credit operation:', creditOpError);
           throw creditOpError;
         }
+
+        console.log('Credit operation created successfully');
 
         // Add credits to user's account
         const { data: creditsResult, error: creditsError } = await supabaseAdmin.rpc(
@@ -117,9 +125,17 @@ serve(async (req) => {
         );
 
         if (creditsError || !creditsResult?.success) {
-          console.error('Failed to add credits:', creditsError || creditsResult?.error_message);
+          console.error('Failed to add credits:', {
+            error: creditsError,
+            result: creditsResult
+          });
           throw new Error(creditsError?.message || creditsResult?.error_message || 'Failed to add credits');
         }
+
+        console.log('Credits added successfully:', {
+          userId: session.client_reference_id,
+          creditsAdded: planData.credits
+        });
 
         await handleCheckoutSession(session, supabaseAdmin);
       } catch (err) {
