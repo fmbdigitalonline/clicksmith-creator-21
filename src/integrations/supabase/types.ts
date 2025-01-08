@@ -587,6 +587,18 @@ export type Database = {
           error_message: string
         }[]
       }
+      allocate_credits: {
+        Args: {
+          p_user_id: string
+          p_credits: number
+          p_payment_id: string
+          p_description: string
+        }
+        Returns: {
+          success: boolean
+          message: string
+        }[]
+      }
       check_user_credits: {
         Args: {
           p_user_id: string

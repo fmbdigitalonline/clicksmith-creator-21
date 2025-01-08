@@ -46,13 +46,13 @@ const AdGalleryStep = ({
     adVariants,
     generationStatus,
     generateAds,
-  } = useAdGeneration(businessIdea, targetAudience, adHooks, generatedImages);
+  } = useAdGeneration(businessIdea, targetAudience, adHooks);
 
   useEffect(() => {
     if (adVariants.length === 0) {
       generateAds(platform);
     }
-  }, [videoAdsEnabled]);
+  }, []);
 
   const onPlatformChange = (newPlatform: "facebook" | "google" | "linkedin" | "tiktok") => {
     handlePlatformChange(newPlatform, adVariants.length > 0);
