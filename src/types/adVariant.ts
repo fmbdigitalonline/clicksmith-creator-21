@@ -16,22 +16,29 @@ export interface AdVariant {
 }
 
 export const convertJsonToAdVariant = (json: Json): AdVariant | null => {
-  if (typeof json !== 'object' || !json) return null;
+  if (typeof json !== 'object' || !json || Array.isArray(json)) return null;
   
+  const jsonObject = json as Record<string, Json>;
+  
+  // Type guard to ensure required fields exist
+  if (!jsonObject.id || !jsonObject.imageUrl || !jsonObject.platform) {
+    return null;
+  }
+
   return {
-    id: String(json.id || ''),
-    imageUrl: String(json.imageUrl || ''),
-    platform: String(json.platform || ''),
-    resizedUrls: json.resizedUrls as Record<string, string>,
-    headline: json.headline as string,
-    description: json.description as string,
-    callToAction: json.callToAction as string,
-    size: json.size as { width: number; height: number; label: string },
+    id: String(jsonObject.id),
+    imageUrl: String(jsonObject.imageUrl),
+    platform: String(jsonObject.platform),
+    resizedUrls: jsonObject.resizedUrls as Record<string, string>,
+    headline: jsonObject.headline as string | undefined,
+    description: jsonObject.description as string | undefined,
+    callToAction: jsonObject.callToAction as string | undefined,
+    size: jsonObject.size as { width: number; height: number; label: string } | undefined,
   };
 };
 
 export const convertAdVariantToJson = (variant: AdVariant): Json => {
-  return {
+  const jsonObject: Record<string, Json> = {
     id: variant.id,
     imageUrl: variant.imageUrl,
     platform: variant.platform,
@@ -41,4 +48,6 @@ export const convertAdVariantToJson = (variant: AdVariant): Json => {
     callToAction: variant.callToAction,
     size: variant.size,
   };
+
+  return jsonObject;
 };
