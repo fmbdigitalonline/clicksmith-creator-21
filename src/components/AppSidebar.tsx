@@ -34,7 +34,7 @@ const menuItems = [
     title: "Ad Gallery",
     icon: Images,
     url: "/ad-wizard",
-    showCondition: (pathname: string) => pathname.includes('/ad-wizard') || pathname.includes('/projects'),
+    showCondition: () => sessionStorage.getItem('showAdGallery') === 'true',
   },
   {
     title: "Settings",
@@ -53,8 +53,7 @@ export function AppSidebar() {
       return currentPath === "/" || currentPath === "/projects";
     }
     if (path === "/ad-wizard") {
-      return currentPath.includes('/ad-wizard') || 
-             (currentPath.includes('/projects') && sessionStorage.getItem('showAdGallery') === 'true');
+      return currentPath.includes('/ad-wizard');
     }
     return currentPath === path;
   };
@@ -66,9 +65,16 @@ export function AppSidebar() {
 
   const handleMenuClick = (url: string) => {
     if (url === '/ad-wizard') {
-      sessionStorage.setItem('showAdGallery', 'true');
+      // If clicking Ad Gallery, navigate to the last ad wizard page or create new
+      const lastAdWizardPath = sessionStorage.getItem('lastAdWizardPath') || '/ad-wizard/new';
+      navigate(lastAdWizardPath);
     }
   };
+
+  // Store the current ad wizard path when on an ad wizard route
+  if (currentPath.includes('/ad-wizard')) {
+    sessionStorage.setItem('lastAdWizardPath', currentPath);
+  }
 
   return (
     <Sidebar>
@@ -87,7 +93,7 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {menuItems
-                .filter(item => !item.showCondition || item.showCondition(currentPath))
+                .filter(item => !item.showCondition || item.showCondition())
                 .map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
