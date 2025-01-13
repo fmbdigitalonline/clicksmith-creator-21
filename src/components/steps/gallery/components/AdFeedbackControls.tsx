@@ -41,9 +41,14 @@ export const AdFeedbackControls = ({ adId, projectId, onFeedbackSubmit }: AdFeed
         return;
       }
 
+      // Only include project_id if it's a valid UUID
+      const isValidUUID = projectId && 
+                         projectId !== "new" && 
+                         /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(projectId);
+
       const feedbackData = {
         user_id: user.id,
-        project_id: projectId,
+        project_id: isValidUUID ? projectId : null,
         ad_id: adId,
         rating: stars,
       };
@@ -85,9 +90,14 @@ export const AdFeedbackControls = ({ adId, projectId, onFeedbackSubmit }: AdFeed
         return;
       }
 
+      // Only include project_id if it's a valid UUID
+      const isValidUUID = projectId && 
+                         projectId !== "new" && 
+                         /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(projectId);
+
       const feedbackData = {
         user_id: user.id,
-        project_id: projectId,
+        project_id: isValidUUID ? projectId : null,
         ad_id: adId,
         rating: 0,
         feedback: feedbackText
@@ -129,9 +139,14 @@ export const AdFeedbackControls = ({ adId, projectId, onFeedbackSubmit }: AdFeed
         return;
       }
 
+      // Only include project_id if it's a valid UUID
+      const isValidUUID = projectId && 
+                         projectId !== "new" && 
+                         /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(projectId);
+
       const feedbackData = {
         user_id: user.id,
-        project_id: projectId,
+        project_id: isValidUUID ? projectId : null,
         ad_id: adId,
         rating: 1
       };
