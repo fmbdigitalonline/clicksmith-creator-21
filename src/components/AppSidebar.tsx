@@ -1,7 +1,7 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { useEffect } from "react"; // Added missing import
+import { useEffect } from "react";
 import { Sidebar, SidebarContent, SidebarGroupContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "./ui/sidebar";
-import { Home, Settings, Images } from "lucide-react";
+import { Home, Settings, Images, BookmarkIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const menuItems = [
@@ -14,7 +14,12 @@ const menuItems = [
     title: "Ad Gallery",
     icon: Images,
     url: "/ad-wizard",
-    showCondition: () => true, // Always show Ad Gallery
+    showCondition: () => true,
+  },
+  {
+    title: "Saved Ads",
+    icon: BookmarkIcon,
+    url: "/saved-ads",
   },
   {
     title: "Settings",
@@ -40,7 +45,6 @@ const AppSidebar = () => {
 
   const handleMenuClick = (url: string) => {
     if (url === '/ad-wizard') {
-      // Get the last wizard path or default to new
       const lastWizardPath = sessionStorage.getItem('lastWizardPath') || '/ad-wizard/new';
       navigate(lastWizardPath);
     } else {
@@ -48,7 +52,6 @@ const AppSidebar = () => {
     }
   };
 
-  // Store the current wizard path when on a wizard route
   useEffect(() => {
     if (currentPath.includes('/ad-wizard')) {
       sessionStorage.setItem('lastWizardPath', currentPath);
@@ -87,4 +90,4 @@ const AppSidebar = () => {
   );
 };
 
-export default AppSidebar; // Changed to default export
+export default AppSidebar;
