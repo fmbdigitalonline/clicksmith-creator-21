@@ -16,12 +16,14 @@ const PlatformContent = ({
   videoAdsEnabled = false,
   selectedFormat
 }: PlatformContentProps) => {
-  const filteredVariants = Array.isArray(adVariants) ? adVariants : [];
+  const filteredVariants = Array.isArray(adVariants) 
+    ? adVariants.filter(variant => variant.platform === platformName)
+    : [];
 
   if (filteredVariants.length === 0) {
     return (
       <div className="text-center py-8">
-        <p className="text-gray-500">No ad variants available. Please try regenerating the ads.</p>
+        <p className="text-gray-500">No ad variants available for {platformName}. Please try regenerating the ads.</p>
       </div>
     );
   }
@@ -39,7 +41,7 @@ const PlatformContent = ({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {filteredVariants.map((variant, index) => (
           <AdPreviewCard
-            key={`${index}-${variant.size?.label || 'default'}`}
+            key={`${platformName}-${index}-${variant.size?.label || 'default'}`}
             variant={variant}
             onCreateProject={onCreateProject}
             isVideo={videoAdsEnabled}

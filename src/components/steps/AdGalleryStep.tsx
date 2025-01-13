@@ -59,15 +59,11 @@ const AdGalleryStep = ({
       return;
     }
     
-    if (generatedAds.length > 0) {
-      // If we have previously generated ads, use those
-      return;
-    }
-    
-    if (adVariants.length === 0) {
+    const platformAds = generatedAds.filter(ad => ad.platform === platform);
+    if (platformAds.length === 0 && !isGenerating) {
       generateAds(platform);
     }
-  }, [hasLoadedInitialAds]);
+  }, [platform, hasLoadedInitialAds, generatedAds, isGenerating]);
 
   useEffect(() => {
     if (onAdsGenerated && adVariants.length > 0) {
@@ -106,7 +102,7 @@ const AdGalleryStep = ({
       </div>
       <PlatformContent
         platformName={platformName}
-        adVariants={generatedAds.length > 0 ? generatedAds.filter(variant => variant.platform === platformName) : adVariants.filter(variant => variant.platform === platformName)}
+        adVariants={generatedAds.length > 0 ? generatedAds : adVariants}
         onCreateProject={onCreateProject}
         videoAdsEnabled={videoAdsEnabled}
         selectedFormat={selectedFormat}
