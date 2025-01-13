@@ -50,7 +50,8 @@ export const AdFeedbackControls = ({ adId, projectId, onFeedbackSubmit }: AdFeed
         user_id: user.id,
         project_id: isValidUUID ? projectId : null,
         ad_id: adId,
-        rating: stars,
+        rating: stars, // Ensure this is a number between 1-5
+        feedback: null
       };
 
       const { error } = await supabase
@@ -99,7 +100,7 @@ export const AdFeedbackControls = ({ adId, projectId, onFeedbackSubmit }: AdFeed
         user_id: user.id,
         project_id: isValidUUID ? projectId : null,
         ad_id: adId,
-        rating: 0,
+        rating: 0, // Explicit 0 for dislike
         feedback: feedbackText
       };
 
@@ -148,7 +149,8 @@ export const AdFeedbackControls = ({ adId, projectId, onFeedbackSubmit }: AdFeed
         user_id: user.id,
         project_id: isValidUUID ? projectId : null,
         ad_id: adId,
-        rating: 1
+        rating: 1, // Explicit 1 for like
+        feedback: null
       };
 
       const { error } = await supabase
