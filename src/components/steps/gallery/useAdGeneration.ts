@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 export const useAdGeneration = (
   businessIdea: BusinessIdea,
@@ -19,40 +19,17 @@ export const useAdGeneration = (
   const navigate = useNavigate();
   const { projectId } = useParams();
 
-  // Load saved ad variants when component mounts
-  useEffect(() => {
-    const loadSavedAds = async () => {
-      console.log('Loading saved ads for project:', projectId);
-      if (projectId && projectId !== 'new') {
-        const { data: project } = await supabase
-          .from('projects')
-          .select('generated_ads')
-          .eq('id', projectId)
-          .single();
-        
-        console.log('Loaded project data:', project);
-        
-        if (project?.generated_ads && Array.isArray(project.generated_ads)) {
-          console.log('Setting ad variants from project:', project.generated_ads);
-          setAdVariants(project.generated_ads);
-        }
-      }
-    };
-
-    loadSavedAds();
-  }, [projectId]);
-
   const checkCredits = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
 
-    const { data: creditCheck, error } = await supabase.rpc(
+    const { data: creditCheck, error: creditsError } = await supabase.rpc(
       'check_user_credits',
       { p_user_id: user.id, required_credits: 1 }
     );
 
-    if (error) {
-      throw error;
+    if (creditsError) {
+      throw creditsError;
     }
 
     const result = creditCheck[0];
@@ -68,6 +45,27 @@ export const useAdGeneration = (
     }
 
     return true;
+  };
+
+  const deductCredits = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    const { data: deductionResult, error: deductionError } = await supabase.rpc(
+      'deduct_user_credits',
+      { input_user_id: user.id, credits_to_deduct: 1 }
+    );
+
+    if (deductionError) {
+      console.error('Error deducting credits:', deductionError);
+      throw deductionError;
+    }
+
+    if (!deductionResult.success) {
+      throw new Error(deductionResult.error_message || 'Failed to deduct credits');
+    }
+
+    return deductionResult;
   };
 
   const generateAds = async (selectedPlatform: string) => {
@@ -106,6 +104,9 @@ export const useAdGeneration = (
       console.log('Generation response:', data);
       const variants = validateResponse(data);
 
+      // Only deduct credits after successful generation
+      await deductCredits();
+
       setGenerationStatus("Processing generated content...");
       
       const processedVariants = await Promise.all(variants.map(async (variant: any) => {
@@ -141,7 +142,6 @@ export const useAdGeneration = (
 
           // Save to project if we have a project ID
           if (projectId && projectId !== 'new') {
-            // Merge new variants with existing ones
             const updatedVariants = [...adVariants, newVariant];
             console.log('Saving updated variants to project:', updatedVariants);
             
@@ -204,5 +204,6 @@ export const useAdGeneration = (
     regenerationCount,
     generationStatus,
     generateAds,
+    setAdVariants,
   };
 };
