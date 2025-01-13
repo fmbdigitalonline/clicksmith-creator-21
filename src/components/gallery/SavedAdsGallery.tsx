@@ -49,19 +49,19 @@ export const SavedAdsGallery = () => {
       let generatedAds: SavedAd[] = [];
       
       if (wizardData?.selected_hooks) {
-        const hooksData = wizardData.selected_hooks as WizardHook[];
-        if (Array.isArray(hooksData)) {
-          // Convert wizard progress data to SavedAd format
-          generatedAds = hooksData.map((hook: WizardHook, index: number) => ({
-            id: `wizard-${index}`,
-            saved_images: hook.imageUrl ? [hook.imageUrl] : [],
-            headline: hook.description,
-            primary_text: hook.text,
-            rating: 0,
-            feedback: '',
-            created_at: new Date().toISOString()
-          }));
-        }
+        const hooksData = Array.isArray(wizardData.selected_hooks) 
+          ? wizardData.selected_hooks 
+          : [];
+          
+        generatedAds = hooksData.map((hook: WizardHook, index: number) => ({
+          id: `wizard-${index}`,
+          saved_images: hook.imageUrl ? [hook.imageUrl] : [],
+          headline: hook.description,
+          primary_text: hook.text,
+          rating: 0,
+          feedback: '',
+          created_at: new Date().toISOString()
+        }));
       }
 
       // Then get saved ad feedback
@@ -80,15 +80,18 @@ export const SavedAdsGallery = () => {
       const feedbackAds: SavedAd[] = (feedbackData as AdFeedbackRow[]).map(ad => ({
         ...ad,
         saved_images: Array.isArray(ad.saved_images) 
-          ? ad.saved_images as string[]
+          ? ad.saved_images
           : typeof ad.saved_images === 'string'
-            ? [ad.saved_images as string]
+            ? [ad.saved_images]
             : []
       }));
 
       // Combine both sources of ads and filter out any without images
       const allAds = [...generatedAds, ...feedbackAds].filter(ad => 
-        ad.saved_images && ad.saved_images.length > 0 && ad.saved_images[0]
+        ad.saved_images && 
+        Array.isArray(ad.saved_images) && 
+        ad.saved_images.length > 0 && 
+        ad.saved_images[0]
       );
 
       setSavedAds(allAds);
@@ -136,7 +139,7 @@ export const SavedAdsGallery = () => {
           id={ad.id}
           primaryText={ad.primary_text}
           headline={ad.headline}
-          imageUrl={ad.saved_images[0]}
+          imageUrl={Array.isArray(ad.saved_images) && ad.saved_images.length > 0 ? ad.saved_images[0] : undefined}
           onFeedbackSubmit={fetchSavedAds}
         />
       ))}
