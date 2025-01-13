@@ -4,9 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate, useParams } from "react-router-dom";
 import { AdVariant, convertJsonToAdVariant, convertAdVariantToJson } from "@/types/adVariant";
-import { useAdPersistence } from "./useAdPersistence";
-import { useAdGeneration } from "./useAdGeneration";
 import { useAdValidation } from "./useAdValidation";
+import { useAdPersistence } from "./useAdPersistence";
 
 export const useAdGeneration = (
   businessIdea: BusinessIdea,
@@ -20,6 +19,7 @@ export const useAdGeneration = (
   const navigate = useNavigate();
   const { projectId } = useParams();
   const { savedAds, isLoading, saveGeneratedAds } = useAdPersistence(projectId);
+  const { checkCredits, validateResponse } = useAdValidation();
 
   // Load saved ad variants when component mounts
   useEffect(() => {
