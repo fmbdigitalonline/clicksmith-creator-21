@@ -39,6 +39,7 @@ const AdGalleryStep = ({
   hasLoadedInitialAds = false,
 }: AdGalleryStepProps) => {
   const [selectedFormat, setSelectedFormat] = useState(AD_FORMATS[0]);
+  const [hasGeneratedInitialAds, setHasGeneratedInitialAds] = useState(false);
   const { projectId } = useParams();
   const {
     platform,
@@ -63,20 +64,21 @@ const AdGalleryStep = ({
   }, [generateAds, isGenerating]);
 
   useEffect(() => {
-    // For new sessions, always generate fresh ads
-    if (projectId === 'new' && hasLoadedInitialAds) {
-      handleGenerateAds(platform);
-      return;
-    }
-
-    // For existing projects, only generate if no ads exist for the platform
-    if (hasLoadedInitialAds) {
-      const platformAds = generatedAds.filter(ad => ad.platform === platform);
-      if (platformAds.length === 0) {
+    // Only generate ads once when hasLoadedInitialAds becomes true
+    if (hasLoadedInitialAds && !hasGeneratedInitialAds) {
+      if (projectId === 'new') {
         handleGenerateAds(platform);
+        setHasGeneratedInitialAds(true);
+      } else {
+        // For existing projects, only generate if no ads exist for the platform
+        const platformAds = generatedAds.filter(ad => ad.platform === platform);
+        if (platformAds.length === 0) {
+          handleGenerateAds(platform);
+        }
+        setHasGeneratedInitialAds(true);
       }
     }
-  }, [platform, hasLoadedInitialAds, generatedAds, handleGenerateAds, projectId]);
+  }, [platform, hasLoadedInitialAds, generatedAds, handleGenerateAds, projectId, hasGeneratedInitialAds]);
 
   useEffect(() => {
     if (onAdsGenerated && adVariants.length > 0) {
