@@ -86,7 +86,7 @@ const AdGalleryStep = ({
                 platform: 'facebook',
                 headline: hook.description,
                 description: hook.text,
-                imageUrl: hook.imageUrl,
+                imageUrl: hook.image?.url || '', // Updated to use the correct property path
                 size: {
                   width: 1200,
                   height: 628,
