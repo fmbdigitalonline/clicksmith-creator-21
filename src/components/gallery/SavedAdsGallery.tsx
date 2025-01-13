@@ -13,22 +13,31 @@ export const SavedAdsGallery = () => {
 
   const fetchSavedAds = async () => {
     try {
+      console.log("Fetching saved ads...");
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
+        console.log("No user found");
         setIsLoading(false);
         return;
       }
 
+      console.log("User found:", user.id);
+
       // First try to get ads from wizard progress
-      const { data: wizardData } = await supabase
+      const { data: wizardData, error: wizardError } = await supabase
         .from('wizard_progress')
         .select('*')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
+
+      if (wizardError) {
+        console.error('Error fetching wizard data:', wizardError);
+      }
 
       let generatedAds: SavedAd[] = [];
       
       if (wizardData?.selected_hooks) {
+        console.log("Found wizard data with hooks:", wizardData.selected_hooks);
         const hooksData = Array.isArray(wizardData.selected_hooks) 
           ? (wizardData.selected_hooks as WizardHook[])
           : [];
@@ -47,14 +56,19 @@ export const SavedAdsGallery = () => {
       }
 
       // Then get saved ad feedback
-      const { data: feedbackData, error } = await supabase
+      const { data: feedbackData, error: feedbackError } = await supabase
         .from('ad_feedback')
         .select('*')
         .eq('user_id', user.id)
         .not('saved_images', 'is', null)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (feedbackError) {
+        console.error('Error fetching feedback data:', feedbackError);
+        throw feedbackError;
+      }
+
+      console.log("Fetched feedback data:", feedbackData);
 
       // Convert feedback data
       const feedbackAds: SavedAd[] = (feedbackData as AdFeedbackRow[])
@@ -86,6 +100,7 @@ export const SavedAdsGallery = () => {
 
       // Combine both sources of ads
       const allAds = [...generatedAds, ...feedbackAds].filter(ad => ad.saved_images.length > 0);
+      console.log("Final combined ads:", allAds);
       setSavedAds(allAds);
     } catch (error) {
       console.error('Error fetching saved ads:', error);
@@ -116,7 +131,9 @@ export const SavedAdsGallery = () => {
   }, []);
 
   if (isLoading) {
-    return <div>Loading saved ads...</div>;
+    return <div className="flex items-center justify-center p-8">
+      <div className="text-gray-500">Loading saved ads...</div>
+    </div>;
   }
 
   if (savedAds.length === 0) {
