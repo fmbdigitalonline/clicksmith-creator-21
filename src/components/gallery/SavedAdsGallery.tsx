@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Json } from "@/integrations/supabase/types";
 import { SavedAdCard } from "./components/SavedAdCard";
 import { EmptyState } from "./components/EmptyState";
+import { WizardHook, WizardProgressData } from "@/types/wizardProgress";
 
 interface SavedAd {
   id: string;
@@ -23,16 +24,6 @@ interface AdFeedbackRow {
   rating: number;
   feedback: string;
   created_at: string;
-}
-
-interface WizardHook {
-  imageUrl?: string;
-  description?: string;
-  text?: string;
-}
-
-interface WizardProgressData {
-  selected_hooks: WizardHook[];
 }
 
 export const SavedAdsGallery = () => {
