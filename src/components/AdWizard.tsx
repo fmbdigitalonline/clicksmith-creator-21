@@ -19,6 +19,7 @@ const AdWizard = () => {
   const [showCreateProject, setShowCreateProject] = useState(false);
   const [videoAdsEnabled, setVideoAdsEnabled] = useState(false);
   const [generatedAds, setGeneratedAds] = useState<any[]>([]);
+  const [hasLoadedInitialAds, setHasLoadedInitialAds] = useState(false);
   const navigate = useNavigate();
   const { projectId } = useParams();
   
@@ -40,34 +41,42 @@ const AdWizard = () => {
   // Load saved progress including generated ads
   useEffect(() => {
     const loadProgress = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
 
-      if (projectId && projectId !== 'new') {
-        const { data: project } = await supabase
-          .from('projects')
-          .select('generated_ads, video_ads_enabled')
-          .eq('id', projectId)
-          .single();
+        if (projectId && projectId !== 'new') {
+          const { data: project } = await supabase
+            .from('projects')
+            .select('generated_ads, video_ads_enabled')
+            .eq('id', projectId)
+            .single();
 
-        if (!project) {
-          navigate('/ad-wizard/new');
+          if (!project) {
+            navigate('/ad-wizard/new');
+          } else {
+            setVideoAdsEnabled(project.video_ads_enabled || false);
+            if (project.generated_ads && Array.isArray(project.generated_ads)) {
+              console.log('Loading saved ads from project:', project.generated_ads);
+              setGeneratedAds(project.generated_ads);
+            }
+          }
         } else {
-          setVideoAdsEnabled(project.video_ads_enabled || false);
-          if (project.generated_ads && Array.isArray(project.generated_ads)) {
-            setGeneratedAds(project.generated_ads);
+          const { data: wizardData } = await supabase
+            .from('wizard_progress')
+            .select('*')
+            .eq('user_id', user.id)
+            .single();
+
+          if (wizardData?.generated_ads && Array.isArray(wizardData.generated_ads)) {
+            console.log('Loading saved ads from wizard progress:', wizardData.generated_ads);
+            setGeneratedAds(wizardData.generated_ads);
           }
         }
-      } else {
-        const { data: wizardData } = await supabase
-          .from('wizard_progress')
-          .select('*')
-          .eq('user_id', user.id)
-          .single();
-
-        if (wizardData?.generated_ads && Array.isArray(wizardData.generated_ads)) {
-          setGeneratedAds(wizardData.generated_ads as any[]);
-        }
+        setHasLoadedInitialAds(true);
+      } catch (error) {
+        console.error('Error loading progress:', error);
+        setHasLoadedInitialAds(true);
       }
     };
 
@@ -100,6 +109,7 @@ const AdWizard = () => {
   };
 
   const handleAdsGenerated = async (newAds: any[]) => {
+    console.log('Handling newly generated ads:', newAds);
     setGeneratedAds(newAds);
     
     const { data: { user } } = await supabase.auth.getUser();
@@ -156,12 +166,13 @@ const AdWizard = () => {
             videoAdsEnabled={videoAdsEnabled}
             generatedAds={generatedAds}
             onAdsGenerated={handleAdsGenerated}
+            hasLoadedInitialAds={hasLoadedInitialAds}
           />
         ) : null;
       default:
         return null;
     }
-  }, [currentStep, businessIdea, targetAudience, audienceAnalysis, selectedHooks, videoAdsEnabled, generatedAds]);
+  }, [currentStep, businessIdea, targetAudience, audienceAnalysis, selectedHooks, videoAdsEnabled, generatedAds, hasLoadedInitialAds]);
 
   return (
     <div className="container max-w-6xl mx-auto px-4 py-8">

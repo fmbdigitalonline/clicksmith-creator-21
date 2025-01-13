@@ -1,4 +1,4 @@
-import { BusinessIdea, TargetAudience, AdHook, AdImage } from "@/types/adWizard";
+import { BusinessIdea, TargetAudience, AdHook } from "@/types/adWizard";
 import { TabsContent } from "@/components/ui/tabs";
 import LoadingState from "./complete/LoadingState";
 import PlatformTabs from "./gallery/PlatformTabs";
@@ -21,6 +21,7 @@ interface AdGalleryStepProps {
   videoAdsEnabled?: boolean;
   generatedAds?: any[];
   onAdsGenerated?: (ads: any[]) => void;
+  hasLoadedInitialAds?: boolean;
 }
 
 const AdGalleryStep = ({
@@ -34,6 +35,7 @@ const AdGalleryStep = ({
   videoAdsEnabled = false,
   generatedAds = [],
   onAdsGenerated,
+  hasLoadedInitialAds = false,
 }: AdGalleryStepProps) => {
   const [selectedFormat, setSelectedFormat] = useState(AD_FORMATS[0]);
   const {
@@ -53,6 +55,10 @@ const AdGalleryStep = ({
   } = useAdGeneration(businessIdea, targetAudience, adHooks);
 
   useEffect(() => {
+    if (!hasLoadedInitialAds) {
+      return;
+    }
+    
     if (generatedAds.length > 0) {
       // If we have previously generated ads, use those
       return;
@@ -61,7 +67,7 @@ const AdGalleryStep = ({
     if (adVariants.length === 0) {
       generateAds(platform);
     }
-  }, []);
+  }, [hasLoadedInitialAds]);
 
   useEffect(() => {
     if (onAdsGenerated && adVariants.length > 0) {
