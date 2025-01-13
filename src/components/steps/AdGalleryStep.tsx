@@ -7,7 +7,7 @@ import PlatformChangeDialog from "./gallery/PlatformChangeDialog";
 import { usePlatformSwitch } from "@/hooks/usePlatformSwitch";
 import { useAdGeneration } from "./gallery/useAdGeneration";
 import AdGenerationControls from "./gallery/AdGenerationControls";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { AdSizeSelector, AD_FORMATS } from "./gallery/components/AdSizeSelector";
 
 interface AdGalleryStepProps {
@@ -54,20 +54,25 @@ const AdGalleryStep = ({
     generateAds,
   } = useAdGeneration(businessIdea, targetAudience, adHooks);
 
+  const handleGenerateAds = useCallback((selectedPlatform: string) => {
+    if (!isGenerating) {
+      generateAds(selectedPlatform);
+    }
+  }, [generateAds, isGenerating]);
+
   useEffect(() => {
     if (!hasLoadedInitialAds) {
       return;
     }
     
     const platformAds = generatedAds.filter(ad => ad.platform === platform);
-    if (platformAds.length === 0 && !isGenerating) {
-      generateAds(platform);
+    if (platformAds.length === 0) {
+      handleGenerateAds(platform);
     }
-  }, [platform, hasLoadedInitialAds, generatedAds, isGenerating, generateAds]);
+  }, [platform, hasLoadedInitialAds, generatedAds, handleGenerateAds]);
 
   useEffect(() => {
     if (onAdsGenerated && adVariants.length > 0) {
-      // Merge new variants with existing ones, preserving platform-specific ads
       const updatedAds = [...generatedAds];
       adVariants.forEach(newVariant => {
         const existingIndex = updatedAds.findIndex(
@@ -89,7 +94,7 @@ const AdGalleryStep = ({
 
   const onConfirmPlatformChange = () => {
     const newPlatform = confirmPlatformChange();
-    generateAds(newPlatform);
+    handleGenerateAds(newPlatform);
   };
 
   const onCancelPlatformChange = () => {
@@ -127,7 +132,7 @@ const AdGalleryStep = ({
       <AdGenerationControls
         onBack={onBack}
         onStartOver={onStartOver}
-        onRegenerate={() => generateAds(platform)}
+        onRegenerate={() => handleGenerateAds(platform)}
         isGenerating={isGenerating}
         generationStatus={generationStatus}
       />
