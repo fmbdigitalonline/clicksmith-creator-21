@@ -9,8 +9,6 @@ import { useAdGeneration } from "./gallery/useAdGeneration";
 import AdGenerationControls from "./gallery/AdGenerationControls";
 import { useEffect, useState } from "react";
 import { AdSizeSelector, AD_FORMATS } from "./gallery/components/AdSizeSelector";
-import { supabase } from "@/integrations/supabase/client";
-import { useParams } from "react-router-dom";
 
 interface AdGalleryStepProps {
   businessIdea: BusinessIdea;
@@ -34,8 +32,6 @@ const AdGalleryStep = ({
   videoAdsEnabled = false,
 }: AdGalleryStepProps) => {
   const [selectedFormat, setSelectedFormat] = useState(AD_FORMATS[0]);
-  const { projectId } = useParams();
-  
   const {
     platform,
     showPlatformChangeDialog,
@@ -50,69 +46,13 @@ const AdGalleryStep = ({
     adVariants,
     generationStatus,
     generateAds,
-    setAdVariants
   } = useAdGeneration(businessIdea, targetAudience, adHooks);
 
   useEffect(() => {
-    const loadExistingAds = async () => {
-      try {
-        // First try to get ads from project if we have a project ID
-        if (projectId && projectId !== 'new') {
-          const { data: project } = await supabase
-            .from('projects')
-            .select('generated_ads')
-            .eq('id', projectId)
-            .single();
-
-          if (project?.generated_ads && Array.isArray(project.generated_ads)) {
-            setAdVariants(project.generated_ads);
-            return;
-          }
-        }
-
-        // If no project ads, try to get from wizard progress
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-
-        const { data: wizardData } = await supabase
-          .from('wizard_progress')
-          .select('selected_hooks')
-          .eq('user_id', user.id)
-          .single();
-
-        if (wizardData?.selected_hooks) {
-          const existingAds = Array.isArray(wizardData.selected_hooks) 
-            ? wizardData.selected_hooks.map((hook: AdHook) => ({
-                platform: 'facebook',
-                headline: hook.description,
-                description: hook.text,
-                imageUrl: generatedImages?.[0]?.url || '', // Use the first generated image if available
-                size: {
-                  width: 1200,
-                  height: 628,
-                  label: "Facebook Feed"
-                },
-                id: `wizard-${Math.random().toString()}`,
-              }))
-            : [];
-          
-          if (existingAds.length > 0) {
-            setAdVariants(existingAds);
-            return;
-          }
-        }
-
-        // Only generate new ads if we don't have any existing ones
-        if (adVariants.length === 0) {
-          generateAds(platform);
-        }
-      } catch (error) {
-        console.error('Error loading existing ads:', error);
-      }
-    };
-
-    loadExistingAds();
-  }, [projectId, generatedImages]);
+    if (adVariants.length === 0) {
+      generateAds(platform);
+    }
+  }, []);
 
   const onPlatformChange = (newPlatform: "facebook" | "google" | "linkedin" | "tiktok") => {
     handlePlatformChange(newPlatform, adVariants.length > 0);
