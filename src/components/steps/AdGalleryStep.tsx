@@ -19,6 +19,8 @@ interface AdGalleryStepProps {
   onBack: () => void;
   onCreateProject: () => void;
   videoAdsEnabled?: boolean;
+  generatedAds?: any[];
+  onAdsGenerated?: (ads: any[]) => void;
 }
 
 const AdGalleryStep = ({
@@ -30,6 +32,8 @@ const AdGalleryStep = ({
   onBack,
   onCreateProject,
   videoAdsEnabled = false,
+  generatedAds = [],
+  onAdsGenerated,
 }: AdGalleryStepProps) => {
   const [selectedFormat, setSelectedFormat] = useState(AD_FORMATS[0]);
   const {
@@ -49,10 +53,21 @@ const AdGalleryStep = ({
   } = useAdGeneration(businessIdea, targetAudience, adHooks);
 
   useEffect(() => {
+    if (generatedAds.length > 0) {
+      // If we have previously generated ads, use those
+      return;
+    }
+    
     if (adVariants.length === 0) {
       generateAds(platform);
     }
   }, []);
+
+  useEffect(() => {
+    if (onAdsGenerated && adVariants.length > 0) {
+      onAdsGenerated(adVariants);
+    }
+  }, [adVariants, onAdsGenerated]);
 
   const onPlatformChange = (newPlatform: "facebook" | "google" | "linkedin" | "tiktok") => {
     handlePlatformChange(newPlatform, adVariants.length > 0);
@@ -65,7 +80,6 @@ const AdGalleryStep = ({
 
   const onCancelPlatformChange = () => {
     const currentPlatform = cancelPlatformChange();
-    // Force update the PlatformTabs to stay on the current platform
     const tabsElement = document.querySelector(`[data-state="active"][value="${currentPlatform}"]`);
     if (tabsElement) {
       (tabsElement as HTMLElement).click();
@@ -86,7 +100,7 @@ const AdGalleryStep = ({
       </div>
       <PlatformContent
         platformName={platformName}
-        adVariants={adVariants.filter(variant => variant.platform === platformName)}
+        adVariants={generatedAds.length > 0 ? generatedAds.filter(variant => variant.platform === platformName) : adVariants.filter(variant => variant.platform === platformName)}
         onCreateProject={onCreateProject}
         videoAdsEnabled={videoAdsEnabled}
         selectedFormat={selectedFormat}

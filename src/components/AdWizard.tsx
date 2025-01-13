@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 const AdWizard = () => {
   const [showCreateProject, setShowCreateProject] = useState(false);
   const [videoAdsEnabled, setVideoAdsEnabled] = useState(false);
+  const [generatedAds, setGeneratedAds] = useState<any[]>([]);
   const navigate = useNavigate();
   const { projectId } = useParams();
   
@@ -33,14 +34,13 @@ const AdWizard = () => {
     setCurrentStep,
   } = useAdWizardState();
 
-  // Handle project initialization
+  // Load saved progress including generated ads
   useEffect(() => {
-    const initializeProject = async () => {
+    const loadProgress = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
       if (projectId && projectId !== 'new') {
-        // If it's an existing project, fetch its data
         const { data: project } = await supabase
           .from('projects')
           .select('*')
@@ -48,16 +48,27 @@ const AdWizard = () => {
           .single();
 
         if (!project) {
-          // If project doesn't exist, redirect to new project
           navigate('/ad-wizard/new');
         } else {
-          // Set video ads enabled based on project settings
           setVideoAdsEnabled(project.video_ads_enabled || false);
+          if (project.generated_ads) {
+            setGeneratedAds(project.generated_ads);
+          }
+        }
+      } else {
+        const { data: wizardData } = await supabase
+          .from('wizard_progress')
+          .select('*')
+          .eq('user_id', user.id)
+          .single();
+
+        if (wizardData?.generated_ads) {
+          setGeneratedAds(wizardData.generated_ads);
         }
       }
     };
 
-    initializeProject();
+    loadProgress();
   }, [projectId, navigate]);
 
   const handleCreateProject = () => {
@@ -82,6 +93,29 @@ const AdWizard = () => {
           } : null
         })
         .eq('id', projectId);
+    }
+  };
+
+  const handleAdsGenerated = async (newAds: any[]) => {
+    setGeneratedAds(newAds);
+    
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    if (projectId && projectId !== 'new') {
+      await supabase
+        .from('projects')
+        .update({ generated_ads: newAds })
+        .eq('id', projectId);
+    } else {
+      await supabase
+        .from('wizard_progress')
+        .upsert({
+          user_id: user.id,
+          generated_ads: newAds
+        }, {
+          onConflict: 'user_id'
+        });
     }
   };
 
@@ -117,12 +151,14 @@ const AdWizard = () => {
             onBack={handleBack}
             onCreateProject={handleCreateProject}
             videoAdsEnabled={videoAdsEnabled}
+            generatedAds={generatedAds}
+            onAdsGenerated={handleAdsGenerated}
           />
         ) : null;
       default:
         return null;
     }
-  }, [currentStep, businessIdea, targetAudience, audienceAnalysis, selectedHooks, videoAdsEnabled]);
+  }, [currentStep, businessIdea, targetAudience, audienceAnalysis, selectedHooks, videoAdsEnabled, generatedAds]);
 
   return (
     <div className="container max-w-6xl mx-auto px-4 py-8">
