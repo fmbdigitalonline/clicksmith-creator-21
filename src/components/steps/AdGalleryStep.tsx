@@ -63,13 +63,25 @@ const AdGalleryStep = ({
     if (platformAds.length === 0 && !isGenerating) {
       generateAds(platform);
     }
-  }, [platform, hasLoadedInitialAds, generatedAds, isGenerating]);
+  }, [platform, hasLoadedInitialAds, generatedAds, isGenerating, generateAds]);
 
   useEffect(() => {
     if (onAdsGenerated && adVariants.length > 0) {
-      onAdsGenerated(adVariants);
+      // Merge new variants with existing ones, preserving platform-specific ads
+      const updatedAds = [...generatedAds];
+      adVariants.forEach(newVariant => {
+        const existingIndex = updatedAds.findIndex(
+          ad => ad.platform === newVariant.platform && ad.id === newVariant.id
+        );
+        if (existingIndex >= 0) {
+          updatedAds[existingIndex] = newVariant;
+        } else {
+          updatedAds.push(newVariant);
+        }
+      });
+      onAdsGenerated(updatedAds);
     }
-  }, [adVariants, onAdsGenerated]);
+  }, [adVariants, onAdsGenerated, generatedAds]);
 
   const onPlatformChange = (newPlatform: "facebook" | "google" | "linkedin" | "tiktok") => {
     handlePlatformChange(newPlatform, adVariants.length > 0);
