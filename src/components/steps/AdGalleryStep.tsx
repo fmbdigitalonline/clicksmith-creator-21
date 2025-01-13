@@ -1,4 +1,4 @@
-import { BusinessIdea, TargetAudience, AdHook } from "@/types/adWizard";
+import { BusinessIdea, TargetAudience, AdHook, AdImage } from "@/types/adWizard";
 import { TabsContent } from "@/components/ui/tabs";
 import LoadingState from "./complete/LoadingState";
 import PlatformTabs from "./gallery/PlatformTabs";
