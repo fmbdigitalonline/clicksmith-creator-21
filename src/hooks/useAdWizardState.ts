@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
   BusinessIdea,
   TargetAudience,
@@ -18,6 +18,71 @@ export const useAdWizardState = () => {
   const [selectedHooks, setSelectedHooks] = useState<AdHook[]>([]);
   const { toast } = useToast();
   const { projectId } = useParams();
+
+  // Load saved progress when component mounts
+  useEffect(() => {
+    const loadSavedProgress = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        // Try to load from project first if we have a project ID
+        if (projectId && projectId !== 'new') {
+          const { data: project } = await supabase
+            .from('projects')
+            .select('*')
+            .eq('id', projectId)
+            .single();
+
+          if (project) {
+            setBusinessIdea(project.business_idea);
+            setTargetAudience(project.target_audience);
+            setAudienceAnalysis(project.audience_analysis);
+            setSelectedHooks(project.selected_hooks || []);
+            
+            // Set the appropriate step based on available data
+            if (project.selected_hooks) {
+              setCurrentStep(4);
+            } else if (project.audience_analysis) {
+              setCurrentStep(3);
+            } else if (project.target_audience) {
+              setCurrentStep(2);
+            } else {
+              setCurrentStep(1);
+            }
+            return;
+          }
+        }
+
+        // If no project or it's new, try to load from wizard_progress
+        const { data: wizardData } = await supabase
+          .from('wizard_progress')
+          .select('*')
+          .eq('user_id', user.id)
+          .single();
+
+        if (wizardData) {
+          setBusinessIdea(wizardData.business_idea);
+          setTargetAudience(wizardData.target_audience);
+          setAudienceAnalysis(wizardData.audience_analysis);
+          setSelectedHooks(wizardData.selected_hooks || []);
+          
+          // Set the appropriate step based on available data
+          if (wizardData.selected_hooks) {
+            setCurrentStep(4);
+          } else if (wizardData.audience_analysis) {
+            setCurrentStep(3);
+          } else if (wizardData.target_audience) {
+            setCurrentStep(2);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading saved progress:', error);
+      }
+    };
+
+    loadSavedProgress();
+  }, [projectId]);
 
   const handleIdeaSubmit = useCallback(async (idea: BusinessIdea) => {
     setBusinessIdea(idea);
