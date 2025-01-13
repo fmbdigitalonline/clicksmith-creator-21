@@ -92,7 +92,7 @@ const AdGalleryStep = ({
                   height: 628,
                   label: "Facebook Feed"
                 },
-                id: `wizard-${hook.id || Math.random().toString()}`,
+                id: `wizard-${Math.random().toString()}`,
               }))
             : [];
           
