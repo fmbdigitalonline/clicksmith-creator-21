@@ -1,7 +1,7 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { Sidebar, SidebarContent, SidebarGroupContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "./ui/sidebar";
-import { Home, Settings, Images, BookmarkIcon, FolderIcon, Wand2 } from "lucide-react";
+import { Home, Settings, Images, BookmarkIcon, FolderIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const menuItems = [
@@ -16,14 +16,10 @@ const menuItems = [
     url: "/projects",
   },
   {
-    title: "ProfitPilot",
-    icon: Wand2,
-    url: "/profitpilot/new",
-  },
-  {
     title: "Ad Gallery",
     icon: Images,
-    url: "/ad-gallery/new",
+    url: "/ad-wizard",
+    showCondition: () => true,
   },
   {
     title: "Saved Ads",
@@ -46,18 +42,26 @@ const AppSidebar = () => {
     if (path === "/") {
       return currentPath === "/" || currentPath === "/projects";
     }
-    if (path === "/profitpilot/new") {
-      return currentPath.includes('/profitpilot');
-    }
-    if (path === "/ad-gallery/new") {
-      return currentPath.includes('/ad-gallery');
+    if (path === "/ad-wizard") {
+      return currentPath.includes('/ad-wizard');
     }
     return currentPath === path;
   };
 
   const handleMenuClick = (url: string) => {
-    navigate(url);
+    if (url === '/ad-wizard') {
+      const lastWizardPath = sessionStorage.getItem('lastWizardPath') || '/ad-wizard/new';
+      navigate(lastWizardPath);
+    } else {
+      navigate(url);
+    }
   };
+
+  useEffect(() => {
+    if (currentPath.includes('/ad-wizard')) {
+      sessionStorage.setItem('lastWizardPath', currentPath);
+    }
+  }, [currentPath]);
 
   return (
     <Sidebar>
