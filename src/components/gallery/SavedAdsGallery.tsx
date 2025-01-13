@@ -50,7 +50,7 @@ export const SavedAdsGallery = () => {
       
       if (wizardData?.selected_hooks) {
         const hooksData = Array.isArray(wizardData.selected_hooks) 
-          ? wizardData.selected_hooks 
+          ? (wizardData.selected_hooks as WizardHook[])
           : [];
           
         generatedAds = hooksData.map((hook: WizardHook, index: number) => ({
@@ -80,9 +80,9 @@ export const SavedAdsGallery = () => {
       const feedbackAds: SavedAd[] = (feedbackData as AdFeedbackRow[]).map(ad => ({
         ...ad,
         saved_images: Array.isArray(ad.saved_images) 
-          ? ad.saved_images
+          ? (ad.saved_images as string[])
           : typeof ad.saved_images === 'string'
-            ? [ad.saved_images]
+            ? [ad.saved_images as string]
             : []
       }));
 
