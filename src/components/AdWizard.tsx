@@ -45,6 +45,9 @@ const AdWizard = () => {
           .from('wizard_progress')
           .delete()
           .eq('user_id', user.id);
+        
+        // Ensure we start from step 1 for new projects
+        setCurrentStep(1);
       } else if (projectId) {
         // If it's an existing project, fetch its data
         const { data: project } = await supabase
@@ -64,7 +67,7 @@ const AdWizard = () => {
     };
 
     initializeProject();
-  }, [projectId, navigate]);
+  }, [projectId, navigate, setCurrentStep]);
 
   const handleCreateProject = () => {
     setShowCreateProject(true);
