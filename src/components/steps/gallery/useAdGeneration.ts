@@ -61,11 +61,13 @@ export const useAdGeneration = (
       throw deductionError;
     }
 
-    if (!deductionResult.success) {
-      throw new Error(deductionResult.error_message || 'Failed to deduct credits');
+    // Access the first result from the array
+    const result = deductionResult[0];
+    if (!result || !result.success) {
+      throw new Error(result?.error_message || 'Failed to deduct credits');
     }
 
-    return deductionResult;
+    return result;
   };
 
   const generateAds = async (selectedPlatform: string) => {
