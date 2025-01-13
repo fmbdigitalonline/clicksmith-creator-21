@@ -1,7 +1,9 @@
-import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
 
 export const useAdValidation = () => {
+  const navigate = useNavigate();
   const { toast } = useToast();
 
   const checkCredits = async () => {
@@ -25,6 +27,7 @@ export const useAdValidation = () => {
         description: result.error_message,
         variant: "destructive",
       });
+      navigate('/pricing');
       return false;
     }
 
