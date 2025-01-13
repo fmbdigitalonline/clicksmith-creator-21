@@ -53,15 +53,17 @@ export const SavedAdsGallery = () => {
           ? (wizardData.selected_hooks as WizardHook[])
           : [];
           
-        generatedAds = hooksData.map((hook: WizardHook, index: number) => ({
-          id: `wizard-${index}`,
-          saved_images: hook.imageUrl ? [hook.imageUrl] : [],
-          headline: hook.description,
-          primary_text: hook.text,
-          rating: 0,
-          feedback: '',
-          created_at: new Date().toISOString()
-        }));
+        generatedAds = hooksData
+          .filter(hook => hook.imageUrl) // Only include hooks with images
+          .map((hook: WizardHook, index: number) => ({
+            id: `wizard-${index}`,
+            saved_images: hook.imageUrl ? [hook.imageUrl] : [],
+            headline: hook.description,
+            primary_text: hook.text,
+            rating: 0,
+            feedback: '',
+            created_at: new Date().toISOString()
+          }));
       }
 
       // Then get saved ad feedback
@@ -77,22 +79,27 @@ export const SavedAdsGallery = () => {
       }
 
       // Convert feedback data
-      const feedbackAds: SavedAd[] = (feedbackData as AdFeedbackRow[]).map(ad => ({
-        ...ad,
-        saved_images: Array.isArray(ad.saved_images) 
-          ? (ad.saved_images as string[])
-          : typeof ad.saved_images === 'string'
-            ? [ad.saved_images as string]
-            : []
-      }));
+      const feedbackAds: SavedAd[] = (feedbackData as AdFeedbackRow[])
+        .filter(ad => ad.saved_images) // Only include ads with saved_images
+        .map(ad => {
+          let images: string[] = [];
+          if (Array.isArray(ad.saved_images)) {
+            images = ad.saved_images.filter((img): img is string => 
+              typeof img === 'string' && img.length > 0
+            );
+          } else if (typeof ad.saved_images === 'string' && ad.saved_images.length > 0) {
+            images = [ad.saved_images];
+          }
+          
+          return {
+            ...ad,
+            saved_images: images
+          };
+        })
+        .filter(ad => ad.saved_images.length > 0); // Only include ads with valid images
 
-      // Combine both sources of ads and filter out any without images
-      const allAds = [...generatedAds, ...feedbackAds].filter(ad => 
-        ad.saved_images && 
-        Array.isArray(ad.saved_images) && 
-        ad.saved_images.length > 0 && 
-        ad.saved_images[0]
-      );
+      // Combine both sources of ads
+      const allAds = [...generatedAds, ...feedbackAds];
 
       setSavedAds(allAds);
     } catch (error) {
@@ -139,7 +146,7 @@ export const SavedAdsGallery = () => {
           id={ad.id}
           primaryText={ad.primary_text}
           headline={ad.headline}
-          imageUrl={Array.isArray(ad.saved_images) && ad.saved_images.length > 0 ? ad.saved_images[0] : undefined}
+          imageUrl={ad.saved_images[0]}
           onFeedbackSubmit={fetchSavedAds}
         />
       ))}
