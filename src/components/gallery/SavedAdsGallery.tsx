@@ -54,7 +54,7 @@ export const SavedAdsGallery = () => {
           // Convert wizard progress data to SavedAd format
           generatedAds = hooksData.map((hook: WizardHook, index: number) => ({
             id: `wizard-${index}`,
-            saved_images: [hook.imageUrl || ''],
+            saved_images: hook.imageUrl ? [hook.imageUrl] : [],
             headline: hook.description,
             primary_text: hook.text,
             rating: 0,
@@ -80,15 +80,18 @@ export const SavedAdsGallery = () => {
       const feedbackAds: SavedAd[] = (feedbackData as AdFeedbackRow[]).map(ad => ({
         ...ad,
         saved_images: Array.isArray(ad.saved_images) 
-          ? (ad.saved_images as string[])
+          ? ad.saved_images as string[]
           : typeof ad.saved_images === 'string'
             ? [ad.saved_images as string]
             : []
       }));
 
-      // Combine both sources of ads
-      setSavedAds([...generatedAds, ...feedbackAds]);
+      // Combine both sources of ads and filter out any without images
+      const allAds = [...generatedAds, ...feedbackAds].filter(ad => 
+        ad.saved_images && ad.saved_images.length > 0 && ad.saved_images[0]
+      );
 
+      setSavedAds(allAds);
     } catch (error) {
       console.error('Error fetching saved ads:', error);
       toast({
