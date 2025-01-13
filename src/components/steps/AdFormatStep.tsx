@@ -41,7 +41,8 @@ const AdFormatStep = ({
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      const { data: hasCredits, error: creditsError } = await supabase.rpc(
+      // Check credits before generation
+      const { data: creditCheck, error: creditsError } = await supabase.rpc(
         'check_user_credits',
         { p_user_id: user.id, required_credits: 1 }
       );
@@ -49,9 +50,9 @@ const AdFormatStep = ({
       if (creditsError) throw creditsError;
 
       // Access the first element of the array returned by the function
-      const creditCheck = hasCredits[0];
-      if (!creditCheck.has_credits) {
-        throw new Error(creditCheck.error_message || 'Insufficient credits');
+      const creditResult = creditCheck[0];
+      if (!creditResult.has_credits) {
+        throw new Error(creditResult.error_message || 'Insufficient credits');
       }
 
       // Generate images
@@ -75,7 +76,7 @@ const AdFormatStep = ({
         throw new Error('Invalid response format from server');
       }
 
-      // Deduct credits after successful generation
+      // Only deduct credits if generation was successful
       const { data: deductionResult, error: deductionError } = await supabase.rpc(
         'deduct_user_credits',
         { input_user_id: user.id, credits_to_deduct: 1 }
