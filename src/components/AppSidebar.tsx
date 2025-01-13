@@ -1,4 +1,5 @@
 import { useLocation, useNavigate } from "react-router-dom";
+import { useEffect } from "react"; // Added missing import
 import { Sidebar, SidebarContent, SidebarGroupContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "./ui/sidebar";
 import { Home, Settings, Images } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -86,4 +87,4 @@ const AppSidebar = () => {
   );
 };
 
-export default AppSidebar;
+export default AppSidebar; // Changed to default export

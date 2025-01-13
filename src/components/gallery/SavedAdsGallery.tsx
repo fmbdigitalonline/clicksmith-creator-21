@@ -25,6 +25,12 @@ interface AdFeedbackRow {
   created_at: string;
 }
 
+interface WizardHook {
+  imageUrl?: string;
+  description?: string;
+  text?: string;
+}
+
 export const SavedAdsGallery = () => {
   const [savedAds, setSavedAds] = useState<SavedAd[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -47,9 +53,9 @@ export const SavedAdsGallery = () => {
 
       let generatedAds: SavedAd[] = [];
       
-      if (wizardData?.selected_hooks) {
+      if (wizardData?.selected_hooks && Array.isArray(wizardData.selected_hooks)) {
         // Convert wizard progress data to SavedAd format
-        generatedAds = wizardData.selected_hooks.map((hook: any, index: number) => ({
+        generatedAds = wizardData.selected_hooks.map((hook: WizardHook, index: number) => ({
           id: `wizard-${index}`,
           saved_images: [hook.imageUrl || ''],
           headline: hook.description,
