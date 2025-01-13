@@ -95,16 +95,17 @@ export const SavedAdsGallery = () => {
       const feedbackAds: SavedAd[] = (feedbackData as AdFeedbackRow[])
         .filter(ad => {
           console.log('Processing feedback ad:', ad);
-          return ad.saved_images;
+          const hasImages = ad.saved_images !== null && 
+            (Array.isArray(ad.saved_images) ? ad.saved_images.length > 0 : typeof ad.saved_images === 'string');
+          console.log('Has images:', hasImages);
+          return hasImages;
         })
         .map(ad => {
           let images: string[] = [];
           if (Array.isArray(ad.saved_images)) {
-            images = ad.saved_images.filter((img): img is string => {
-              const isValid = typeof img === 'string' && img.length > 0;
-              console.log('Image URL:', img, 'Is valid:', isValid);
-              return isValid;
-            });
+            images = ad.saved_images.filter((img): img is string => 
+              typeof img === 'string' && img.length > 0
+            );
           } else if (typeof ad.saved_images === 'string' && ad.saved_images.length > 0) {
             images = [ad.saved_images];
           }
@@ -112,20 +113,20 @@ export const SavedAdsGallery = () => {
           console.log('Processed images for ad:', images);
           
           return {
-            ...ad,
-            saved_images: images
+            id: ad.id,
+            saved_images: images,
+            headline: ad.headline || undefined,
+            primary_text: ad.primary_text || undefined,
+            rating: ad.rating,
+            feedback: ad.feedback,
+            created_at: ad.created_at
           };
-        })
-        .filter(ad => {
-          const hasImages = ad.saved_images.length > 0;
-          console.log('Ad after processing:', ad.id, 'Has images:', hasImages);
-          return hasImages;
         });
 
       console.log('Feedback Ads:', feedbackAds);
 
       // Combine both sources of ads
-      const allAds = [...generatedAds, ...feedbackAds];
+      const allAds = [...generatedAds, ...feedbackAds].filter(ad => ad.saved_images.length > 0);
       console.log('All Ads:', allAds);
 
       setSavedAds(allAds);
