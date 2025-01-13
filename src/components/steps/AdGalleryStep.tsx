@@ -82,17 +82,17 @@ const AdGalleryStep = ({
 
         if (wizardData?.selected_hooks) {
           const existingAds = Array.isArray(wizardData.selected_hooks) 
-            ? wizardData.selected_hooks.map((hook: AdHook, index: number) => ({
+            ? wizardData.selected_hooks.map((hook: AdHook) => ({
                 platform: 'facebook',
                 headline: hook.description,
                 description: hook.text,
-                imageUrl: hook.image?.url || '', // Updated to use the correct property path
+                imageUrl: generatedImages?.[0]?.url || '', // Use the first generated image if available
                 size: {
                   width: 1200,
                   height: 628,
                   label: "Facebook Feed"
                 },
-                id: `wizard-${index}`,
+                id: `wizard-${hook.id || Math.random().toString()}`,
               }))
             : [];
           
@@ -112,7 +112,7 @@ const AdGalleryStep = ({
     };
 
     loadExistingAds();
-  }, [projectId]);
+  }, [projectId, generatedImages]);
 
   const onPlatformChange = (newPlatform: "facebook" | "google" | "linkedin" | "tiktok") => {
     handlePlatformChange(newPlatform, adVariants.length > 0);
