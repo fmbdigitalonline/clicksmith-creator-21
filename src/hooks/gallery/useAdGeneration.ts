@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { BusinessIdea, TargetAudience, AdHook } from "@/types/adWizard";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
 import { AdVariant, convertJsonToAdVariant, convertAdVariantToJson } from "@/types/adVariant";
 import { useAdValidation } from "./useAdValidation";
