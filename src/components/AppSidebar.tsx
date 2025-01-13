@@ -34,7 +34,7 @@ const menuItems = [
     title: "Ad Gallery",
     icon: Images,
     url: "/ad-wizard",
-    showCondition: (pathname: string) => pathname.includes('/ad-wizard'),
+    showCondition: (pathname: string) => pathname.includes('/ad-wizard') || pathname.includes('/projects'),
   },
   {
     title: "Settings",
@@ -53,13 +53,21 @@ export function AppSidebar() {
       return currentPath === "/" || currentPath === "/projects";
     }
     if (path === "/ad-wizard") {
-      return currentPath.includes('/ad-wizard');
+      return currentPath.includes('/ad-wizard') || 
+             (currentPath.includes('/projects') && sessionStorage.getItem('showAdGallery') === 'true');
     }
     return currentPath === path;
   };
 
   const handleStartClick = () => {
     navigate("/ad-wizard/new");
+    sessionStorage.setItem('showAdGallery', 'true');
+  };
+
+  const handleMenuClick = (url: string) => {
+    if (url === '/ad-wizard') {
+      sessionStorage.setItem('showAdGallery', 'true');
+    }
   };
 
   return (
@@ -87,7 +95,11 @@ export function AppSidebar() {
                     isActive={isActive(item.url)}
                     tooltip={item.title}
                   >
-                    <Link to={item.url} className="flex items-center gap-2">
+                    <Link 
+                      to={item.url} 
+                      className="flex items-center gap-2"
+                      onClick={() => handleMenuClick(item.url)}
+                    >
                       <item.icon className="h-4 w-4" />
                       <span>{item.title}</span>
                       {isActive(item.url) && (
