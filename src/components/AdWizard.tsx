@@ -43,7 +43,7 @@ const AdWizard = () => {
       if (projectId && projectId !== 'new') {
         const { data: project } = await supabase
           .from('projects')
-          .select('*')
+          .select('generated_ads, video_ads_enabled')
           .eq('id', projectId)
           .single();
 
@@ -51,7 +51,7 @@ const AdWizard = () => {
           navigate('/ad-wizard/new');
         } else {
           setVideoAdsEnabled(project.video_ads_enabled || false);
-          if (project.generated_ads) {
+          if (project.generated_ads && Array.isArray(project.generated_ads)) {
             setGeneratedAds(project.generated_ads);
           }
         }
@@ -62,7 +62,7 @@ const AdWizard = () => {
           .eq('user_id', user.id)
           .single();
 
-        if (wizardData?.generated_ads) {
+        if (wizardData?.generated_ads && Array.isArray(wizardData.generated_ads)) {
           setGeneratedAds(wizardData.generated_ads);
         }
       }
