@@ -44,10 +44,6 @@ export function OnboardingDialog() {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    checkOnboardingStatus();
-  }, []);
-
   const checkOnboardingStatus = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -61,40 +57,30 @@ export function OnboardingDialog() {
 
       if (error && error.code !== "PGRST116") {
         console.error("Error fetching onboarding status:", error);
-        toast({
-          title: "Error checking onboarding status",
-          description: error.message,
-          variant: "destructive",
-        });
         return;
       }
 
-      if (!onboarding || !onboarding.completed) {
-        setOpen(true);
-        if (!onboarding) {
-          const { error: insertError } = await supabase
-            .from("onboarding")
-            .insert([{ user_id: user.id, steps_completed: [] }]);
+      if (!onboarding) {
+        const { error: insertError } = await supabase
+          .from("onboarding")
+          .insert([{ 
+            user_id: user.id, 
+            steps_completed: steps.map(step => step.id),
+            completed: true 
+          }]);
 
-          if (insertError) {
-            console.error("Error creating onboarding record:", insertError);
-            toast({
-              title: "Error initializing onboarding",
-              description: insertError.message,
-              variant: "destructive",
-            });
-          }
+        if (insertError) {
+          console.error("Error creating onboarding record:", insertError);
         }
       }
     } catch (error) {
       console.error("Error in checkOnboardingStatus:", error);
-      toast({
-        title: "Error",
-        description: "Failed to check onboarding status",
-        variant: "destructive",
-      });
     }
   };
+
+  useEffect(() => {
+    checkOnboardingStatus();
+  }, []);
 
   const handleStepComplete = async () => {
     try {
