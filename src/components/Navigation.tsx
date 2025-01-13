@@ -1,7 +1,7 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Home, CreditCard, PlusCircle, Images } from "lucide-react";
+import { Home, CreditCard, PlusCircle, Images, Wand2 } from "lucide-react";
 import { CreditDisplay } from "./CreditDisplay";
 
 const Navigation = () => {
@@ -13,18 +13,19 @@ const Navigation = () => {
     if (path === "/") {
       return currentPath === "/" || currentPath === "/projects";
     }
-    if (path === "/ad-wizard") {
-      return currentPath.includes('/ad-wizard');
+    if (path === "/profitpilot") {
+      return currentPath.includes('/profitpilot');
+    }
+    if (path === "/ad-gallery") {
+      return currentPath.includes('/ad-gallery');
     }
     return currentPath === path;
   };
 
   const handleStartClick = () => {
-    navigate("/ad-wizard/new");
+    navigate("/profitpilot/new");
   };
 
-  const showAdGallery = currentPath.includes('/ad-wizard');
-  
   return (
     <nav className="fixed top-0 left-0 right-0 h-16 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50">
       <div className="container h-full">
@@ -57,22 +58,34 @@ const Navigation = () => {
                 <span>Home</span>
               </Link>
             </Button>
-            {showAdGallery && (
-              <Button
-                variant="ghost"
-                size="sm"
-                asChild
-                className={cn(
-                  "gap-2",
-                  isActive("/ad-wizard") && "bg-accent"
-                )}
-              >
-                <Link to="/ad-wizard">
-                  <Images className="h-4 w-4" />
-                  <span>Ad Gallery</span>
-                </Link>
-              </Button>
-            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              asChild
+              className={cn(
+                "gap-2",
+                isActive("/profitpilot") && "bg-accent"
+              )}
+            >
+              <Link to="/profitpilot/new">
+                <Wand2 className="h-4 w-4" />
+                <span>ProfitPilot</span>
+              </Link>
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              asChild
+              className={cn(
+                "gap-2",
+                isActive("/ad-gallery") && "bg-accent"
+              )}
+            >
+              <Link to="/ad-gallery/new">
+                <Images className="h-4 w-4" />
+                <span>Ad Gallery</span>
+              </Link>
+            </Button>
             <Button
               variant="ghost"
               size="sm"

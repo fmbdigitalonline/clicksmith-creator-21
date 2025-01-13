@@ -27,7 +27,7 @@ function App() {
               path="/"
               element={
                 <ProtectedRoute>
-                  <Navigate to="/ad-wizard/new" replace />
+                  <Navigate to="/profitpilot/new" replace />
                 </ProtectedRoute>
               }
             />
@@ -72,7 +72,7 @@ function App() {
               }
             />
             <Route
-              path="/ad-wizard/:projectId"
+              path="/profitpilot/:projectId"
               element={
                 <ProtectedRoute>
                   <AppLayout>
@@ -81,7 +81,17 @@ function App() {
                 </ProtectedRoute>
               }
             />
-            <Route path="*" element={<Navigate to="/ad-wizard/new" replace />} />
+            <Route
+              path="/ad-gallery/:projectId"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <SavedAdsGallery />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route path="*" element={<Navigate to="/profitpilot/new" replace />} />
           </Routes>
           <OnboardingDialog />
           <Toaster />
