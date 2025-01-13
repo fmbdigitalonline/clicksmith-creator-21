@@ -11,7 +11,8 @@ export default defineConfig(({ mode }) => ({
     strictPort: true, // Don't try other ports if 8080 is taken
     hmr: {
       clientPort: 443, // Force client to use HTTPS port
-      protocol: 'wss' // Use secure WebSocket
+      protocol: 'wss', // Use secure WebSocket
+      host: '51d85d4a-57a5-4cf4-a478-7ea91ed58660.lovableproject.com' // Set the correct host
     }
   },
   plugins: [
