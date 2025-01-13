@@ -9,6 +9,7 @@ import { useAdGeneration } from "./gallery/useAdGeneration";
 import AdGenerationControls from "./gallery/AdGenerationControls";
 import { useEffect, useState, useCallback } from "react";
 import { AdSizeSelector, AD_FORMATS } from "./gallery/components/AdSizeSelector";
+import { useParams } from "react-router-dom";
 
 interface AdGalleryStepProps {
   businessIdea: BusinessIdea;
@@ -38,6 +39,7 @@ const AdGalleryStep = ({
   hasLoadedInitialAds = false,
 }: AdGalleryStepProps) => {
   const [selectedFormat, setSelectedFormat] = useState(AD_FORMATS[0]);
+  const { projectId } = useParams();
   const {
     platform,
     showPlatformChangeDialog,
@@ -61,32 +63,43 @@ const AdGalleryStep = ({
   }, [generateAds, isGenerating]);
 
   useEffect(() => {
-    if (!hasLoadedInitialAds) {
+    // For new sessions, always generate fresh ads
+    if (projectId === 'new' && hasLoadedInitialAds) {
+      handleGenerateAds(platform);
       return;
     }
-    
-    const platformAds = generatedAds.filter(ad => ad.platform === platform);
-    if (platformAds.length === 0) {
-      handleGenerateAds(platform);
+
+    // For existing projects, only generate if no ads exist for the platform
+    if (hasLoadedInitialAds) {
+      const platformAds = generatedAds.filter(ad => ad.platform === platform);
+      if (platformAds.length === 0) {
+        handleGenerateAds(platform);
+      }
     }
-  }, [platform, hasLoadedInitialAds, generatedAds, handleGenerateAds]);
+  }, [platform, hasLoadedInitialAds, generatedAds, handleGenerateAds, projectId]);
 
   useEffect(() => {
     if (onAdsGenerated && adVariants.length > 0) {
-      const updatedAds = [...generatedAds];
-      adVariants.forEach(newVariant => {
-        const existingIndex = updatedAds.findIndex(
-          ad => ad.platform === newVariant.platform && ad.id === newVariant.id
-        );
-        if (existingIndex >= 0) {
-          updatedAds[existingIndex] = newVariant;
-        } else {
-          updatedAds.push(newVariant);
-        }
-      });
+      const updatedAds = projectId === 'new' 
+        ? adVariants // For new sessions, use only new variants
+        : [...generatedAds]; // For existing projects, merge with existing ads
+
+      if (projectId !== 'new') {
+        adVariants.forEach(newVariant => {
+          const existingIndex = updatedAds.findIndex(
+            ad => ad.platform === newVariant.platform && ad.id === newVariant.id
+          );
+          if (existingIndex >= 0) {
+            updatedAds[existingIndex] = newVariant;
+          } else {
+            updatedAds.push(newVariant);
+          }
+        });
+      }
+      
       onAdsGenerated(updatedAds);
     }
-  }, [adVariants, onAdsGenerated, generatedAds]);
+  }, [adVariants, onAdsGenerated, generatedAds, projectId]);
 
   const onPlatformChange = (newPlatform: "facebook" | "google" | "linkedin" | "tiktok") => {
     handlePlatformChange(newPlatform, adVariants.length > 0);
