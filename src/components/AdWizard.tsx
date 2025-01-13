@@ -13,9 +13,7 @@ import { Video, Image } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Database } from "@/integrations/supabase/types";
 
-type WizardProgress = Database['public']['Tables']['wizard_progress']['Row'] & {
-  generated_ads?: any[];
-};
+type WizardProgress = Database['public']['Tables']['wizard_progress']['Row'];
 
 const AdWizard = () => {
   const [showCreateProject, setShowCreateProject] = useState(false);
@@ -67,10 +65,8 @@ const AdWizard = () => {
           .eq('user_id', user.id)
           .single();
 
-        const typedWizardData = wizardData as WizardProgress;
-        
-        if (typedWizardData?.generated_ads && Array.isArray(typedWizardData.generated_ads)) {
-          setGeneratedAds(typedWizardData.generated_ads);
+        if (wizardData?.generated_ads && Array.isArray(wizardData.generated_ads)) {
+          setGeneratedAds(wizardData.generated_ads as any[]);
         }
       }
     };
