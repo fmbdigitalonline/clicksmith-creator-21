@@ -63,45 +63,57 @@ const AdGalleryStep = ({
     }
   }, [generateAds, isGenerating]);
 
+  // Effect for initial ad generation
   useEffect(() => {
-    // Only generate ads once when hasLoadedInitialAds becomes true
-    if (hasLoadedInitialAds && !hasGeneratedInitialAds) {
-      if (projectId === 'new') {
-        handleGenerateAds(platform);
-        setHasGeneratedInitialAds(true);
-      } else {
-        // For existing projects, only generate if no ads exist for the platform
-        const platformAds = generatedAds.filter(ad => ad.platform === platform);
-        if (platformAds.length === 0) {
-          handleGenerateAds(platform);
-        }
-        setHasGeneratedInitialAds(true);
-      }
+    if (!hasLoadedInitialAds || hasGeneratedInitialAds) return;
+
+    const isNewProject = projectId === 'new';
+    const existingPlatformAds = generatedAds.filter(ad => ad.platform === platform);
+    const shouldGenerateAds = isNewProject || existingPlatformAds.length === 0;
+
+    if (shouldGenerateAds) {
+      console.log('Generating initial ads:', { isNewProject, platform, existingAdsCount: existingPlatformAds.length });
+      handleGenerateAds(platform);
     }
-  }, [platform, hasLoadedInitialAds, generatedAds, handleGenerateAds, projectId, hasGeneratedInitialAds]);
 
+    setHasGeneratedInitialAds(true);
+  }, [hasLoadedInitialAds, hasGeneratedInitialAds, platform, projectId, generatedAds, handleGenerateAds]);
+
+  // Effect for managing generated ads state
   useEffect(() => {
-    if (onAdsGenerated && adVariants.length > 0) {
-      const updatedAds = projectId === 'new' 
-        ? adVariants // For new sessions, use only new variants
-        : [...generatedAds]; // For existing projects, merge with existing ads
+    if (!onAdsGenerated || adVariants.length === 0) return;
 
-      if (projectId !== 'new') {
-        adVariants.forEach(newVariant => {
-          const existingIndex = updatedAds.findIndex(
-            ad => ad.platform === newVariant.platform && ad.id === newVariant.id
+    const isNewProject = projectId === 'new';
+    const updatedAds = isNewProject 
+      ? adVariants // For new projects, use only new variants
+      : generatedAds.map(existingAd => {
+          // Find if there's a new variant for this ad
+          const newVariant = adVariants.find(
+            variant => variant.platform === existingAd.platform && variant.id === existingAd.id
           );
-          if (existingIndex >= 0) {
-            updatedAds[existingIndex] = newVariant;
-          } else {
-            updatedAds.push(newVariant);
-          }
+          return newVariant || existingAd;
         });
-      }
-      
-      onAdsGenerated(updatedAds);
+
+    // Add any new variants that don't exist in the current ads
+    if (!isNewProject) {
+      adVariants.forEach(newVariant => {
+        const exists = updatedAds.some(
+          ad => ad.platform === newVariant.platform && ad.id === newVariant.id
+        );
+        if (!exists) {
+          updatedAds.push(newVariant);
+        }
+      });
     }
-  }, [adVariants, onAdsGenerated, generatedAds, projectId]);
+
+    console.log('Updating ads state:', { 
+      isNewProject, 
+      adVariantsCount: adVariants.length,
+      updatedAdsCount: updatedAds.length 
+    });
+    
+    onAdsGenerated(updatedAds);
+  }, [adVariants, onAdsGenerated, projectId, generatedAds]);
 
   const onPlatformChange = (newPlatform: "facebook" | "google" | "linkedin" | "tiktok") => {
     handlePlatformChange(newPlatform, adVariants.length > 0);
