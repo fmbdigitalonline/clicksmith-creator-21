@@ -26,8 +26,19 @@ export const useAdWizardState = () => {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
-        // Try to load from project first if we have a project ID
-        if (projectId && projectId !== 'new') {
+        // For new projects, clear any existing progress and start from step 1
+        if (projectId === 'new') {
+          await clearWizardProgress(projectId, user.id);
+          setBusinessIdea(null);
+          setTargetAudience(null);
+          setAudienceAnalysis(null);
+          setSelectedHooks([]);
+          setCurrentStep(1);
+          return;
+        }
+
+        // Try to load from project if we have a project ID
+        if (projectId) {
           const { data: project } = await supabase
             .from('projects')
             .select('*')
@@ -35,13 +46,14 @@ export const useAdWizardState = () => {
             .single();
 
           if (project) {
+            // Set project data
             setBusinessIdea(project.business_idea as BusinessIdea);
             setTargetAudience(project.target_audience as TargetAudience);
             setAudienceAnalysis(project.audience_analysis as AudienceAnalysis);
             setSelectedHooks((project.selected_hooks || []) as AdHook[]);
             
-            // Set the appropriate step based on available data
-            if (project.selected_hooks) {
+            // Set appropriate step based on available data
+            if (project.selected_hooks?.length > 0) {
               setCurrentStep(4);
             } else if (project.audience_analysis) {
               setCurrentStep(3);
@@ -54,7 +66,7 @@ export const useAdWizardState = () => {
           }
         }
 
-        // If no project or it's new, try to load from wizard_progress
+        // If no project or it's invalid, load from wizard_progress
         const { data: wizardData } = await supabase
           .from('wizard_progress')
           .select('*')
@@ -67,17 +79,21 @@ export const useAdWizardState = () => {
           setAudienceAnalysis(wizardData.audience_analysis as AudienceAnalysis);
           setSelectedHooks((wizardData.selected_hooks || []) as AdHook[]);
           
-          // Set the appropriate step based on available data
-          if (wizardData.selected_hooks) {
+          // Set appropriate step based on wizard progress
+          if (wizardData.selected_hooks?.length > 0) {
             setCurrentStep(4);
           } else if (wizardData.audience_analysis) {
             setCurrentStep(3);
           } else if (wizardData.target_audience) {
             setCurrentStep(2);
+          } else {
+            setCurrentStep(1);
           }
         }
       } catch (error) {
         console.error('Error loading saved progress:', error);
+        // On error, start fresh from step 1
+        setCurrentStep(1);
       }
     };
 
@@ -180,11 +196,11 @@ export const useAdWizardState = () => {
       case 3:
         return !!businessIdea && !!targetAudience;
       case 4:
-        return !!businessIdea && !!targetAudience && !!audienceAnalysis && selectedHooks.length > 0;
+        return !!businessIdea && !!targetAudience && !!audienceAnalysis;
       default:
         return false;
     }
-  }, [businessIdea, targetAudience, audienceAnalysis, selectedHooks]);
+  }, [businessIdea, targetAudience, audienceAnalysis]);
 
   return {
     currentStep,

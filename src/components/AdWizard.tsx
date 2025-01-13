@@ -39,16 +39,7 @@ const AdWizard = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      if (projectId === "new") {
-        // Clear any existing wizard progress when starting new
-        await supabase
-          .from('wizard_progress')
-          .delete()
-          .eq('user_id', user.id);
-        
-        // Always start from step 1 for new projects
-        setCurrentStep(1);
-      } else if (projectId) {
+      if (projectId && projectId !== 'new') {
         // If it's an existing project, fetch its data
         const { data: project } = await supabase
           .from('projects')
@@ -62,23 +53,12 @@ const AdWizard = () => {
         } else {
           // Set video ads enabled based on project settings
           setVideoAdsEnabled(project.video_ads_enabled || false);
-          
-          // Set the appropriate step based on available data
-          if (project.selected_hooks) {
-            setCurrentStep(4);
-          } else if (project.audience_analysis) {
-            setCurrentStep(3);
-          } else if (project.target_audience) {
-            setCurrentStep(2);
-          } else {
-            setCurrentStep(1);
-          }
         }
       }
     };
 
     initializeProject();
-  }, [projectId, navigate, setCurrentStep]);
+  }, [projectId, navigate]);
 
   const handleCreateProject = () => {
     setShowCreateProject(true);
