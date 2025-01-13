@@ -1,30 +1,10 @@
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Json } from "@/integrations/supabase/types";
-import { SavedAdCard } from "./components/SavedAdCard";
+import { SavedAdsList } from "./components/SavedAdsList";
 import { EmptyState } from "./components/EmptyState";
-import { WizardHook, WizardProgressData } from "@/types/wizardProgress";
-
-interface SavedAd {
-  id: string;
-  saved_images: string[];
-  headline?: string;
-  primary_text?: string;
-  rating: number;
-  feedback: string;
-  created_at: string;
-}
-
-interface AdFeedbackRow {
-  id: string;
-  saved_images: Json;
-  headline?: string;
-  primary_text?: string;
-  rating: number;
-  feedback: string;
-  created_at: string;
-}
+import { WizardHook } from "@/types/wizardProgress";
+import { SavedAd, AdFeedbackRow } from "./types";
 
 export const SavedAdsGallery = () => {
   const [savedAds, setSavedAds] = useState<SavedAd[]>([]);
@@ -46,8 +26,6 @@ export const SavedAdsGallery = () => {
         .eq('user_id', user.id)
         .single();
 
-      console.log('Wizard Progress Data:', wizardData?.selected_hooks);
-
       let generatedAds: SavedAd[] = [];
       
       if (wizardData?.selected_hooks) {
@@ -55,15 +33,8 @@ export const SavedAdsGallery = () => {
           ? (wizardData.selected_hooks as WizardHook[])
           : [];
           
-        console.log('Hooks Data before filtering:', hooksData);
-        
         generatedAds = hooksData
-          .filter(hook => {
-            console.log('Hook being processed:', hook);
-            const hasImage = Boolean(hook.imageUrl);
-            console.log('Has image:', hasImage, 'Image URL:', hook.imageUrl);
-            return hasImage;
-          })
+          .filter(hook => Boolean(hook.imageUrl))
           .map((hook: WizardHook, index: number) => ({
             id: `wizard-${index}`,
             saved_images: hook.imageUrl ? [hook.imageUrl] : [],
@@ -73,8 +44,6 @@ export const SavedAdsGallery = () => {
             feedback: '',
             created_at: new Date().toISOString()
           }));
-
-        console.log('Generated Ads:', generatedAds);
       }
 
       // Then get saved ad feedback
@@ -85,19 +54,13 @@ export const SavedAdsGallery = () => {
         .not('saved_images', 'is', null)
         .order('created_at', { ascending: false });
 
-      if (error) {
-        throw error;
-      }
-
-      console.log('Feedback Data:', feedbackData);
+      if (error) throw error;
 
       // Convert feedback data
       const feedbackAds: SavedAd[] = (feedbackData as AdFeedbackRow[])
         .filter(ad => {
-          console.log('Processing feedback ad:', ad);
           const hasImages = ad.saved_images !== null && 
             (Array.isArray(ad.saved_images) ? ad.saved_images.length > 0 : typeof ad.saved_images === 'string');
-          console.log('Has images:', hasImages);
           return hasImages;
         })
         .map(ad => {
@@ -110,8 +73,6 @@ export const SavedAdsGallery = () => {
             images = [ad.saved_images];
           }
           
-          console.log('Processed images for ad:', images);
-          
           return {
             id: ad.id,
             saved_images: images,
@@ -123,12 +84,8 @@ export const SavedAdsGallery = () => {
           };
         });
 
-      console.log('Feedback Ads:', feedbackAds);
-
       // Combine both sources of ads
       const allAds = [...generatedAds, ...feedbackAds].filter(ad => ad.saved_images.length > 0);
-      console.log('All Ads:', allAds);
-
       setSavedAds(allAds);
     } catch (error) {
       console.error('Error fetching saved ads:', error);
@@ -166,18 +123,5 @@ export const SavedAdsGallery = () => {
     return <EmptyState />;
   }
 
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {savedAds.map((ad) => (
-        <SavedAdCard
-          key={ad.id}
-          id={ad.id}
-          primaryText={ad.primary_text}
-          headline={ad.headline}
-          imageUrl={ad.saved_images[0]}
-          onFeedbackSubmit={fetchSavedAds}
-        />
-      ))}
-    </div>
-  );
+  return <SavedAdsList ads={savedAds} onFeedbackSubmit={fetchSavedAds} />;
 };
