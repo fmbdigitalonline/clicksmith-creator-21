@@ -38,7 +38,30 @@ export const SavedAdsGallery = () => {
         return;
       }
 
-      const { data, error } = await supabase
+      // First try to get ads from wizard progress
+      const { data: wizardData } = await supabase
+        .from('wizard_progress')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+
+      let generatedAds: SavedAd[] = [];
+      
+      if (wizardData?.selected_hooks) {
+        // Convert wizard progress data to SavedAd format
+        generatedAds = wizardData.selected_hooks.map((hook: any, index: number) => ({
+          id: `wizard-${index}`,
+          saved_images: [hook.imageUrl || ''],
+          headline: hook.description,
+          primary_text: hook.text,
+          rating: 0,
+          feedback: '',
+          created_at: new Date().toISOString()
+        }));
+      }
+
+      // Then get saved ad feedback
+      const { data: feedbackData, error } = await supabase
         .from('ad_feedback')
         .select('*')
         .eq('user_id', user.id)
@@ -49,7 +72,8 @@ export const SavedAdsGallery = () => {
         throw error;
       }
 
-      const convertedAds: SavedAd[] = (data as AdFeedbackRow[]).map(ad => ({
+      // Convert feedback data
+      const feedbackAds: SavedAd[] = (feedbackData as AdFeedbackRow[]).map(ad => ({
         ...ad,
         saved_images: Array.isArray(ad.saved_images) 
           ? (ad.saved_images as string[])
@@ -58,7 +82,9 @@ export const SavedAdsGallery = () => {
             : []
       }));
 
-      setSavedAds(convertedAds);
+      // Combine both sources of ads
+      setSavedAds([...generatedAds, ...feedbackAds]);
+
     } catch (error) {
       console.error('Error fetching saved ads:', error);
       toast({
@@ -82,11 +108,10 @@ export const SavedAdsGallery = () => {
 
     loadAds();
 
-    // Cleanup function to prevent state updates after unmounting
     return () => {
       isMounted = false;
     };
-  }, [toast]);
+  }, []);
 
   if (isLoading) {
     return <div>Loading saved ads...</div>;
