@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 export const useAdGeneration = (
   businessIdea: BusinessIdea,
@@ -18,29 +18,6 @@ export const useAdGeneration = (
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { projectId } = useParams();
-
-  // Load saved ad variants when component mounts
-  useEffect(() => {
-    const loadSavedAds = async () => {
-      console.log('Loading saved ads for project:', projectId);
-      if (projectId && projectId !== 'new') {
-        const { data: project } = await supabase
-          .from('projects')
-          .select('generated_ads')
-          .eq('id', projectId)
-          .single();
-        
-        console.log('Loaded project data:', project);
-        
-        if (project?.generated_ads && Array.isArray(project.generated_ads)) {
-          console.log('Setting ad variants from project:', project.generated_ads);
-          setAdVariants(project.generated_ads);
-        }
-      }
-    };
-
-    loadSavedAds();
-  }, [projectId]);
 
   const checkCredits = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -204,5 +181,6 @@ export const useAdGeneration = (
     regenerationCount,
     generationStatus,
     generateAds,
+    setAdVariants
   };
 };
