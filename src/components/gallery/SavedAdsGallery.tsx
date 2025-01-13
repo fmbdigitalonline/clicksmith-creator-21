@@ -46,6 +46,8 @@ export const SavedAdsGallery = () => {
         .eq('user_id', user.id)
         .single();
 
+      console.log('Wizard Progress Data:', wizardData?.selected_hooks);
+
       let generatedAds: SavedAd[] = [];
       
       if (wizardData?.selected_hooks) {
@@ -53,8 +55,15 @@ export const SavedAdsGallery = () => {
           ? (wizardData.selected_hooks as WizardHook[])
           : [];
           
+        console.log('Hooks Data before filtering:', hooksData);
+        
         generatedAds = hooksData
-          .filter(hook => hook.imageUrl) // Only include hooks with images
+          .filter(hook => {
+            console.log('Hook being processed:', hook);
+            const hasImage = Boolean(hook.imageUrl);
+            console.log('Has image:', hasImage, 'Image URL:', hook.imageUrl);
+            return hasImage;
+          })
           .map((hook: WizardHook, index: number) => ({
             id: `wizard-${index}`,
             saved_images: hook.imageUrl ? [hook.imageUrl] : [],
@@ -64,6 +73,8 @@ export const SavedAdsGallery = () => {
             feedback: '',
             created_at: new Date().toISOString()
           }));
+
+        console.log('Generated Ads:', generatedAds);
       }
 
       // Then get saved ad feedback
@@ -78,28 +89,44 @@ export const SavedAdsGallery = () => {
         throw error;
       }
 
+      console.log('Feedback Data:', feedbackData);
+
       // Convert feedback data
       const feedbackAds: SavedAd[] = (feedbackData as AdFeedbackRow[])
-        .filter(ad => ad.saved_images) // Only include ads with saved_images
+        .filter(ad => {
+          console.log('Processing feedback ad:', ad);
+          return ad.saved_images;
+        })
         .map(ad => {
           let images: string[] = [];
           if (Array.isArray(ad.saved_images)) {
-            images = ad.saved_images.filter((img): img is string => 
-              typeof img === 'string' && img.length > 0
-            );
+            images = ad.saved_images.filter((img): img is string => {
+              const isValid = typeof img === 'string' && img.length > 0;
+              console.log('Image URL:', img, 'Is valid:', isValid);
+              return isValid;
+            });
           } else if (typeof ad.saved_images === 'string' && ad.saved_images.length > 0) {
             images = [ad.saved_images];
           }
+          
+          console.log('Processed images for ad:', images);
           
           return {
             ...ad,
             saved_images: images
           };
         })
-        .filter(ad => ad.saved_images.length > 0); // Only include ads with valid images
+        .filter(ad => {
+          const hasImages = ad.saved_images.length > 0;
+          console.log('Ad after processing:', ad.id, 'Has images:', hasImages);
+          return hasImages;
+        });
+
+      console.log('Feedback Ads:', feedbackAds);
 
       // Combine both sources of ads
       const allAds = [...generatedAds, ...feedbackAds];
+      console.log('All Ads:', allAds);
 
       setSavedAds(allAds);
     } catch (error) {
