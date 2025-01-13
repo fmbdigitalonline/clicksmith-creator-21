@@ -72,7 +72,20 @@ export const SavedAdsGallery = () => {
   };
 
   useEffect(() => {
-    fetchSavedAds();
+    let isMounted = true;
+
+    const loadAds = async () => {
+      if (isMounted) {
+        await fetchSavedAds();
+      }
+    };
+
+    loadAds();
+
+    // Cleanup function to prevent state updates after unmounting
+    return () => {
+      isMounted = false;
+    };
   }, [toast]);
 
   if (isLoading) {
