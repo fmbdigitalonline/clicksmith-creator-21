@@ -46,7 +46,7 @@ const AdWizard = () => {
           .delete()
           .eq('user_id', user.id);
         
-        // Ensure we start from step 1 for new projects
+        // Always start from step 1 for new projects
         setCurrentStep(1);
       } else if (projectId) {
         // If it's an existing project, fetch its data
@@ -62,6 +62,17 @@ const AdWizard = () => {
         } else {
           // Set video ads enabled based on project settings
           setVideoAdsEnabled(project.video_ads_enabled || false);
+          
+          // Set the appropriate step based on available data
+          if (project.selected_hooks) {
+            setCurrentStep(4);
+          } else if (project.audience_analysis) {
+            setCurrentStep(3);
+          } else if (project.target_audience) {
+            setCurrentStep(2);
+          } else {
+            setCurrentStep(1);
+          }
         }
       }
     };
