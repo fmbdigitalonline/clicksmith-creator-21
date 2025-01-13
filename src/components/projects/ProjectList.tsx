@@ -8,12 +8,7 @@ import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Database } from "@/integrations/supabase/types";
 
-type Project = Database['public']['Tables']['projects']['Row'] & {
-  business_idea: {
-    description: string;
-    valueProposition: string;
-  } | null;
-};
+type Project = Database['public']['Tables']['projects']['Row'];
 
 interface ProjectListProps {
   onStartAdWizard: (projectId?: string) => void;
