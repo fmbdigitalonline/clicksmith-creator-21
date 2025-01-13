@@ -40,7 +40,9 @@ const AdGalleryStep = ({
 }: AdGalleryStepProps) => {
   const [selectedFormat, setSelectedFormat] = useState(AD_FORMATS[0]);
   const [hasGeneratedInitialAds, setHasGeneratedInitialAds] = useState(false);
+  const [localGeneratedAds, setLocalGeneratedAds] = useState<any[]>(generatedAds);
   const { projectId } = useParams();
+  
   const {
     platform,
     showPlatformChangeDialog,
@@ -57,44 +59,62 @@ const AdGalleryStep = ({
     generateAds,
   } = useAdGeneration(businessIdea, targetAudience, adHooks);
 
+  // Update local state when props change
+  useEffect(() => {
+    console.log('Generated ads prop updated:', generatedAds);
+    setLocalGeneratedAds(generatedAds);
+  }, [generatedAds]);
+
   const handleGenerateAds = useCallback((selectedPlatform: string) => {
     if (!isGenerating) {
+      console.log('Starting ad generation for platform:', selectedPlatform);
       generateAds(selectedPlatform);
     }
   }, [generateAds, isGenerating]);
 
   // Effect for initial ad generation
   useEffect(() => {
-    if (!hasLoadedInitialAds || hasGeneratedInitialAds) return;
+    if (!hasLoadedInitialAds || hasGeneratedInitialAds) {
+      console.log('Skipping initial generation:', { hasLoadedInitialAds, hasGeneratedInitialAds });
+      return;
+    }
 
     const isNewProject = projectId === 'new';
-    const existingPlatformAds = generatedAds.filter(ad => ad.platform === platform);
+    const existingPlatformAds = localGeneratedAds.filter(ad => ad.platform === platform);
     const shouldGenerateAds = isNewProject || existingPlatformAds.length === 0;
 
     if (shouldGenerateAds) {
-      console.log('Generating initial ads:', { isNewProject, platform, existingAdsCount: existingPlatformAds.length });
+      console.log('Generating initial ads:', { 
+        isNewProject, 
+        platform, 
+        existingAdsCount: existingPlatformAds.length 
+      });
       handleGenerateAds(platform);
     }
 
     setHasGeneratedInitialAds(true);
-  }, [hasLoadedInitialAds, hasGeneratedInitialAds, platform, projectId, generatedAds, handleGenerateAds]);
+  }, [hasLoadedInitialAds, hasGeneratedInitialAds, platform, projectId, localGeneratedAds, handleGenerateAds]);
 
   // Effect for managing generated ads state
   useEffect(() => {
-    if (!onAdsGenerated || adVariants.length === 0) return;
+    if (!onAdsGenerated || adVariants.length === 0) {
+      console.log('Skipping ads update:', { 
+        hasCallback: !!onAdsGenerated, 
+        variantsCount: adVariants.length 
+      });
+      return;
+    }
 
     const isNewProject = projectId === 'new';
     const updatedAds = isNewProject 
-      ? adVariants // For new projects, use only new variants
-      : generatedAds.map(existingAd => {
-          // Find if there's a new variant for this ad
+      ? adVariants 
+      : localGeneratedAds.map(existingAd => {
           const newVariant = adVariants.find(
             variant => variant.platform === existingAd.platform && variant.id === existingAd.id
           );
           return newVariant || existingAd;
         });
 
-    // Add any new variants that don't exist in the current ads
     if (!isNewProject) {
       adVariants.forEach(newVariant => {
         const exists = updatedAds.some(
@@ -112,11 +132,12 @@ const AdGalleryStep = ({
       updatedAdsCount: updatedAds.length 
     });
     
+    setLocalGeneratedAds(updatedAds);
     onAdsGenerated(updatedAds);
-  }, [adVariants, onAdsGenerated, projectId, generatedAds]);
+  }, [adVariants, onAdsGenerated, projectId, localGeneratedAds]);
 
   const onPlatformChange = (newPlatform: "facebook" | "google" | "linkedin" | "tiktok") => {
-    handlePlatformChange(newPlatform, adVariants.length > 0);
+    handlePlatformChange(newPlatform, localGeneratedAds.length > 0);
   };
 
   const onConfirmPlatformChange = () => {
@@ -146,7 +167,7 @@ const AdGalleryStep = ({
       </div>
       <PlatformContent
         platformName={platformName}
-        adVariants={generatedAds.length > 0 ? generatedAds : adVariants}
+        adVariants={localGeneratedAds}
         onCreateProject={onCreateProject}
         videoAdsEnabled={videoAdsEnabled}
         selectedFormat={selectedFormat}
