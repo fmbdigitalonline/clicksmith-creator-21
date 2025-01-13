@@ -50,10 +50,11 @@ export const useAdWizardState = () => {
             setBusinessIdea(project.business_idea as BusinessIdea);
             setTargetAudience(project.target_audience as TargetAudience);
             setAudienceAnalysis(project.audience_analysis as AudienceAnalysis);
-            setSelectedHooks((project.selected_hooks || []) as AdHook[]);
+            const hooks = Array.isArray(project.selected_hooks) ? project.selected_hooks : [];
+            setSelectedHooks(hooks as AdHook[]);
             
             // Set appropriate step based on available data
-            if (project.selected_hooks?.length > 0) {
+            if (hooks.length > 0) {
               setCurrentStep(4);
             } else if (project.audience_analysis) {
               setCurrentStep(3);
@@ -77,10 +78,11 @@ export const useAdWizardState = () => {
           setBusinessIdea(wizardData.business_idea as BusinessIdea);
           setTargetAudience(wizardData.target_audience as TargetAudience);
           setAudienceAnalysis(wizardData.audience_analysis as AudienceAnalysis);
-          setSelectedHooks((wizardData.selected_hooks || []) as AdHook[]);
+          const hooks = Array.isArray(wizardData.selected_hooks) ? wizardData.selected_hooks : [];
+          setSelectedHooks(hooks as AdHook[]);
           
           // Set appropriate step based on wizard progress
-          if (wizardData.selected_hooks?.length > 0) {
+          if (hooks.length > 0) {
             setCurrentStep(4);
           } else if (wizardData.audience_analysis) {
             setCurrentStep(3);
