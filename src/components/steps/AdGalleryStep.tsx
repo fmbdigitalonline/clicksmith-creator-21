@@ -10,6 +10,7 @@ import AdGenerationControls from "./gallery/AdGenerationControls";
 import { useEffect, useState, useCallback } from "react";
 import { AdSizeSelector, AD_FORMATS } from "./gallery/components/AdSizeSelector";
 import { useParams } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
 
 interface AdGalleryStepProps {
   businessIdea: BusinessIdea;
@@ -42,6 +43,7 @@ const AdGalleryStep = ({
   const [hasGeneratedInitialAds, setHasGeneratedInitialAds] = useState(false);
   const [localGeneratedAds, setLocalGeneratedAds] = useState<any[]>(generatedAds);
   const { projectId } = useParams();
+  const { toast } = useToast();
   
   const {
     platform,
@@ -62,15 +64,21 @@ const AdGalleryStep = ({
   // Update local state when props change
   useEffect(() => {
     console.log('Generated ads prop updated:', generatedAds);
-    setLocalGeneratedAds(generatedAds);
+    if (JSON.stringify(generatedAds) !== JSON.stringify(localGeneratedAds)) {
+      setLocalGeneratedAds(generatedAds);
+    }
   }, [generatedAds]);
 
   const handleGenerateAds = useCallback((selectedPlatform: string) => {
     if (!isGenerating) {
       console.log('Starting ad generation for platform:', selectedPlatform);
       generateAds(selectedPlatform);
+      toast({
+        title: "Generating Ads",
+        description: "Please wait while we generate your ads...",
+      });
     }
-  }, [generateAds, isGenerating]);
+  }, [generateAds, isGenerating, toast]);
 
   // Effect for initial ad generation
   useEffect(() => {
@@ -106,24 +114,23 @@ const AdGalleryStep = ({
     }
 
     const isNewProject = projectId === 'new';
-    const updatedAds = isNewProject 
-      ? adVariants 
-      : localGeneratedAds.map(existingAd => {
-          const newVariant = adVariants.find(
-            variant => variant.platform === existingAd.platform && variant.id === existingAd.id
-          );
-          return newVariant || existingAd;
-        });
+    let updatedAds: any[] = [];
 
-    if (!isNewProject) {
+    if (isNewProject) {
+      updatedAds = adVariants;
+    } else {
+      // Create a map of existing ads for efficient lookup
+      const existingAdsMap = new Map(
+        localGeneratedAds.map(ad => [`${ad.platform}-${ad.id}`, ad])
+      );
+
+      // Update existing ads and add new ones
       adVariants.forEach(newVariant => {
-        const exists = updatedAds.some(
-          ad => ad.platform === newVariant.platform && ad.id === newVariant.id
-        );
-        if (!exists) {
-          updatedAds.push(newVariant);
-        }
+        const key = `${newVariant.platform}-${newVariant.id}`;
+        existingAdsMap.set(key, newVariant);
       });
+
+      updatedAds = Array.from(existingAdsMap.values());
     }
 
     console.log('Updating ads state:', { 
@@ -134,7 +141,14 @@ const AdGalleryStep = ({
     
     setLocalGeneratedAds(updatedAds);
     onAdsGenerated(updatedAds);
-  }, [adVariants, onAdsGenerated, projectId, localGeneratedAds]);
+
+    if (updatedAds.length > 0) {
+      toast({
+        title: "Ads Generated Successfully",
+        description: `Generated ${updatedAds.length} new ad variants.`,
+      });
+    }
+  }, [adVariants, onAdsGenerated, projectId, localGeneratedAds, toast]);
 
   const onPlatformChange = (newPlatform: "facebook" | "google" | "linkedin" | "tiktok") => {
     handlePlatformChange(newPlatform, localGeneratedAds.length > 0);
