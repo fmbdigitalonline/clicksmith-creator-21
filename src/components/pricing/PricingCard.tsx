@@ -36,66 +36,49 @@ export const PricingCard = ({ plan, onSubscribe }: PricingCardProps) => {
         return;
       }
 
-      console.log('Creating checkout session for plan:', plan);
-      const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { 
-          priceId: plan.stripe_price_id,
-          mode: plan.name === 'Bundle' ? 'payment' : 'subscription'
-        }
-      });
-
-      console.log('Checkout response:', data, error);
-
-      if (error) {
-        console.error('Checkout error:', error);
-        throw error;
-      }
-
-      if (data?.url) {
-        console.log('Redirecting to:', data.url);
-        window.location.href = data.url;
-      } else {
-        throw new Error('No checkout URL received');
-      }
+      onSubscribe(plan);
     } catch (error: any) {
-      console.error('Checkout error:', error);
+      console.error('Subscription error:', error);
       toast({
         title: "Error",
-        description: "Failed to start checkout process. Please try again.",
+        description: "Failed to process subscription. Please try again.",
         variant: "destructive",
       });
     }
   };
 
+  const isFreePlan = plan.name === 'Free Trial';
+  const isPopular = plan.name === 'Starter';
+
   return (
     <Card className="flex flex-col relative overflow-hidden">
-      {plan.name === 'Starter' && (
+      {isPopular && (
         <div className="absolute top-0 right-0 bg-primary text-primary-foreground px-4 py-1 rounded-bl-lg text-sm font-medium">
           Most Popular
         </div>
       )}
       <CardHeader>
-        <CardTitle className="text-2xl capitalize">{plan.name}</CardTitle>
+        <CardTitle className="text-2xl">{plan.name}</CardTitle>
         <CardDescription>{plan.description}</CardDescription>
       </CardHeader>
       <CardContent className="flex-grow">
         <div className="mb-6">
           <span className="text-4xl font-bold">${plan.price}</span>
-          <span className="text-muted-foreground">/{plan.name === 'Bundle' ? 'one-time' : 'month'}</span>
+          {!isFreePlan && <span className="text-muted-foreground">/month</span>}
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger>
                 <Info className="inline-block ml-2 h-4 w-4 text-muted-foreground hover:text-foreground cursor-help" />
               </TooltipTrigger>
               <TooltipContent>
-                <p>{plan.name === 'Bundle' ? 'One-time payment' : 'Billed monthly. Cancel anytime.'}</p>
+                <p>{isFreePlan ? 'No credit card required' : 'Billed monthly. Cancel anytime.'}</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
         </div>
         <div className="space-y-4">
           <div className="font-medium text-lg flex items-center gap-2">
-            {plan.credits} credits {plan.name === 'Bundle' ? '' : 'per month'}
+            {plan.credits} credits {!isFreePlan && 'per month'}
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger>
@@ -122,8 +105,9 @@ export const PricingCard = ({ plan, onSubscribe }: PricingCardProps) => {
           className="w-full"
           onClick={handleSubscribe}
           size="lg"
+          variant={isFreePlan ? "outline" : "default"}
         >
-          {plan.name === 'Bundle' ? 'Buy Now' : 'Subscribe Now'}
+          {isFreePlan ? 'Start Free Trial' : 'Subscribe Now'}
         </Button>
       </CardFooter>
     </Card>

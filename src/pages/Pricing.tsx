@@ -49,7 +49,7 @@ const Pricing = () => {
         return;
       }
 
-      if (!plan.stripe_price_id) {
+      if (!plan.stripe_price_id && plan.name !== 'Free Trial') {
         toast({
           title: "Configuration error",
           description: "This plan is not properly configured. Please try another plan or contact support.",
