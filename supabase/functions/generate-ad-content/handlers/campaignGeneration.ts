@@ -63,7 +63,7 @@ Return ONLY a valid JSON object with these fields:
         messages: [
           {
             role: 'system',
-            content: `You are an expert ${platform} marketing copywriter. Always respond with raw JSON only, no markdown.`
+            content: `You are an expert ${platform} marketing copywriter specializing in ${platform} Ads. Always respond with raw JSON only, no markdown.`
           },
           { role: 'user', content: prompt }
         ],
@@ -116,11 +116,15 @@ function getPlatformGuidelines(platform: string): string {
     
     case 'google':
       return `
-- Focus on keywords and search intent
-- Keep headlines clear and benefit-driven
+- Focus on search intent and keywords
+- Keep headlines under 30 characters
+- Description lines under 90 characters each
 - Include specific call-to-action
-- Maintain professional tone
-- Optimize for different display network placements`;
+- Use relevant keywords naturally
+- Highlight unique value proposition
+- Include pricing or promotional info if relevant
+- Focus on benefits and features
+- Use proper punctuation and capitalization`;
     
     case 'linkedin':
       return `
@@ -128,7 +132,9 @@ function getPlatformGuidelines(platform: string): string {
 - Focus on B2B benefits and value propositions
 - Include industry-specific terminology
 - Maintain formal tone
-- Target professional pain points`;
+- Target professional pain points
+- Highlight business outcomes
+- Use data and statistics when possible`;
     
     case 'tiktok':
       return `
@@ -136,7 +142,10 @@ function getPlatformGuidelines(platform: string): string {
 - Keep copy short and punchy
 - Focus on entertainment value
 - Include trending phrases/terms
-- Optimize for vertical video format`;
+- Optimize for vertical video format
+- Use engaging hooks
+- Create urgency
+- Speak to Gen Z and Millennial audience`;
     
     default:
       return `
