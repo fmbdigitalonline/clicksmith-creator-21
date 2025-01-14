@@ -79,7 +79,7 @@ serve(async (req) => {
       throw new Error('Empty request body');
     }
 
-    const { type, businessIdea, targetAudience, regenerationCount = 0, timestamp, forceRegenerate = false } = body;
+    const { type, businessIdea, targetAudience, regenerationCount = 0, timestamp, forceRegenerate = false, campaign } = body;
     
     if (!type) {
       throw new Error('type is required in request body');
@@ -103,10 +103,9 @@ serve(async (req) => {
         break;
       case 'complete_ads':
       case 'video_ads':
-        const platform = body.platform || 'facebook';
-        console.log('Generating complete ad campaign with params:', { businessIdea, targetAudience, platform });
+        console.log('Generating complete ad campaign with params:', { businessIdea, targetAudience, campaign });
         try {
-          const campaignData = await generateCampaign(businessIdea, targetAudience, platform);
+          const campaignData = await generateCampaign(businessIdea, targetAudience);
           console.log('Campaign data generated:', campaignData);
           
           const imageData = await generateImagePrompts(businessIdea, targetAudience, campaignData.campaign);
@@ -114,11 +113,15 @@ serve(async (req) => {
           
           responseData = sanitizeJson({
             variants: campaignData.campaign.adCopies.map((copy: any, index: number) => ({
-              platform,
+              platform: 'facebook',
               headline: campaignData.campaign.headlines[index % campaignData.campaign.headlines.length],
               description: copy.content,
               imageUrl: imageData.images[0]?.url,
-              size: getPlatformSize(platform)
+              size: {
+                width: 1200,
+                height: 628,
+                label: "Facebook Feed"
+              }
             }))
           });
         } catch (error) {
@@ -131,8 +134,8 @@ serve(async (req) => {
         responseData = await analyzeAudience(businessIdea, targetAudience, regenerationCount);
         break;
       case 'images':
-        console.log('Generating images with params:', { businessIdea, targetAudience });
-        responseData = await generateImagePrompts(businessIdea, targetAudience);
+        console.log('Generating images with params:', { businessIdea, targetAudience, campaign });
+        responseData = await generateImagePrompts(businessIdea, targetAudience, campaign);
         break;
       default:
         throw new Error(`Unsupported generation type: ${type}`);
@@ -163,38 +166,3 @@ serve(async (req) => {
     });
   }
 });
-
-function getPlatformSize(platform: string) {
-  switch (platform.toLowerCase()) {
-    case 'facebook':
-      return {
-        width: 1200,
-        height: 628,
-        label: "Facebook Feed"
-      };
-    case 'google':
-      return {
-        width: 1200,
-        height: 628,
-        label: "Google Display"
-      };
-    case 'linkedin':
-      return {
-        width: 1200,
-        height: 627,
-        label: "LinkedIn Feed"
-      };
-    case 'tiktok':
-      return {
-        width: 1080,
-        height: 1920,
-        label: "TikTok Feed"
-      };
-    default:
-      return {
-        width: 1200,
-        height: 628,
-        label: "Social Feed"
-      };
-  }
-}

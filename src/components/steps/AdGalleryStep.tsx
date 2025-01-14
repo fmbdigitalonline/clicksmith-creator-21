@@ -1,4 +1,3 @@
-import { useAdWizardState } from "@/hooks/useAdWizardState";
 import { BusinessIdea, TargetAudience, AdHook, AdImage } from "@/types/adWizard";
 import { TabsContent } from "@/components/ui/tabs";
 import LoadingState from "./complete/LoadingState";
@@ -11,7 +10,6 @@ import AdGenerationControls from "./gallery/AdGenerationControls";
 import { useEffect, useState, useCallback } from "react";
 import { AdSizeSelector, AD_FORMATS } from "./gallery/components/AdSizeSelector";
 import { useParams } from "react-router-dom";
-import { useToast } from "@/hooks/use-toast";
 
 interface AdGalleryStepProps {
   businessIdea: BusinessIdea;
@@ -42,10 +40,7 @@ const AdGalleryStep = ({
 }: AdGalleryStepProps) => {
   const [selectedFormat, setSelectedFormat] = useState(AD_FORMATS[0]);
   const [hasGeneratedInitialAds, setHasGeneratedInitialAds] = useState(false);
-  const [localGeneratedAds, setLocalGeneratedAds] = useState<any[]>(generatedAds);
   const { projectId } = useParams();
-  const { toast } = useToast();
-  
   const {
     platform,
     showPlatformChangeDialog,
@@ -62,73 +57,54 @@ const AdGalleryStep = ({
     generateAds,
   } = useAdGeneration(businessIdea, targetAudience, adHooks);
 
-  // Update local state when props change
-  useEffect(() => {
-    console.log('Generated ads prop updated:', generatedAds);
-    if (JSON.stringify(generatedAds) !== JSON.stringify(localGeneratedAds)) {
-      setLocalGeneratedAds(generatedAds);
-    }
-  }, [generatedAds]);
-
   const handleGenerateAds = useCallback((selectedPlatform: string) => {
     if (!isGenerating) {
-      console.log('Starting ad generation for platform:', selectedPlatform);
       generateAds(selectedPlatform);
-      toast({
-        title: "Generating Ads",
-        description: "Please wait while we generate your ads...",
-      });
     }
-  }, [generateAds, isGenerating, toast]);
+  }, [generateAds, isGenerating]);
 
   // Effect for initial ad generation
   useEffect(() => {
-    if (!hasLoadedInitialAds || hasGeneratedInitialAds) {
-      console.log('Skipping initial generation:', { hasLoadedInitialAds, hasGeneratedInitialAds });
-      return;
-    }
+    if (!hasLoadedInitialAds || hasGeneratedInitialAds) return;
 
     const isNewProject = projectId === 'new';
-    const existingPlatformAds = localGeneratedAds.filter(ad => ad.platform === platform);
+    const existingPlatformAds = generatedAds.filter(ad => ad.platform === platform);
     const shouldGenerateAds = isNewProject || existingPlatformAds.length === 0;
 
     if (shouldGenerateAds) {
-      console.log('Generating initial ads:', { 
-        isNewProject, 
-        platform, 
-        existingAdsCount: existingPlatformAds.length 
-      });
+      console.log('Generating initial ads:', { isNewProject, platform, existingAdsCount: existingPlatformAds.length });
       handleGenerateAds(platform);
     }
 
     setHasGeneratedInitialAds(true);
-  }, [hasLoadedInitialAds, hasGeneratedInitialAds, platform, projectId, localGeneratedAds, handleGenerateAds]);
+  }, [hasLoadedInitialAds, hasGeneratedInitialAds, platform, projectId, generatedAds, handleGenerateAds]);
 
   // Effect for managing generated ads state
   useEffect(() => {
-    if (!onAdsGenerated || adVariants.length === 0) {
-      console.log('Skipping ads update:', { 
-        hasCallback: !!onAdsGenerated, 
-        variantsCount: adVariants.length 
-      });
-      return;
-    }
+    if (!onAdsGenerated || adVariants.length === 0) return;
 
     const isNewProject = projectId === 'new';
-    let updatedAds = [...localGeneratedAds];
+    const updatedAds = isNewProject 
+      ? adVariants // For new projects, use only new variants
+      : generatedAds.map(existingAd => {
+          // Find if there's a new variant for this ad
+          const newVariant = adVariants.find(
+            variant => variant.platform === existingAd.platform && variant.id === existingAd.id
+          );
+          return newVariant || existingAd;
+        });
 
-    // Add new variants while preserving existing ones
-    adVariants.forEach(newVariant => {
-      const existingAdIndex = updatedAds.findIndex(
-        ad => ad.id === newVariant.id && ad.platform === newVariant.platform
-      );
-      
-      if (existingAdIndex === -1) {
-        updatedAds.push(newVariant);
-      } else {
-        updatedAds[existingAdIndex] = newVariant;
-      }
-    });
+    // Add any new variants that don't exist in the current ads
+    if (!isNewProject) {
+      adVariants.forEach(newVariant => {
+        const exists = updatedAds.some(
+          ad => ad.platform === newVariant.platform && ad.id === newVariant.id
+        );
+        if (!exists) {
+          updatedAds.push(newVariant);
+        }
+      });
+    }
 
     console.log('Updating ads state:', { 
       isNewProject, 
@@ -136,19 +112,11 @@ const AdGalleryStep = ({
       updatedAdsCount: updatedAds.length 
     });
     
-    setLocalGeneratedAds(updatedAds);
     onAdsGenerated(updatedAds);
-
-    if (adVariants.length > 0) {
-      toast({
-        title: "Ads Generated Successfully",
-        description: `Generated ${adVariants.length} new ad variants.`,
-      });
-    }
-  }, [adVariants, onAdsGenerated, projectId, localGeneratedAds, toast]);
+  }, [adVariants, onAdsGenerated, projectId, generatedAds]);
 
   const onPlatformChange = (newPlatform: "facebook" | "google" | "linkedin" | "tiktok") => {
-    handlePlatformChange(newPlatform, true);
+    handlePlatformChange(newPlatform, adVariants.length > 0);
   };
 
   const onConfirmPlatformChange = () => {
@@ -168,28 +136,23 @@ const AdGalleryStep = ({
     setSelectedFormat(format);
   };
 
-  const renderPlatformContent = (platformName: string) => {
-    // Filter ads for the current platform
-    const platformAds = localGeneratedAds.filter(ad => ad.platform === platformName);
-    
-    return (
-      <TabsContent value={platformName} className="space-y-4">
-        <div className="flex justify-end mb-4">
-          <AdSizeSelector
-            selectedFormat={selectedFormat}
-            onFormatChange={handleFormatChange}
-          />
-        </div>
-        <PlatformContent
-          platformName={platformName}
-          adVariants={platformAds}
-          onCreateProject={onCreateProject}
-          videoAdsEnabled={videoAdsEnabled}
+  const renderPlatformContent = (platformName: string) => (
+    <TabsContent value={platformName} className="space-y-4">
+      <div className="flex justify-end mb-4">
+        <AdSizeSelector
           selectedFormat={selectedFormat}
+          onFormatChange={handleFormatChange}
         />
-      </TabsContent>
-    );
-  };
+      </div>
+      <PlatformContent
+        platformName={platformName}
+        adVariants={generatedAds.length > 0 ? generatedAds : adVariants}
+        onCreateProject={onCreateProject}
+        videoAdsEnabled={videoAdsEnabled}
+        selectedFormat={selectedFormat}
+      />
+    </TabsContent>
+  );
 
   return (
     <div className="space-y-6 md:space-y-8">

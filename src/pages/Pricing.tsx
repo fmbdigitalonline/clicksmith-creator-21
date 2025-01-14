@@ -28,8 +28,10 @@ const Pricing = () => {
       const { data, error } = await supabase
         .from('plans')
         .select('*')
+        .in('price', [10, 29, 99])
+        .order('price')
         .eq('active', true)
-        .order('price');
+        .limit(3);
       
       if (error) throw error;
       return data as Plan[];
@@ -59,10 +61,7 @@ const Pricing = () => {
       }
 
       const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { 
-          priceId: plan.stripe_price_id,
-          mode: plan.name === 'Bundle' ? 'payment' : 'subscription'
-        }
+        body: { priceId: plan.stripe_price_id }
       });
 
       if (error) throw error;

@@ -1,7 +1,7 @@
 import { BusinessIdea, TargetAudience } from "../types.ts";
 
-export async function generateCampaign(businessIdea: any, targetAudience: any, platform: string = 'facebook') {
-  const prompt = `Create a marketing campaign for this business and target audience specifically for ${platform}:
+export async function generateCampaign(businessIdea: any, targetAudience: any) {
+  const prompt = `Create a marketing campaign for this business and target audience:
 
 Business:
 ${JSON.stringify(businessIdea, null, 2)}
@@ -13,26 +13,22 @@ Create a complete marketing campaign with:
 1. 3 Ad copies (different versions)
 2. 3 Headlines (6 words max)
 
-Platform-specific guidelines for ${platform}:
-${getPlatformGuidelines(platform)}
-
 Ad Copy Guidelines:
-- Create different versions optimized for ${platform}:
+- Create 10 different versions and rotate:
   1. "Longer story": Longer, storytelling-based use pain point one from audience analysis
-  2. "personal emotional story": personal emotional story use pain point two from audience analysis
+  2. "personal emotional story  ": personal emotional story use pain point two from audience analysis
   3. "AIDA version": Middle-length with bullet points use pain point three from audience analysis
-- Should address audience analysis painpoints
+- Should be addressing about audience analysis painpoints
+- Some ad copies must also address the benefits of the products based on the positive experience the product provides
 - Must attract attention in first sentence
 - Each version should be different
 - Never use names and always talk directly to the reader, use words like you
-- Follow ${platform}'s best practices and tone
 
 Headline Guidelines:
 - Maximum 6 words
 - Straight to the point
-- Highlight the result/benefit/goal
+- Highlight the result of using this product, the benefitial experience, or goal that is going te be achieved when using this product
 - Based on market awareness/sophistication
-- Optimized for ${platform}'s format
 
 Return ONLY a valid JSON object with these fields:
 {
@@ -46,7 +42,7 @@ Return ONLY a valid JSON object with these fields:
 }`;
 
   try {
-    console.log('Generating campaign for platform:', platform);
+    console.log('Sending request to OpenAI...');
     const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
     if (!openAIApiKey) {
       throw new Error('OpenAI API key is not configured');
@@ -63,7 +59,7 @@ Return ONLY a valid JSON object with these fields:
         messages: [
           {
             role: 'system',
-            content: `You are an expert ${platform} marketing copywriter specializing in ${platform} Ads. Always respond with raw JSON only, no markdown.`
+            content: 'You are an expert marketing copywriter. Always respond with raw JSON only, no markdown.'
           },
           { role: 'user', content: prompt }
         ],
@@ -91,67 +87,9 @@ Return ONLY a valid JSON object with these fields:
     const campaign = JSON.parse(content);
     console.log('Parsed campaign:', campaign);
 
-    // Add platform to the response
-    return { 
-      campaign: {
-        ...campaign,
-        platform
-      }
-    };
+    return { campaign };
   } catch (error) {
     console.error('Error in generateCampaign:', error);
     throw error;
-  }
-}
-
-function getPlatformGuidelines(platform: string): string {
-  switch (platform.toLowerCase()) {
-    case 'facebook':
-      return `
-- Focus on emotional connection and storytelling
-- Keep copy concise but engaging
-- Include clear call-to-action
-- Optimize for mobile viewing
-- Consider both feed and stories placement`;
-    
-    case 'google':
-      return `
-- Focus on search intent and keywords
-- Keep headlines under 30 characters
-- Description lines under 90 characters each
-- Include specific call-to-action
-- Use relevant keywords naturally
-- Highlight unique value proposition
-- Include pricing or promotional info if relevant
-- Focus on benefits and features
-- Use proper punctuation and capitalization`;
-    
-    case 'linkedin':
-      return `
-- Use professional, business-focused language
-- Focus on B2B benefits and value propositions
-- Include industry-specific terminology
-- Maintain formal tone
-- Target professional pain points
-- Highlight business outcomes
-- Use data and statistics when possible`;
-    
-    case 'tiktok':
-      return `
-- Use casual, trendy language
-- Keep copy short and punchy
-- Focus on entertainment value
-- Include trending phrases/terms
-- Optimize for vertical video format
-- Use engaging hooks
-- Create urgency
-- Speak to Gen Z and Millennial audience`;
-    
-    default:
-      return `
-- Focus on clear value proposition
-- Keep messaging consistent
-- Include clear call-to-action
-- Optimize for platform-specific format`;
   }
 }
