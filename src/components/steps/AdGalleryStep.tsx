@@ -1,3 +1,4 @@
+import { useAdWizardState } from "@/hooks/useAdWizardState";
 import { BusinessIdea, TargetAudience, AdHook, AdImage } from "@/types/adWizard";
 import { TabsContent } from "@/components/ui/tabs";
 import LoadingState from "./complete/LoadingState";
@@ -117,7 +118,8 @@ const AdGalleryStep = ({
     let updatedAds: any[] = [];
 
     if (isNewProject) {
-      updatedAds = adVariants;
+      // For new projects, keep all generated ads
+      updatedAds = [...localGeneratedAds, ...adVariants];
     } else {
       // Create a map of existing ads for efficient lookup
       const existingAdsMap = new Map(
@@ -133,6 +135,11 @@ const AdGalleryStep = ({
       updatedAds = Array.from(existingAdsMap.values());
     }
 
+    // Remove duplicates based on id and platform
+    updatedAds = Array.from(new Map(
+      updatedAds.map(ad => [`${ad.platform}-${ad.id}`, ad])
+    ).values());
+
     console.log('Updating ads state:', { 
       isNewProject, 
       adVariantsCount: adVariants.length,
@@ -145,13 +152,13 @@ const AdGalleryStep = ({
     if (updatedAds.length > 0) {
       toast({
         title: "Ads Generated Successfully",
-        description: `Generated ${updatedAds.length} new ad variants.`,
+        description: `Generated ${adVariants.length} new ad variants.`,
       });
     }
   }, [adVariants, onAdsGenerated, projectId, localGeneratedAds, toast]);
 
   const onPlatformChange = (newPlatform: "facebook" | "google" | "linkedin" | "tiktok") => {
-    handlePlatformChange(newPlatform, localGeneratedAds.length > 0);
+    handlePlatformChange(newPlatform, false); // Remove the condition for showing dialog
   };
 
   const onConfirmPlatformChange = () => {
@@ -171,23 +178,28 @@ const AdGalleryStep = ({
     setSelectedFormat(format);
   };
 
-  const renderPlatformContent = (platformName: string) => (
-    <TabsContent value={platformName} className="space-y-4">
-      <div className="flex justify-end mb-4">
-        <AdSizeSelector
+  const renderPlatformContent = (platformName: string) => {
+    // Filter ads for the current platform
+    const platformAds = localGeneratedAds.filter(ad => ad.platform === platformName);
+    
+    return (
+      <TabsContent value={platformName} className="space-y-4">
+        <div className="flex justify-end mb-4">
+          <AdSizeSelector
+            selectedFormat={selectedFormat}
+            onFormatChange={handleFormatChange}
+          />
+        </div>
+        <PlatformContent
+          platformName={platformName}
+          adVariants={platformAds}
+          onCreateProject={onCreateProject}
+          videoAdsEnabled={videoAdsEnabled}
           selectedFormat={selectedFormat}
-          onFormatChange={handleFormatChange}
         />
-      </div>
-      <PlatformContent
-        platformName={platformName}
-        adVariants={localGeneratedAds}
-        onCreateProject={onCreateProject}
-        videoAdsEnabled={videoAdsEnabled}
-        selectedFormat={selectedFormat}
-      />
-    </TabsContent>
-  );
+      </TabsContent>
+    );
+  };
 
   return (
     <div className="space-y-6 md:space-y-8">
