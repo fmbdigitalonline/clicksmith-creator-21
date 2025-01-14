@@ -115,30 +115,20 @@ const AdGalleryStep = ({
     }
 
     const isNewProject = projectId === 'new';
-    let updatedAds: any[] = [];
+    let updatedAds = [...localGeneratedAds];
 
-    if (isNewProject) {
-      // For new projects, keep all generated ads
-      updatedAds = [...localGeneratedAds, ...adVariants];
-    } else {
-      // Create a map of existing ads for efficient lookup
-      const existingAdsMap = new Map(
-        localGeneratedAds.map(ad => [`${ad.platform}-${ad.id}`, ad])
+    // Add new variants while preserving existing ones
+    adVariants.forEach(newVariant => {
+      const existingAdIndex = updatedAds.findIndex(
+        ad => ad.id === newVariant.id && ad.platform === newVariant.platform
       );
-
-      // Update existing ads and add new ones
-      adVariants.forEach(newVariant => {
-        const key = `${newVariant.platform}-${newVariant.id}`;
-        existingAdsMap.set(key, newVariant);
-      });
-
-      updatedAds = Array.from(existingAdsMap.values());
-    }
-
-    // Remove duplicates based on id and platform
-    updatedAds = Array.from(new Map(
-      updatedAds.map(ad => [`${ad.platform}-${ad.id}`, ad])
-    ).values());
+      
+      if (existingAdIndex === -1) {
+        updatedAds.push(newVariant);
+      } else {
+        updatedAds[existingAdIndex] = newVariant;
+      }
+    });
 
     console.log('Updating ads state:', { 
       isNewProject, 
@@ -149,7 +139,7 @@ const AdGalleryStep = ({
     setLocalGeneratedAds(updatedAds);
     onAdsGenerated(updatedAds);
 
-    if (updatedAds.length > 0) {
+    if (adVariants.length > 0) {
       toast({
         title: "Ads Generated Successfully",
         description: `Generated ${adVariants.length} new ad variants.`,
@@ -158,7 +148,7 @@ const AdGalleryStep = ({
   }, [adVariants, onAdsGenerated, projectId, localGeneratedAds, toast]);
 
   const onPlatformChange = (newPlatform: "facebook" | "google" | "linkedin" | "tiktok") => {
-    handlePlatformChange(newPlatform, false); // Remove the condition for showing dialog
+    handlePlatformChange(newPlatform, true);
   };
 
   const onConfirmPlatformChange = () => {
