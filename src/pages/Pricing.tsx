@@ -28,7 +28,7 @@ const Pricing = () => {
       const { data, error } = await supabase
         .from('plans')
         .select('*')
-        .in('price', [10, 29, 99])
+        .in('price', [99, 10, 29])
         .order('price')
         .eq('active', true)
         .limit(3);
