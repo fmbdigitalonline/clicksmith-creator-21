@@ -12,6 +12,7 @@ import { Toggle } from "./ui/toggle";
 import { Video, Image } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Database } from "@/integrations/supabase/types";
+import { useToast } from "@/hooks/use-toast";
 
 type WizardProgress = Database['public']['Tables']['wizard_progress']['Row'];
 
@@ -22,6 +23,7 @@ const AdWizard = () => {
   const [hasLoadedInitialAds, setHasLoadedInitialAds] = useState(false);
   const navigate = useNavigate();
   const { projectId } = useParams();
+  const { toast } = useToast();
   
   const {
     currentStep,
@@ -46,11 +48,21 @@ const AdWizard = () => {
         if (!user) return;
 
         if (projectId && projectId !== 'new') {
-          const { data: project } = await supabase
+          const { data: project, error: projectError } = await supabase
             .from('projects')
             .select('generated_ads, video_ads_enabled')
             .eq('id', projectId)
-            .single();
+            .maybeSingle();
+
+          if (projectError) {
+            console.error('Error loading project:', projectError);
+            toast({
+              title: "Couldn't load your project",
+              description: "We had trouble loading your project data. Please try again.",
+              variant: "destructive",
+            });
+            return;
+          }
 
           if (!project) {
             navigate('/ad-wizard/new');
@@ -62,11 +74,20 @@ const AdWizard = () => {
             }
           }
         } else {
-          const { data: wizardData } = await supabase
+          const { data: wizardData, error: wizardError } = await supabase
             .from('wizard_progress')
             .select('*')
             .eq('user_id', user.id)
-            .single();
+            .maybeSingle();
+
+          if (wizardError && wizardError.code !== 'PGRST116') {
+            console.error('Error loading wizard progress:', wizardError);
+            toast({
+              title: "Couldn't load your progress",
+              description: "We had trouble loading your previous work. Starting fresh.",
+              variant: "destructive",
+            });
+          }
 
           if (wizardData?.generated_ads && Array.isArray(wizardData.generated_ads)) {
             console.log('Loading saved ads from wizard progress:', wizardData.generated_ads);
@@ -76,12 +97,17 @@ const AdWizard = () => {
         setHasLoadedInitialAds(true);
       } catch (error) {
         console.error('Error loading progress:', error);
+        toast({
+          title: "Something went wrong",
+          description: "We couldn't load your previous work. Please try refreshing the page.",
+          variant: "destructive",
+        });
         setHasLoadedInitialAds(true);
       }
     };
 
     loadProgress();
-  }, [projectId, navigate]);
+  }, [projectId, navigate, toast]);
 
   const handleCreateProject = () => {
     setShowCreateProject(true);
@@ -115,24 +141,36 @@ const AdWizard = () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    if (projectId && projectId !== 'new') {
-      await supabase
-        .from('projects')
-        .update({ generated_ads: newAds })
-        .eq('id', projectId);
-    } else {
-      await supabase
-        .from('wizard_progress')
-        .upsert({
-          user_id: user.id,
-          generated_ads: newAds
-        }, {
-          onConflict: 'user_id'
-        });
+    try {
+      if (projectId && projectId !== 'new') {
+        const { error: updateError } = await supabase
+          .from('projects')
+          .update({ generated_ads: newAds })
+          .eq('id', projectId);
+
+        if (updateError) throw updateError;
+      } else {
+        const { error: upsertError } = await supabase
+          .from('wizard_progress')
+          .upsert({
+            user_id: user.id,
+            generated_ads: newAds
+          }, {
+            onConflict: 'user_id'
+          });
+
+        if (upsertError) throw upsertError;
+      }
+    } catch (error) {
+      console.error('Error saving generated ads:', error);
+      toast({
+        title: "Couldn't save your ads",
+        description: "Your ads were generated but we couldn't save them. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
-  // Memoize the current step component to prevent unnecessary re-renders
   const currentStepComponent = useMemo(() => {
     switch (currentStep) {
       case 1:
