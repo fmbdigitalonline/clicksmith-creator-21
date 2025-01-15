@@ -12,12 +12,89 @@ export const useAdGeneration = (
 ) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [adVariants, setAdVariants] = useState<any[]>([]);
-  const [regenerationCount, setRegenerationCount] = useState(0);
   const [generationStatus, setGenerationStatus] = useState<string>("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { projectId } = useParams();
+
+  const validateInputs = () => {
+    if (!businessIdea?.description) {
+      throw new Error("Business idea description is required");
+    }
+    if (!targetAudience?.description) {
+      throw new Error("Target audience description is required");
+    }
+    if (!Array.isArray(adHooks) || adHooks.length === 0) {
+      throw new Error("At least one ad hook is required");
+    }
+  };
+
+  const generateAds = async (selectedPlatform: string) => {
+    setIsGenerating(true);
+    setGenerationStatus("Checking credits availability...");
+    
+    try {
+      // Validate inputs before proceeding
+      validateInputs();
+
+      const hasCredits = await checkCredits();
+      if (!hasCredits) return;
+
+      setGenerationStatus("Initializing ad generation...");
+      console.log('Generating ads for platform:', selectedPlatform, 'with target audience:', targetAudience);
+      
+      const { data, error } = await supabase.functions.invoke('generate-ad-content', {
+        body: {
+          type: 'complete_ads',
+          platform: selectedPlatform,
+          businessIdea: {
+            description: businessIdea.description,
+            valueProposition: businessIdea.valueProposition
+          },
+          targetAudience: {
+            ...targetAudience,
+            name: targetAudience.name,
+            description: targetAudience.description,
+            demographics: targetAudience.demographics,
+            painPoints: targetAudience.painPoints
+          },
+          adHooks: adHooks.map(hook => ({
+            text: hook.text,
+            description: hook.description
+          })),
+        },
+      });
+
+      if (error) {
+        console.error('Edge function error:', error);
+        throw new Error(error.message || "Failed to generate ads");
+      }
+
+      if (!data || !data.variants) {
+        throw new Error("Invalid response from ad generation");
+      }
+
+      console.log('Generation response:', data);
+      const variants = validateResponse(data);
+      setAdVariants(prev => [...prev, ...variants]);
+
+      toast({
+        title: "Ads generated successfully",
+        description: "Your new ad variants are ready!",
+      });
+    } catch (error: any) {
+      console.error('Ad generation error:', error);
+      toast({
+        title: "Error generating ads",
+        description: error.message || "Failed to generate ads. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGenerating(false);
+      setGenerationStatus("");
+    }
+  };
 
   const checkCredits = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -29,6 +106,7 @@ export const useAdGeneration = (
     );
 
     if (creditsError) {
+      console.error('Credit check error:', creditsError);
       throw creditsError;
     }
 
@@ -47,146 +125,6 @@ export const useAdGeneration = (
     return true;
   };
 
-  const deductCredits = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('User not authenticated');
-
-    const { data: deductionResult, error: deductionError } = await supabase.rpc(
-      'deduct_user_credits',
-      { input_user_id: user.id, credits_to_deduct: 1 }
-    );
-
-    if (deductionError) {
-      console.error('Error deducting credits:', deductionError);
-      throw deductionError;
-    }
-
-    // Access the first result from the array
-    const result = deductionResult[0];
-    if (!result || !result.success) {
-      throw new Error(result?.error_message || 'Failed to deduct credits');
-    }
-
-    return result;
-  };
-
-  const generateAds = async (selectedPlatform: string) => {
-    setIsGenerating(true);
-    setGenerationStatus("Checking credits availability...");
-    
-    try {
-      const hasCredits = await checkCredits();
-      if (!hasCredits) {
-        return;
-      }
-
-      setGenerationStatus("Initializing ad generation...");
-      console.log('Generating ads for platform:', selectedPlatform, 'with target audience:', targetAudience);
-      
-      const { data, error } = await supabase.functions.invoke('generate-ad-content', {
-        body: {
-          type: 'complete_ads',
-          platform: selectedPlatform,
-          businessIdea,
-          targetAudience: {
-            ...targetAudience,
-            name: targetAudience.name,
-            description: targetAudience.description,
-            demographics: targetAudience.demographics,
-            painPoints: targetAudience.painPoints
-          },
-          adHooks,
-        },
-      });
-
-      if (error) {
-        throw error;
-      }
-
-      console.log('Generation response:', data);
-      const variants = validateResponse(data);
-
-      // Only deduct credits after successful generation
-      await deductCredits();
-
-      setGenerationStatus("Processing generated content...");
-      
-      const processedVariants = await Promise.all(variants.map(async (variant: any) => {
-        if (!variant.imageUrl) {
-          console.warn('Variant missing imageUrl:', variant);
-          return null;
-        }
-
-        try {
-          const { data: imageVariant, error: storeError } = await supabase
-            .from('ad_image_variants')
-            .insert({
-              original_image_url: variant.imageUrl,
-              resized_image_urls: variant.resizedUrls || {},
-              user_id: (await supabase.auth.getUser()).data.user?.id,
-              project_id: projectId !== 'new' ? projectId : null
-            })
-            .select()
-            .single();
-
-          if (storeError) {
-            console.error('Error storing image variant:', storeError);
-            return null;
-          }
-
-          const newVariant = {
-            ...variant,
-            id: imageVariant.id,
-            imageUrl: variant.imageUrl,
-            resizedUrls: variant.resizedUrls || {},
-            platform: selectedPlatform
-          };
-
-          // Save to project if we have a project ID
-          if (projectId && projectId !== 'new') {
-            const updatedVariants = [...adVariants, newVariant];
-            console.log('Saving updated variants to project:', updatedVariants);
-            
-            const { error: updateError } = await supabase
-              .from('projects')
-              .update({
-                generated_ads: updatedVariants
-              })
-              .eq('id', projectId);
-
-            if (updateError) {
-              console.error('Error updating project:', updateError);
-            }
-          }
-
-          return newVariant;
-        } catch (error) {
-          console.error('Error processing variant:', error);
-          return null;
-        }
-      }));
-
-      console.log('Processed ad variants:', processedVariants);
-      setAdVariants(prev => [...prev, ...processedVariants.filter(Boolean)]);
-      setRegenerationCount(prev => prev + 1);
-      
-      toast({
-        title: "Ads generated successfully",
-        description: "Your new ad variants are ready!",
-      });
-    } catch (error: any) {
-      console.error('Ad generation error:', error);
-      toast({
-        title: "Error generating ads",
-        description: error.message || "Failed to generate ads. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsGenerating(false);
-      setGenerationStatus("");
-    }
-  };
-
   const validateResponse = (data: any) => {
     if (!data) {
       throw new Error("No data received from generation");
@@ -197,15 +135,16 @@ export const useAdGeneration = (
       throw new Error("Invalid or empty variants received");
     }
 
-    return variants;
+    return variants.map(variant => ({
+      ...variant,
+      platform: variant.platform || data.platform
+    }));
   };
 
   return {
     isGenerating,
     adVariants,
-    regenerationCount,
     generationStatus,
     generateAds,
-    setAdVariants,
   };
 };
