@@ -2,9 +2,9 @@ import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useParams } from "react-router-dom";
-import FeedbackDialog from "./feedback/FeedbackDialog";
-import LikeDislikeButtons from "./feedback/LikeDislikeButtons";
-import StarRating from "./feedback/StarRating";
+import { FeedbackDialog } from "./feedback/FeedbackDialog";
+import { LikeDislikeButtons } from "./feedback/LikeDislikeButtons";
+import { StarRating } from "./feedback/StarRating";
 
 interface AdFeedbackControlsProps {
   adId: string;

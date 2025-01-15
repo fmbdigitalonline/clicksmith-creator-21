@@ -8,22 +8,26 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { useState } from "react";
 
 interface FeedbackDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  feedbackText: string;
-  onFeedbackChange: (text: string) => void;
-  onSubmit: () => void;
+  onSubmit: (feedback: string) => void;
 }
 
 export const FeedbackDialog = ({
   open,
   onOpenChange,
-  feedbackText,
-  onFeedbackChange,
   onSubmit,
 }: FeedbackDialogProps) => {
+  const [feedbackText, setFeedbackText] = useState("");
+
+  const handleSubmit = () => {
+    onSubmit(feedbackText);
+    setFeedbackText("");
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -36,14 +40,14 @@ export const FeedbackDialog = ({
         <Textarea
           placeholder="What could be improved?"
           value={feedbackText}
-          onChange={(e) => onFeedbackChange(e.target.value)}
+          onChange={(e) => setFeedbackText(e.target.value)}
           className="min-h-[100px]"
         />
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={onSubmit}>Submit Feedback</Button>
+          <Button onClick={handleSubmit}>Submit Feedback</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
