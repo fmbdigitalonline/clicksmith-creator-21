@@ -151,7 +151,7 @@ const AdGalleryStep = ({
   };
 
   if (isLoadingAds) {
-    return <LoadingState message="Loading saved ads..." />;
+    return <LoadingState state="loading" />;
   }
 
   return (
@@ -165,16 +165,52 @@ const AdGalleryStep = ({
       />
 
       {isGenerating ? (
-        <LoadingState />
+        <LoadingState state="loading" />
       ) : (
         <PlatformTabs 
           platform={platform} 
           onPlatformChange={onPlatformChange}
         >
-          {renderPlatformContent('facebook')}
-          {renderPlatformContent('google')}
-          {renderPlatformContent('linkedin')}
-          {renderPlatformContent('tiktok')}
+          <TabsContent value="facebook">
+            <PlatformContent
+              platform="facebook"
+              businessIdea={businessIdea}
+              targetAudience={targetAudience}
+              adHooks={adHooks}
+              onCreateProject={onCreateProject}
+              generatedAds={generatedAds.filter(ad => ad.platform === "facebook")}
+            />
+          </TabsContent>
+          <TabsContent value="google">
+            <PlatformContent
+              platform="google"
+              businessIdea={businessIdea}
+              targetAudience={targetAudience}
+              adHooks={adHooks}
+              onCreateProject={onCreateProject}
+              generatedAds={generatedAds.filter(ad => ad.platform === "google")}
+            />
+          </TabsContent>
+          <TabsContent value="linkedin">
+            <PlatformContent
+              platform="linkedin"
+              businessIdea={businessIdea}
+              targetAudience={targetAudience}
+              adHooks={adHooks}
+              onCreateProject={onCreateProject}
+              generatedAds={generatedAds.filter(ad => ad.platform === "linkedin")}
+            />
+          </TabsContent>
+          <TabsContent value="tiktok">
+            <PlatformContent
+              platform="tiktok"
+              businessIdea={businessIdea}
+              targetAudience={targetAudience}
+              adHooks={adHooks}
+              onCreateProject={onCreateProject}
+              generatedAds={generatedAds.filter(ad => ad.platform === "tiktok")}
+            />
+          </TabsContent>
         </PlatformTabs>
       )}
 
