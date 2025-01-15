@@ -5,56 +5,43 @@ export async function handleCheckoutComplete(
   session: Stripe.Checkout.Session,
   supabaseClient: ReturnType<typeof createClient>
 ) {
-  console.log('Processing completed checkout session:', session.id);
-  
+  console.log('Processing checkout completion for session:', session.id);
+
   const userId = session.metadata?.supabaseUid;
   if (!userId) {
     throw new Error('No user ID found in session metadata');
   }
 
-  if (session.mode === 'subscription') {
-    console.log('Processing subscription payment');
-    const { error: subscriptionError } = await supabaseClient
-      .from('subscriptions')
-      .upsert({
-        user_id: userId,
-        stripe_subscription_id: session.subscription,
-        stripe_customer_id: session.customer,
-        current_period_start: new Date(session.current_period_start * 1000).toISOString(),
-        current_period_end: new Date(session.current_period_end * 1000).toISOString(),
-        active: true,
-      });
+  // Get the plan details
+  const { data: plan, error: planError } = await supabaseClient
+    .from('plans')
+    .select('*')
+    .eq('stripe_price_id', session.line_items?.data[0]?.price.id)
+    .single();
 
-    if (subscriptionError) {
-      console.error('Error updating subscription:', subscriptionError);
-      throw subscriptionError;
-    }
-  } else {
-    console.log('Processing one-time payment');
-    const { data: existingSubscription, error: fetchError } = await supabaseClient
-      .from('subscriptions')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('active', true)
-      .maybeSingle();
-
-    if (fetchError) {
-      console.error('Error fetching existing subscription:', fetchError);
-      throw fetchError;
-    }
-
-    if (existingSubscription) {
-      const { error: updateError } = await supabaseClient
-        .from('subscriptions')
-        .update({
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', existingSubscription.id);
-
-      if (updateError) {
-        console.error('Error updating subscription:', updateError);
-        throw updateError;
-      }
-    }
+  if (planError) {
+    console.error('Error fetching plan:', planError);
+    throw planError;
   }
+
+  console.log('Plan details:', plan);
+
+  // Call the allocate_credits function
+  const { data: result, error: allocateError } = await supabaseClient.rpc(
+    'allocate_credits',
+    {
+      p_user_id: userId,
+      p_credits: plan.credits,
+      p_payment_id: session.id,
+      p_description: `Subscription to ${plan.name} - ${plan.credits} credits`
+    }
+  );
+
+  if (allocateError) {
+    console.error('Error allocating credits:', allocateError);
+    throw allocateError;
+  }
+
+  console.log('Credits allocated successfully:', result);
+  return result;
 }
