@@ -89,7 +89,7 @@ export const PricingCard = ({ plan, onSubscribe }: PricingCardProps) => {
                 <Info className="inline-block ml-2 h-4 w-4 text-muted-foreground hover:text-foreground cursor-help" />
               </TooltipTrigger>
               <TooltipContent>
-                <p>{plan.name === 'Bundle' ? 'One-time payment' : 'Billed monthly. Cancel anytime.'}</p>
+                <p>{plan.name === 'Bundle' ? 'One-time payment' : 'Monthly subscription. Cancel anytime.'}</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
