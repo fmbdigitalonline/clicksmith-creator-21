@@ -1,7 +1,7 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { Sidebar, SidebarContent, SidebarGroupContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "./ui/sidebar";
-import { Home, Settings, Images, BookmarkIcon, FolderIcon } from "lucide-react";
+import { Home, Settings, BookmarkIcon, FolderIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const menuItems = [
@@ -14,12 +14,6 @@ const menuItems = [
     title: "Projects",
     icon: FolderIcon,
     url: "/projects",
-  },
-  {
-    title: "Ad Gallery",
-    icon: Images,
-    url: "/ad-wizard",
-    showCondition: () => true,
   },
   {
     title: "Saved Ads",
