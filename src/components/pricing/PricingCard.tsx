@@ -30,8 +30,8 @@ export const PricingCard = ({ plan, onSubscribe }: PricingCardProps) => {
       
       if (!user) {
         toast({
-          title: "Authentication required",
-          description: "Please sign in to subscribe to a plan",
+          title: "Sign in required",
+          description: "Please sign in to your account first to subscribe to this plan.",
           variant: "destructive",
         });
         return;
@@ -49,20 +49,38 @@ export const PricingCard = ({ plan, onSubscribe }: PricingCardProps) => {
 
       if (error) {
         console.error('Checkout error:', error);
-        throw error;
+        let friendlyMessage = "We're having trouble setting up your payment. Please try again in a few moments.";
+        
+        // Customize messages based on common error scenarios
+        if (error.message?.includes('payment method type')) {
+          friendlyMessage = "This payment method isn't available in your region yet. Please try using a credit card instead.";
+        } else if (error.message?.includes('stripe_price_id')) {
+          friendlyMessage = "There seems to be an issue with this plan. Our team has been notified and we're working on fixing it.";
+        }
+
+        toast({
+          title: "Oops! Something went wrong",
+          description: friendlyMessage,
+          variant: "destructive",
+        });
+        return;
       }
 
       if (data?.url) {
         console.log('Redirecting to:', data.url);
         window.location.href = data.url;
       } else {
-        throw new Error('No checkout URL received');
+        toast({
+          title: "Something's not quite right",
+          description: "We couldn't set up your payment page. Please try again or contact our support if this keeps happening.",
+          variant: "destructive",
+        });
       }
     } catch (error: any) {
       console.error('Checkout error:', error);
       toast({
-        title: "Error",
-        description: "Failed to start checkout process. Please try again.",
+        title: "Unable to process your request",
+        description: "We're experiencing some technical difficulties. Please try again in a few moments or contact our support team if the issue persists.",
         variant: "destructive",
       });
     }
