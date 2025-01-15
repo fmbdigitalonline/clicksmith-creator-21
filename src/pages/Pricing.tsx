@@ -25,6 +25,7 @@ const Pricing = () => {
   const { data: plans, isLoading, error } = useQuery({
     queryKey: ['plans'],
     queryFn: async () => {
+      console.log('Fetching plans...');
       const { data, error } = await supabase
         .from('plans')
         .select('*')
@@ -32,8 +33,12 @@ const Pricing = () => {
         .order('price');
       
       if (error) throw error;
+      console.log('Fetched plans:', data);
       return data as Plan[];
-    }
+    },
+    staleTime: 0, // Always fetch fresh data
+    refetchOnMount: true,
+    refetchOnWindowFocus: true
   });
 
   const handleSubscribe = async (plan: Plan) => {
