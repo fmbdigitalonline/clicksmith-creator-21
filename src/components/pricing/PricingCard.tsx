@@ -41,7 +41,7 @@ export const PricingCard = ({ plan, onSubscribe }: PricingCardProps) => {
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: { 
           priceId: plan.stripe_price_id,
-          mode: plan.name === 'Bundle' ? 'payment' : 'subscription'
+          mode: 'subscription'
         }
       });
 
@@ -70,7 +70,7 @@ export const PricingCard = ({ plan, onSubscribe }: PricingCardProps) => {
 
   return (
     <Card className="flex flex-col relative overflow-hidden">
-      {plan.name === 'Starter' && (
+      {plan.name === 'Pro Package' && (
         <div className="absolute top-0 right-0 bg-primary text-primary-foreground px-4 py-1 rounded-bl-lg text-sm font-medium">
           Most Popular
         </div>
@@ -82,21 +82,21 @@ export const PricingCard = ({ plan, onSubscribe }: PricingCardProps) => {
       <CardContent className="flex-grow">
         <div className="mb-6">
           <span className="text-4xl font-bold">${plan.price}</span>
-          <span className="text-muted-foreground">/{plan.name === 'Bundle' ? 'one-time' : 'month'}</span>
+          <span className="text-muted-foreground">/month</span>
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger>
                 <Info className="inline-block ml-2 h-4 w-4 text-muted-foreground hover:text-foreground cursor-help" />
               </TooltipTrigger>
               <TooltipContent>
-                <p>{plan.name === 'Bundle' ? 'One-time payment' : 'Monthly subscription. Cancel anytime.'}</p>
+                <p>Monthly subscription. Cancel anytime.</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
         </div>
         <div className="space-y-4">
           <div className="font-medium text-lg flex items-center gap-2">
-            {plan.credits.toLocaleString()} credits {plan.name === 'Bundle' ? '' : 'per month'}
+            {plan.credits.toLocaleString()} credits per month
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger>
@@ -124,7 +124,7 @@ export const PricingCard = ({ plan, onSubscribe }: PricingCardProps) => {
           onClick={handleSubscribe}
           size="lg"
         >
-          {plan.name === 'Bundle' ? 'Buy Now' : 'Subscribe Now'}
+          Subscribe Now
         </Button>
       </CardFooter>
     </Card>
