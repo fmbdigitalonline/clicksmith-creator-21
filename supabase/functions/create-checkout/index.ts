@@ -68,7 +68,7 @@ serve(async (req) => {
       ],
       mode: mode as 'payment' | 'subscription',
       allow_promotion_codes: true, // Enable promotion codes
-      payment_method_types: ['card', 'us_bank_account'], // Add more payment methods
+      payment_method_types: ['card'], // Only use card payments which are enabled by default
       billing_address_collection: 'required',
       success_url: `${req.headers.get('origin')}/settings?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${req.headers.get('origin')}/pricing`,
