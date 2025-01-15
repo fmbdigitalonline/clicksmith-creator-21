@@ -72,6 +72,9 @@ serve(async (req) => {
       billing_address_collection: 'required',
       success_url: `${req.headers.get('origin')}/settings?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${req.headers.get('origin')}/pricing`,
+      metadata: {
+        supabaseUid: user.id // Add user ID to session metadata
+      }
     });
 
     console.log('Payment session created:', session.id);
