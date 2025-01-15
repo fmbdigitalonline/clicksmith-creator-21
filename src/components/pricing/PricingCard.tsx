@@ -96,7 +96,7 @@ export const PricingCard = ({ plan, onSubscribe }: PricingCardProps) => {
         </div>
         <div className="space-y-4">
           <div className="font-medium text-lg flex items-center gap-2">
-            {plan.credits} credits {plan.name === 'Bundle' ? '' : 'per month'}
+            {plan.credits.toLocaleString()} credits {plan.name === 'Bundle' ? '' : 'per month'}
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger>
