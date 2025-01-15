@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { BusinessIdea, TargetAudience, AdHook } from "@/types/adWizard";
 import { useToast } from "@/components/ui/use-toast";
-import { ArrowLeft, Download, Facebook } from "lucide-react";
+import { ArrowLeft, Download, Share2 } from "lucide-react";
 
 const PreviewStep = ({
   businessIdea,
@@ -20,7 +20,7 @@ const PreviewStep = ({
   const handleExport = () => {
     toast({
       title: "Ad Exported!",
-      description: "Your ad has been saved and is ready for Facebook Ads Manager.",
+      description: "Your ad has been saved and is ready for Social Media Ads Manager.",
     });
   };
 
@@ -47,14 +47,14 @@ const PreviewStep = ({
       <div>
         <h2 className="text-xl md:text-2xl font-semibold mb-2">Preview Your Ad</h2>
         <p className="text-gray-600">
-          Review how your ad will look on Facebook and make any final adjustments.
+          Review how your ad will look on social media and make any final adjustments.
         </p>
       </div>
 
       <Card className="border-2 overflow-hidden">
         <div className="bg-gray-100 p-3 border-b flex items-center space-x-2">
-          <Facebook className="w-5 h-5 text-facebook" />
-          <span className="font-medium text-gray-700">Facebook News Feed Ad</span>
+          <Share2 className="w-5 h-5 text-facebook" />
+          <span className="font-medium text-gray-700">Social Media News Feed Ad</span>
         </div>
         <CardContent className="p-6">
           <div className="aspect-video bg-gradient-to-br from-gray-100 to-gray-50 mb-4 rounded-lg flex items-center justify-center">

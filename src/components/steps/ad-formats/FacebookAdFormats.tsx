@@ -8,16 +8,16 @@ interface FacebookAdFormatsProps {
 }
 
 const FacebookAdFormats = ({ selectedFormat, onFormatSelect }: FacebookAdFormatsProps) => {
-  const facebookAdFormats = [
+  const socialMediaAdFormats = [
     {
       id: "landscape",
       title: "Landscape Image",
-      description: "1200 x 628px - Best for Facebook feed ads",
+      description: "1200 x 628px - Best for social media feed ads",
       format: {
         format: "facebook_landscape",
         dimensions: { width: 1200, height: 628 },
         aspectRatio: "1.91:1",
-        description: "Best for Facebook feed ads",
+        description: "Best for social media feed ads",
         platform: "facebook" as const
       }
     },
@@ -73,7 +73,7 @@ const FacebookAdFormats = ({ selectedFormat, onFormatSelect }: FacebookAdFormats
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      {facebookAdFormats.map((format) => {
+      {socialMediaAdFormats.map((format) => {
         const isSelected = selectedFormat?.format === format.format.format;
         return (
           <Card
