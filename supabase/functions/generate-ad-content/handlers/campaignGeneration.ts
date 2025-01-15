@@ -1,95 +1,89 @@
-import { BusinessIdea, TargetAudience } from "../types.ts";
+import { BusinessIdea, TargetAudience } from "../Types";
 
-export async function generateCampaign(businessIdea: any, targetAudience: any) {
-  const prompt = `Create a marketing campaign for this business and target audience:
-
-Business:
-${JSON.stringify(businessIdea, null, 2)}
-
-Target Audience:
-${JSON.stringify(targetAudience, null, 2)}
-
-Create a complete marketing campaign with:
-1. 3 Ad copies (different versions)
-2. 3 Headlines (6 words max)
-
-Ad Copy Guidelines:
-- Create 10 different versions and rotate:
-  1. "Longer story": Longer, storytelling-based use pain point one from audience analysis
-  2. "personal emotional story  ": personal emotional story use pain point two from audience analysis
-  3. "AIDA version": Middle-length with bullet points use pain point three from audience analysis
-- Should be addressing about audience analysis painpoints
-- Some ad copies must also address the benefits of the products based on the positive experience the product provides
-- Must attract attention in first sentence
-- Each version should be different
-- Never use names and always talk directly to the reader, use words like you
-
-Headline Guidelines:
-- Maximum 6 words
-- Straight to the point
-- Highlight the result of using this product, the benefitial experience, or goal that is going te be achieved when using this product
-- Based on market awareness/sophistication
-
-Return ONLY a valid JSON object with these fields:
-{
-  "adCopies": [
-    {
-      "type": "story|short|aida",
-      "content": "string"
-    }
-  ],
-  "headlines": ["string", "string", "string"]
-}`;
-
+export const generateCampaign = async (
+  businessIdea: BusinessIdea,
+  targetAudience: TargetAudience
+) => {
   try {
-    console.log('Sending request to OpenAI...');
-    const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
-    if (!openAIApiKey) {
-      throw new Error('OpenAI API key is not configured');
-    }
+    const platforms = ['facebook', 'google', 'linkedin', 'tiktok'];
+    const headlines = [
+      "Validate Your Idea with Targeted Ads",
+      "Target the Right Audience Effortlessly",
+      "Save Time and Money on Marketing",
+      "Find Your Ideal Customers Fast"
+    ];
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
-        'Content-Type': 'application/json',
+    const adCopies = [
+      {
+        type: 'story',
+        content: `Have you ever felt lost trying to pinpoint your ideal customer? You're not alone. Many startup founders struggle with this crucial aspect, often spending countless hours and resources with little to show for it. Imagine a world where you could effortlessly identify your target audience and validate your business idea with precision. Our SaaS platform makes this possible, helping you create effective ads that resonate with your potential customers. No more guessing—just actionable insights that lead to success.`
       },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are an expert marketing copywriter. Always respond with raw JSON only, no markdown.'
-          },
-          { role: 'user', content: prompt }
-        ],
-        temperature: 0.7,
-        max_tokens: 2000,
-      }),
+      {
+        type: 'short',
+        content: `Tired of wasting time and money on ads that don't work? Our platform helps you identify your ideal customers and creates ads that resonate. Start seeing results today!`
+      },
+      {
+        type: 'aida',
+        content: `Are you struggling to create ads that work? You're not alone. Many startup founders face this challenge. - Identify your target audience effortlessly. - Create ads for Facebook, Google, LinkedIn, and TikTok. - Validate your business idea before launch. With our SaaS platform, you'll save time and money while ensuring your marketing efforts are effective. Get started today and watch your startup thrive!`
+      }
+    ];
+
+    // Generate variants for each platform
+    const variants = platforms.flatMap(platform => {
+      const sizes = getPlatformSizes(platform);
+      return adCopies.map((copy, index) => ({
+        platform,
+        headline: headlines[index % headlines.length],
+        description: copy.content,
+        imageUrl: "https://replicate.delivery/czjl/7M1liDkrHOJoNBv7RCUFMzLQEjcag56mCjtmPIrdIvB9dVBF/tmpv0r6np7e.jpg",
+        size: sizes[0] // Use first size as default
+      }));
     });
 
-    if (!response.ok) {
-      const error = await response.text();
-      console.error('OpenAI API error:', error);
-      throw new Error(`OpenAI API error: ${error}`);
-    }
-
-    const data = await response.json();
-    console.log('Raw OpenAI response:', data);
-
-    if (!data.choices?.[0]?.message?.content) {
-      throw new Error('Invalid response format from OpenAI');
-    }
-
-    const content = data.choices[0].message.content;
-    console.log('Content before parsing:', content);
-
-    const campaign = JSON.parse(content);
-    console.log('Parsed campaign:', campaign);
-
-    return { campaign };
+    return {
+      campaign: {
+        headlines,
+        adCopies,
+        variants
+      }
+    };
   } catch (error) {
-    console.error('Error in generateCampaign:', error);
+    console.error('Error generating campaign:', error);
     throw error;
+  }
+};
+
+function getPlatformSizes(platform: string) {
+  switch (platform) {
+    case 'facebook':
+      return [{
+        width: 1200,
+        height: 628,
+        label: "Facebook Feed"
+      }];
+    case 'google':
+      return [{
+        width: 1200,
+        height: 628,
+        label: "Google Display"
+      }];
+    case 'linkedin':
+      return [{
+        width: 1200,
+        height: 627,
+        label: "LinkedIn Feed"
+      }];
+    case 'tiktok':
+      return [{
+        width: 1080,
+        height: 1920,
+        label: "TikTok Feed"
+      }];
+    default:
+      return [{
+        width: 1200,
+        height: 628,
+        label: "Standard Feed"
+      }];
   }
 }
