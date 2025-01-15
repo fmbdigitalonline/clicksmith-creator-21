@@ -55,6 +55,8 @@ export const AdFeedbackControls = ({
         title: "Rating saved",
         description: "Thank you for your feedback!",
       });
+      
+      onFeedbackSubmit?.();
     } catch (error) {
       console.error('Error saving star rating:', error);
       toast({
@@ -156,16 +158,18 @@ export const AdFeedbackControls = ({
     }
   };
 
+  const handleDislike = () => {
+    setRating(0);
+    setShowFeedbackDialog(true);
+  };
+
   return (
     <>
       <div className="flex items-center justify-between space-x-2">
         <LikeDislikeButtons
           rating={rating}
           onLike={handleLike}
-          onDislike={() => {
-            setRating(0);
-            setShowFeedbackDialog(true);
-          }}
+          onDislike={handleDislike}
         />
         <StarRating rating={starRating} onRate={handleStarClick} />
       </div>
