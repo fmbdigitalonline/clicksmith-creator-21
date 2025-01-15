@@ -16,7 +16,6 @@ interface RetryConfig {
   backoffFactor: number;
 }
 
-// Default model configurations
 const MODELS = {
   sdxl: "39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b",
   sdxlBase: "8beff3369e81422112d93b89ca01426147de542cd4684c244b673b105188fe5f",
@@ -51,7 +50,6 @@ async function retryWithBackoff<T>(
   throw lastError || new Error('Operation failed after retries');
 }
 
-// Function to scale dimensions while maintaining aspect ratio and max height of 1440
 function getScaledDimensions(width: number, height: number): { width: number; height: number } {
   const MAX_HEIGHT = 1440;
   const MAX_WIDTH = 1440;
@@ -99,14 +97,12 @@ export async function generateWithReplicate(
     });
 
     const replicate = new Replicate({
-      auth: Deno.env.get('REPLICATE_API_KEY'),
+      auth: Deno.env.get('REPLICATE_API_TOKEN'),
     });
 
-    // Scale dimensions to comply with API limitations
     const scaledDimensions = getScaledDimensions(config.width, config.height);
     console.log('Using scaled dimensions:', scaledDimensions);
 
-    // Create prediction with retry logic
     const prediction = await retryWithBackoff(
       async () => {
         const modelId = MODELS[config.model as keyof typeof MODELS];
@@ -134,7 +130,6 @@ export async function generateWithReplicate(
 
     console.log('Prediction result:', prediction);
 
-    // Handle different response formats
     let imageUrl: string;
     if (Array.isArray(prediction)) {
       imageUrl = prediction[0];
