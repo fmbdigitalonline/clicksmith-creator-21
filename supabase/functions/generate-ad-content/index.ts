@@ -111,19 +111,25 @@ serve(async (req) => {
           const imageData = await generateImagePrompts(businessIdea, targetAudience, campaignData.campaign);
           console.log('Image data generated:', imageData);
           
-          responseData = sanitizeJson({
+          const adSizes = {
+            facebook: { width: 1200, height: 628, label: "Facebook Feed" },
+            google: { width: 1200, height: 628, label: "Google Display" },
+            linkedin: { width: 1200, height: 627, label: "LinkedIn Feed" },
+            tiktok: { width: 1080, height: 1920, label: "TikTok Feed" }
+          };
+          
+          const platform = body.platform || 'facebook';
+          const size = adSizes[platform];
+          
+          responseData = {
             variants: campaignData.campaign.adCopies.map((copy: any, index: number) => ({
-              platform: 'facebook',
+              platform,
               headline: campaignData.campaign.headlines[index % campaignData.campaign.headlines.length],
               description: copy.content,
               imageUrl: imageData.images[0]?.url,
-              size: {
-                width: 1200,
-                height: 628,
-                label: "Facebook Feed"
-              }
+              size
             }))
-          });
+          };
         } catch (error) {
           console.error('Error generating ad content:', error);
           throw error;
