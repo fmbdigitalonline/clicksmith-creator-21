@@ -151,7 +151,7 @@ const AdGalleryStep = ({
   };
 
   if (isLoadingAds) {
-    return <LoadingState state="loading" />;
+    return <LoadingState message="Loading saved ads..." />;
   }
 
   return (
@@ -165,7 +165,7 @@ const AdGalleryStep = ({
       />
 
       {isGenerating ? (
-        <LoadingState state="loading" />
+        <LoadingState message="Generating new ads..." />
       ) : (
         <PlatformTabs 
           platform={platform} 
@@ -173,7 +173,7 @@ const AdGalleryStep = ({
         >
           <TabsContent value="facebook">
             <PlatformContent
-              platform="facebook"
+              platformName="facebook"
               businessIdea={businessIdea}
               targetAudience={targetAudience}
               adHooks={adHooks}
@@ -183,7 +183,7 @@ const AdGalleryStep = ({
           </TabsContent>
           <TabsContent value="google">
             <PlatformContent
-              platform="google"
+              platformName="google"
               businessIdea={businessIdea}
               targetAudience={targetAudience}
               adHooks={adHooks}
@@ -193,7 +193,7 @@ const AdGalleryStep = ({
           </TabsContent>
           <TabsContent value="linkedin">
             <PlatformContent
-              platform="linkedin"
+              platformName="linkedin"
               businessIdea={businessIdea}
               targetAudience={targetAudience}
               adHooks={adHooks}
@@ -203,7 +203,7 @@ const AdGalleryStep = ({
           </TabsContent>
           <TabsContent value="tiktok">
             <PlatformContent
-              platform="tiktok"
+              platformName="tiktok"
               businessIdea={businessIdea}
               targetAudience={targetAudience}
               adHooks={adHooks}

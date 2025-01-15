@@ -1,23 +1,24 @@
-import { AdHook } from "@/types/adWizard";
-import AdPreviewCard from "./components/AdPreviewCard";
+import { BusinessIdea, TargetAudience, AdHook } from "@/types/adWizard";
 
 interface PlatformContentProps {
   platformName: string;
-  adVariants: any[];
+  businessIdea: BusinessIdea;
+  targetAudience: TargetAudience;
+  adHooks: AdHook[];
   onCreateProject: () => void;
-  videoAdsEnabled?: boolean;
-  selectedFormat?: { width: number; height: number; label: string };
+  generatedAds: any[];
 }
 
 const PlatformContent = ({ 
   platformName, 
-  adVariants = [], 
+  businessIdea,
+  targetAudience,
+  adHooks,
   onCreateProject,
-  videoAdsEnabled = false,
-  selectedFormat
+  generatedAds = []
 }: PlatformContentProps) => {
-  const filteredVariants = Array.isArray(adVariants) 
-    ? adVariants.filter(variant => variant.platform === platformName)
+  const filteredVariants = Array.isArray(generatedAds) 
+    ? generatedAds.filter(variant => variant.platform === platformName)
     : [];
 
   if (filteredVariants.length === 0) {
@@ -44,8 +45,6 @@ const PlatformContent = ({
             key={`${platformName}-${index}-${variant.size?.label || 'default'}`}
             variant={variant}
             onCreateProject={onCreateProject}
-            isVideo={videoAdsEnabled}
-            selectedFormat={selectedFormat}
           />
         ))}
       </div>
