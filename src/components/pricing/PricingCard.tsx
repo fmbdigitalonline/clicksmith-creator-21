@@ -41,7 +41,7 @@ export const PricingCard = ({ plan, onSubscribe }: PricingCardProps) => {
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: { 
           priceId: plan.stripe_price_id,
-          mode: 'subscription'
+          mode: plan.name.toLowerCase().includes('bundle') ? 'payment' : 'subscription'
         }
       });
 

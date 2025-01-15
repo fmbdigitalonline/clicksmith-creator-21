@@ -68,7 +68,7 @@ serve(async (req) => {
     console.log('Creating checkout session...');
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
-      client_reference_id: user.id, // Add this line to include the user ID
+      client_reference_id: user.id,
       line_items: [
         {
           price: priceId,
