@@ -1,4 +1,5 @@
 import { BusinessIdea, TargetAudience, AdHook } from "@/types/adWizard";
+import AdPreviewCard from "./components/AdPreviewCard";
 
 interface PlatformContentProps {
   platformName: string;
