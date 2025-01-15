@@ -175,13 +175,13 @@ const AdWizard = () => {
   }, [currentStep, businessIdea, targetAudience, audienceAnalysis, selectedHooks, videoAdsEnabled, generatedAds, hasLoadedInitialAds]);
 
   return (
-    <div className="container max-w-6xl mx-auto px-2 sm:px-4 py-4 sm:py-8">
+    <div className="container max-w-6xl mx-auto px-4 py-8">
       <WizardHeader
         title="ProfitPilot"
         description="Quickly go from idea to ready-to-run ads by testing different audience segments with AI-powered Facebook ad campaigns."
       />
 
-      <div className="mb-4 sm:mb-8">
+      <div className="mb-8">
         <WizardProgress
           currentStep={currentStep}
           onStepClick={setCurrentStep}
@@ -189,8 +189,8 @@ const AdWizard = () => {
         />
       </div>
 
-      <div className="flex items-center justify-end mb-4 sm:mb-6 space-x-2">
-        <span className="text-sm text-gray-600 whitespace-nowrap">Image Ads</span>
+      <div className="flex items-center justify-end mb-6 space-x-2">
+        <span className="text-sm text-gray-600">Image Ads</span>
         <Toggle
           pressed={videoAdsEnabled}
           onPressedChange={handleVideoAdsToggle}
@@ -203,7 +203,7 @@ const AdWizard = () => {
             <Image className="h-4 w-4" />
           )}
         </Toggle>
-        <span className="text-sm text-gray-600 whitespace-nowrap">Video Ads</span>
+        <span className="text-sm text-gray-600">Video Ads</span>
       </div>
 
       {currentStepComponent}
