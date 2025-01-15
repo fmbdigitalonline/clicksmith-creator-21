@@ -178,7 +178,7 @@ const AdWizard = () => {
     <div className="container max-w-6xl mx-auto px-4 py-8">
       <WizardHeader
         title="Idea Pilot"
-        description="Quickly go from idea to ready-to-run ads by testing different audience segments with AI-powered Facebook ad campaigns."
+        description="Quickly go from idea to ready-to-run ads by testing different audience segments with AI-powered social media ad campaigns."
       />
 
       <div className="mb-8">
