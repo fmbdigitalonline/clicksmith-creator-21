@@ -6,6 +6,7 @@ import { generateCampaign } from "./handlers/campaignGeneration.ts";
 import { analyzeAudience } from "./handlers/audienceAnalysis.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 
+// Helper function to sanitize JSON strings
 const sanitizeJson = (obj: unknown): unknown => {
   if (typeof obj === 'string') {
     return obj.replace(/[\u0000-\u001F\u007F-\u009F]/g, '')
@@ -26,6 +27,7 @@ const sanitizeJson = (obj: unknown): unknown => {
   return obj;
 };
 
+// Valid generation types
 const VALID_GENERATION_TYPES = [
   'audience',
   'hooks',
@@ -109,14 +111,19 @@ serve(async (req) => {
           const imageData = await generateImagePrompts(businessIdea, targetAudience, campaignData.campaign);
           console.log('Image data generated:', imageData);
           
-          responseData = {
-            variants: campaignData.campaign.variants.map(variant => ({
-              ...variant,
-              imageUrl: imageData.images[0]?.url || variant.imageUrl,
+          responseData = sanitizeJson({
+            variants: campaignData.campaign.adCopies.map((copy: any, index: number) => ({
+              platform: 'facebook',
+              headline: campaignData.campaign.headlines[index % campaignData.campaign.headlines.length],
+              description: copy.content,
+              imageUrl: imageData.images[0]?.url,
+              size: {
+                width: 1200,
+                height: 628,
+                label: "Facebook Feed"
+              }
             }))
-          };
-          
-          console.log('Final response data:', responseData);
+          });
         } catch (error) {
           console.error('Error generating ad content:', error);
           throw error;
