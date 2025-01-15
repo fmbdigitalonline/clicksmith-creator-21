@@ -64,13 +64,15 @@ serve(async (req) => {
     console.error('Webhook handler error:', {
       message: error.message,
       name: error.name,
-      stack: error.stack
+      stack: error.stack,
+      details: error
     });
     
     return new Response(
       JSON.stringify({ 
         error: error.message,
-        type: error.name 
+        type: error.name,
+        details: error 
       }), 
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
