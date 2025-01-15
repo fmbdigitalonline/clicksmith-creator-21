@@ -29,35 +29,6 @@ export const useAdGeneration = (
 
       setGenerationStatus("Initializing ad generation...");
       
-      // Generate video ads if enabled
-      if (projectId && projectId !== 'new') {
-        const { data: project } = await supabase
-          .from('projects')
-          .select('video_ads_enabled, video_ad_preferences')
-          .eq('id', projectId)
-          .single();
-
-        if (project?.video_ads_enabled) {
-          setGenerationStatus("Generating video ads...");
-          for (const hook of adHooks) {
-            try {
-              await generateVideoAd(selectedPlatform, hook, {
-                width: 1920,
-                height: 1080,
-                label: "Landscape Video"
-              });
-            } catch (error) {
-              console.error('Error generating video for hook:', hook, error);
-              toast({
-                title: "Video Generation Error",
-                description: error instanceof Error ? error.message : "Failed to generate video",
-                variant: "destructive",
-              });
-            }
-          }
-        }
-      }
-
       // Generate image ads
       setGenerationStatus("Generating image ads...");
       const { data, error } = await supabase.functions.invoke('generate-ad-content', {
@@ -79,7 +50,7 @@ export const useAdGeneration = (
         size: getPlatformAdSize(selectedPlatform),
       }));
 
-      setAdVariants(prev => [...prev, ...variants]);
+      setAdVariants(variants);
 
       toast({
         title: "Ads generated successfully",
