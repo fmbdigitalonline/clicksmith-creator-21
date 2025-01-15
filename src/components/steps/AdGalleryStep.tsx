@@ -23,6 +23,7 @@ interface AdGalleryStepProps {
   generatedAds?: any[];
   onAdsGenerated?: (ads: any[]) => void;
   hasLoadedInitialAds?: boolean;
+  isLoadingAds?: boolean;
 }
 
 const AdGalleryStep = ({
@@ -37,6 +38,7 @@ const AdGalleryStep = ({
   generatedAds = [],
   onAdsGenerated,
   hasLoadedInitialAds = false,
+  isLoadingAds = false
 }: AdGalleryStepProps) => {
   const [selectedFormat, setSelectedFormat] = useState(AD_FORMATS[0]);
   const [hasGeneratedInitialAds, setHasGeneratedInitialAds] = useState(false);
@@ -65,19 +67,31 @@ const AdGalleryStep = ({
 
   // Effect for initial ad generation
   useEffect(() => {
-    if (!hasLoadedInitialAds || hasGeneratedInitialAds) return;
+    if (isLoadingAds || !hasLoadedInitialAds || hasGeneratedInitialAds) return;
 
     const isNewProject = projectId === 'new';
     const existingPlatformAds = generatedAds.filter(ad => ad.platform === platform);
     const shouldGenerateAds = isNewProject || existingPlatformAds.length === 0;
 
     if (shouldGenerateAds) {
-      console.log('Generating initial ads:', { isNewProject, platform, existingAdsCount: existingPlatformAds.length });
+      console.log('Generating initial ads:', { 
+        isNewProject, 
+        platform, 
+        existingAdsCount: existingPlatformAds.length 
+      });
       handleGenerateAds(platform);
     }
 
     setHasGeneratedInitialAds(true);
-  }, [hasLoadedInitialAds, hasGeneratedInitialAds, platform, projectId, generatedAds, handleGenerateAds]);
+  }, [
+    hasLoadedInitialAds, 
+    hasGeneratedInitialAds, 
+    platform, 
+    projectId, 
+    generatedAds, 
+    handleGenerateAds,
+    isLoadingAds
+  ]);
 
   // Effect for managing generated ads state
   useEffect(() => {
@@ -136,23 +150,9 @@ const AdGalleryStep = ({
     setSelectedFormat(format);
   };
 
-  const renderPlatformContent = (platformName: string) => (
-    <TabsContent value={platformName} className="space-y-4">
-      <div className="flex justify-end mb-4">
-        <AdSizeSelector
-          selectedFormat={selectedFormat}
-          onFormatChange={handleFormatChange}
-        />
-      </div>
-      <PlatformContent
-        platformName={platformName}
-        adVariants={generatedAds.length > 0 ? generatedAds : adVariants}
-        onCreateProject={onCreateProject}
-        videoAdsEnabled={videoAdsEnabled}
-        selectedFormat={selectedFormat}
-      />
-    </TabsContent>
-  );
+  if (isLoadingAds) {
+    return <LoadingState message="Loading saved ads..." />;
+  }
 
   return (
     <div className="space-y-6 md:space-y-8">

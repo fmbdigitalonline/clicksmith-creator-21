@@ -19,6 +19,7 @@ const AdWizard = () => {
   const [showCreateProject, setShowCreateProject] = useState(false);
   const [videoAdsEnabled, setVideoAdsEnabled] = useState(false);
   const [generatedAds, setGeneratedAds] = useState<any[]>([]);
+  const [isLoadingAds, setIsLoadingAds] = useState(true);
   const [hasLoadedInitialAds, setHasLoadedInitialAds] = useState(false);
   const navigate = useNavigate();
   const { projectId } = useParams();
@@ -42,6 +43,8 @@ const AdWizard = () => {
   useEffect(() => {
     const loadProgress = async () => {
       try {
+        console.log('Loading progress for:', { projectId });
+        setIsLoadingAds(true);
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
@@ -55,9 +58,9 @@ const AdWizard = () => {
           if (!project) {
             navigate('/ad-wizard/new');
           } else {
+            console.log('Loading project ads:', project.generated_ads);
             setVideoAdsEnabled(project.video_ads_enabled || false);
             if (project.generated_ads && Array.isArray(project.generated_ads)) {
-              console.log('Loading saved ads from project:', project.generated_ads);
               setGeneratedAds(project.generated_ads);
             }
           }
@@ -69,13 +72,14 @@ const AdWizard = () => {
             .single();
 
           if (wizardData?.generated_ads && Array.isArray(wizardData.generated_ads)) {
-            console.log('Loading saved ads from wizard progress:', wizardData.generated_ads);
+            console.log('Loading wizard progress ads:', wizardData.generated_ads);
             setGeneratedAds(wizardData.generated_ads);
           }
         }
-        setHasLoadedInitialAds(true);
       } catch (error) {
         console.error('Error loading progress:', error);
+      } finally {
+        setIsLoadingAds(false);
         setHasLoadedInitialAds(true);
       }
     };
@@ -167,12 +171,23 @@ const AdWizard = () => {
             generatedAds={generatedAds}
             onAdsGenerated={handleAdsGenerated}
             hasLoadedInitialAds={hasLoadedInitialAds}
+            isLoadingAds={isLoadingAds}
           />
         ) : null;
       default:
         return null;
     }
-  }, [currentStep, businessIdea, targetAudience, audienceAnalysis, selectedHooks, videoAdsEnabled, generatedAds, hasLoadedInitialAds]);
+  }, [
+    currentStep, 
+    businessIdea, 
+    targetAudience, 
+    audienceAnalysis, 
+    selectedHooks, 
+    videoAdsEnabled, 
+    generatedAds, 
+    hasLoadedInitialAds,
+    isLoadingAds
+  ]);
 
   return (
     <div className="container max-w-6xl mx-auto px-2 sm:px-4 py-4 sm:py-8">
