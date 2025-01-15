@@ -22,6 +22,7 @@ interface PricingCardProps {
 
 export const PricingCard = ({ plan, onSubscribe }: PricingCardProps) => {
   const { toast } = useToast();
+  console.log('Rendering pricing card for plan:', plan);
 
   const handleSubscribe = async () => {
     try {
