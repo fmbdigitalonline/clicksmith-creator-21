@@ -32,12 +32,12 @@ export async function handleStripeEvent(
 
         console.log('Fetching plan details for price ID:', priceId);
         
-        // Get plan details from the database
+        // Get plan details from the database using maybeSingle() instead of single()
         const { data: plan, error: planError } = await supabaseAdmin
           .from('plans')
           .select('*')
           .eq('stripe_price_id', priceId)
-          .single();
+          .maybeSingle();
 
         if (planError) {
           console.error('Error fetching plan:', planError);
