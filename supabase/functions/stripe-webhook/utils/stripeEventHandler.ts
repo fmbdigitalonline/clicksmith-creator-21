@@ -32,22 +32,29 @@ export async function handleStripeEvent(
 
         console.log('Fetching plan details for price ID:', priceId);
         
-        // Get plan details from the database using maybeSingle() instead of single()
-        const { data: plan, error: planError } = await supabaseAdmin
+        // First get all matching plans to understand what we're dealing with
+        const { data: plans, error: plansError } = await supabaseAdmin
           .from('plans')
           .select('*')
-          .eq('stripe_price_id', priceId)
-          .maybeSingle();
+          .eq('stripe_price_id', priceId);
 
-        if (planError) {
-          console.error('Error fetching plan:', planError);
-          throw planError;
+        if (plansError) {
+          console.error('Error fetching plans:', plansError);
+          throw plansError;
         }
 
-        if (!plan) {
+        if (!plans || plans.length === 0) {
           console.error('No plan found for price ID:', priceId);
           throw new Error(`No plan found for price ID: ${priceId}`);
         }
+
+        // Log if we found multiple plans (this shouldn't happen)
+        if (plans.length > 1) {
+          console.warn('Multiple plans found for price ID:', priceId, plans);
+        }
+
+        // Use the first plan
+        const plan = plans[0];
 
         console.log('Plan details:', plan);
         console.log('Allocating credits:', {
