@@ -3,7 +3,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { SavedAdsList } from "./components/SavedAdsList";
 import { EmptyState } from "./components/EmptyState";
-import { SavedAd, AdFeedbackRow, GeneratedAd } from "./types";
+import { SavedAd, AdFeedbackRow } from "./types";
 
 export const SavedAdsGallery = () => {
   const [savedAds, setSavedAds] = useState<SavedAd[]>([]);
@@ -28,46 +28,7 @@ export const SavedAdsGallery = () => {
 
       console.log("Authenticated user found:", user.id);
 
-      // First try to get ads from wizard progress
-      const { data: wizardData, error: wizardError } = await supabase
-        .from('wizard_progress')
-        .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (wizardError) {
-        console.error('Error fetching wizard data:', wizardError);
-      }
-
-      let generatedAds: SavedAd[] = [];
-      
-      if (wizardData?.generated_ads) {
-        console.log("Found wizard data with generated ads:", wizardData.generated_ads);
-        const adsData = Array.isArray(wizardData.generated_ads) 
-          ? (wizardData.generated_ads as GeneratedAd[])
-          : [];
-          
-        generatedAds = adsData
-          .filter((ad): ad is GeneratedAd => 
-            typeof ad === 'object' && 
-            ad !== null && 
-            'imageUrl' in ad && 
-            typeof ad.imageUrl === 'string'
-          )
-          .map((ad, index) => ({
-            id: `wizard-${index}`,
-            saved_images: [ad.imageUrl!],
-            headline: ad.headline || '',
-            primary_text: ad.description || '',
-            rating: 0,
-            feedback: '',
-            created_at: new Date().toISOString()
-          }));
-
-        console.log("Processed wizard ads:", generatedAds);
-      }
-
-      // Then get saved ad feedback
+      // Only get saved ad feedback
       const { data: feedbackData, error: feedbackError } = await supabase
         .from('ad_feedback')
         .select('*')
@@ -108,11 +69,7 @@ export const SavedAdsGallery = () => {
       });
 
       console.log("Processed feedback ads:", feedbackAds);
-
-      // Combine both sources of ads
-      const allAds = [...generatedAds, ...feedbackAds].filter(ad => ad.saved_images.length > 0);
-      console.log("Final combined ads:", allAds);
-      setSavedAds(allAds);
+      setSavedAds(feedbackAds);
     } catch (error) {
       console.error('Error in fetchSavedAds:', error);
       toast({
