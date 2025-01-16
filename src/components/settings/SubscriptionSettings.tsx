@@ -98,7 +98,7 @@ export const SubscriptionSettings = ({ subscription, isLoadingSubscription }: Su
             <div className="space-y-2">
               <div className="flex justify-between items-center">
                 <span className="font-medium">Current Plan</span>
-                <span className="text-lg font-semibold">{subscription.plan?.name || 'Unknown Plan'}</span>
+                <span className="text-lg font-semibold">{subscription.plan?.name || 'Free Plan'}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="font-medium">Credits Remaining</span>
