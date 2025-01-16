@@ -38,24 +38,23 @@ export const SavedAdsGallery = () => {
 
       if (wizardError) {
         console.error('Error fetching wizard data:', wizardError);
-        // Continue execution instead of throwing, as we still want to try fetching feedback data
       }
 
       let generatedAds: SavedAd[] = [];
       
-      if (wizardData?.selected_hooks) {
-        console.log("Found wizard data with hooks:", wizardData.selected_hooks);
-        const hooksData = Array.isArray(wizardData.selected_hooks) 
-          ? (wizardData.selected_hooks as WizardHook[])
+      if (wizardData?.generated_ads) {
+        console.log("Found wizard data with generated ads:", wizardData.generated_ads);
+        const adsData = Array.isArray(wizardData.generated_ads) 
+          ? wizardData.generated_ads
           : [];
           
-        generatedAds = hooksData
-          .filter(hook => Boolean(hook.imageUrl))
-          .map((hook: WizardHook, index: number) => ({
+        generatedAds = adsData
+          .filter(ad => ad.imageUrl)
+          .map((ad: any, index: number) => ({
             id: `wizard-${index}`,
-            saved_images: hook.imageUrl ? [hook.imageUrl] : [],
-            headline: hook.description || '',
-            primary_text: hook.text || '',
+            saved_images: [ad.imageUrl],
+            headline: ad.headline || '',
+            primary_text: ad.description || '',
             rating: 0,
             feedback: '',
             created_at: new Date().toISOString()
