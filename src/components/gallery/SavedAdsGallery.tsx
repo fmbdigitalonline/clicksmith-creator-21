@@ -3,8 +3,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { SavedAdsList } from "./components/SavedAdsList";
 import { EmptyState } from "./components/EmptyState";
-import { WizardHook } from "@/types/wizardProgress";
-import { SavedAd, AdFeedbackRow } from "./types";
+import { SavedAd, AdFeedbackRow, GeneratedAd } from "./types";
 
 export const SavedAdsGallery = () => {
   const [savedAds, setSavedAds] = useState<SavedAd[]>([]);
@@ -45,14 +44,19 @@ export const SavedAdsGallery = () => {
       if (wizardData?.generated_ads) {
         console.log("Found wizard data with generated ads:", wizardData.generated_ads);
         const adsData = Array.isArray(wizardData.generated_ads) 
-          ? wizardData.generated_ads
+          ? (wizardData.generated_ads as GeneratedAd[])
           : [];
           
         generatedAds = adsData
-          .filter(ad => ad.imageUrl)
-          .map((ad: any, index: number) => ({
+          .filter((ad): ad is GeneratedAd => 
+            typeof ad === 'object' && 
+            ad !== null && 
+            'imageUrl' in ad && 
+            typeof ad.imageUrl === 'string'
+          )
+          .map((ad, index) => ({
             id: `wizard-${index}`,
-            saved_images: [ad.imageUrl],
+            saved_images: [ad.imageUrl!],
             headline: ad.headline || '',
             primary_text: ad.description || '',
             rating: 0,
