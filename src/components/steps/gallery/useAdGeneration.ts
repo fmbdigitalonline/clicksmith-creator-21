@@ -18,14 +18,39 @@ export const useAdGeneration = (
   const { toast } = useToast();
   const navigate = useNavigate();
   const { projectId } = useParams();
+  const queryClient = useQueryClient();
 
   const generateAds = async (selectedPlatform: string) => {
     setIsGenerating(true);
     setGenerationStatus("Checking credits availability...");
     
     try {
-      const hasCredits = await checkCredits();
-      if (!hasCredits) return;
+      // Get user data first
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      
+      if (!user) {
+        throw new Error('User must be logged in to generate ads');
+      }
+
+      // Check credits using RPC function
+      const { data: creditCheck, error: creditError } = await supabase.rpc(
+        'check_user_credits',
+        { p_user_id: user.id, required_credits: 1 }
+      );
+
+      if (creditError) throw creditError;
+
+      const result = creditCheck[0];
+      if (!result.has_credits) {
+        toast({
+          title: "No credits available",
+          description: result.error_message,
+          variant: "destructive",
+        });
+        navigate('/pricing');
+        return;
+      }
 
       setGenerationStatus("Initializing ad generation...");
       
@@ -51,6 +76,21 @@ export const useAdGeneration = (
       }));
 
       setAdVariants(variants);
+
+      // Deduct credits after successful generation
+      const { data: deductResult, error: deductError } = await supabase.rpc(
+        'deduct_user_credits',
+        { input_user_id: user.id, credits_to_deduct: 1 }
+      );
+
+      if (deductError) {
+        console.error('Error deducting credits:', deductError);
+        throw deductError;
+      }
+
+      // Invalidate credits query to refresh the display
+      queryClient.invalidateQueries({ queryKey: ['subscription'] });
+      queryClient.invalidateQueries({ queryKey: ['free_tier_usage'] });
 
       toast({
         title: "Ads generated successfully",
@@ -102,34 +142,6 @@ export const useAdGeneration = (
           label: "Standard Display"
         };
     }
-  };
-
-  const checkCredits = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('User not authenticated');
-
-    const { data: creditCheck, error: creditsError } = await supabase.rpc(
-      'check_user_credits',
-      { p_user_id: user.id, required_credits: 1 }
-    );
-
-    if (creditsError) {
-      throw creditsError;
-    }
-
-    const result = creditCheck[0];
-    
-    if (!result.has_credits) {
-      toast({
-        title: "No credits available",
-        description: result.error_message,
-        variant: "destructive",
-      });
-      navigate('/pricing');
-      return false;
-    }
-
-    return true;
   };
 
   return {
