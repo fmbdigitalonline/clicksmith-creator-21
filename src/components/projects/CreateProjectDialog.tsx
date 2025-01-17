@@ -50,14 +50,19 @@ const CreateProjectDialog = ({
 
     try {
       // First check if a project with this title already exists for the user
-      const { data: existingProjects, error: checkError } = await supabase
+      const { data: existingProject, error: checkError } = await supabase
         .from("projects")
         .select("id")
         .eq("user_id", userId)
         .eq("title", values.title)
-        .single();
+        .maybeSingle();
 
-      if (existingProjects) {
+      if (checkError) {
+        console.error('Error checking existing project:', checkError);
+        throw checkError;
+      }
+
+      if (existingProject) {
         toast({
           title: "Project title already exists",
           description: "Please choose a different title for your project",
@@ -88,7 +93,7 @@ const CreateProjectDialog = ({
           .from('wizard_progress')
           .select('*')
           .eq('user_id', userId)
-          .single();
+          .maybeSingle();
 
         if (wizardProgress) {
           // Include wizard progress data in project
