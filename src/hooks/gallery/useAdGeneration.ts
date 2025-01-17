@@ -6,59 +6,17 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 
-// Define supported platforms
-type SupportedPlatform = 'facebook' | 'tiktok' | 'instagram';
-
-// Define platform-specific dimensions
-interface PlatformDimensions {
-  width: number;
-  height: number;
-  label: string;
-}
-
-const PLATFORM_DIMENSIONS: Record<SupportedPlatform | 'default', PlatformDimensions> = {
-  facebook: {
-    width: 1200,
-    height: 628,
-    label: "Facebook Feed"
-  },
-  tiktok: {
-    width: 1080,
-    height: 1920,
-    label: "TikTok Feed"
-  },
-  instagram: {
-    width: 1080,
-    height: 1080,
-    label: "Instagram Feed"
-  },
-  default: {
-    width: 1200,
-    height: 628,
-    label: "Standard Feed"
-  }
-};
-
-interface AdVariant {
-  platform: SupportedPlatform;
-  content: string;
-  dimensions: PlatformDimensions;
-  [key: string]: any; // Allow for flexible properties
-}
-
-interface GenerationError extends Error {
-  code?: string;
-  message: string;
-}
-
 interface UseAdGenerationReturn {
   isGenerating: boolean;
-  adVariants: AdVariant[];
+  adVariants: any[];
   videoVariants: VideoAdVariant[];
   generationStatus: string;
   generateAds: (selectedPlatform: string) => Promise<void>;
   resetGeneration: () => void;
 }
+
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 1000; // 1 second
 
 export const useAdGeneration = (
   businessIdea: BusinessIdea,
@@ -66,7 +24,7 @@ export const useAdGeneration = (
   adHooks: AdHook[]
 ): UseAdGenerationReturn => {
   const [isGenerating, setIsGenerating] = useState(false);
-  const [adVariants, setAdVariants] = useState<AdVariant[]>([]);
+  const [adVariants, setAdVariants] = useState<any[]>([]);
   const [videoVariants, setVideoVariants] = useState<VideoAdVariant[]>([]);
   const [generationStatus, setGenerationStatus] = useState<string>("");
   const { toast } = useToast();
@@ -80,41 +38,15 @@ export const useAdGeneration = (
     setIsGenerating(false);
   };
 
-  const handleGenerationError = (error: GenerationError) => {
-    console.error('Ad generation error:', error);
-    
-    if (error.message.includes('No credits available')) {
-      toast({
-        title: "No credits available",
-        description: "Please upgrade your plan to continue generating ads.",
-        variant: "destructive",
-      });
-      navigate('/pricing');
-      return true;
-    }
-    
-    toast({
-      title: "Error generating ads",
-      description: error.message || "Failed to generate ads. Please try again.",
-      variant: "destructive",
-    });
-    setAdVariants([]);
-    return false;
-  };
+  const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-  const getPlatformDimensions = (platform: string): PlatformDimensions => {
-    return PLATFORM_DIMENSIONS[platform as SupportedPlatform] || PLATFORM_DIMENSIONS.default;
-  };
-
-  const generateAds = async (selectedPlatform: string) => {
-    setIsGenerating(true);
-    setGenerationStatus("Checking credits availability...");
-    
+  const invokeSupabaseFunction = async (
+    selectedPlatform: string,
+    userId: string,
+    retryCount = 0
+  ): Promise<{ data: any; error: any }> => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('User must be logged in to generate ads');
-
-      setGenerationStatus(`Initializing ${selectedPlatform} ad generation...`);
+      console.log(`Attempting to generate ads (attempt ${retryCount + 1}/${MAX_RETRIES})`);
       
       const { data, error } = await supabase.functions.invoke('generate-ad-content', {
         body: {
@@ -123,23 +55,83 @@ export const useAdGeneration = (
           businessIdea,
           targetAudience,
           adHooks,
-          userId: user.id
+          userId
         },
       });
 
+      if (error) throw error;
+      return { data, error: null };
+
+    } catch (error: any) {
+      console.error(`Generation attempt ${retryCount + 1} failed:`, error);
+      
+      if (error.message?.includes('No credits available')) {
+        return { data: null, error };
+      }
+
+      // Check if it's a network error and we haven't exceeded retries
+      if (
+        (error.message === 'Failed to fetch' || 
+         error.error_type === 'http_server_error' || 
+         error.code === 'ECONNREFUSED') && 
+        retryCount < MAX_RETRIES
+      ) {
+        setGenerationStatus(`Network issue detected. Retrying... (${retryCount + 1}/${MAX_RETRIES})`);
+        await sleep(RETRY_DELAY * Math.pow(2, retryCount)); // Exponential backoff
+        return invokeSupabaseFunction(selectedPlatform, userId, retryCount + 1);
+      }
+
+      return { data: null, error };
+    }
+  };
+
+  const generateAds = async (selectedPlatform: string) => {
+    setIsGenerating(true);
+    setGenerationStatus("Checking credits availability...");
+    
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('User must be logged in to generate ads');
+      }
+
+      setGenerationStatus(`Initializing ${selectedPlatform} ad generation...`);
+      
+      const { data, error } = await invokeSupabaseFunction(selectedPlatform, user.id);
+
       if (error) {
-        const isHandled = handleGenerationError(error);
-        if (isHandled) return;
+        if (error.message?.includes('No credits available')) {
+          toast({
+            title: "No credits available",
+            description: "Please upgrade your plan to continue generating ads.",
+            variant: "destructive",
+          });
+          navigate('/pricing');
+          return;
+        }
+
+        // Handle network-specific errors
+        if (error.message === 'Failed to fetch' || error.error_type === 'http_server_error') {
+          toast({
+            title: "Network Error",
+            description: "Unable to connect to our servers after multiple attempts. Please check your internet connection and try again.",
+            variant: "destructive",
+          });
+          return;
+        }
+
         throw error;
+      }
+
+      if (!data || !data.variants) {
+        throw new Error('Invalid response format from server');
       }
 
       console.log('Raw generation response:', data);
 
-      // Process variants with dimensions
       const variants = data.variants.map((variant: any) => ({
         ...variant,
         platform: selectedPlatform,
-        dimensions: getPlatformDimensions(selectedPlatform)
       }));
 
       console.log('Processed variants:', variants);
@@ -154,7 +146,13 @@ export const useAdGeneration = (
         description: `Your new ${selectedPlatform} ad variants are ready!`,
       });
     } catch (error: any) {
-      handleGenerationError(error);
+      console.error('Ad generation error:', error);
+      toast({
+        title: "Error generating ads",
+        description: error.message || "Failed to generate ads. Please try again.",
+        variant: "destructive",
+      });
+      setAdVariants([]);
     } finally {
       setIsGenerating(false);
       setGenerationStatus("");
