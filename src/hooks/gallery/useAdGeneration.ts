@@ -74,7 +74,7 @@ export const useAdGeneration = (
         retryCount < MAX_RETRIES
       ) {
         setGenerationStatus(`Network issue detected. Retrying... (${retryCount + 1}/${MAX_RETRIES})`);
-        await sleep(RETRY_DELAY * Math.pow(2, retryCount)); // Exponential backoff
+        await sleep(RETRY_DELAY * Math.pow(2, retryCount));
         return invokeSupabaseFunction(selectedPlatform, retryCount + 1);
       }
 
