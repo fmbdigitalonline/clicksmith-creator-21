@@ -72,15 +72,14 @@ const AudienceAnalysisStep = ({
   }, []);
 
   const handleNext = async () => {
-    if (analysis) {
-      setIsTransitioning(true);
-      try {
-        // Add a small delay to ensure smooth transition animation
-        await new Promise(resolve => setTimeout(resolve, 300));
-        onNext(analysis);
-      } finally {
-        setIsTransitioning(false);
-      }
+    if (!analysis || isTransitioning) return;
+    
+    setIsTransitioning(true);
+    try {
+      await new Promise(resolve => setTimeout(resolve, 300));
+      onNext(analysis);
+    } finally {
+      setIsTransitioning(false);
     }
   };
 
@@ -113,12 +112,14 @@ const AudienceAnalysisStep = ({
           <Button
             onClick={handleNext}
             disabled={!analysis || isLoading || isTransitioning}
-            className="bg-facebook hover:bg-facebook/90 text-white w-full md:w-auto relative animate-in fade-in duration-300"
+            className={`w-full md:w-auto relative ${
+              isTransitioning ? 'opacity-50 cursor-not-allowed' : 'bg-facebook hover:bg-facebook/90'
+            } text-white transition-all duration-200`}
           >
             {isTransitioning ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                <span>Loading...</span>
+                <span>Processing...</span>
               </>
             ) : (
               <>
