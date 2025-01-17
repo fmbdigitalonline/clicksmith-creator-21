@@ -231,7 +231,7 @@ serve(async (req) => {
     let responseData;
     switch (type) {
       case 'complete_ads':
-      case 'video_ads':
+      case 'video_ads': {
         console.log('Generating complete ad campaign with params:', { businessIdea, targetAudience, platform });
         try {
           const platformPrompt = getPlatformSpecificPrompt(platform, businessIdea, targetAudience);
@@ -268,6 +268,7 @@ serve(async (req) => {
           );
         }
         break;
+      }
       case 'audience':
         responseData = await generateAudiences(businessIdea);
         break;

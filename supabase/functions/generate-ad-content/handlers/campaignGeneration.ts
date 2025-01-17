@@ -1,6 +1,6 @@
 import { BusinessIdea, TargetAudience } from "../types.ts";
 
-export async function generateCampaign(businessIdea: any, targetAudience: any) {
+export async function generateCampaign(businessIdea: any, targetAudience: any, platformPrompt: string) {
   const prompt = `Create a marketing campaign for this business and target audience:
 
 Business:
@@ -9,14 +9,17 @@ ${JSON.stringify(businessIdea, null, 2)}
 Target Audience:
 ${JSON.stringify(targetAudience, null, 2)}
 
+Platform-specific requirements:
+${platformPrompt}
+
 Create a complete marketing campaign with:
 1. 3 Ad copies (different versions)
 2. 3 Headlines (6 words max)
 
 Ad Copy Guidelines:
-- Create 10 different versions and rotate:
+- Create different versions:
   1. "Longer story": Longer, storytelling-based use pain point one from audience analysis
-  2. "personal emotional story  ": personal emotional story use pain point two from audience analysis
+  2. "personal emotional story": personal emotional story use pain point two from audience analysis
   3. "AIDA version": Middle-length with bullet points use pain point three from audience analysis
 - Should be addressing about audience analysis painpoints
 - Some ad copies must also address the benefits of the products based on the positive experience the product provides
@@ -55,7 +58,7 @@ Return ONLY a valid JSON object with these fields:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4',
         messages: [
           {
             role: 'system',
