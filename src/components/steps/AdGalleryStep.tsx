@@ -84,21 +84,34 @@ const AdGalleryStep = ({
     if (!onAdsGenerated || adVariants.length === 0) return;
 
     const isNewProject = projectId === 'new';
+    
+    // Process new ad variants to prevent circular references
+    const processedVariants = adVariants.map(variant => ({
+      platform: variant.platform,
+      headline: variant.headline,
+      description: variant.description,
+      imageUrl: variant.imageUrl,
+      size: {
+        width: platform === 'tiktok' ? 1080 : 1200,
+        height: platform === 'tiktok' ? 1920 : 628,
+        label: platform === 'tiktok' ? "TikTok Feed" : "Facebook Feed"
+      }
+    }));
+
     const updatedAds = isNewProject 
-      ? adVariants // For new projects, use only new variants
+      ? processedVariants
       : generatedAds.map(existingAd => {
-          // Find if there's a new variant for this ad
-          const newVariant = adVariants.find(
-            variant => variant.platform === existingAd.platform && variant.id === existingAd.id
+          const newVariant = processedVariants.find(
+            variant => variant.platform === existingAd.platform && variant.headline === existingAd.headline
           );
           return newVariant || existingAd;
         });
 
     // Add any new variants that don't exist in the current ads
     if (!isNewProject) {
-      adVariants.forEach(newVariant => {
+      processedVariants.forEach(newVariant => {
         const exists = updatedAds.some(
-          ad => ad.platform === newVariant.platform && ad.id === newVariant.id
+          ad => ad.platform === newVariant.platform && ad.headline === newVariant.headline
         );
         if (!exists) {
           updatedAds.push(newVariant);
@@ -108,12 +121,12 @@ const AdGalleryStep = ({
 
     console.log('Updating ads state:', { 
       isNewProject, 
-      adVariantsCount: adVariants.length,
+      adVariantsCount: processedVariants.length,
       updatedAdsCount: updatedAds.length 
     });
     
     onAdsGenerated(updatedAds);
-  }, [adVariants, onAdsGenerated, projectId, generatedAds]);
+  }, [adVariants, onAdsGenerated, projectId, generatedAds, platform]);
 
   const onPlatformChange = (newPlatform: "facebook" | "google" | "linkedin" | "tiktok") => {
     handlePlatformChange(newPlatform, adVariants.length > 0);
