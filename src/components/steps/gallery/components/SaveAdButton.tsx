@@ -42,6 +42,19 @@ export const SaveAdButton = ({
       return;
     }
 
+    // Early return for "new" project
+    if (projectId === "new") {
+      if (onCreateProject) {
+        onCreateProject();
+      } else {
+        toast({
+          title: "Create Project First",
+          description: "Please create a project to save your ad.",
+        });
+      }
+      return;
+    }
+
     setSaving(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -52,14 +65,12 @@ export const SaveAdButton = ({
 
       // Only include project_id if it's a valid UUID
       const isValidUUID = projectId && 
-                         projectId !== "new" && 
                          /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(projectId);
 
-      // Create feedback data
+      // Create base feedback data
       const feedbackData = {
         id: uuidv4(),
         user_id: user.id,
-        project_id: isValidUUID ? projectId : null,
         rating: parseInt(rating, 10),
         feedback,
         saved_images: [image.url],
@@ -68,7 +79,12 @@ export const SaveAdButton = ({
         created_at: new Date().toISOString()
       };
 
-      console.log('Saving feedback data:', feedbackData);
+      // Only add project_id if valid UUID
+      if (isValidUUID) {
+        Object.assign(feedbackData, { project_id: projectId });
+      }
+
+      console.log('Saving feedback data:', feedbackData); // Debug log
 
       const { error: feedbackError } = await supabase
         .from('ad_feedback')
@@ -87,20 +103,6 @@ export const SaveAdButton = ({
       });
     } catch (error) {
       console.error('Error saving feedback:', error);
-      
-      if (projectId === 'new' && onCreateProject) {
-        toast({
-          title: "Create Project First",
-          description: "Please create a project to save your ad.",
-          action: (
-            <Button variant="outline" onClick={onCreateProject}>
-              Create Project
-            </Button>
-          ),
-        });
-        return;
-      }
-      
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to save feedback.",
