@@ -86,7 +86,13 @@ const AdGalleryStep = ({
     const shouldGenerateAds = isNewProject || existingPlatformAds.length === 0;
 
     if (shouldGenerateAds) {
-      console.log('Generating initial ads:', { isNewProject, platform, existingAdsCount: existingPlatformAds.length });
+      console.log('Generating initial ads:', { 
+        isNewProject, 
+        platform, 
+        existingAdsCount: existingPlatformAds.length,
+        hasLoadedInitialAds,
+        hasGeneratedInitialAds
+      });
       handleGenerateAds(platform);
     }
 
@@ -107,34 +113,32 @@ const AdGalleryStep = ({
       size: {
         width: platform === 'tiktok' ? 1080 : 1200,
         height: platform === 'tiktok' ? 1920 : 628,
-        label: platform === 'tiktok' ? "TikTok Feed" : "Facebook Feed"
+        label: platform === 'tiktok' ? "TikTok Feed" : `${platform.charAt(0).toUpperCase() + platform.slice(1)} Feed`
       }
     }));
 
-    const updatedAds = isNewProject 
+    let updatedAds = isNewProject 
       ? processedVariants
-      : generatedAds.map(existingAd => {
-          const newVariant = processedVariants.find(
-            variant => variant.platform === existingAd.platform && variant.headline === existingAd.headline
-          );
-          return newVariant || existingAd;
-        });
+      : [...generatedAds];
 
-    if (!isNewProject) {
-      processedVariants.forEach(newVariant => {
-        const exists = updatedAds.some(
-          ad => ad.platform === newVariant.platform && ad.headline === newVariant.headline
-        );
-        if (!exists) {
-          updatedAds.push(newVariant);
-        }
-      });
-    }
+    // Update existing ads or add new ones
+    processedVariants.forEach(newVariant => {
+      const existingIndex = updatedAds.findIndex(
+        ad => ad.platform === newVariant.platform && ad.headline === newVariant.headline
+      );
+      
+      if (existingIndex !== -1) {
+        updatedAds[existingIndex] = newVariant;
+      } else {
+        updatedAds.push(newVariant);
+      }
+    });
 
     console.log('Updating ads state:', { 
       isNewProject, 
       adVariantsCount: processedVariants.length,
-      updatedAdsCount: updatedAds.length 
+      updatedAdsCount: updatedAds.length,
+      platform
     });
     
     onAdsGenerated(updatedAds);
@@ -142,7 +146,7 @@ const AdGalleryStep = ({
 
   const onPlatformChange = (newPlatform: "facebook" | "google" | "linkedin" | "tiktok") => {
     handlePlatformChange(newPlatform, adVariants.length > 0);
-    resetGeneration(); // Reset generation state when platform changes
+    resetGeneration();
   };
 
   const onConfirmPlatformChange = () => {
