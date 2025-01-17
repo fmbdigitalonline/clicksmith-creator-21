@@ -71,12 +71,10 @@ export const useAdGeneration = (
 
       console.log('Raw generation response:', data);
 
-      // Process variants based on platform
-      const platformSize = getPlatformAdSize(selectedPlatform);
+      // Process variants while maintaining platform-specific formatting
       const variants = data.variants.map((variant: any) => ({
         ...variant,
         platform: selectedPlatform,
-        size: platformSize,
       }));
 
       console.log('Processed variants:', variants);
@@ -97,7 +95,6 @@ export const useAdGeneration = (
         description: error.message || "Failed to generate ads. Please try again.",
         variant: "destructive",
       });
-      setAdVariants([]);
     } finally {
       setIsGenerating(false);
       setGenerationStatus("");
@@ -112,27 +109,4 @@ export const useAdGeneration = (
     generateAds,
     resetGeneration,
   };
-};
-
-const getPlatformAdSize = (platform: string) => {
-  switch (platform) {
-    case 'tiktok':
-      return {
-        width: 1080,
-        height: 1920,
-        label: "TikTok Feed"
-      };
-    case 'facebook':
-      return {
-        width: 1200,
-        height: 628,
-        label: "Facebook Feed"
-      };
-    default:
-      return {
-        width: 1200,
-        height: 628,
-        label: "Standard Feed"
-      };
-  }
 };
