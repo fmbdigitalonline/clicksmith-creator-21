@@ -24,6 +24,7 @@ const AdWizard = () => {
 
   const {
     showCreateProject,
+    setShowCreateProject,
     videoAdsEnabled,
     generatedAds,
     hasLoadedInitialAds,
