@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useParams } from "react-router-dom";
 import { saveWizardProgress, clearWizardProgress } from "@/utils/wizardProgress";
+import { convertJsonArrayToAdVariants } from "@/types/adVariant";
 
 export const useAdWizardState = () => {
   const [currentStep, setCurrentStep] = useState<number>(1);
@@ -16,6 +17,7 @@ export const useAdWizardState = () => {
   const [targetAudience, setTargetAudience] = useState<TargetAudience | null>(null);
   const [audienceAnalysis, setAudienceAnalysis] = useState<AudienceAnalysis | null>(null);
   const [selectedHooks, setSelectedHooks] = useState<AdHook[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
   const { projectId } = useParams();
 
@@ -23,6 +25,7 @@ export const useAdWizardState = () => {
   useEffect(() => {
     const loadSavedProgress = async () => {
       try {
+        setIsLoading(true);
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
@@ -46,6 +49,7 @@ export const useAdWizardState = () => {
             .single();
 
           if (project) {
+            console.log('Loading project data:', project);
             // Set project data
             setBusinessIdea(project.business_idea as BusinessIdea);
             setTargetAudience(project.target_audience as TargetAudience);
@@ -75,6 +79,7 @@ export const useAdWizardState = () => {
           .single();
 
         if (wizardData) {
+          console.log('Loading wizard progress:', wizardData);
           setBusinessIdea(wizardData.business_idea as BusinessIdea);
           setTargetAudience(wizardData.target_audience as TargetAudience);
           setAudienceAnalysis(wizardData.audience_analysis as AudienceAnalysis);
@@ -94,13 +99,20 @@ export const useAdWizardState = () => {
         }
       } catch (error) {
         console.error('Error loading saved progress:', error);
+        toast({
+          title: "Error loading progress",
+          description: "Failed to load your previous progress. Starting fresh.",
+          variant: "destructive",
+        });
         // On error, start fresh from step 1
         setCurrentStep(1);
+      } finally {
+        setIsLoading(false);
       }
     };
 
     loadSavedProgress();
-  }, [projectId]);
+  }, [projectId, toast]);
 
   const handleIdeaSubmit = useCallback(async (idea: BusinessIdea) => {
     setBusinessIdea(idea);
@@ -141,7 +153,10 @@ export const useAdWizardState = () => {
 
       if (data?.hooks && Array.isArray(data.hooks)) {
         setSelectedHooks(data.hooks);
-        await saveWizardProgress({ selected_hooks: data.hooks }, projectId);
+        await saveWizardProgress({ 
+          selected_hooks: data.hooks,
+          current_step: 4 
+        }, projectId);
         setCurrentStep(4);
       } else {
         throw new Error('Invalid hooks data received');
@@ -210,6 +225,7 @@ export const useAdWizardState = () => {
     targetAudience,
     audienceAnalysis,
     selectedHooks,
+    isLoading,
     handleIdeaSubmit,
     handleAudienceSelect,
     handleAnalysisComplete,
