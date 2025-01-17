@@ -5,11 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
-
-interface AdVariant {
-  platform: string;
-  [key: string]: any;
-}
+import { AdVariant, convertJsonArrayToAdVariants } from "@/types/adVariant";
 
 export const useAdGeneration = (
   businessIdea: BusinessIdea,
@@ -25,7 +21,7 @@ export const useAdGeneration = (
   const { projectId } = useParams();
   const queryClient = useQueryClient();
 
-  // Load saved ads when component mounts or projectId changes
+  // Load saved ads when component mounts
   useEffect(() => {
     const loadSavedAds = async () => {
       try {
@@ -35,7 +31,6 @@ export const useAdGeneration = (
         let savedAds: AdVariant[] = [];
 
         if (projectId && projectId !== 'new') {
-          // Load from specific project
           const { data: project, error: projectError } = await supabase
             .from('projects')
             .select('generated_ads')
@@ -46,10 +41,9 @@ export const useAdGeneration = (
           
           if (project?.generated_ads) {
             console.log('Loading saved ads from project:', project.generated_ads);
-            savedAds = project.generated_ads;
+            savedAds = convertJsonArrayToAdVariants(project.generated_ads);
           }
         } else {
-          // Load from wizard progress
           const { data: wizardData, error: wizardError } = await supabase
             .from('wizard_progress')
             .select('generated_ads')
@@ -62,11 +56,10 @@ export const useAdGeneration = (
 
           if (wizardData?.generated_ads) {
             console.log('Loading saved ads from wizard progress:', wizardData.generated_ads);
-            savedAds = wizardData.generated_ads;
+            savedAds = convertJsonArrayToAdVariants(wizardData.generated_ads);
           }
         }
 
-        // Only update if we have saved ads
         if (savedAds.length > 0) {
           setAdVariants(savedAds);
         }
@@ -82,69 +75,6 @@ export const useAdGeneration = (
 
     loadSavedAds();
   }, [projectId, toast]);
-
-  const saveGeneratedAds = async (variants: AdVariant[]) => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      if (projectId && projectId !== 'new') {
-        const { error: updateError } = await supabase
-          .from('projects')
-          .update({ generated_ads: variants })
-          .eq('id', projectId);
-
-        if (updateError) throw updateError;
-      } else {
-        const { error: upsertError } = await supabase
-          .from('wizard_progress')
-          .upsert({
-            user_id: user.id,
-            generated_ads: variants
-          }, {
-            onConflict: 'user_id'
-          });
-
-        if (upsertError) throw upsertError;
-      }
-
-      console.log('Successfully saved generated ads');
-    } catch (error) {
-      console.error('Error saving generated ads:', error);
-      toast({
-        title: "Error saving ads",
-        description: "Your ads were generated but couldn't be saved for later. They'll remain available until you leave the page.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const resetGeneration = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      // Clear from both storage locations
-      if (projectId && projectId !== 'new') {
-        await supabase
-          .from('projects')
-          .update({ generated_ads: [] })
-          .eq('id', projectId);
-      }
-      
-      await supabase
-        .from('wizard_progress')
-        .update({ generated_ads: [] })
-        .eq('user_id', user.id);
-
-      setAdVariants([]);
-      setVideoVariants([]);
-      setGenerationStatus("");
-      setIsGenerating(false);
-    } catch (error) {
-      console.error('Error resetting generation:', error);
-    }
-  };
 
   const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -216,15 +146,44 @@ export const useAdGeneration = (
 
       console.log('Raw generation response:', data);
 
-      const variants = data.variants.map((variant: any) => ({
+      const variants: AdVariant[] = data.variants.map((variant: any) => ({
         ...variant,
         platform: selectedPlatform,
       }));
 
       console.log('Processed variants:', variants);
       setAdVariants(variants);
-      await saveGeneratedAds(variants);
 
+      // Save generated ads
+      const saveGeneratedAds = async () => {
+        try {
+          if (projectId && projectId !== 'new') {
+            await supabase
+              .from('projects')
+              .update({ generated_ads: variants })
+              .eq('id', projectId);
+          } else {
+            await supabase
+              .from('wizard_progress')
+              .upsert({
+                user_id: user.id,
+                generated_ads: variants
+              }, {
+                onConflict: 'user_id'
+              });
+          }
+        } catch (error) {
+          console.error('Error saving generated ads:', error);
+          toast({
+            title: "Error saving ads",
+            description: "Your ads were generated but couldn't be saved for later.",
+            variant: "destructive",
+          });
+        }
+      };
+
+      await saveGeneratedAds();
+      
       queryClient.invalidateQueries({ queryKey: ['subscription'] });
       queryClient.invalidateQueries({ queryKey: ['free_tier_usage'] });
 
@@ -244,6 +203,13 @@ export const useAdGeneration = (
       setIsGenerating(false);
       setGenerationStatus("");
     }
+  };
+
+  const resetGeneration = () => {
+    setAdVariants([]);
+    setVideoVariants([]);
+    setGenerationStatus("");
+    setIsGenerating(false);
   };
 
   return {
