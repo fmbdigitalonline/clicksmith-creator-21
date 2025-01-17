@@ -28,9 +28,16 @@ const ProjectList = ({ onStartAdWizard }: ProjectListProps) => {
   const { data: projects, refetch, error, isLoading } = useQuery({
     queryKey: ["projects"],
     queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error("User not authenticated");
+      }
+
       const { data, error } = await supabase
         .from("projects")
         .select("*")
+        .eq('user_id', user.id)
         .order("created_at", { ascending: false });
 
       if (error) {
