@@ -6,10 +6,11 @@ import Projects from "@/pages/Projects";
 import Settings from "@/pages/Settings";
 import Pricing from "@/pages/Pricing";
 import Traffic from "@/pages/Traffic";
-import ProtectedRoute from "@/components/auth/ProtectedRoute";
-import AppLayout from "@/components/layout/AppLayout";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { AppLayout } from "@/components/layout/AppLayout";
 import { Toaster } from "@/components/ui/toaster";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import AdWizard from "@/components/AdWizard";
 
 const queryClient = new QueryClient();
 
