@@ -3,7 +3,7 @@ import { VideoAdVariant } from "@/types/videoAdTypes";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 
 export const useAdGeneration = (
@@ -17,30 +17,12 @@ export const useAdGeneration = (
   const [generationStatus, setGenerationStatus] = useState<string>("");
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { projectId } = useParams();
   const queryClient = useQueryClient();
 
-  const getPlatformAdSize = (platform: string) => {
-    switch (platform) {
-      case 'tiktok':
-        return {
-          width: 1080,
-          height: 1920,
-          label: "TikTok Feed"
-        };
-      case 'facebook':
-        return {
-          width: 1200,
-          height: 628,
-          label: "Facebook Feed"
-        };
-      default:
-        return {
-          width: 1200,
-          height: 628,
-          label: "Standard Feed"
-        };
-    }
+  const resetGeneration = () => {
+    setAdVariants([]);
+    setVideoVariants([]);
+    setGenerationStatus("");
   };
 
   const generateAds = async (selectedPlatform: string) => {
@@ -51,7 +33,7 @@ export const useAdGeneration = (
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User must be logged in to generate ads');
 
-      setGenerationStatus("Initializing generation...");
+      setGenerationStatus(`Initializing ${selectedPlatform} ad generation...`);
       
       const { data, error } = await supabase.functions.invoke('generate-ad-content', {
         body: {
@@ -105,6 +87,7 @@ export const useAdGeneration = (
         description: error.message || "Failed to generate ads. Please try again.",
         variant: "destructive",
       });
+      setAdVariants([]);
     } finally {
       setIsGenerating(false);
       setGenerationStatus("");
@@ -117,5 +100,29 @@ export const useAdGeneration = (
     videoVariants,
     generationStatus,
     generateAds,
+    resetGeneration,
   };
+};
+
+const getPlatformAdSize = (platform: string) => {
+  switch (platform) {
+    case 'tiktok':
+      return {
+        width: 1080,
+        height: 1920,
+        label: "TikTok Feed"
+      };
+    case 'facebook':
+      return {
+        width: 1200,
+        height: 628,
+        label: "Facebook Feed"
+      };
+    default:
+      return {
+        width: 1200,
+        height: 628,
+        label: "Standard Feed"
+      };
+  }
 };

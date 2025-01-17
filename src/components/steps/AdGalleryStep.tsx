@@ -10,6 +10,7 @@ import AdGenerationControls from "./gallery/AdGenerationControls";
 import { useEffect, useState, useCallback } from "react";
 import { AdSizeSelector, AD_FORMATS } from "./gallery/components/AdSizeSelector";
 import { useParams } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
 
 interface AdGalleryStepProps {
   businessIdea: BusinessIdea;
@@ -41,6 +42,8 @@ const AdGalleryStep = ({
   const [selectedFormat, setSelectedFormat] = useState(AD_FORMATS[0]);
   const [hasGeneratedInitialAds, setHasGeneratedInitialAds] = useState(false);
   const { projectId } = useParams();
+  const { toast } = useToast();
+  
   const {
     platform,
     showPlatformChangeDialog,
@@ -55,13 +58,24 @@ const AdGalleryStep = ({
     adVariants,
     generationStatus,
     generateAds,
+    resetGeneration
   } = useAdGeneration(businessIdea, targetAudience, adHooks);
 
-  const handleGenerateAds = useCallback((selectedPlatform: string) => {
+  const handleGenerateAds = useCallback(async (selectedPlatform: string) => {
     if (!isGenerating) {
-      generateAds(selectedPlatform);
+      try {
+        console.log('Starting ad generation for platform:', selectedPlatform);
+        await generateAds(selectedPlatform);
+      } catch (error) {
+        console.error('Error generating ads:', error);
+        toast({
+          title: "Error generating ads",
+          description: "Failed to generate ads. Please try again.",
+          variant: "destructive",
+        });
+      }
     }
-  }, [generateAds, isGenerating]);
+  }, [generateAds, isGenerating, toast]);
 
   // Effect for initial ad generation
   useEffect(() => {
@@ -85,7 +99,6 @@ const AdGalleryStep = ({
 
     const isNewProject = projectId === 'new';
     
-    // Process new ad variants to prevent circular references
     const processedVariants = adVariants.map(variant => ({
       platform: variant.platform,
       headline: variant.headline,
@@ -107,7 +120,6 @@ const AdGalleryStep = ({
           return newVariant || existingAd;
         });
 
-    // Add any new variants that don't exist in the current ads
     if (!isNewProject) {
       processedVariants.forEach(newVariant => {
         const exists = updatedAds.some(
@@ -130,6 +142,7 @@ const AdGalleryStep = ({
 
   const onPlatformChange = (newPlatform: "facebook" | "google" | "linkedin" | "tiktok") => {
     handlePlatformChange(newPlatform, adVariants.length > 0);
+    resetGeneration(); // Reset generation state when platform changes
   };
 
   const onConfirmPlatformChange = () => {
