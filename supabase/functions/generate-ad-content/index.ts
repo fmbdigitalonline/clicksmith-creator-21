@@ -28,7 +28,6 @@ const sanitizeJson = (obj: unknown): unknown => {
   return obj;
 };
 
-// Valid generation types
 const VALID_GENERATION_TYPES = [
   'audience',
   'hooks',
@@ -39,13 +38,29 @@ const VALID_GENERATION_TYPES = [
 ];
 
 const getPlatformSpecificPrompt = (platform: string, businessIdea: any, targetAudience: any) => {
+  console.log(`Generating platform-specific prompt for ${platform}`);
+  
   switch (platform) {
     case 'tiktok':
       return `Create engaging, vertical format video ad copy for TikTok that resonates with ${targetAudience.demographics}. 
-      Focus on: ${businessIdea.valueProposition}. 
+      Focus on: ${businessIdea.valueProposition}
       Keep it casual, authentic, and trend-aware.
       Format the content for vertical viewing (9:16 aspect ratio).
-      Include hooks that work well with TikTok's fast-paced environment.`;
+      Include hooks that work well with TikTok's fast-paced environment.
+      
+      Guidelines for TikTok:
+      - Keep text concise and punchy
+      - Use informal, conversational language
+      - Focus on immediate value proposition
+      - Include clear call-to-actions
+      - Optimize for mobile-first viewing
+      - Consider trending audio/music integration hints`;
+    
+    case 'facebook':
+      return `Create professional ad copy for Facebook that highlights: ${businessIdea.valueProposition}. 
+      Target audience: ${targetAudience.demographics}
+      Focus on engaging storytelling and clear value proposition.`;
+    
     default:
       return `Create professional ad copy for ${platform} that highlights: ${businessIdea.valueProposition}. 
       Target audience: ${targetAudience.demographics}`;
@@ -53,6 +68,8 @@ const getPlatformSpecificPrompt = (platform: string, businessIdea: any, targetAu
 };
 
 const getPlatformAdSize = (platform: string) => {
+  console.log(`Getting ad size for platform: ${platform}`);
+  
   switch (platform) {
     case 'tiktok':
       return {
@@ -158,6 +175,8 @@ serve(async (req) => {
         console.log('Generating complete ad campaign with params:', { businessIdea, targetAudience, platform });
         try {
           const platformPrompt = getPlatformSpecificPrompt(platform, businessIdea, targetAudience);
+          console.log('Using platform-specific prompt:', platformPrompt);
+          
           const campaignData = await generateCampaign(businessIdea, targetAudience, platformPrompt);
           console.log('Campaign data generated:', campaignData);
           
@@ -165,6 +184,7 @@ serve(async (req) => {
           console.log('Image data generated:', imageData);
           
           const adSize = getPlatformAdSize(platform);
+          console.log('Using ad size:', adSize);
           
           responseData = sanitizeJson({
             variants: campaignData.campaign.adCopies.map((copy: any, index: number) => ({
