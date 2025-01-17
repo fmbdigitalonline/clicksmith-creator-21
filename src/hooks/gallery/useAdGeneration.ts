@@ -6,11 +6,20 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 
+interface UseAdGenerationReturn {
+  isGenerating: boolean;
+  adVariants: any[];
+  videoVariants: VideoAdVariant[];
+  generationStatus: string;
+  generateAds: (selectedPlatform: string) => Promise<void>;
+  resetGeneration: () => void;
+}
+
 export const useAdGeneration = (
   businessIdea: BusinessIdea,
   targetAudience: TargetAudience,
   adHooks: AdHook[]
-) => {
+): UseAdGenerationReturn => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [adVariants, setAdVariants] = useState<any[]>([]);
   const [videoVariants, setVideoVariants] = useState<VideoAdVariant[]>([]);
