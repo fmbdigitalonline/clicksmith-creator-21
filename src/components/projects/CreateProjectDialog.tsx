@@ -48,65 +48,88 @@ const CreateProjectDialog = ({
       return;
     }
 
-    const tags = values.tags
-      ? values.tags.split(",").map((tag) => tag.trim())
-      : [];
-
-    let projectData: any = {
-      title: values.title,
-      description: values.description || null,
-      tags,
-      user_id: userId,
-      status: "draft",
-      business_idea: {
-        description: values.businessIdea,
-        valueProposition: `Enhanced version of: ${values.businessIdea}`,
-      },
-    };
-
-    if (includeWizardProgress) {
-      // Fetch current wizard progress
-      const { data: wizardProgress } = await supabase
-        .from('wizard_progress')
-        .select('*')
-        .eq('user_id', userId)
+    try {
+      // First check if a project with this title already exists for the user
+      const { data: existingProjects, error: checkError } = await supabase
+        .from("projects")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("title", values.title)
         .single();
 
-      if (wizardProgress) {
-        // Include wizard progress data in project
-        projectData = {
-          ...projectData,
-          target_audience: wizardProgress.target_audience,
-          audience_analysis: wizardProgress.audience_analysis,
-          selected_hooks: wizardProgress.selected_hooks,
-          ad_format: wizardProgress.ad_format,
-          video_ad_preferences: wizardProgress.video_ad_preferences,
-        };
+      if (existingProjects) {
+        toast({
+          title: "Project title already exists",
+          description: "Please choose a different title for your project",
+          variant: "destructive",
+        });
+        return;
       }
-    }
 
-    const { data, error } = await supabase
-      .from("projects")
-      .insert(projectData)
-      .select();
+      const tags = values.tags
+        ? values.tags.split(",").map((tag) => tag.trim())
+        : [];
 
-    if (error) {
+      let projectData: any = {
+        title: values.title,
+        description: values.description || null,
+        tags,
+        user_id: userId,
+        status: "draft",
+        business_idea: {
+          description: values.businessIdea,
+          valueProposition: `Enhanced version of: ${values.businessIdea}`,
+        },
+      };
+
+      if (includeWizardProgress) {
+        // Fetch current wizard progress
+        const { data: wizardProgress } = await supabase
+          .from('wizard_progress')
+          .select('*')
+          .eq('user_id', userId)
+          .single();
+
+        if (wizardProgress) {
+          // Include wizard progress data in project
+          projectData = {
+            ...projectData,
+            target_audience: wizardProgress.target_audience,
+            audience_analysis: wizardProgress.audience_analysis,
+            selected_hooks: wizardProgress.selected_hooks,
+            ad_format: wizardProgress.ad_format,
+            video_ad_preferences: wizardProgress.video_ad_preferences,
+          };
+        }
+      }
+
+      const { data, error } = await supabase
+        .from("projects")
+        .insert(projectData)
+        .select();
+
+      if (error) {
+        throw error;
+      }
+
+      if (data && data[0]) {
+        setCreatedProjectId(data[0].id);
+        setShowActions(true);
+        toast({
+          title: "Project created",
+          description: "Your project has been created successfully.",
+        });
+        onSuccess(data[0].id);
+      }
+    } catch (error: any) {
+      console.error('Error creating project:', error);
       toast({
         title: "Error creating project",
-        description: error.message,
+        description: error.message === "duplicate key value violates unique constraint \"unique_project_title_per_user\""
+          ? "A project with this title already exists. Please choose a different title."
+          : error.message,
         variant: "destructive",
       });
-      return;
-    }
-
-    if (data && data[0]) {
-      setCreatedProjectId(data[0].id);
-      setShowActions(true);
-      toast({
-        title: "Project created",
-        description: "Your project has been created successfully.",
-      });
-      onSuccess(data[0].id);
     }
   };
 
