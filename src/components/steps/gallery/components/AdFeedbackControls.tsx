@@ -41,13 +41,16 @@ export const AdFeedbackControls = ({
                          projectId !== "new" && 
                          /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(projectId);
 
+      // Ensure rating is a valid integer between 0 and 5
+      const normalizedRating = Math.min(Math.max(Math.round(feedbackData.rating), 0), 5);
+
       const { error } = await supabase
         .from('ad_feedback')
         .insert({
           user_id: user.id,
           project_id: isValidUUID ? projectId : null,
           ad_id: adId,
-          rating: feedbackData.rating,
+          rating: normalizedRating,
           feedback: feedbackData.feedback || null,
         });
 
@@ -104,9 +107,9 @@ export const AdFeedbackControls = ({
   };
 
   const handleLike = async () => {
-    setRating(1);
+    setRating(5); // Set maximum rating for likes
     const success = await saveFeedback({
-      rating: 1,
+      rating: 5,
     });
 
     if (success) {
@@ -115,7 +118,7 @@ export const AdFeedbackControls = ({
   };
 
   const handleDislike = () => {
-    setRating(0);
+    setRating(1); // Set minimum rating for dislikes
     setShowFeedbackDialog(true);
   };
 
