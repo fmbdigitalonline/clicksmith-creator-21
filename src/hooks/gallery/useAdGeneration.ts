@@ -42,7 +42,6 @@ export const useAdGeneration = (
 
   const invokeSupabaseFunction = async (
     selectedPlatform: string,
-    userId: string,
     retryCount = 0
   ): Promise<{ data: any; error: any }> => {
     try {
@@ -54,8 +53,7 @@ export const useAdGeneration = (
           platform: selectedPlatform,
           businessIdea,
           targetAudience,
-          adHooks,
-          userId
+          adHooks
         },
       });
 
@@ -69,7 +67,6 @@ export const useAdGeneration = (
         return { data: null, error };
       }
 
-      // Check if it's a network error and we haven't exceeded retries
       if (
         (error.message === 'Failed to fetch' || 
          error.error_type === 'http_server_error' || 
@@ -78,7 +75,7 @@ export const useAdGeneration = (
       ) {
         setGenerationStatus(`Network issue detected. Retrying... (${retryCount + 1}/${MAX_RETRIES})`);
         await sleep(RETRY_DELAY * Math.pow(2, retryCount)); // Exponential backoff
-        return invokeSupabaseFunction(selectedPlatform, userId, retryCount + 1);
+        return invokeSupabaseFunction(selectedPlatform, retryCount + 1);
       }
 
       return { data: null, error };
@@ -97,7 +94,7 @@ export const useAdGeneration = (
 
       setGenerationStatus(`Initializing ${selectedPlatform} ad generation...`);
       
-      const { data, error } = await invokeSupabaseFunction(selectedPlatform, user.id);
+      const { data, error } = await invokeSupabaseFunction(selectedPlatform);
 
       if (error) {
         if (error.message?.includes('No credits available')) {
@@ -110,7 +107,6 @@ export const useAdGeneration = (
           return;
         }
 
-        // Handle network-specific errors
         if (error.message === 'Failed to fetch' || error.error_type === 'http_server_error') {
           toast({
             title: "Network Error",
@@ -137,7 +133,6 @@ export const useAdGeneration = (
       console.log('Processed variants:', variants);
       setAdVariants(variants);
 
-      // Refresh credits display
       queryClient.invalidateQueries({ queryKey: ['subscription'] });
       queryClient.invalidateQueries({ queryKey: ['free_tier_usage'] });
 
