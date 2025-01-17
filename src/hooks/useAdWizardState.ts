@@ -28,52 +28,48 @@ export const useAdWizardState = () => {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
-        // For new projects, check wizard_progress first
-        if (projectId === 'new') {
-          const { data: wizardData } = await supabase
-            .from('wizard_progress')
-            .select('*')
-            .eq('user_id', user.id)
-            .single();
+        // First try to load from wizard_progress
+        const { data: wizardData } = await supabase
+          .from('wizard_progress')
+          .select('*')
+          .eq('user_id', user.id)
+          .maybeSingle();
 
-          if (wizardData) {
-            console.log('Loading wizard progress:', wizardData);
-            setBusinessIdea(wizardData.business_idea as BusinessIdea);
-            setTargetAudience(wizardData.target_audience as TargetAudience);
-            setAudienceAnalysis(wizardData.audience_analysis as AudienceAnalysis);
-            const hooks = Array.isArray(wizardData.selected_hooks) ? wizardData.selected_hooks : [];
-            setSelectedHooks(hooks as AdHook[]);
-            
-            // Set appropriate step based on wizard progress
-            if (hooks.length > 0) {
-              setCurrentStep(4);
-            } else if (wizardData.audience_analysis) {
-              setCurrentStep(3);
-            } else if (wizardData.target_audience) {
-              setCurrentStep(2);
-            }
-            return;
+        if (wizardData && (projectId === 'new' || !projectId)) {
+          console.log('Loading wizard progress:', wizardData);
+          setBusinessIdea(wizardData.business_idea);
+          setTargetAudience(wizardData.target_audience);
+          setAudienceAnalysis(wizardData.audience_analysis);
+          setSelectedHooks(Array.isArray(wizardData.selected_hooks) ? wizardData.selected_hooks : []);
+          
+          // Set step based on available data
+          if (wizardData.selected_hooks?.length > 0) {
+            setCurrentStep(4);
+          } else if (wizardData.audience_analysis) {
+            setCurrentStep(3);
+          } else if (wizardData.target_audience) {
+            setCurrentStep(2);
           }
+          return;
         }
 
-        // Try to load from project if we have a project ID
+        // If we have a specific project ID, try to load it
         if (projectId && projectId !== 'new') {
           const { data: project } = await supabase
             .from('projects')
             .select('*')
             .eq('id', projectId)
-            .single();
+            .maybeSingle();
 
           if (project) {
             console.log('Loading project data:', project);
-            setBusinessIdea(project.business_idea as BusinessIdea);
-            setTargetAudience(project.target_audience as TargetAudience);
-            setAudienceAnalysis(project.audience_analysis as AudienceAnalysis);
-            const hooks = Array.isArray(project.selected_hooks) ? project.selected_hooks : [];
-            setSelectedHooks(hooks as AdHook[]);
+            setBusinessIdea(project.business_idea);
+            setTargetAudience(project.target_audience);
+            setAudienceAnalysis(project.audience_analysis);
+            setSelectedHooks(Array.isArray(project.selected_hooks) ? project.selected_hooks : []);
             
-            // Set appropriate step based on available data
-            if (hooks.length > 0) {
+            // Set step based on available project data
+            if (project.selected_hooks?.length > 0) {
               setCurrentStep(4);
             } else if (project.audience_analysis) {
               setCurrentStep(3);
@@ -86,7 +82,7 @@ export const useAdWizardState = () => {
         console.error('Error loading saved progress:', error);
         toast({
           title: "Error loading progress",
-          description: "Failed to load your previous progress. Starting fresh.",
+          description: "Failed to load your previous progress.",
           variant: "destructive",
         });
       } finally {
