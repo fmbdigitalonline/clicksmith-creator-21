@@ -17,9 +17,9 @@ Create a complete marketing campaign with:
 2. 3 Headlines (6 words max)
 
 Ad Copy Guidelines:
-- Create different versions:
+- Create 10 different versions and rotate:
   1. "Longer story": Longer, storytelling-based use pain point one from audience analysis
-  2. "personal emotional story": personal emotional story use pain point two from audience analysis
+  2. "personal emotional story  ": personal emotional story use pain point two from audience analysis
   3. "AIDA version": Middle-length with bullet points use pain point three from audience analysis
 - Should be addressing about audience analysis painpoints
 - Some ad copies must also address the benefits of the products based on the positive experience the product provides
@@ -58,7 +58,7 @@ Return ONLY a valid JSON object with these fields:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4',
+        model: 'gpt-4o-mini',
         messages: [
           {
             role: 'system',
