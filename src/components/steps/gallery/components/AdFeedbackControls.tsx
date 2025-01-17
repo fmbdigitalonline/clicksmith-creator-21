@@ -49,7 +49,6 @@ export const AdFeedbackControls = ({
           ad_id: adId,
           rating: feedbackData.rating,
           feedback: feedbackData.feedback || null,
-          created_at: new Date().toISOString()
         });
 
       if (error) throw error;
