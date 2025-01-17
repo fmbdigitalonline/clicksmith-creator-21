@@ -9,7 +9,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useParams } from "react-router-dom";
 import { saveWizardProgress, clearWizardProgress } from "@/utils/wizardProgress";
-import { convertJsonArrayToAdVariants } from "@/types/adVariant";
 
 export const useAdWizardState = () => {
   const [currentStep, setCurrentStep] = useState<number>(1);
@@ -29,19 +28,36 @@ export const useAdWizardState = () => {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
-        // For new projects, clear any existing progress and start from step 1
+        // For new projects, check wizard_progress first
         if (projectId === 'new') {
-          await clearWizardProgress(projectId, user.id);
-          setBusinessIdea(null);
-          setTargetAudience(null);
-          setAudienceAnalysis(null);
-          setSelectedHooks([]);
-          setCurrentStep(1);
-          return;
+          const { data: wizardData } = await supabase
+            .from('wizard_progress')
+            .select('*')
+            .eq('user_id', user.id)
+            .single();
+
+          if (wizardData) {
+            console.log('Loading wizard progress:', wizardData);
+            setBusinessIdea(wizardData.business_idea as BusinessIdea);
+            setTargetAudience(wizardData.target_audience as TargetAudience);
+            setAudienceAnalysis(wizardData.audience_analysis as AudienceAnalysis);
+            const hooks = Array.isArray(wizardData.selected_hooks) ? wizardData.selected_hooks : [];
+            setSelectedHooks(hooks as AdHook[]);
+            
+            // Set appropriate step based on wizard progress
+            if (hooks.length > 0) {
+              setCurrentStep(4);
+            } else if (wizardData.audience_analysis) {
+              setCurrentStep(3);
+            } else if (wizardData.target_audience) {
+              setCurrentStep(2);
+            }
+            return;
+          }
         }
 
         // Try to load from project if we have a project ID
-        if (projectId) {
+        if (projectId && projectId !== 'new') {
           const { data: project } = await supabase
             .from('projects')
             .select('*')
@@ -50,7 +66,6 @@ export const useAdWizardState = () => {
 
           if (project) {
             console.log('Loading project data:', project);
-            // Set project data
             setBusinessIdea(project.business_idea as BusinessIdea);
             setTargetAudience(project.target_audience as TargetAudience);
             setAudienceAnalysis(project.audience_analysis as AudienceAnalysis);
@@ -64,37 +79,7 @@ export const useAdWizardState = () => {
               setCurrentStep(3);
             } else if (project.target_audience) {
               setCurrentStep(2);
-            } else {
-              setCurrentStep(1);
             }
-            return;
-          }
-        }
-
-        // If no project or it's invalid, load from wizard_progress
-        const { data: wizardData } = await supabase
-          .from('wizard_progress')
-          .select('*')
-          .eq('user_id', user.id)
-          .single();
-
-        if (wizardData) {
-          console.log('Loading wizard progress:', wizardData);
-          setBusinessIdea(wizardData.business_idea as BusinessIdea);
-          setTargetAudience(wizardData.target_audience as TargetAudience);
-          setAudienceAnalysis(wizardData.audience_analysis as AudienceAnalysis);
-          const hooks = Array.isArray(wizardData.selected_hooks) ? wizardData.selected_hooks : [];
-          setSelectedHooks(hooks as AdHook[]);
-          
-          // Set appropriate step based on wizard progress
-          if (hooks.length > 0) {
-            setCurrentStep(4);
-          } else if (wizardData.audience_analysis) {
-            setCurrentStep(3);
-          } else if (wizardData.target_audience) {
-            setCurrentStep(2);
-          } else {
-            setCurrentStep(1);
           }
         }
       } catch (error) {
@@ -104,8 +89,6 @@ export const useAdWizardState = () => {
           description: "Failed to load your previous progress. Starting fresh.",
           variant: "destructive",
         });
-        // On error, start fresh from step 1
-        setCurrentStep(1);
       } finally {
         setIsLoading(false);
       }
