@@ -40,10 +40,12 @@ const VALID_GENERATION_TYPES = [
 const getPlatformSpecificPrompt = (platform: string, businessIdea: any, targetAudience: any) => {
   console.log(`Generating platform-specific prompt for ${platform}`);
   
+  const basePrompt = `Create engaging ad copy for ${platform} that resonates with ${targetAudience.demographics}. 
+    Focus on: ${businessIdea.valueProposition}`;
+  
   switch (platform) {
     case 'tiktok':
-      return `Create engaging, vertical format video ad copy for TikTok that resonates with ${targetAudience.demographics}. 
-      Focus on: ${businessIdea.valueProposition}
+      return `${basePrompt}
       Keep it casual, authentic, and trend-aware.
       Format the content for vertical viewing (9:16 aspect ratio).
       Include hooks that work well with TikTok's fast-paced environment.
@@ -53,17 +55,41 @@ const getPlatformSpecificPrompt = (platform: string, businessIdea: any, targetAu
       - Use informal, conversational language
       - Focus on immediate value proposition
       - Include clear call-to-actions
-      - Optimize for mobile-first viewing
-      - Consider trending audio/music integration hints`;
+      - Optimize for mobile-first viewing`;
+    
+    case 'linkedin':
+      return `${basePrompt}
+      Focus on professional tone and B2B messaging.
+      
+      Guidelines for LinkedIn:
+      - Use professional, business-focused language
+      - Highlight industry expertise and credibility
+      - Focus on business value and ROI
+      - Include relevant industry terms
+      - Keep content concise but informative`;
+    
+    case 'google':
+      return `${basePrompt}
+      Optimize for Google Display Network.
+      
+      Guidelines for Google Ads:
+      - Clear, direct messaging
+      - Strong call-to-action
+      - Focus on benefits and solutions
+      - Include relevant keywords
+      - Comply with Google Ads policies`;
     
     case 'facebook':
-      return `Create professional ad copy for Facebook that highlights: ${businessIdea.valueProposition}. 
-      Target audience: ${targetAudience.demographics}
-      Focus on engaging storytelling and clear value proposition.`;
-    
     default:
-      return `Create professional ad copy for ${platform} that highlights: ${businessIdea.valueProposition}. 
-      Target audience: ${targetAudience.demographics}`;
+      return `${basePrompt}
+      Focus on engaging storytelling and clear value proposition.
+      
+      Guidelines for Facebook:
+      - Conversational, friendly tone
+      - Engaging opening hook
+      - Visual storytelling approach
+      - Clear call-to-action
+      - Mobile-first optimization`;
   }
 };
 
@@ -77,17 +103,23 @@ const getPlatformAdSize = (platform: string) => {
         height: 1920,
         label: "TikTok Feed"
       };
-    case 'facebook':
+    case 'linkedin':
+      return {
+        width: 1200,
+        height: 627,
+        label: "LinkedIn Feed"
+      };
+    case 'google':
       return {
         width: 1200,
         height: 628,
-        label: "Facebook Feed"
+        label: "Google Display"
       };
     default:
       return {
         width: 1200,
         height: 628,
-        label: "Standard Feed"
+        label: "Facebook Feed"
       };
   }
 }
