@@ -93,23 +93,26 @@ const getPlatformAdSize = (platform: string) => {
 }
 
 serve(async (req) => {
+  // Add CORS headers to all responses
+  const headers = {
+    ...corsHeaders,
+    'Content-Type': 'application/json',
+  };
+
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { 
+      headers,
+      status: 204,
+    });
+  }
+
   try {
     console.log('Edge Function received request:', { 
       method: req.method,
       url: req.url,
       headers: Object.fromEntries(req.headers.entries())
     });
-
-    if (req.method === 'OPTIONS') {
-      return new Response(null, { 
-        status: 204,
-        headers: {
-          ...corsHeaders,
-          'Access-Control-Max-Age': '86400',
-          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-        }
-      });
-    }
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -128,17 +131,29 @@ serve(async (req) => {
       }
     } catch (e) {
       console.error('Error parsing request body:', e);
-      throw new Error(`Invalid JSON in request body: ${e.message}`);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Invalid JSON in request body',
+          details: e.message 
+        }), 
+        { headers, status: 400 }
+      );
     }
 
     if (!body) {
-      throw new Error('Empty request body');
+      return new Response(
+        JSON.stringify({ error: 'Empty request body' }), 
+        { headers, status: 400 }
+      );
     }
 
     const { type, businessIdea, targetAudience, platform = 'facebook', userId } = body;
     
     if (!type) {
-      throw new Error('type is required in request body');
+      return new Response(
+        JSON.stringify({ error: 'type is required in request body' }), 
+        { headers, status: 400 }
+      );
     }
 
     // Check and deduct credits
@@ -148,13 +163,21 @@ serve(async (req) => {
         { p_user_id: userId, required_credits: 1 }
       );
 
-      if (creditError) throw creditError;
+      if (creditError) {
+        return new Response(
+          JSON.stringify({ error: creditError.message }), 
+          { headers, status: 500 }
+        );
+      }
 
       const result = creditCheck[0];
       if (!result.has_credits) {
         return new Response(
-          JSON.stringify({ error: 'No credits available', message: result.error_message }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 402 }
+          JSON.stringify({ 
+            error: 'No credits available', 
+            message: result.error_message 
+          }),
+          { headers, status: 402 }
         );
       }
 
@@ -163,7 +186,12 @@ serve(async (req) => {
         { input_user_id: userId, credits_to_deduct: 1 }
       );
 
-      if (deductError) throw deductError;
+      if (deductError) {
+        return new Response(
+          JSON.stringify({ error: deductError.message }), 
+          { headers, status: 500 }
+        );
+      }
     }
 
     console.log('Processing request:', { type, platform });
@@ -199,51 +227,50 @@ serve(async (req) => {
           console.log('Generated ad variants:', responseData);
         } catch (error) {
           console.error('Error generating ad content:', error);
-          throw error;
+          return new Response(
+            JSON.stringify({ 
+              error: 'Failed to generate ad content',
+              details: error.message 
+            }), 
+            { headers, status: 500 }
+          );
         }
         break;
       case 'audience':
-        console.log('Generating audiences with params:', { businessIdea });
         responseData = await generateAudiences(businessIdea);
         break;
       case 'hooks':
-        console.log('Generating hooks with params:', { businessIdea, targetAudience });
         responseData = await generateHooks(businessIdea, targetAudience);
         break;
       case 'audience_analysis':
-        console.log('Analyzing audience with params:', { businessIdea, targetAudience });
         responseData = await analyzeAudience(businessIdea, targetAudience);
         break;
       case 'images':
-        console.log('Generating images with params:', { businessIdea, targetAudience });
         responseData = await generateImagePrompts(businessIdea, targetAudience);
         break;
       default:
-        throw new Error(`Unsupported generation type: ${type}`);
+        return new Response(
+          JSON.stringify({ error: `Unsupported generation type: ${type}` }), 
+          { headers, status: 400 }
+        );
     }
 
     const sanitizedResponse = sanitizeJson(responseData);
     console.log('Edge Function response data:', sanitizedResponse);
 
-    return new Response(JSON.stringify(sanitizedResponse), {
-      status: 200,
-      headers: { 
-        ...corsHeaders,
-        'Content-Type': 'application/json',
-      },
-    });
+    return new Response(
+      JSON.stringify(sanitizedResponse), 
+      { headers, status: 200 }
+    );
   } catch (error) {
     console.error('Error in generate-ad-content function:', error);
     
-    return new Response(JSON.stringify({
-      error: error.message,
-      details: error.stack
-    }), {
-      status: error.status || 400,
-      headers: { 
-        ...corsHeaders,
-        'Content-Type': 'application/json',
-      },
-    });
+    return new Response(
+      JSON.stringify({
+        error: error.message,
+        details: error.stack
+      }), 
+      { headers, status: 500 }
+    );
   }
 });
