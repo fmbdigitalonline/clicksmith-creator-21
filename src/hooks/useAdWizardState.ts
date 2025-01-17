@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useParams } from "react-router-dom";
 import { saveWizardProgress, clearWizardProgress } from "@/utils/wizardProgress";
+import { convertJsonArrayToAdVariants } from "@/types/adVariant";
 
 export const useAdWizardState = () => {
   const [currentStep, setCurrentStep] = useState<number>(1);
@@ -28,63 +29,83 @@ export const useAdWizardState = () => {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
-        // First try to load from wizard_progress
-        const { data: wizardData } = await supabase
-          .from('wizard_progress')
-          .select('*')
-          .eq('user_id', user.id)
-          .maybeSingle();
-
-        if (wizardData && (projectId === 'new' || !projectId)) {
-          console.log('Loading wizard progress:', wizardData);
-          setBusinessIdea(wizardData.business_idea);
-          setTargetAudience(wizardData.target_audience);
-          setAudienceAnalysis(wizardData.audience_analysis);
-          setSelectedHooks(Array.isArray(wizardData.selected_hooks) ? wizardData.selected_hooks : []);
-          
-          // Set step based on available data
-          if (wizardData.selected_hooks?.length > 0) {
-            setCurrentStep(4);
-          } else if (wizardData.audience_analysis) {
-            setCurrentStep(3);
-          } else if (wizardData.target_audience) {
-            setCurrentStep(2);
-          }
+        // For new projects, clear any existing progress and start from step 1
+        if (projectId === 'new') {
+          await clearWizardProgress(projectId, user.id);
+          setBusinessIdea(null);
+          setTargetAudience(null);
+          setAudienceAnalysis(null);
+          setSelectedHooks([]);
+          setCurrentStep(1);
           return;
         }
 
-        // If we have a specific project ID, try to load it
-        if (projectId && projectId !== 'new') {
+        // Try to load from project if we have a project ID
+        if (projectId) {
           const { data: project } = await supabase
             .from('projects')
             .select('*')
             .eq('id', projectId)
-            .maybeSingle();
+            .single();
 
           if (project) {
             console.log('Loading project data:', project);
-            setBusinessIdea(project.business_idea);
-            setTargetAudience(project.target_audience);
-            setAudienceAnalysis(project.audience_analysis);
-            setSelectedHooks(Array.isArray(project.selected_hooks) ? project.selected_hooks : []);
+            // Set project data
+            setBusinessIdea(project.business_idea as BusinessIdea);
+            setTargetAudience(project.target_audience as TargetAudience);
+            setAudienceAnalysis(project.audience_analysis as AudienceAnalysis);
+            const hooks = Array.isArray(project.selected_hooks) ? project.selected_hooks : [];
+            setSelectedHooks(hooks as AdHook[]);
             
-            // Set step based on available project data
-            if (project.selected_hooks?.length > 0) {
+            // Set appropriate step based on available data
+            if (hooks.length > 0) {
               setCurrentStep(4);
             } else if (project.audience_analysis) {
               setCurrentStep(3);
             } else if (project.target_audience) {
               setCurrentStep(2);
+            } else {
+              setCurrentStep(1);
             }
+            return;
+          }
+        }
+
+        // If no project or it's invalid, load from wizard_progress
+        const { data: wizardData } = await supabase
+          .from('wizard_progress')
+          .select('*')
+          .eq('user_id', user.id)
+          .single();
+
+        if (wizardData) {
+          console.log('Loading wizard progress:', wizardData);
+          setBusinessIdea(wizardData.business_idea as BusinessIdea);
+          setTargetAudience(wizardData.target_audience as TargetAudience);
+          setAudienceAnalysis(wizardData.audience_analysis as AudienceAnalysis);
+          const hooks = Array.isArray(wizardData.selected_hooks) ? wizardData.selected_hooks : [];
+          setSelectedHooks(hooks as AdHook[]);
+          
+          // Set appropriate step based on wizard progress
+          if (hooks.length > 0) {
+            setCurrentStep(4);
+          } else if (wizardData.audience_analysis) {
+            setCurrentStep(3);
+          } else if (wizardData.target_audience) {
+            setCurrentStep(2);
+          } else {
+            setCurrentStep(1);
           }
         }
       } catch (error) {
         console.error('Error loading saved progress:', error);
         toast({
           title: "Error loading progress",
-          description: "Failed to load your previous progress.",
+          description: "Failed to load your previous progress. Starting fresh.",
           variant: "destructive",
         });
+        // On error, start fresh from step 1
+        setCurrentStep(1);
       } finally {
         setIsLoading(false);
       }
