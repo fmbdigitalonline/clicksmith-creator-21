@@ -66,13 +66,12 @@ const AdWizard = () => {
 
           if (!project) {
             navigate('/ad-wizard/new');
-            return;
-          }
-
-          setVideoAdsEnabled(project.video_ads_enabled || false);
-          if (project.generated_ads && Array.isArray(project.generated_ads)) {
-            console.log('Loading saved ads from project:', project.generated_ads);
-            setGeneratedAds(project.generated_ads);
+          } else {
+            setVideoAdsEnabled(project.video_ads_enabled || false);
+            if (project.generated_ads && Array.isArray(project.generated_ads)) {
+              console.log('Loading saved ads from project:', project.generated_ads);
+              setGeneratedAds(project.generated_ads);
+            }
           }
         } else {
           const { data: wizardData, error: wizardError } = await supabase
@@ -137,21 +136,7 @@ const AdWizard = () => {
 
   const handleAdsGenerated = async (newAds: any[]) => {
     console.log('Handling newly generated ads:', newAds);
-    
-    // Merge new ads with existing ones, preserving platform-specific ads
-    const updatedAds = [...generatedAds];
-    newAds.forEach(newAd => {
-      const existingIndex = updatedAds.findIndex(
-        ad => ad.platform === newAd.platform && ad.id === newAd.id
-      );
-      if (existingIndex >= 0) {
-        updatedAds[existingIndex] = newAd;
-      } else {
-        updatedAds.push(newAd);
-      }
-    });
-    
-    setGeneratedAds(updatedAds);
+    setGeneratedAds(newAds);
     
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
@@ -160,7 +145,7 @@ const AdWizard = () => {
       if (projectId && projectId !== 'new') {
         const { error: updateError } = await supabase
           .from('projects')
-          .update({ generated_ads: updatedAds })
+          .update({ generated_ads: newAds })
           .eq('id', projectId);
 
         if (updateError) throw updateError;
@@ -169,7 +154,7 @@ const AdWizard = () => {
           .from('wizard_progress')
           .upsert({
             user_id: user.id,
-            generated_ads: updatedAds
+            generated_ads: newAds
           }, {
             onConflict: 'user_id'
           });
@@ -225,21 +210,7 @@ const AdWizard = () => {
       default:
         return null;
     }
-  }, [
-    currentStep,
-    businessIdea,
-    targetAudience,
-    audienceAnalysis,
-    selectedHooks,
-    videoAdsEnabled,
-    generatedAds,
-    hasLoadedInitialAds,
-    handleBack,
-    handleStartOver,
-    handleIdeaSubmit,
-    handleAudienceSelect,
-    handleAnalysisComplete,
-  ]);
+  }, [currentStep, businessIdea, targetAudience, audienceAnalysis, selectedHooks, videoAdsEnabled, generatedAds, hasLoadedInitialAds]);
 
   return (
     <div className="container max-w-6xl mx-auto px-4 py-8">
