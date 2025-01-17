@@ -38,6 +38,18 @@ const VALID_GENERATION_TYPES = [
   'images'
 ];
 
+const getPlatformSpecificPrompt = (platform: string, businessIdea: any, targetAudience: any) => {
+  switch (platform) {
+    case 'tiktok':
+      return `Create engaging, short-form video ad copy for TikTok that resonates with ${targetAudience.demographics}. 
+      Focus on: ${businessIdea.valueProposition}. 
+      Keep it casual, authentic, and trend-aware.`;
+    default:
+      return `Create professional ad copy for ${platform} that highlights: ${businessIdea.valueProposition}. 
+      Target audience: ${targetAudience.demographics}`;
+  }
+};
+
 serve(async (req) => {
   try {
     console.log('Edge Function received request:', { 
@@ -81,7 +93,7 @@ serve(async (req) => {
       throw new Error('Empty request body');
     }
 
-    const { type, businessIdea, targetAudience, regenerationCount = 0, timestamp, forceRegenerate = false, campaign, userId } = body;
+    const { type, businessIdea, targetAudience, platform = 'facebook', userId } = body;
     
     if (!type) {
       throw new Error('type is required in request body');
@@ -91,17 +103,14 @@ serve(async (req) => {
       throw new Error(`Invalid generation type: ${type}. Valid types are: ${VALID_GENERATION_TYPES.join(', ')}`);
     }
 
-    // Check and deduct credits before generation
+    // Check and deduct credits
     if (userId && type !== 'audience_analysis') {
       const { data: creditCheck, error: creditError } = await supabase.rpc(
         'check_user_credits',
         { p_user_id: userId, required_credits: 1 }
       );
 
-      if (creditError) {
-        console.error('Error checking credits:', creditError);
-        throw new Error('Failed to check credits');
-      }
+      if (creditError) throw creditError;
 
       const result = creditCheck[0];
       if (!result.has_credits) {
@@ -111,37 +120,24 @@ serve(async (req) => {
         );
       }
 
-      // Deduct credits before generation
-      const { data: deductResult, error: deductError } = await supabase.rpc(
+      const { error: deductError } = await supabase.rpc(
         'deduct_user_credits',
         { input_user_id: userId, credits_to_deduct: 1 }
       );
 
-      if (deductError) {
-        console.error('Error deducting credits:', deductError);
-        throw new Error('Failed to deduct credits');
-      }
-
-      console.log('Credits deducted successfully:', deductResult);
+      if (deductError) throw deductError;
     }
 
-    console.log('Processing request:', { type, timestamp });
+    console.log('Processing request:', { type, platform });
 
     let responseData;
     switch (type) {
-      case 'audience':
-        console.log('Generating audiences with params:', { businessIdea, regenerationCount, timestamp, forceRegenerate });
-        responseData = await generateAudiences(businessIdea, regenerationCount, forceRegenerate);
-        break;
-      case 'hooks':
-        console.log('Generating hooks with params:', { businessIdea, targetAudience });
-        responseData = await generateHooks(businessIdea, targetAudience);
-        break;
       case 'complete_ads':
       case 'video_ads':
-        console.log('Generating complete ad campaign with params:', { businessIdea, targetAudience, campaign });
+        console.log('Generating complete ad campaign with params:', { businessIdea, targetAudience, platform });
         try {
-          const campaignData = await generateCampaign(businessIdea, targetAudience);
+          const platformPrompt = getPlatformSpecificPrompt(platform, businessIdea, targetAudience);
+          const campaignData = await generateCampaign(businessIdea, targetAudience, platformPrompt);
           console.log('Campaign data generated:', campaignData);
           
           const imageData = await generateImagePrompts(businessIdea, targetAudience, campaignData.campaign);
@@ -149,15 +145,10 @@ serve(async (req) => {
           
           responseData = sanitizeJson({
             variants: campaignData.campaign.adCopies.map((copy: any, index: number) => ({
-              platform: 'facebook',
+              platform,
               headline: campaignData.campaign.headlines[index % campaignData.campaign.headlines.length],
               description: copy.content,
               imageUrl: imageData.images[0]?.url,
-              size: {
-                width: 1200,
-                height: 628,
-                label: "Facebook Feed"
-              }
             }))
           });
         } catch (error) {
@@ -165,13 +156,21 @@ serve(async (req) => {
           throw error;
         }
         break;
+      case 'audience':
+        console.log('Generating audiences with params:', { businessIdea });
+        responseData = await generateAudiences(businessIdea);
+        break;
+      case 'hooks':
+        console.log('Generating hooks with params:', { businessIdea, targetAudience });
+        responseData = await generateHooks(businessIdea, targetAudience);
+        break;
       case 'audience_analysis':
-        console.log('Analyzing audience with params:', { businessIdea, targetAudience, regenerationCount });
-        responseData = await analyzeAudience(businessIdea, targetAudience, regenerationCount);
+        console.log('Analyzing audience with params:', { businessIdea, targetAudience });
+        responseData = await analyzeAudience(businessIdea, targetAudience);
         break;
       case 'images':
-        console.log('Generating images with params:', { businessIdea, targetAudience, campaign });
-        responseData = await generateImagePrompts(businessIdea, targetAudience, campaign);
+        console.log('Generating images with params:', { businessIdea, targetAudience });
+        responseData = await generateImagePrompts(businessIdea, targetAudience);
         break;
       default:
         throw new Error(`Unsupported generation type: ${type}`);
