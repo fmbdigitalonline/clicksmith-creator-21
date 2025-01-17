@@ -73,12 +73,11 @@ const AdGalleryStep = ({
           description: "Failed to generate ads. Please try again.",
           variant: "destructive",
         });
-        resetGeneration(); // Reset generation state on error
+        resetGeneration();
       }
     }
   }, [generateAds, isGenerating, toast, resetGeneration]);
 
-  // Modified initial ad generation effect
   useEffect(() => {
     if (!hasLoadedInitialAds || hasGeneratedInitialAds) return;
 
@@ -96,18 +95,14 @@ const AdGalleryStep = ({
     setHasGeneratedInitialAds(true);
   }, [hasLoadedInitialAds, hasGeneratedInitialAds, platform, projectId, generatedAds, handleGenerateAds]);
 
-  // Modified effect for managing generated ads state
   useEffect(() => {
     if (!onAdsGenerated || adVariants.length === 0) return;
 
     const processedVariants = adVariants.map(variant => {
-      // Get platform-specific dimensions
-      const dimensions = platform === 'tiktok' 
-        ? { width: 1080, height: 1920, label: "TikTok Feed" }
-        : { width: 1200, height: 628, label: `${platform.charAt(0).toUpperCase() + platform.slice(1)} Feed` };
-
+      const dimensions = getPlatformDimensions(platform);
+      
       return {
-        platform: variant.platform,
+        platform,
         headline: variant.headline,
         description: variant.description,
         imageUrl: variant.imageUrl,
@@ -121,12 +116,11 @@ const AdGalleryStep = ({
       firstVariant: processedVariants[0]
     });
 
-    // Merge new variants with existing ads
     const updatedAds = [...generatedAds];
     
     processedVariants.forEach(newVariant => {
       const existingIndex = updatedAds.findIndex(
-        ad => ad.platform === newVariant.platform && ad.headline === newVariant.headline
+        ad => ad.platform === platform && ad.headline === newVariant.headline
       );
       
       if (existingIndex !== -1) {
@@ -144,6 +138,21 @@ const AdGalleryStep = ({
     
     onAdsGenerated(updatedAds);
   }, [adVariants, onAdsGenerated, generatedAds, platform]);
+
+  const getPlatformDimensions = (platform: string) => {
+    switch (platform) {
+      case 'tiktok':
+        return { width: 1080, height: 1920, label: "TikTok Feed" };
+      case 'facebook':
+        return { width: 1200, height: 628, label: "Facebook Feed" };
+      case 'linkedin':
+        return { width: 1200, height: 628, label: "LinkedIn Feed" };
+      case 'google':
+        return { width: 1200, height: 628, label: "Google Display" };
+      default:
+        return { width: 1200, height: 628, label: `${platform.charAt(0).toUpperCase() + platform.slice(1)} Feed` };
+    }
+  };
 
   const onPlatformChange = useCallback((newPlatform: "facebook" | "google" | "linkedin" | "tiktok") => {
     handlePlatformChange(newPlatform, adVariants.length > 0);
