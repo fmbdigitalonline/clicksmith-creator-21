@@ -8,18 +8,11 @@ export const saveWizardProgress = async (data: any, projectId: string | undefine
       throw new Error('User not authenticated');
     }
 
-    // Ensure current_step is included in the data if it exists
-    const progressData = {
-      ...data,
-      current_step: data.current_step || 1, // Default to 1 if not provided
-      updated_at: new Date().toISOString()
-    };
-
     if (projectId && projectId !== 'new') {
       const { error } = await supabase
         .from('projects')
         .update({
-          ...progressData,
+          ...data,
           updated_at: new Date().toISOString()
         })
         .eq('id', projectId);
@@ -32,7 +25,8 @@ export const saveWizardProgress = async (data: any, projectId: string | undefine
         .upsert(
           {
             user_id: user.id,
-            ...progressData
+            ...data,
+            updated_at: new Date().toISOString()
           },
           {
             onConflict: 'user_id',
@@ -43,7 +37,7 @@ export const saveWizardProgress = async (data: any, projectId: string | undefine
       if (error) throw error;
     }
 
-    console.log('Progress saved successfully:', progressData);
+    console.log('Progress saved successfully:', data);
   } catch (error) {
     console.error('Error saving progress:', error);
     toast({
@@ -64,7 +58,6 @@ export const clearWizardProgress = async (projectId: string | undefined, userId:
           target_audience: null,
           audience_analysis: null,
           selected_hooks: null,
-          current_step: 1,
           updated_at: new Date().toISOString()
         })
         .eq('id', projectId);

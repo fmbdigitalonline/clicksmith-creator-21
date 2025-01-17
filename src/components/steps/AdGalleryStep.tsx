@@ -5,12 +5,11 @@ import PlatformTabs from "./gallery/PlatformTabs";
 import PlatformContent from "./gallery/PlatformContent";
 import PlatformChangeDialog from "./gallery/PlatformChangeDialog";
 import { usePlatformSwitch } from "@/hooks/usePlatformSwitch";
-import { useAdGeneration } from "@/hooks/gallery/useAdGeneration";
+import { useAdGeneration } from "./gallery/useAdGeneration";
 import AdGenerationControls from "./gallery/AdGenerationControls";
 import { useEffect, useState, useCallback } from "react";
 import { AdSizeSelector, AD_FORMATS } from "./gallery/components/AdSizeSelector";
 import { useParams } from "react-router-dom";
-import { useToast } from "@/hooks/use-toast";
 
 interface AdGalleryStepProps {
   businessIdea: BusinessIdea;
@@ -42,8 +41,6 @@ const AdGalleryStep = ({
   const [selectedFormat, setSelectedFormat] = useState(AD_FORMATS[0]);
   const [hasGeneratedInitialAds, setHasGeneratedInitialAds] = useState(false);
   const { projectId } = useParams();
-  const { toast } = useToast();
-  
   const {
     platform,
     showPlatformChangeDialog,
@@ -58,92 +55,69 @@ const AdGalleryStep = ({
     adVariants,
     generationStatus,
     generateAds,
-    resetGeneration
   } = useAdGeneration(businessIdea, targetAudience, adHooks);
 
-  const handleGenerateAds = useCallback(async (selectedPlatform: string) => {
+  const handleGenerateAds = useCallback((selectedPlatform: string) => {
     if (!isGenerating) {
-      try {
-        console.log('Starting ad generation for platform:', selectedPlatform);
-        await generateAds(selectedPlatform);
-      } catch (error) {
-        console.error('Error generating ads:', error);
-        toast({
-          title: "Error generating ads",
-          description: "Failed to generate ads. Please try again.",
-          variant: "destructive",
-        });
-      }
+      generateAds(selectedPlatform);
     }
-  }, [generateAds, isGenerating, toast]);
+  }, [generateAds, isGenerating]);
 
+  // Effect for initial ad generation
   useEffect(() => {
     if (!hasLoadedInitialAds || hasGeneratedInitialAds) return;
 
     const isNewProject = projectId === 'new';
     const existingPlatformAds = generatedAds.filter(ad => ad.platform === platform);
-    
-    if (isNewProject && existingPlatformAds.length === 0) {
-      console.log('Generating initial ads for new project:', { 
-        platform, 
-        existingAdsCount: existingPlatformAds.length
-      });
+    const shouldGenerateAds = isNewProject || existingPlatformAds.length === 0;
+
+    if (shouldGenerateAds) {
+      console.log('Generating initial ads:', { isNewProject, platform, existingAdsCount: existingPlatformAds.length });
       handleGenerateAds(platform);
     }
 
     setHasGeneratedInitialAds(true);
   }, [hasLoadedInitialAds, hasGeneratedInitialAds, platform, projectId, generatedAds, handleGenerateAds]);
 
+  // Effect for managing generated ads state
   useEffect(() => {
     if (!onAdsGenerated || adVariants.length === 0) return;
 
-    const processedVariants = adVariants.map(variant => ({
-      platform: variant.platform,
-      headline: variant.headline,
-      description: variant.description,
-      imageUrl: variant.imageUrl,
-      size: variant.size || getPlatformSize(variant.platform)
-    }));
+    const isNewProject = projectId === 'new';
+    const updatedAds = isNewProject 
+      ? adVariants // For new projects, use only new variants
+      : generatedAds.map(existingAd => {
+          // Find if there's a new variant for this ad
+          const newVariant = adVariants.find(
+            variant => variant.platform === existingAd.platform && variant.id === existingAd.id
+          );
+          return newVariant || existingAd;
+        });
 
-    const updatedAds = [...generatedAds];
-    
-    processedVariants.forEach(newVariant => {
-      const existingIndex = updatedAds.findIndex(
-        ad => ad.platform === newVariant.platform && ad.headline === newVariant.headline
-      );
-      
-      if (existingIndex !== -1) {
-        updatedAds[existingIndex] = newVariant;
-      } else {
-        updatedAds.push(newVariant);
-      }
-    });
+    // Add any new variants that don't exist in the current ads
+    if (!isNewProject) {
+      adVariants.forEach(newVariant => {
+        const exists = updatedAds.some(
+          ad => ad.platform === newVariant.platform && ad.id === newVariant.id
+        );
+        if (!exists) {
+          updatedAds.push(newVariant);
+        }
+      });
+    }
 
     console.log('Updating ads state:', { 
-      adVariantsCount: processedVariants.length,
-      updatedAdsCount: updatedAds.length,
-      platform
+      isNewProject, 
+      adVariantsCount: adVariants.length,
+      updatedAdsCount: updatedAds.length 
     });
     
     onAdsGenerated(updatedAds);
-  }, [adVariants, onAdsGenerated, generatedAds, platform]);
+  }, [adVariants, onAdsGenerated, projectId, generatedAds]);
 
-  const getPlatformSize = (platform: string) => {
-    switch (platform.toLowerCase()) {
-      case 'tiktok':
-        return { width: 1080, height: 1920, label: "TikTok Feed" };
-      case 'linkedin':
-        return { width: 1200, height: 627, label: "LinkedIn Feed" };
-      case 'google':
-        return { width: 1200, height: 628, label: "Google Display" };
-      default:
-        return { width: 1200, height: 628, label: "Facebook Feed" };
-    }
-  };
-
-  const onPlatformChange = useCallback((newPlatform: "facebook" | "google" | "linkedin" | "tiktok") => {
+  const onPlatformChange = (newPlatform: "facebook" | "google" | "linkedin" | "tiktok") => {
     handlePlatformChange(newPlatform, adVariants.length > 0);
-  }, [handlePlatformChange, adVariants.length]);
+  };
 
   const onConfirmPlatformChange = () => {
     const newPlatform = confirmPlatformChange();

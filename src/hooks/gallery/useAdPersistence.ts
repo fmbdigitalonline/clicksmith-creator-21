@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { AdVariant, convertJsonArrayToAdVariants, convertAdVariantToJson } from "@/types/adVariant";
+import { AdVariant, convertAdVariantToJson } from "@/types/adVariant";
 
 export const useAdPersistence = (projectId: string | undefined) => {
-  const [savedAds, setSavedAds] = useState<AdVariant[]>([]);
+  const [savedAds, setSavedAds] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -21,9 +21,8 @@ export const useAdPersistence = (projectId: string | undefined) => {
         .eq('id', projectId)
         .single();
       
-      if (project?.generated_ads) {
-        const ads = convertJsonArrayToAdVariants(project.generated_ads);
-        setSavedAds(ads);
+      if (project?.generated_ads && Array.isArray(project.generated_ads)) {
+        setSavedAds(project.generated_ads);
       }
     } catch (error) {
       console.error('Error loading saved ads:', error);
@@ -39,13 +38,13 @@ export const useAdPersistence = (projectId: string | undefined) => {
       const jsonAds = newAds.map(convertAdVariantToJson);
       
       // Merge new ads with existing ones, avoiding duplicates
-      const updatedAds = [...savedAds, ...newAds].filter((ad, index, self) => 
+      const updatedAds = [...savedAds, ...jsonAds].filter((ad, index, self) => 
         index === self.findIndex((t) => t.id === ad.id)
       );
 
       const { error: updateError } = await supabase
         .from('projects')
-        .update({ generated_ads: jsonAds })
+        .update({ generated_ads: updatedAds })
         .eq('id', projectId);
 
       if (updateError) throw updateError;

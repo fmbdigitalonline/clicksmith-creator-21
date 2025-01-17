@@ -1,6 +1,6 @@
 import { BusinessIdea, TargetAudience } from "../types.ts";
 
-export async function generateCampaign(businessIdea: any, targetAudience: any, platformPrompt: string) {
+export async function generateCampaign(businessIdea: any, targetAudience: any) {
   const prompt = `Create a marketing campaign for this business and target audience:
 
 Business:
@@ -8,9 +8,6 @@ ${JSON.stringify(businessIdea, null, 2)}
 
 Target Audience:
 ${JSON.stringify(targetAudience, null, 2)}
-
-Platform-specific requirements:
-${platformPrompt}
 
 Create a complete marketing campaign with:
 1. 3 Ad copies (different versions)

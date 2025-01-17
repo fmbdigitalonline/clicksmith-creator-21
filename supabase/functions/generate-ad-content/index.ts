@@ -7,6 +7,7 @@ import { analyzeAudience } from "./handlers/audienceAnalysis.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
+// Helper function to sanitize JSON strings
 const sanitizeJson = (obj: unknown): unknown => {
   if (typeof obj === 'string') {
     return obj.replace(/[\u0000-\u001F\u007F-\u009F]/g, '')
@@ -27,6 +28,7 @@ const sanitizeJson = (obj: unknown): unknown => {
   return obj;
 };
 
+// Valid generation types
 const VALID_GENERATION_TYPES = [
   'audience',
   'hooks',
@@ -36,113 +38,24 @@ const VALID_GENERATION_TYPES = [
   'images'
 ];
 
-const getPlatformSpecificPrompt = (platform: string, businessIdea: any, targetAudience: any) => {
-  console.log(`Generating platform-specific prompt for ${platform}`);
-  
-  const basePrompt = `Create engaging ad copy for ${platform} that resonates with ${targetAudience.demographics}. 
-    Focus on: ${businessIdea.valueProposition}`;
-  
-  switch (platform.toLowerCase()) {
-    case 'tiktok':
-      return `${basePrompt}
-      Keep it casual, authentic, and trend-aware.
-      Format the content for vertical viewing (9:16 aspect ratio).
-      Include hooks that work well with TikTok's fast-paced environment.
-      
-      Guidelines for TikTok:
-      - Keep text concise and punchy (max 2-3 sentences)
-      - Use informal, conversational language
-      - Focus on immediate value proposition
-      - Include clear call-to-actions
-      - Optimize for mobile-first viewing`;
-    
-    case 'linkedin':
-      return `${basePrompt}
-      Focus on professional tone and B2B messaging.
-      
-      Guidelines for LinkedIn:
-      - Use professional, business-focused language
-      - Highlight industry expertise and credibility
-      - Focus on business value and ROI
-      - Include relevant industry terms
-      - Keep content concise but informative`;
-    
-    case 'google':
-      return `${basePrompt}
-      Optimize for Google Display Network.
-      
-      Guidelines for Google Ads:
-      - Clear, direct messaging
-      - Strong call-to-action
-      - Focus on benefits and solutions
-      - Include relevant keywords
-      - Comply with Google Ads policies`;
-    
-    case 'facebook':
-    default:
-      return `${basePrompt}
-      Focus on engaging storytelling and clear value proposition.
-      
-      Guidelines for Facebook:
-      - Conversational, friendly tone
-      - Engaging opening hook
-      - Visual storytelling approach
-      - Clear call-to-action
-      - Mobile-first optimization`;
-  }
-};
-
-const getPlatformAdSize = (platform: string) => {
-  console.log(`Getting ad size for platform: ${platform}`);
-  
-  switch (platform.toLowerCase()) {
-    case 'tiktok':
-      return {
-        width: 1080,
-        height: 1920,
-        label: "TikTok Feed"
-      };
-    case 'linkedin':
-      return {
-        width: 1200,
-        height: 627,
-        label: "LinkedIn Feed"
-      };
-    case 'google':
-      return {
-        width: 1200,
-        height: 628,
-        label: "Google Display"
-      };
-    case 'facebook':
-    default:
-      return {
-        width: 1200,
-        height: 628,
-        label: "Facebook Feed"
-      };
-  }
-};
-
 serve(async (req) => {
-  const headers = {
-    ...corsHeaders,
-    'Content-Type': 'application/json',
-  };
-
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { 
-      headers,
-      status: 204,
-    });
-  }
-
   try {
     console.log('Edge Function received request:', { 
       method: req.method,
       url: req.url,
       headers: Object.fromEntries(req.headers.entries())
     });
+
+    if (req.method === 'OPTIONS') {
+      return new Response(null, { 
+        status: 204,
+        headers: {
+          ...corsHeaders,
+          'Access-Control-Max-Age': '86400',
+          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        }
+      });
+    }
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -161,32 +74,24 @@ serve(async (req) => {
       }
     } catch (e) {
       console.error('Error parsing request body:', e);
-      return new Response(
-        JSON.stringify({ 
-          error: 'Invalid JSON in request body',
-          details: e.message 
-        }), 
-        { headers, status: 400 }
-      );
+      throw new Error(`Invalid JSON in request body: ${e.message}`);
     }
 
     if (!body) {
-      return new Response(
-        JSON.stringify({ error: 'Empty request body' }), 
-        { headers, status: 400 }
-      );
+      throw new Error('Empty request body');
     }
 
-    const { type, businessIdea, targetAudience, platform = 'facebook', userId } = body;
+    const { type, businessIdea, targetAudience, regenerationCount = 0, timestamp, forceRegenerate = false, campaign, userId } = body;
     
     if (!type) {
-      return new Response(
-        JSON.stringify({ error: 'type is required in request body' }), 
-        { headers, status: 400 }
-      );
+      throw new Error('type is required in request body');
     }
 
-    // Check and deduct credits
+    if (!VALID_GENERATION_TYPES.includes(type)) {
+      throw new Error(`Invalid generation type: ${type}. Valid types are: ${VALID_GENERATION_TYPES.join(', ')}`);
+    }
+
+    // Check and deduct credits before generation
     if (userId && type !== 'audience_analysis') {
       const { data: creditCheck, error: creditError } = await supabase.rpc(
         'check_user_credits',
@@ -194,116 +99,106 @@ serve(async (req) => {
       );
 
       if (creditError) {
-        console.error('Credit check error:', creditError);
-        return new Response(
-          JSON.stringify({ error: creditError.message }), 
-          { headers, status: 500 }
-        );
+        console.error('Error checking credits:', creditError);
+        throw new Error('Failed to check credits');
       }
 
       const result = creditCheck[0];
       if (!result.has_credits) {
         return new Response(
-          JSON.stringify({ 
-            error: 'No credits available', 
-            message: result.error_message 
-          }),
-          { headers, status: 402 }
+          JSON.stringify({ error: 'No credits available', message: result.error_message }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 402 }
         );
       }
 
-      const { error: deductError } = await supabase.rpc(
+      // Deduct credits before generation
+      const { data: deductResult, error: deductError } = await supabase.rpc(
         'deduct_user_credits',
         { input_user_id: userId, credits_to_deduct: 1 }
       );
 
       if (deductError) {
-        console.error('Credit deduction error:', deductError);
-        return new Response(
-          JSON.stringify({ error: deductError.message }), 
-          { headers, status: 500 }
-        );
+        console.error('Error deducting credits:', deductError);
+        throw new Error('Failed to deduct credits');
       }
+
+      console.log('Credits deducted successfully:', deductResult);
     }
 
-    console.log('Processing request:', { type, platform });
+    console.log('Processing request:', { type, timestamp });
 
     let responseData;
     switch (type) {
+      case 'audience':
+        console.log('Generating audiences with params:', { businessIdea, regenerationCount, timestamp, forceRegenerate });
+        responseData = await generateAudiences(businessIdea, regenerationCount, forceRegenerate);
+        break;
+      case 'hooks':
+        console.log('Generating hooks with params:', { businessIdea, targetAudience });
+        responseData = await generateHooks(businessIdea, targetAudience);
+        break;
       case 'complete_ads':
-      case 'video_ads': {
-        console.log('Generating complete ad campaign with params:', { businessIdea, targetAudience, platform });
+      case 'video_ads':
+        console.log('Generating complete ad campaign with params:', { businessIdea, targetAudience, campaign });
         try {
-          const platformPrompt = getPlatformSpecificPrompt(platform, businessIdea, targetAudience);
-          console.log('Using platform-specific prompt:', platformPrompt);
-          
-          const campaignData = await generateCampaign(businessIdea, targetAudience, platformPrompt);
+          const campaignData = await generateCampaign(businessIdea, targetAudience);
           console.log('Campaign data generated:', campaignData);
           
           const imageData = await generateImagePrompts(businessIdea, targetAudience, campaignData.campaign);
           console.log('Image data generated:', imageData);
           
-          const adSize = getPlatformAdSize(platform);
-          console.log('Using ad size:', adSize);
-          
           responseData = sanitizeJson({
             variants: campaignData.campaign.adCopies.map((copy: any, index: number) => ({
-              platform,
+              platform: 'facebook',
               headline: campaignData.campaign.headlines[index % campaignData.campaign.headlines.length],
               description: copy.content,
               imageUrl: imageData.images[0]?.url,
-              size: adSize
+              size: {
+                width: 1200,
+                height: 628,
+                label: "Facebook Feed"
+              }
             }))
           });
-          
-          console.log('Generated ad variants:', responseData);
         } catch (error) {
           console.error('Error generating ad content:', error);
-          return new Response(
-            JSON.stringify({ 
-              error: 'Failed to generate ad content',
-              details: error.message 
-            }), 
-            { headers, status: 500 }
-          );
+          throw error;
         }
         break;
-      }
-      case 'audience':
-        responseData = await generateAudiences(businessIdea);
-        break;
-      case 'hooks':
-        responseData = await generateHooks(businessIdea, targetAudience);
-        break;
       case 'audience_analysis':
-        responseData = await analyzeAudience(businessIdea, targetAudience);
+        console.log('Analyzing audience with params:', { businessIdea, targetAudience, regenerationCount });
+        responseData = await analyzeAudience(businessIdea, targetAudience, regenerationCount);
         break;
       case 'images':
-        responseData = await generateImagePrompts(businessIdea, targetAudience);
+        console.log('Generating images with params:', { businessIdea, targetAudience, campaign });
+        responseData = await generateImagePrompts(businessIdea, targetAudience, campaign);
         break;
       default:
-        return new Response(
-          JSON.stringify({ error: `Unsupported generation type: ${type}` }), 
-          { headers, status: 400 }
-        );
+        throw new Error(`Unsupported generation type: ${type}`);
     }
 
     const sanitizedResponse = sanitizeJson(responseData);
     console.log('Edge Function response data:', sanitizedResponse);
 
-    return new Response(
-      JSON.stringify(sanitizedResponse), 
-      { headers, status: 200 }
-    );
+    return new Response(JSON.stringify(sanitizedResponse), {
+      status: 200,
+      headers: { 
+        ...corsHeaders,
+        'Content-Type': 'application/json',
+      },
+    });
   } catch (error) {
     console.error('Error in generate-ad-content function:', error);
     
-    return new Response(
-      JSON.stringify({
-        error: error.message,
-        details: error.stack
-      }), 
-      { headers, status: 500 }
-    );
+    return new Response(JSON.stringify({
+      error: error.message,
+      details: error.stack
+    }), {
+      status: error.status || 400,
+      headers: { 
+        ...corsHeaders,
+        'Content-Type': 'application/json',
+      },
+    });
   }
 });

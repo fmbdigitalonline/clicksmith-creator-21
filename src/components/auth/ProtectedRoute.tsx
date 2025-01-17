@@ -5,105 +5,87 @@ import { useToast } from "@/hooks/use-toast";
 
 type AuthEvent = 'SIGNED_IN' | 'SIGNED_OUT' | 'TOKEN_REFRESHED' | 'USER_UPDATED';
 
-const MAX_RETRIES = 3;
-const RETRY_DELAY = 1000;
-
 export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          console.error("Session error:", sessionError);
+          setIsAuthenticated(false);
+          navigate('/login', { replace: true });
+          return;
+        }
 
-  const handleAuthError = async (error: any, retryCount = 0) => {
-    console.error("Auth error:", error);
+        if (!session) {
+          setIsAuthenticated(false);
+          navigate('/login', { replace: true });
+          return;
+        }
 
-    if (retryCount < MAX_RETRIES && error.message === "Failed to fetch") {
-      console.log(`Retrying auth check... Attempt ${retryCount + 1}/${MAX_RETRIES}`);
-      await sleep(RETRY_DELAY * Math.pow(2, retryCount));
-      return checkSession(retryCount + 1);
-    }
+        // Only attempt to refresh if we have a valid session
+        if (session) {
+          try {
+            const { data: { user }, error: refreshError } = await supabase.auth.refreshSession();
+            
+            if (refreshError) {
+              if (refreshError.message.includes('refresh_token_not_found')) {
+                console.error("Invalid refresh token, redirecting to login");
+                await supabase.auth.signOut();
+                setIsAuthenticated(false);
+                navigate('/login', { replace: true });
+                toast({
+                  title: "Session Expired",
+                  description: "Please sign in again",
+                  variant: "destructive",
+                });
+                return;
+              }
+              throw refreshError;
+            }
 
-    setIsAuthenticated(false);
-    navigate('/login', { replace: true });
-    toast({
-      title: "Authentication Error",
-      description: "Please sign in again",
-      variant: "destructive",
-    });
-  };
+            // Initialize free tier usage for new users
+            if (user) {
+              const { data: existingUsage } = await supabase
+                .from('free_tier_usage')
+                .select('*')
+                .eq('user_id', user.id)
+                .single();
 
-  const checkSession = async (retryCount = 0) => {
-    try {
-      console.log(`Checking session... Attempt ${retryCount + 1}`);
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      
-      if (sessionError) {
-        throw sessionError;
-      }
-
-      if (!session) {
+              if (!existingUsage) {
+                await supabase
+                  .from('free_tier_usage')
+                  .insert([{ user_id: user.id, generations_used: 0 }]);
+              }
+              
+              setIsAuthenticated(true);
+            }
+          } catch (error) {
+            console.error("Token refresh error:", error);
+            setIsAuthenticated(false);
+            navigate('/login', { replace: true });
+            toast({
+              title: "Authentication Error",
+              description: "Please sign in again",
+              variant: "destructive",
+            });
+          }
+        }
+      } catch (error) {
+        console.error("Auth error:", error);
         setIsAuthenticated(false);
         navigate('/login', { replace: true });
-        return;
+      } finally {
+        setIsLoading(false);
       }
+    };
 
-      // Only attempt to refresh if we have a valid session
-      if (session) {
-        try {
-          const { data: { user }, error: refreshError } = await supabase.auth.refreshSession();
-          
-          if (refreshError) {
-            if (refreshError.message.includes('refresh_token_not_found')) {
-              console.error("Invalid refresh token, redirecting to login");
-              await supabase.auth.signOut();
-              setIsAuthenticated(false);
-              navigate('/login', { replace: true });
-              toast({
-                title: "Session Expired",
-                description: "Please sign in again",
-                variant: "destructive",
-              });
-              return;
-            }
-            throw refreshError;
-          }
-
-          // Initialize free tier usage for new users
-          if (user) {
-            const { data: existingUsage, error: usageError } = await supabase
-              .from('free_tier_usage')
-              .select('*')
-              .eq('user_id', user.id)
-              .single();
-
-            if (usageError && !usageError.message.includes('Results contain 0 rows')) {
-              throw usageError;
-            }
-
-            if (!existingUsage) {
-              const { error: insertError } = await supabase
-                .from('free_tier_usage')
-                .insert([{ user_id: user.id, generations_used: 0 }]);
-
-              if (insertError) throw insertError;
-            }
-            
-            setIsAuthenticated(true);
-          }
-        } catch (error) {
-          throw error;
-        }
-      }
-    } catch (error: any) {
-      await handleAuthError(error, retryCount);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
     // Check initial session
     checkSession();
 
