@@ -23,6 +23,7 @@ export const useAdGeneration = (
     setAdVariants([]);
     setVideoVariants([]);
     setGenerationStatus("");
+    setIsGenerating(false);
   };
 
   const generateAds = async (selectedPlatform: string) => {
