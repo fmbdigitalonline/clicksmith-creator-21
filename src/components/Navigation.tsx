@@ -1,77 +1,18 @@
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import { cn } from "@/lib/utils";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Home, CreditCard, PlusCircle } from "lucide-react";
-import { CreditDisplay } from "./CreditDisplay";
 
 const Navigation = () => {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const currentPath = location.pathname;
-  
-  const isActive = (path: string) => {
-    if (path === "/") {
-      return currentPath === "/" || currentPath === "/projects";
-    }
-    if (path === "/ad-wizard") {
-      return currentPath.includes('/ad-wizard');
-    }
-    return currentPath === path;
-  };
-
-  const handleStartClick = () => {
-    navigate("/ad-wizard/new");
-  };
-  
   return (
-    <nav className="fixed top-0 left-0 right-0 h-16 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50">
-      <div className="container h-full">
-        <div className="flex h-full items-center justify-between">
-          <Link to="/" className="font-semibold">
-            Viable
-          </Link>
-          <div className="flex items-center gap-4">
-            <CreditDisplay />
-            <Button
-              variant="default"
-              size="sm"
-              onClick={handleStartClick}
-              className="gap-2"
-            >
-              <PlusCircle className="h-4 w-4" />
-              <span>Start</span>
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              asChild
-              className={cn(
-                "gap-2",
-                isActive("/") && "bg-accent"
-              )}
-            >
-              <Link to="/">
-                <Home className="h-4 w-4" />
-                <span>Home</span>
-              </Link>
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              asChild
-              className={cn(
-                "gap-2",
-                isActive("/pricing") && "bg-accent"
-              )}
-            >
-              <Link to="/pricing">
-                <CreditCard className="h-4 w-4" />
-                <span>Pricing</span>
-              </Link>
-            </Button>
-          </div>
-        </div>
-      </div>
+    <nav className="flex items-center space-x-4">
+      <Link to="/traffic">
+        <Button variant="ghost">Try it now</Button>
+      </Link>
+      <Link to="/login">
+        <Button variant="outline">Sign in</Button>
+      </Link>
+      <Link to="/pricing">
+        <Button className="bg-facebook hover:bg-facebook/90">Get Started</Button>
+      </Link>
     </nav>
   );
 };
