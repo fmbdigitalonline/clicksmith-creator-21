@@ -22,10 +22,9 @@ export const useAdGeneration = (
 
   const generateAds = async (selectedPlatform: string) => {
     setIsGenerating(true);
-    setGenerationStatus("Checking credits availability...");
+    setGenerationStatus("Initializing generation...");
     
     try {
-      // Get user data first
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError) throw userError;
       
@@ -33,29 +32,8 @@ export const useAdGeneration = (
         throw new Error('User must be logged in to generate ads');
       }
 
-      // Check credits using RPC function
-      const { data: creditCheck, error: creditError } = await supabase.rpc(
-        'check_user_credits',
-        { p_user_id: user.id, required_credits: 1 }
-      );
-
-      if (creditError) throw creditError;
-
-      const result = creditCheck[0];
-      if (!result.has_credits) {
-        toast({
-          title: "No credits available",
-          description: result.error_message,
-          variant: "destructive",
-        });
-        navigate('/pricing');
-        return;
-      }
-
-      setGenerationStatus("Initializing ad generation...");
+      setGenerationStatus("Generating ads...");
       
-      // Generate image ads
-      setGenerationStatus("Generating image ads...");
       const { data, error } = await supabase.functions.invoke('generate-ad-content', {
         body: {
           type: 'complete_ads',
@@ -63,10 +41,22 @@ export const useAdGeneration = (
           businessIdea,
           targetAudience,
           adHooks,
+          userId: user.id
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        if (error.message.includes('No credits available')) {
+          toast({
+            title: "No credits available",
+            description: "Please upgrade your plan to continue generating ads.",
+            variant: "destructive",
+          });
+          navigate('/pricing');
+          return;
+        }
+        throw error;
+      }
 
       // Process variants based on platform
       const variants = data.variants.map((variant: any) => ({
@@ -77,18 +67,7 @@ export const useAdGeneration = (
 
       setAdVariants(variants);
 
-      // Deduct credits after successful generation
-      const { data: deductResult, error: deductError } = await supabase.rpc(
-        'deduct_user_credits',
-        { input_user_id: user.id, credits_to_deduct: 1 }
-      );
-
-      if (deductError) {
-        console.error('Error deducting credits:', deductError);
-        throw deductError;
-      }
-
-      // Invalidate credits query to refresh the display
+      // Refresh credits display
       queryClient.invalidateQueries({ queryKey: ['subscription'] });
       queryClient.invalidateQueries({ queryKey: ['free_tier_usage'] });
 
