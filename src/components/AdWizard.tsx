@@ -16,6 +16,13 @@ import { useToast } from "@/hooks/use-toast";
 import { v4 as uuidv4 } from 'uuid';
 
 type WizardProgress = Database['public']['Tables']['wizard_progress']['Row'];
+type AnonymousWizardData = {
+  generated_ads?: any[];
+  business_idea?: any;
+  target_audience?: any;
+  audience_analysis?: any;
+  selected_hooks?: any[];
+};
 
 const AdWizard = () => {
   const [showCreateProject, setShowCreateProject] = useState(false);
@@ -83,7 +90,7 @@ const AdWizard = () => {
     };
 
     initializeAnonymousSession();
-  }, [sessionId]);
+  }, [sessionId, navigate, toast]);
 
   // Load saved progress including generated ads
   useEffect(() => {
@@ -99,8 +106,9 @@ const AdWizard = () => {
             .eq('session_id', sessionId)
             .single();
 
-          if (anonymousData?.wizard_data?.generated_ads) {
-            setGeneratedAds(anonymousData.wizard_data.generated_ads);
+          const wizardData = anonymousData?.wizard_data as AnonymousWizardData | null;
+          if (wizardData?.generated_ads) {
+            setGeneratedAds(wizardData.generated_ads);
           }
           setHasLoadedInitialAds(true);
           return;
@@ -202,16 +210,18 @@ const AdWizard = () => {
     try {
       if (!user) {
         // For anonymous users, update anonymous_usage table
+        const wizardData: AnonymousWizardData = {
+          generated_ads: newAds,
+          business_idea: businessIdea,
+          target_audience: targetAudience,
+          audience_analysis: audienceAnalysis,
+          selected_hooks: selectedHooks
+        };
+
         const { error: updateError } = await supabase
           .from('anonymous_usage')
           .update({ 
-            wizard_data: {
-              generated_ads: newAds,
-              business_idea: businessIdea,
-              target_audience: targetAudience,
-              audience_analysis: audienceAnalysis,
-              selected_hooks: selectedHooks
-            },
+            wizard_data: wizardData,
             completed: true
           })
           .eq('session_id', sessionId);
