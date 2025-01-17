@@ -28,7 +28,6 @@ export const SavedAdsGallery = () => {
 
       console.log("Authenticated user found:", user.id);
 
-      // Only get saved ad feedback
       const { data: feedbackData, error: feedbackError } = await supabase
         .from('ad_feedback')
         .select('*')
