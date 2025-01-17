@@ -15,12 +15,24 @@ export interface AdVariant {
   };
 }
 
+export const convertAdVariantToJson = (variant: AdVariant): Json => {
+  return {
+    id: variant.id,
+    imageUrl: variant.imageUrl,
+    platform: variant.platform,
+    resizedUrls: variant.resizedUrls || {},
+    headline: variant.headline || null,
+    description: variant.description || null,
+    callToAction: variant.callToAction || null,
+    size: variant.size || null
+  };
+};
+
 export const convertJsonToAdVariant = (json: Json): AdVariant | null => {
   if (typeof json !== 'object' || !json || Array.isArray(json)) return null;
   
   const jsonObject = json as Record<string, Json>;
   
-  // Ensure required fields exist
   if (!jsonObject.imageUrl || !jsonObject.platform) {
     return null;
   }

@@ -5,7 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { AdVariant, convertJsonArrayToAdVariants } from "@/types/adVariant";
+import { AdVariant, convertJsonArrayToAdVariants, convertAdVariantToJson } from "@/types/adVariant";
 
 export const useAdGeneration = (
   businessIdea: BusinessIdea,
@@ -157,17 +157,19 @@ export const useAdGeneration = (
       // Save generated ads
       const saveGeneratedAds = async () => {
         try {
+          const jsonVariants = variants.map(convertAdVariantToJson);
+          
           if (projectId && projectId !== 'new') {
             await supabase
               .from('projects')
-              .update({ generated_ads: variants })
+              .update({ generated_ads: jsonVariants })
               .eq('id', projectId);
           } else {
             await supabase
               .from('wizard_progress')
               .upsert({
                 user_id: user.id,
-                generated_ads: variants
+                generated_ads: jsonVariants
               }, {
                 onConflict: 'user_id'
               });
