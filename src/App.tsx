@@ -11,61 +11,64 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { Toaster } from "@/components/ui/toaster";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import AdWizard from "@/components/AdWizard";
+import { SidebarProvider } from "@/components/ui/sidebar";
 
 const queryClient = new QueryClient();
 
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Router>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/traffic" element={<Traffic />} />
-          <Route path="/pricing" element={<Pricing />} />
-          <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute>
-                <AppLayout>
-                  <Dashboard />
-                </AppLayout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/projects"
-            element={
-              <ProtectedRoute>
-                <AppLayout>
-                  <Projects />
-                </AppLayout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/settings"
-            element={
-              <ProtectedRoute>
-                <AppLayout>
-                  <Settings />
-                </AppLayout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/ad-wizard/:projectId"
-            element={
-              <ProtectedRoute>
-                <AppLayout>
-                  <AdWizard />
-                </AppLayout>
-              </ProtectedRoute>
-            }
-          />
-        </Routes>
-        <Toaster />
-      </Router>
+      <SidebarProvider>
+        <Router>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/traffic" element={<Traffic />} />
+            <Route path="/pricing" element={<Pricing />} />
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <Dashboard />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/projects"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <Projects />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/settings"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <Settings />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/ad-wizard/:projectId"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <AdWizard />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+          </Routes>
+          <Toaster />
+        </Router>
+      </SidebarProvider>
     </QueryClientProvider>
   );
 }
