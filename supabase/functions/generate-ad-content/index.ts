@@ -41,14 +41,39 @@ const VALID_GENERATION_TYPES = [
 const getPlatformSpecificPrompt = (platform: string, businessIdea: any, targetAudience: any) => {
   switch (platform) {
     case 'tiktok':
-      return `Create engaging, short-form video ad copy for TikTok that resonates with ${targetAudience.demographics}. 
+      return `Create engaging, vertical format video ad copy for TikTok that resonates with ${targetAudience.demographics}. 
       Focus on: ${businessIdea.valueProposition}. 
-      Keep it casual, authentic, and trend-aware.`;
+      Keep it casual, authentic, and trend-aware.
+      Format the content for vertical viewing (9:16 aspect ratio).
+      Include hooks that work well with TikTok's fast-paced environment.`;
     default:
       return `Create professional ad copy for ${platform} that highlights: ${businessIdea.valueProposition}. 
       Target audience: ${targetAudience.demographics}`;
   }
 };
+
+const getPlatformAdSize = (platform: string) => {
+  switch (platform) {
+    case 'tiktok':
+      return {
+        width: 1080,
+        height: 1920,
+        label: "TikTok Feed"
+      };
+    case 'facebook':
+      return {
+        width: 1200,
+        height: 628,
+        label: "Facebook Feed"
+      };
+    default:
+      return {
+        width: 1200,
+        height: 628,
+        label: "Standard Feed"
+      };
+  }
+}
 
 serve(async (req) => {
   try {
@@ -99,10 +124,6 @@ serve(async (req) => {
       throw new Error('type is required in request body');
     }
 
-    if (!VALID_GENERATION_TYPES.includes(type)) {
-      throw new Error(`Invalid generation type: ${type}. Valid types are: ${VALID_GENERATION_TYPES.join(', ')}`);
-    }
-
     // Check and deduct credits
     if (userId && type !== 'audience_analysis') {
       const { data: creditCheck, error: creditError } = await supabase.rpc(
@@ -143,14 +164,19 @@ serve(async (req) => {
           const imageData = await generateImagePrompts(businessIdea, targetAudience, campaignData.campaign);
           console.log('Image data generated:', imageData);
           
+          const adSize = getPlatformAdSize(platform);
+          
           responseData = sanitizeJson({
             variants: campaignData.campaign.adCopies.map((copy: any, index: number) => ({
               platform,
               headline: campaignData.campaign.headlines[index % campaignData.campaign.headlines.length],
               description: copy.content,
               imageUrl: imageData.images[0]?.url,
+              size: adSize
             }))
           });
+          
+          console.log('Generated ad variants:', responseData);
         } catch (error) {
           console.error('Error generating ad content:', error);
           throw error;

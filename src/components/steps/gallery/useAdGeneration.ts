@@ -22,17 +22,13 @@ export const useAdGeneration = (
 
   const generateAds = async (selectedPlatform: string) => {
     setIsGenerating(true);
-    setGenerationStatus("Initializing generation...");
+    setGenerationStatus("Checking credits availability...");
     
     try {
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (userError) throw userError;
-      
-      if (!user) {
-        throw new Error('User must be logged in to generate ads');
-      }
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User must be logged in to generate ads');
 
-      setGenerationStatus("Generating ads...");
+      setGenerationStatus(`Initializing ${selectedPlatform} ad generation...`);
       
       const { data, error } = await supabase.functions.invoke('generate-ad-content', {
         body: {
@@ -58,13 +54,15 @@ export const useAdGeneration = (
         throw error;
       }
 
-      // Process variants based on platform
+      console.log('Raw generation response:', data);
+
+      // Process variants while maintaining platform-specific formatting
       const variants = data.variants.map((variant: any) => ({
         ...variant,
         platform: selectedPlatform,
-        size: getPlatformAdSize(selectedPlatform),
       }));
 
+      console.log('Processed variants:', variants);
       setAdVariants(variants);
 
       // Refresh credits display
@@ -85,41 +83,6 @@ export const useAdGeneration = (
     } finally {
       setIsGenerating(false);
       setGenerationStatus("");
-    }
-  };
-
-  const getPlatformAdSize = (platform: string) => {
-    switch (platform) {
-      case 'google':
-        return {
-          width: 1200,
-          height: 628,
-          label: "Google Display"
-        };
-      case 'facebook':
-        return {
-          width: 1200,
-          height: 628,
-          label: "Facebook Feed"
-        };
-      case 'linkedin':
-        return {
-          width: 1200,
-          height: 627,
-          label: "LinkedIn Feed"
-        };
-      case 'tiktok':
-        return {
-          width: 1080,
-          height: 1920,
-          label: "TikTok Feed"
-        };
-      default:
-        return {
-          width: 1200,
-          height: 628,
-          label: "Standard Display"
-        };
     }
   };
 
