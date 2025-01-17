@@ -15,9 +15,6 @@ interface UseAdGenerationReturn {
   resetGeneration: () => void;
 }
 
-const MAX_RETRIES = 3;
-const RETRY_DELAY = 1000; // 1 second
-
 export const useAdGeneration = (
   businessIdea: BusinessIdea,
   targetAudience: TargetAudience,
@@ -67,12 +64,7 @@ export const useAdGeneration = (
         return { data: null, error };
       }
 
-      if (
-        (error.message === 'Failed to fetch' || 
-         error.error_type === 'http_server_error' || 
-         error.code === 'ECONNREFUSED') && 
-        retryCount < MAX_RETRIES
-      ) {
+      if (retryCount < MAX_RETRIES) {
         setGenerationStatus(`Network issue detected. Retrying... (${retryCount + 1}/${MAX_RETRIES})`);
         await sleep(RETRY_DELAY * Math.pow(2, retryCount));
         return invokeSupabaseFunction(selectedPlatform, retryCount + 1);
@@ -106,16 +98,6 @@ export const useAdGeneration = (
           navigate('/pricing');
           return;
         }
-
-        if (error.message === 'Failed to fetch' || error.error_type === 'http_server_error') {
-          toast({
-            title: "Network Error",
-            description: "Unable to connect to our servers after multiple attempts. Please check your internet connection and try again.",
-            variant: "destructive",
-          });
-          return;
-        }
-
         throw error;
       }
 
@@ -163,3 +145,6 @@ export const useAdGeneration = (
     resetGeneration,
   };
 };
+
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 1000; // 1 second
