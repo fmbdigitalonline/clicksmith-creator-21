@@ -6,9 +6,54 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 
+// Define supported platforms
+type SupportedPlatform = 'facebook' | 'tiktok' | 'instagram';
+
+// Define platform-specific dimensions
+interface PlatformDimensions {
+  width: number;
+  height: number;
+  label: string;
+}
+
+const PLATFORM_DIMENSIONS: Record<SupportedPlatform | 'default', PlatformDimensions> = {
+  facebook: {
+    width: 1200,
+    height: 628,
+    label: "Facebook Feed"
+  },
+  tiktok: {
+    width: 1080,
+    height: 1920,
+    label: "TikTok Feed"
+  },
+  instagram: {
+    width: 1080,
+    height: 1080,
+    label: "Instagram Feed"
+  },
+  default: {
+    width: 1200,
+    height: 628,
+    label: "Standard Feed"
+  }
+};
+
+interface AdVariant {
+  platform: SupportedPlatform;
+  content: string;
+  dimensions: PlatformDimensions;
+  [key: string]: any; // Allow for flexible properties
+}
+
+interface GenerationError extends Error {
+  code?: string;
+  message: string;
+}
+
 interface UseAdGenerationReturn {
   isGenerating: boolean;
-  adVariants: any[];
+  adVariants: AdVariant[];
   videoVariants: VideoAdVariant[];
   generationStatus: string;
   generateAds: (selectedPlatform: string) => Promise<void>;
@@ -21,7 +66,7 @@ export const useAdGeneration = (
   adHooks: AdHook[]
 ): UseAdGenerationReturn => {
   const [isGenerating, setIsGenerating] = useState(false);
-  const [adVariants, setAdVariants] = useState<any[]>([]);
+  const [adVariants, setAdVariants] = useState<AdVariant[]>([]);
   const [videoVariants, setVideoVariants] = useState<VideoAdVariant[]>([]);
   const [generationStatus, setGenerationStatus] = useState<string>("");
   const { toast } = useToast();
@@ -33,6 +78,32 @@ export const useAdGeneration = (
     setVideoVariants([]);
     setGenerationStatus("");
     setIsGenerating(false);
+  };
+
+  const handleGenerationError = (error: GenerationError) => {
+    console.error('Ad generation error:', error);
+    
+    if (error.message.includes('No credits available')) {
+      toast({
+        title: "No credits available",
+        description: "Please upgrade your plan to continue generating ads.",
+        variant: "destructive",
+      });
+      navigate('/pricing');
+      return true;
+    }
+    
+    toast({
+      title: "Error generating ads",
+      description: error.message || "Failed to generate ads. Please try again.",
+      variant: "destructive",
+    });
+    setAdVariants([]);
+    return false;
+  };
+
+  const getPlatformDimensions = (platform: string): PlatformDimensions => {
+    return PLATFORM_DIMENSIONS[platform as SupportedPlatform] || PLATFORM_DIMENSIONS.default;
   };
 
   const generateAds = async (selectedPlatform: string) => {
@@ -57,24 +128,18 @@ export const useAdGeneration = (
       });
 
       if (error) {
-        if (error.message.includes('No credits available')) {
-          toast({
-            title: "No credits available",
-            description: "Please upgrade your plan to continue generating ads.",
-            variant: "destructive",
-          });
-          navigate('/pricing');
-          return;
-        }
+        const isHandled = handleGenerationError(error);
+        if (isHandled) return;
         throw error;
       }
 
       console.log('Raw generation response:', data);
 
-      // Process variants while maintaining platform-specific formatting
+      // Process variants with dimensions
       const variants = data.variants.map((variant: any) => ({
         ...variant,
         platform: selectedPlatform,
+        dimensions: getPlatformDimensions(selectedPlatform)
       }));
 
       console.log('Processed variants:', variants);
@@ -89,12 +154,7 @@ export const useAdGeneration = (
         description: `Your new ${selectedPlatform} ad variants are ready!`,
       });
     } catch (error: any) {
-      console.error('Ad generation error:', error);
-      toast({
-        title: "Error generating ads",
-        description: error.message || "Failed to generate ads. Please try again.",
-        variant: "destructive",
-      });
+      handleGenerationError(error);
     } finally {
       setIsGenerating(false);
       setGenerationStatus("");
