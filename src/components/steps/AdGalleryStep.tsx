@@ -5,7 +5,7 @@ import PlatformTabs from "./gallery/PlatformTabs";
 import PlatformContent from "./gallery/PlatformContent";
 import PlatformChangeDialog from "./gallery/PlatformChangeDialog";
 import { usePlatformSwitch } from "@/hooks/usePlatformSwitch";
-import { useAdGeneration } from "./gallery/useAdGeneration";
+import { useAdGeneration } from "@/hooks/gallery/useAdGeneration";
 import AdGenerationControls from "./gallery/AdGenerationControls";
 import { useEffect, useState, useCallback } from "react";
 import { AdSizeSelector, AD_FORMATS } from "./gallery/components/AdSizeSelector";
@@ -77,21 +77,18 @@ const AdGalleryStep = ({
     }
   }, [generateAds, isGenerating, toast]);
 
-  // Effect for initial ad generation
+  // Modified initial ad generation effect
   useEffect(() => {
     if (!hasLoadedInitialAds || hasGeneratedInitialAds) return;
 
     const isNewProject = projectId === 'new';
     const existingPlatformAds = generatedAds.filter(ad => ad.platform === platform);
-    const shouldGenerateAds = isNewProject || existingPlatformAds.length === 0;
-
-    if (shouldGenerateAds) {
-      console.log('Generating initial ads:', { 
-        isNewProject, 
+    
+    // Only generate if it's a new project and no existing ads for the platform
+    if (isNewProject && existingPlatformAds.length === 0) {
+      console.log('Generating initial ads for new project:', { 
         platform, 
-        existingAdsCount: existingPlatformAds.length,
-        hasLoadedInitialAds,
-        hasGeneratedInitialAds
+        existingAdsCount: existingPlatformAds.length
       });
       handleGenerateAds(platform);
     }
@@ -99,12 +96,10 @@ const AdGalleryStep = ({
     setHasGeneratedInitialAds(true);
   }, [hasLoadedInitialAds, hasGeneratedInitialAds, platform, projectId, generatedAds, handleGenerateAds]);
 
-  // Effect for managing generated ads state
+  // Modified effect for managing generated ads state
   useEffect(() => {
     if (!onAdsGenerated || adVariants.length === 0) return;
 
-    const isNewProject = projectId === 'new';
-    
     const processedVariants = adVariants.map(variant => ({
       platform: variant.platform,
       headline: variant.headline,
@@ -117,11 +112,9 @@ const AdGalleryStep = ({
       }
     }));
 
-    let updatedAds = isNewProject 
-      ? processedVariants
-      : [...generatedAds];
-
-    // Update existing ads or add new ones
+    // Merge new variants with existing ads
+    const updatedAds = [...generatedAds];
+    
     processedVariants.forEach(newVariant => {
       const existingIndex = updatedAds.findIndex(
         ad => ad.platform === newVariant.platform && ad.headline === newVariant.headline
@@ -135,19 +128,17 @@ const AdGalleryStep = ({
     });
 
     console.log('Updating ads state:', { 
-      isNewProject, 
       adVariantsCount: processedVariants.length,
       updatedAdsCount: updatedAds.length,
       platform
     });
     
     onAdsGenerated(updatedAds);
-  }, [adVariants, onAdsGenerated, projectId, generatedAds, platform]);
+  }, [adVariants, onAdsGenerated, generatedAds, platform]);
 
-  const onPlatformChange = (newPlatform: "facebook" | "google" | "linkedin" | "tiktok") => {
+  const onPlatformChange = useCallback((newPlatform: "facebook" | "google" | "linkedin" | "tiktok") => {
     handlePlatformChange(newPlatform, adVariants.length > 0);
-    resetGeneration();
-  };
+  }, [handlePlatformChange, adVariants.length]);
 
   const onConfirmPlatformChange = () => {
     const newPlatform = confirmPlatformChange();
