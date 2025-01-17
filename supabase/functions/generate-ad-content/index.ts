@@ -7,7 +7,6 @@ import { analyzeAudience } from "./handlers/audienceAnalysis.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
-// Helper function to sanitize JSON strings
 const sanitizeJson = (obj: unknown): unknown => {
   if (typeof obj === 'string') {
     return obj.replace(/[\u0000-\u001F\u007F-\u009F]/g, '')
@@ -43,7 +42,7 @@ const getPlatformSpecificPrompt = (platform: string, businessIdea: any, targetAu
   const basePrompt = `Create engaging ad copy for ${platform} that resonates with ${targetAudience.demographics}. 
     Focus on: ${businessIdea.valueProposition}`;
   
-  switch (platform) {
+  switch (platform.toLowerCase()) {
     case 'tiktok':
       return `${basePrompt}
       Keep it casual, authentic, and trend-aware.
@@ -51,7 +50,7 @@ const getPlatformSpecificPrompt = (platform: string, businessIdea: any, targetAu
       Include hooks that work well with TikTok's fast-paced environment.
       
       Guidelines for TikTok:
-      - Keep text concise and punchy
+      - Keep text concise and punchy (max 2-3 sentences)
       - Use informal, conversational language
       - Focus on immediate value proposition
       - Include clear call-to-actions
@@ -96,7 +95,7 @@ const getPlatformSpecificPrompt = (platform: string, businessIdea: any, targetAu
 const getPlatformAdSize = (platform: string) => {
   console.log(`Getting ad size for platform: ${platform}`);
   
-  switch (platform) {
+  switch (platform.toLowerCase()) {
     case 'tiktok':
       return {
         width: 1080,
@@ -115,6 +114,7 @@ const getPlatformAdSize = (platform: string) => {
         height: 628,
         label: "Google Display"
       };
+    case 'facebook':
     default:
       return {
         width: 1200,
@@ -122,16 +122,14 @@ const getPlatformAdSize = (platform: string) => {
         label: "Facebook Feed"
       };
   }
-}
+};
 
 serve(async (req) => {
-  // Add CORS headers to all responses
   const headers = {
     ...corsHeaders,
     'Content-Type': 'application/json',
   };
 
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { 
       headers,
@@ -196,6 +194,7 @@ serve(async (req) => {
       );
 
       if (creditError) {
+        console.error('Credit check error:', creditError);
         return new Response(
           JSON.stringify({ error: creditError.message }), 
           { headers, status: 500 }
@@ -219,6 +218,7 @@ serve(async (req) => {
       );
 
       if (deductError) {
+        console.error('Credit deduction error:', deductError);
         return new Response(
           JSON.stringify({ error: deductError.message }), 
           { headers, status: 500 }

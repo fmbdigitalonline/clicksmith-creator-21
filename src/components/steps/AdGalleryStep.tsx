@@ -77,14 +77,12 @@ const AdGalleryStep = ({
     }
   }, [generateAds, isGenerating, toast]);
 
-  // Modified initial ad generation effect
   useEffect(() => {
     if (!hasLoadedInitialAds || hasGeneratedInitialAds) return;
 
     const isNewProject = projectId === 'new';
     const existingPlatformAds = generatedAds.filter(ad => ad.platform === platform);
     
-    // Only generate if it's a new project and no existing ads for the platform
     if (isNewProject && existingPlatformAds.length === 0) {
       console.log('Generating initial ads for new project:', { 
         platform, 
@@ -96,7 +94,6 @@ const AdGalleryStep = ({
     setHasGeneratedInitialAds(true);
   }, [hasLoadedInitialAds, hasGeneratedInitialAds, platform, projectId, generatedAds, handleGenerateAds]);
 
-  // Modified effect for managing generated ads state
   useEffect(() => {
     if (!onAdsGenerated || adVariants.length === 0) return;
 
@@ -105,14 +102,9 @@ const AdGalleryStep = ({
       headline: variant.headline,
       description: variant.description,
       imageUrl: variant.imageUrl,
-      size: {
-        width: platform === 'tiktok' ? 1080 : 1200,
-        height: platform === 'tiktok' ? 1920 : 628,
-        label: platform === 'tiktok' ? "TikTok Feed" : `${platform.charAt(0).toUpperCase() + platform.slice(1)} Feed`
-      }
+      size: variant.size || getPlatformSize(variant.platform)
     }));
 
-    // Merge new variants with existing ads
     const updatedAds = [...generatedAds];
     
     processedVariants.forEach(newVariant => {
@@ -135,6 +127,19 @@ const AdGalleryStep = ({
     
     onAdsGenerated(updatedAds);
   }, [adVariants, onAdsGenerated, generatedAds, platform]);
+
+  const getPlatformSize = (platform: string) => {
+    switch (platform.toLowerCase()) {
+      case 'tiktok':
+        return { width: 1080, height: 1920, label: "TikTok Feed" };
+      case 'linkedin':
+        return { width: 1200, height: 627, label: "LinkedIn Feed" };
+      case 'google':
+        return { width: 1200, height: 628, label: "Google Display" };
+      default:
+        return { width: 1200, height: 628, label: "Facebook Feed" };
+    }
+  };
 
   const onPlatformChange = useCallback((newPlatform: "facebook" | "google" | "linkedin" | "tiktok") => {
     handlePlatformChange(newPlatform, adVariants.length > 0);
