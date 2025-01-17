@@ -13,6 +13,7 @@ import { Video, Image } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Database } from "@/integrations/supabase/types";
 import { useToast } from "@/hooks/use-toast";
+import { v4 as uuidv4 } from 'uuid';
 
 type WizardProgress = Database['public']['Tables']['wizard_progress']['Row'];
 
@@ -21,6 +22,7 @@ const AdWizard = () => {
   const [videoAdsEnabled, setVideoAdsEnabled] = useState(false);
   const [generatedAds, setGeneratedAds] = useState<any[]>([]);
   const [hasLoadedInitialAds, setHasLoadedInitialAds] = useState(false);
+  const [sessionId] = useState(() => localStorage.getItem('anonymous_session_id') || uuidv4());
   const navigate = useNavigate();
   const { projectId } = useParams();
   const { toast } = useToast();
@@ -40,12 +42,69 @@ const AdWizard = () => {
     setCurrentStep,
   } = useAdWizardState();
 
+  // Initialize anonymous session
+  useEffect(() => {
+    const initializeAnonymousSession = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      // Only proceed for anonymous users
+      if (!user) {
+        localStorage.setItem('anonymous_session_id', sessionId);
+        
+        try {
+          const { data: existingSession } = await supabase
+            .from('anonymous_usage')
+            .select('*')
+            .eq('session_id', sessionId)
+            .single();
+
+          if (!existingSession) {
+            // Create new anonymous session
+            await supabase
+              .from('anonymous_usage')
+              .insert([{ 
+                session_id: sessionId,
+                used: false,
+                completed: false
+              }]);
+          } else if (existingSession.completed) {
+            // Redirect to signup if they've already completed a session
+            toast({
+              title: "Trial completed",
+              description: "Please sign up to continue using our service.",
+              variant: "default",
+            });
+            navigate('/login');
+          }
+        } catch (error) {
+          console.error('Error managing anonymous session:', error);
+        }
+      }
+    };
+
+    initializeAnonymousSession();
+  }, [sessionId]);
+
   // Load saved progress including generated ads
   useEffect(() => {
     const loadProgress = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
+        
+        if (!user) {
+          // For anonymous users, load from anonymous_usage table
+          const { data: anonymousData } = await supabase
+            .from('anonymous_usage')
+            .select('wizard_data')
+            .eq('session_id', sessionId)
+            .single();
+
+          if (anonymousData?.wizard_data?.generated_ads) {
+            setGeneratedAds(anonymousData.wizard_data.generated_ads);
+          }
+          setHasLoadedInitialAds(true);
+          return;
+        }
 
         if (projectId && projectId !== 'new') {
           const { data: project, error: projectError } = await supabase
@@ -107,7 +166,7 @@ const AdWizard = () => {
     };
 
     loadProgress();
-  }, [projectId, navigate, toast]);
+  }, [projectId, navigate, toast, sessionId]);
 
   const handleCreateProject = () => {
     setShowCreateProject(true);
@@ -139,9 +198,40 @@ const AdWizard = () => {
     setGeneratedAds(newAds);
     
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
+    
     try {
+      if (!user) {
+        // For anonymous users, update anonymous_usage table
+        const { error: updateError } = await supabase
+          .from('anonymous_usage')
+          .update({ 
+            wizard_data: {
+              generated_ads: newAds,
+              business_idea: businessIdea,
+              target_audience: targetAudience,
+              audience_analysis: audienceAnalysis,
+              selected_hooks: selectedHooks
+            },
+            completed: true
+          })
+          .eq('session_id', sessionId);
+
+        if (updateError) throw updateError;
+        
+        // Show signup prompt after completion
+        toast({
+          title: "Trial completed!",
+          description: "Sign up now to save your work and get 12 free generations.",
+          variant: "default",
+        });
+        
+        setTimeout(() => {
+          navigate('/login');
+        }, 3000);
+        
+        return;
+      }
+
       if (projectId && projectId !== 'new') {
         const { error: updateError } = await supabase
           .from('projects')

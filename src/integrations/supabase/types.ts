@@ -99,22 +99,28 @@ export type Database = {
       }
       anonymous_usage: {
         Row: {
+          completed: boolean | null
           created_at: string
           id: string
           session_id: string
           used: boolean | null
+          wizard_data: Json | null
         }
         Insert: {
+          completed?: boolean | null
           created_at?: string
           id?: string
           session_id: string
           used?: boolean | null
+          wizard_data?: Json | null
         }
         Update: {
+          completed?: boolean | null
           created_at?: string
           id?: string
           session_id?: string
           used?: boolean | null
+          wizard_data?: Json | null
         }
         Relationships: []
       }
