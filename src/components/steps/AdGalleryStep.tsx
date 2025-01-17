@@ -73,10 +73,9 @@ const AdGalleryStep = ({
           description: "Failed to generate ads. Please try again.",
           variant: "destructive",
         });
-        resetGeneration(); // Reset generation state on error
       }
     }
-  }, [generateAds, isGenerating, toast, resetGeneration]);
+  }, [generateAds, isGenerating, toast]);
 
   // Modified initial ad generation effect
   useEffect(() => {
@@ -85,6 +84,7 @@ const AdGalleryStep = ({
     const isNewProject = projectId === 'new';
     const existingPlatformAds = generatedAds.filter(ad => ad.platform === platform);
     
+    // Only generate if it's a new project and no existing ads for the platform
     if (isNewProject && existingPlatformAds.length === 0) {
       console.log('Generating initial ads for new project:', { 
         platform, 
@@ -100,26 +100,17 @@ const AdGalleryStep = ({
   useEffect(() => {
     if (!onAdsGenerated || adVariants.length === 0) return;
 
-    const processedVariants = adVariants.map(variant => {
-      // Get platform-specific dimensions
-      const dimensions = platform === 'tiktok' 
-        ? { width: 1080, height: 1920, label: "TikTok Feed" }
-        : { width: 1200, height: 628, label: `${platform.charAt(0).toUpperCase() + platform.slice(1)} Feed` };
-
-      return {
-        platform: variant.platform,
-        headline: variant.headline,
-        description: variant.description,
-        imageUrl: variant.imageUrl,
-        size: dimensions
-      };
-    });
-
-    console.log('Processing ad variants:', {
-      platform,
-      variantsCount: processedVariants.length,
-      firstVariant: processedVariants[0]
-    });
+    const processedVariants = adVariants.map(variant => ({
+      platform: variant.platform,
+      headline: variant.headline,
+      description: variant.description,
+      imageUrl: variant.imageUrl,
+      size: {
+        width: platform === 'tiktok' ? 1080 : 1200,
+        height: platform === 'tiktok' ? 1920 : 628,
+        label: platform === 'tiktok' ? "TikTok Feed" : `${platform.charAt(0).toUpperCase() + platform.slice(1)} Feed`
+      }
+    }));
 
     // Merge new variants with existing ads
     const updatedAds = [...generatedAds];
