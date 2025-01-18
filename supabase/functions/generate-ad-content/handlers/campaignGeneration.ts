@@ -10,56 +10,24 @@ Target Audience:
 ${JSON.stringify(targetAudience, null, 2)}
 
 Create a complete marketing campaign with:
-1. 40 Ad copies (10 for each platform: Facebook, Google, LinkedIn, TikTok)
-2. 10 Headlines (6 words max)
+1. 3 Ad copies (different versions)
+2. 3 Headlines (6 words max)
 
-Ad Copy Guidelines for each platform:
-
-Facebook:
-- Casual, conversational tone
-- Focus on engagement and social proof
-- Include clear call-to-action
-- Optimal length: 125-250 characters
+Ad Copy Guidelines:
+- Create 10 different versions and rotate:
+  1. "Longer story": Longer, storytelling-based use pain point one from audience analysis
+  2. "personal emotional story  ": personal emotional story use pain point two from audience analysis
+  3. "AIDA version": Middle-length with bullet points use pain point three from audience analysis
+- Should be addressing about audience analysis painpoints
+- Some ad copies must also address the benefits of the products based on the positive experience the product provides
 - Must attract attention in first sentence
-
-Google:
-- Professional, direct tone
-- Focus on benefits and features
-- Include keywords naturally
-- Optimal length: 90 characters for description
-- Clear value proposition
-
-LinkedIn:
-- Professional, business-focused tone
-- Highlight industry expertise
-- Focus on B2B benefits
-- Include professional call-to-action
-- Optimal length: 150-200 characters
-
-TikTok:
-- Young, trendy, casual tone
-- Short, punchy messages
-- Use trending language
-- Focus on entertainment value
-- Optimal length: 100-150 characters
-
-For each platform create these variations:
-1. "Problem-Solution": Start with pain point, then present solution
-2. "Benefit-Driven": Focus on key benefits and outcomes
-3. "Social Proof": Imply credibility and results
-4. "FOMO/Urgency": Create sense of urgency or exclusivity
-5. "Direct Offer": Clear value proposition
-6. "Question-Based": Engage with a compelling question
-7. "How-To": Provide actionable insights
-8. "Statistics-Based": Use data to build credibility
-9. "Testimonial-Style": Share success stories
-10. "Challenge-Based": Present a challenge and solution
+- Each version should be different
+- Never use names and always talk directly to the reader, use words like you
 
 Headline Guidelines:
 - Maximum 6 words
 - Straight to the point
-- Highlight benefits or solve pain points
-- Make it action-oriented
+- Highlight the result of using this product, the benefitial experience, or goal that is going te be achieved when using this product
 - Based on market awareness/sophistication
 
 Return ONLY a valid JSON object with these fields:
@@ -67,12 +35,10 @@ Return ONLY a valid JSON object with these fields:
   "adCopies": [
     {
       "type": "story|short|aida",
-      "content": "string",
-      "platform": "facebook|google|linkedin|tiktok",
-      "headline": "string"
+      "content": "string"
     }
   ],
-  "headlines": ["string", "string", "string", "string", "string", "string", "string", "string", "string", "string"]
+  "headlines": ["string", "string", "string"]
 }`;
 
   try {
@@ -89,16 +55,16 @@ Return ONLY a valid JSON object with these fields:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o',
+        model: 'gpt-4o-mini',
         messages: [
           {
             role: 'system',
-            content: 'You are an expert marketing copywriter specializing in platform-specific ad copy. Create diverse, engaging ad variations that match each platform\'s style and requirements.'
+            content: 'You are an expert marketing copywriter. Always respond with raw JSON only, no markdown.'
           },
           { role: 'user', content: prompt }
         ],
-        temperature: 0.8,
-        max_tokens: 2500,
+        temperature: 0.7,
+        max_tokens: 2000,
       }),
     });
 
@@ -121,74 +87,9 @@ Return ONLY a valid JSON object with these fields:
     const campaign = JSON.parse(content);
     console.log('Parsed campaign:', campaign);
 
-    // Ensure we have enough variations for each platform
-    const platforms = ['facebook', 'google', 'linkedin', 'tiktok'];
-    const platformAds = {};
-    
-    // Initialize arrays for each platform
-    platforms.forEach(platform => {
-      platformAds[platform] = campaign.adCopies.filter((ad: any) => ad.platform === platform);
-    });
-
-    // Ensure minimum 10 ads per platform
-    platforms.forEach(platform => {
-      while (platformAds[platform].length < 10) {
-        const sourceAd = platformAds[platform][Math.floor(Math.random() * platformAds[platform].length)] || campaign.adCopies[0];
-        platformAds[platform].push({
-          ...sourceAd,
-          platform,
-          headline: campaign.headlines[platformAds[platform].length % campaign.headlines.length]
-        });
-      }
-    });
-
-    // Combine all platform ads
-    campaign.adCopies = Object.values(platformAds).flat();
-
-    // Add platform-specific sizes
-    campaign.adCopies = campaign.adCopies.map((ad: any) => ({
-      ...ad,
-      size: getPlatformAdSize(ad.platform)
-    }));
-
     return { campaign };
   } catch (error) {
     console.error('Error in generateCampaign:', error);
     throw error;
-  }
-}
-
-function getPlatformAdSize(platform: string) {
-  switch (platform) {
-    case 'facebook':
-      return {
-        width: 1200,
-        height: 628,
-        label: "Facebook Feed"
-      };
-    case 'google':
-      return {
-        width: 1200,
-        height: 628,
-        label: "Google Display"
-      };
-    case 'linkedin':
-      return {
-        width: 1200,
-        height: 627,
-        label: "LinkedIn Feed"
-      };
-    case 'tiktok':
-      return {
-        width: 1080,
-        height: 1920,
-        label: "TikTok Feed"
-      };
-    default:
-      return {
-        width: 1200,
-        height: 628,
-        label: "Standard Display"
-      };
   }
 }

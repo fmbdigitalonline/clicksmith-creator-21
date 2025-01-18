@@ -17,9 +17,3 @@ export interface AdFeedbackRow {
   feedback: string;
   created_at: string;
 }
-
-export interface GeneratedAd {
-  imageUrl?: string;
-  headline?: string;
-  description?: string;
-}

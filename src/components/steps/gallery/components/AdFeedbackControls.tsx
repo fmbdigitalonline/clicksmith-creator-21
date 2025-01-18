@@ -22,10 +22,8 @@ export const AdFeedbackControls = ({
   const [feedbackText, setFeedbackText] = useState("");
   const { toast } = useToast();
 
-  const saveFeedback = async (feedbackData: {
-    rating: number;
-    feedback?: string;
-  }) => {
+  const handleStarClick = async (stars: number) => {
+    setStarRating(stars);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -34,34 +32,77 @@ export const AdFeedbackControls = ({
           description: "Please sign in to provide feedback",
           variant: "destructive",
         });
-        return false;
+        return;
       }
 
       const isValidUUID = projectId && 
                          projectId !== "new" && 
                          /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(projectId);
 
-      // Ensure rating is a valid integer between 0 and 5
-      const normalizedRating = Math.min(Math.max(Math.round(feedbackData.rating), 0), 5);
-
       const { error } = await supabase
         .from('ad_feedback')
-        .insert({
+        .upsert({
           user_id: user.id,
           project_id: isValidUUID ? projectId : null,
           ad_id: adId,
-          rating: normalizedRating,
-          feedback: feedbackData.feedback || null,
+          rating: stars,
+          feedback: null
         });
 
       if (error) throw error;
 
       toast({
+        title: "Rating saved",
+        description: "Thank you for your feedback!",
+      });
+      
+      onFeedbackSubmit?.();
+    } catch (error) {
+      console.error('Error saving star rating:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save rating. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleFeedbackSubmit = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({
+          title: "Authentication required",
+          description: "Please sign in to provide feedback",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const isValidUUID = projectId && 
+                         projectId !== "new" && 
+                         /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(projectId);
+
+      const { error } = await supabase
+        .from('ad_feedback')
+        .upsert({
+          user_id: user.id,
+          project_id: isValidUUID ? projectId : null,
+          ad_id: adId,
+          rating: 0,
+          feedback: feedbackText
+        });
+
+      if (error) throw error;
+
+      setShowFeedbackDialog(false);
+      setFeedbackText("");
+      onFeedbackSubmit?.();
+
+      toast({
         title: "Feedback saved",
         description: "Thank you for your feedback!",
       });
-
-      return true;
     } catch (error) {
       console.error('Error saving feedback:', error);
       toast({
@@ -69,56 +110,56 @@ export const AdFeedbackControls = ({
         description: "Failed to save feedback. Please try again.",
         variant: "destructive",
       });
-      return false;
-    }
-  };
-
-  const handleStarClick = async (stars: number) => {
-    setStarRating(stars);
-    const success = await saveFeedback({
-      rating: stars,
-    });
-
-    if (success) {
-      onFeedbackSubmit?.();
-    }
-  };
-
-  const handleFeedbackSubmit = async () => {
-    if (!feedbackText.trim()) {
-      toast({
-        title: "Feedback required",
-        description: "Please provide some feedback before submitting.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const success = await saveFeedback({
-      rating: rating || 0,
-      feedback: feedbackText,
-    });
-
-    if (success) {
-      setShowFeedbackDialog(false);
-      setFeedbackText("");
-      onFeedbackSubmit?.();
     }
   };
 
   const handleLike = async () => {
-    setRating(5); // Set maximum rating for likes
-    const success = await saveFeedback({
-      rating: 5,
-    });
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({
+          title: "Authentication required",
+          description: "Please sign in to provide feedback",
+          variant: "destructive",
+        });
+        return;
+      }
 
-    if (success) {
+      const isValidUUID = projectId && 
+                         projectId !== "new" && 
+                         /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(projectId);
+
+      const { error } = await supabase
+        .from('ad_feedback')
+        .upsert({
+          user_id: user.id,
+          project_id: isValidUUID ? projectId : null,
+          ad_id: adId,
+          rating: 1,
+          feedback: null
+        });
+
+      if (error) throw error;
+
+      setRating(1);
       onFeedbackSubmit?.();
+
+      toast({
+        title: "Feedback saved",
+        description: "Thank you for your feedback!",
+      });
+    } catch (error) {
+      console.error('Error saving feedback:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save feedback. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
   const handleDislike = () => {
-    setRating(1); // Set minimum rating for dislikes
+    setRating(0);
     setShowFeedbackDialog(true);
   };
 

@@ -23,15 +23,6 @@ function App() {
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/pricing" element={<Pricing />} />
-            {/* Allow anonymous access to /ad-wizard/new */}
-            <Route
-              path="/ad-wizard/new"
-              element={
-                <AppLayout>
-                  <AdWizard />
-                </AppLayout>
-              }
-            />
             <Route
               path="/"
               element={
@@ -80,7 +71,6 @@ function App() {
                 </ProtectedRoute>
               }
             />
-            {/* Protect other ad-wizard routes */}
             <Route
               path="/ad-wizard/:projectId"
               element={
