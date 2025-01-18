@@ -55,7 +55,7 @@ const AdGalleryStep = ({
     adVariants,
     generationStatus,
     generateAds,
-    reset,
+    reset: resetAdGeneration,
   } = useAdGeneration(businessIdea, targetAudience, adHooks);
 
   const handleGenerateAds = useCallback((selectedPlatform: string) => {
@@ -65,14 +65,21 @@ const AdGalleryStep = ({
     }
   }, [generateAds, isGenerating]);
 
+  // Add a wrapper for onStartOver that ensures everything is reset
+  const handleStartOver = useCallback(() => {
+    resetAdGeneration();
+    setHasGeneratedInitialAds(false);
+    onStartOver();
+  }, [onStartOver, resetAdGeneration]);
+
   // Reset state when generatedAds is empty (after start over)
   useEffect(() => {
     if (generatedAds.length === 0) {
       console.log('Resetting ad generation state');
       setHasGeneratedInitialAds(false);
-      reset();
+      resetAdGeneration();
     }
-  }, [generatedAds, reset]);
+  }, [generatedAds, resetAdGeneration]);
 
   useEffect(() => {
     if (!hasLoadedInitialAds) {
@@ -108,7 +115,6 @@ const AdGalleryStep = ({
     }
   }, [hasLoadedInitialAds, hasGeneratedInitialAds, platform, projectId, generatedAds, handleGenerateAds]);
 
-  // Effect for managing generated ads state
   useEffect(() => {
     if (!onAdsGenerated || adVariants.length === 0) return;
 
@@ -187,7 +193,7 @@ const AdGalleryStep = ({
     <div className="space-y-6 md:space-y-8">
       <AdGenerationControls
         onBack={onBack}
-        onStartOver={onStartOver}
+        onStartOver={handleStartOver}
         onRegenerate={() => handleGenerateAds(platform)}
         isGenerating={isGenerating}
         generationStatus={generationStatus}
