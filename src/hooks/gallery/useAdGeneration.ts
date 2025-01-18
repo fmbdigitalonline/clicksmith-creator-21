@@ -21,7 +21,7 @@ export const useAdGeneration = (
   const queryClient = useQueryClient();
 
   const reset = useCallback(() => {
-    console.log('Resetting ad generation state in hook');
+    console.log('Resetting ad generation state');
     setAdVariants([]);
     setVideoVariants([]);
     setGenerationStatus("");
