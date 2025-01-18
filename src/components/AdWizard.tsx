@@ -13,12 +13,14 @@ import { Video, Image } from "lucide-react";
 import { v4 as uuidv4 } from 'uuid';
 import { WizardStateManager } from "./wizard/WizardStateManager";
 import { AnonymousSessionManager } from "./wizard/AnonymousSessionManager";
+import { useToast } from "@/hooks/use-toast";
 
 const AdWizard = () => {
   const [showCreateProject, setShowCreateProject] = useState(false);
   const navigate = useNavigate();
   const { projectId } = useParams();
   const [sessionId] = useState(() => localStorage.getItem('anonymous_session_id') || uuidv4());
+  const { toast } = useToast();
   
   const {
     currentStep,
@@ -47,6 +49,10 @@ const AdWizard = () => {
   const handleWizardStartOver = async () => {
     await handleStartOver();
     setCurrentStep(1);
+    toast({
+      title: "Progress Reset",
+      description: "Your progress has been cleared. Start fresh!",
+    });
   };
 
   return (
@@ -115,7 +121,7 @@ const AdWizard = () => {
 
             {currentStep === 4 && businessIdea && targetAudience && audienceAnalysis && (
               <AdGalleryStep
-                key={`gallery-${hasLoadedInitialAds}`}
+                key={`gallery-${Date.now()}`}
                 businessIdea={businessIdea}
                 targetAudience={targetAudience}
                 adHooks={selectedHooks}
@@ -123,7 +129,7 @@ const AdWizard = () => {
                 onBack={handleBack}
                 onCreateProject={handleCreateProject}
                 videoAdsEnabled={videoAdsEnabled}
-                generatedAds={generatedAds}
+                generatedAds={[]} // Reset generated ads on start over
                 onAdsGenerated={handleAdsGenerated}
                 hasLoadedInitialAds={hasLoadedInitialAds}
               />
