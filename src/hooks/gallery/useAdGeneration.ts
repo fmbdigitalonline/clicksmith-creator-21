@@ -3,7 +3,7 @@ import { VideoAdVariant } from "@/types/videoAdTypes";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useState, useCallback } from "react";
 
 export const useAdGeneration = (
@@ -17,7 +17,6 @@ export const useAdGeneration = (
   const [generationStatus, setGenerationStatus] = useState<string>("");
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { projectId } = useParams();
   const queryClient = useQueryClient();
 
   const reset = useCallback(() => {
@@ -27,41 +26,6 @@ export const useAdGeneration = (
     setGenerationStatus("");
     setIsGenerating(false);
   }, []);
-
-  const getPlatformAdSize = (platform: string) => {
-    switch (platform) {
-      case 'google':
-        return {
-          width: 1200,
-          height: 628,
-          label: "Google Display"
-        };
-      case 'facebook':
-        return {
-          width: 1200,
-          height: 628,
-          label: "Facebook Feed"
-        };
-      case 'linkedin':
-        return {
-          width: 1200,
-          height: 627,
-          label: "LinkedIn Feed"
-        };
-      case 'tiktok':
-        return {
-          width: 1080,
-          height: 1920,
-          label: "TikTok Feed"
-        };
-      default:
-        return {
-          width: 1200,
-          height: 628,
-          label: "Standard Display"
-        };
-    }
-  };
 
   const generateAds = async (selectedPlatform: string) => {
     setIsGenerating(true);
@@ -119,7 +83,6 @@ export const useAdGeneration = (
         size: getPlatformAdSize(selectedPlatform),
       }));
 
-      console.log('Generated variants:', variants);
       setAdVariants(variants);
 
       const { error: deductError } = await supabase.rpc(
@@ -152,6 +115,41 @@ export const useAdGeneration = (
     } finally {
       setIsGenerating(false);
       setGenerationStatus("");
+    }
+  };
+
+  const getPlatformAdSize = (platform: string) => {
+    switch (platform) {
+      case 'google':
+        return {
+          width: 1200,
+          height: 628,
+          label: "Google Display"
+        };
+      case 'facebook':
+        return {
+          width: 1200,
+          height: 628,
+          label: "Facebook Feed"
+        };
+      case 'linkedin':
+        return {
+          width: 1200,
+          height: 627,
+          label: "LinkedIn Feed"
+        };
+      case 'tiktok':
+        return {
+          width: 1080,
+          height: 1920,
+          label: "TikTok Feed"
+        };
+      default:
+        return {
+          width: 1200,
+          height: 628,
+          label: "Standard Display"
+        };
     }
   };
 
