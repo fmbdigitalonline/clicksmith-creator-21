@@ -65,7 +65,6 @@ const AdGalleryStep = ({
     }
   }, [generateAds, isGenerating]);
 
-  // Add a wrapper for onStartOver that ensures everything is reset
   const handleStartOver = useCallback(() => {
     resetAdGeneration();
     setHasGeneratedInitialAds(false);
@@ -121,14 +120,12 @@ const AdGalleryStep = ({
     const updatedAds = isNewProject 
       ? adVariants // For new projects, use only new variants
       : generatedAds.map(existingAd => {
-          // Find if there's a new variant for this ad
           const newVariant = adVariants.find(
             variant => variant.platform === existingAd.platform && variant.id === existingAd.id
           );
           return newVariant || existingAd;
         });
 
-    // Add any new variants that don't exist in the current ads
     if (!isNewProject) {
       adVariants.forEach(newVariant => {
         const exists = updatedAds.some(
