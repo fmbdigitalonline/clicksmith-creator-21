@@ -10,8 +10,8 @@ Target Audience:
 ${JSON.stringify(targetAudience, null, 2)}
 
 Create a complete marketing campaign with:
-1. 20 Ad copies (5 for each platform: Facebook, Google, LinkedIn, TikTok)
-2. 5 Headlines (6 words max)
+1. 40 Ad copies (10 for each platform: Facebook, Google, LinkedIn, TikTok)
+2. 10 Headlines (6 words max)
 
 Ad Copy Guidelines for each platform:
 
@@ -49,6 +49,11 @@ For each platform create these variations:
 3. "Social Proof": Imply credibility and results
 4. "FOMO/Urgency": Create sense of urgency or exclusivity
 5. "Direct Offer": Clear value proposition
+6. "Question-Based": Engage with a compelling question
+7. "How-To": Provide actionable insights
+8. "Statistics-Based": Use data to build credibility
+9. "Testimonial-Style": Share success stories
+10. "Challenge-Based": Present a challenge and solution
 
 Headline Guidelines:
 - Maximum 6 words
@@ -67,7 +72,7 @@ Return ONLY a valid JSON object with these fields:
       "headline": "string"
     }
   ],
-  "headlines": ["string", "string", "string", "string", "string"]
+  "headlines": ["string", "string", "string", "string", "string", "string", "string", "string", "string", "string"]
 }`;
 
   try {
@@ -125,9 +130,9 @@ Return ONLY a valid JSON object with these fields:
       platformAds[platform] = campaign.adCopies.filter((ad: any) => ad.platform === platform);
     });
 
-    // Ensure minimum 5 ads per platform
+    // Ensure minimum 10 ads per platform
     platforms.forEach(platform => {
-      while (platformAds[platform].length < 5) {
+      while (platformAds[platform].length < 10) {
         const sourceAd = platformAds[platform][Math.floor(Math.random() * platformAds[platform].length)] || campaign.adCopies[0];
         platformAds[platform].push({
           ...sourceAd,
