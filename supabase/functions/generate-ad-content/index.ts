@@ -45,6 +45,7 @@ serve(async (req) => {
       headers: Object.fromEntries(req.headers.entries())
     });
 
+    // Handle CORS preflight requests
     if (req.method === 'OPTIONS') {
       return new Response(null, { 
         status: 204,
