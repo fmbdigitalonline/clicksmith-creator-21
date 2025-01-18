@@ -72,7 +72,6 @@ const AdGalleryStep = ({
     onStartOver();
   }, [onStartOver, resetAdGeneration]);
 
-  // Reset state when generatedAds is empty (after start over)
   useEffect(() => {
     if (generatedAds.length === 0) {
       console.log('Resetting ad generation state');
