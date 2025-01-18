@@ -36,14 +36,12 @@ export const useAdGeneration = (
               width: format.width,
               height: format.height
             },
-            maxLength: 30 // Default to 30 seconds
+            maxLength: 30
           }
         }
       });
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
       if (!data.videoUrl) {
         throw new Error('No video URL returned from generation');
@@ -61,7 +59,6 @@ export const useAdGeneration = (
 
       setVideoVariants(prev => [...prev, newVariant]);
 
-      // Save to project if we have a project ID
       if (projectId && projectId !== 'new') {
         const { error: updateError } = await supabase
           .from('projects')
@@ -96,13 +93,16 @@ export const useAdGeneration = (
     setGenerationStatus("Checking credits availability...");
     
     try {
-      const { data: creditCheck, error: creditError } = await supabase.rpc(
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
+      const { data: creditCheck, error: creditsError } = await supabase.rpc(
         'check_user_credits',
-        { p_user_id: (await supabase.auth.getUser()).data.user?.id, required_credits: 1 }
+        { p_user_id: user.id, required_credits: 1 }
       );
 
-      if (creditError) {
-        throw creditError;
+      if (creditsError) {
+        throw creditsError;
       }
 
       const result = creditCheck[0];
@@ -117,7 +117,6 @@ export const useAdGeneration = (
         return;
       }
 
-      // If we got here, we have credits (either subscription or free tier)
       setGenerationStatus("Initializing ad generation...");
       
       // Generate video ads if enabled
@@ -149,7 +148,6 @@ export const useAdGeneration = (
         }
       }
 
-      // Generate image ads
       setGenerationStatus("Generating image ads...");
       const { data, error } = await supabase.functions.invoke('generate-ad-content', {
         body: {
@@ -163,7 +161,6 @@ export const useAdGeneration = (
 
       if (error) throw error;
 
-      // Process image variants
       const variants = validateResponse(data);
       setAdVariants(prev => [...prev, ...variants]);
 
