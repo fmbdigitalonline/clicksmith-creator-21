@@ -6,7 +6,6 @@ import { generateCampaign } from "./handlers/campaignGeneration.ts";
 import { analyzeAudience } from "./handlers/audienceAnalysis.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 
-// Helper function to sanitize JSON strings
 const sanitizeJson = (obj: unknown): unknown => {
   if (typeof obj === 'string') {
     return obj.replace(/[\u0000-\u001F\u007F-\u009F]/g, '')
@@ -44,7 +43,6 @@ serve(async (req) => {
       headers: Object.fromEntries(req.headers.entries())
     });
 
-    // Handle CORS preflight requests
     if (req.method === 'OPTIONS') {
       return new Response(null, { 
         status: 204,
