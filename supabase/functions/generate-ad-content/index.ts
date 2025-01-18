@@ -27,7 +27,6 @@ const sanitizeJson = (obj: unknown): unknown => {
   return obj;
 };
 
-// Valid generation types
 const VALID_GENERATION_TYPES = [
   'audience',
   'hooks',
@@ -45,6 +44,7 @@ serve(async (req) => {
       headers: Object.fromEntries(req.headers.entries())
     });
 
+    // Handle CORS preflight requests
     if (req.method === 'OPTIONS') {
       return new Response(null, { 
         status: 204,
@@ -113,7 +113,7 @@ serve(async (req) => {
           
           // Create 10 variants by combining headlines, ad copies, and images
           const variants = campaignData.campaign.adCopies.map((copy: any, index: number) => ({
-            platform: 'facebook',
+            platform: body.platform || 'facebook',
             headline: campaignData.campaign.headlines[index],
             description: copy.content,
             imageUrl: imageData.images[0]?.url,
