@@ -10,26 +10,45 @@ Target Audience:
 ${JSON.stringify(targetAudience, null, 2)}
 
 Create a complete marketing campaign with:
-1. 10 Ad copies (different versions)
+1. 20 Ad copies (5 for each platform: Facebook, Google, LinkedIn, TikTok)
 2. 5 Headlines (6 words max)
 
-Ad Copy Guidelines:
-- Create 10 different versions and rotate:
-  1. "Problem-Solution": Start with a pain point, then present the solution
-  2. "Benefit-Driven": Focus on key benefits and outcomes
-  3. "Social Proof": Imply credibility and results
-  4. "FOMO/Urgency": Create sense of urgency or exclusivity
-  5. "Question-Based": Start with engaging question
-  6. "How-To": Educational approach
-  7. "Story-Based": Brief narrative format
-  8. "Direct Offer": Clear value proposition
-  9. "Emotional Appeal": Focus on feelings and desires
-  10. "Feature Highlight": Spotlight key features
-- Each version should be different and engaging
-- Must attract attention in first sentence
-- Never use names and always talk directly to the reader
+Ad Copy Guidelines for each platform:
+
+Facebook:
+- Casual, conversational tone
+- Focus on engagement and social proof
 - Include clear call-to-action
-- Adapt tone based on platform (Facebook: casual, Google: professional)
+- Optimal length: 125-250 characters
+- Must attract attention in first sentence
+
+Google:
+- Professional, direct tone
+- Focus on benefits and features
+- Include keywords naturally
+- Optimal length: 90 characters for description
+- Clear value proposition
+
+LinkedIn:
+- Professional, business-focused tone
+- Highlight industry expertise
+- Focus on B2B benefits
+- Include professional call-to-action
+- Optimal length: 150-200 characters
+
+TikTok:
+- Young, trendy, casual tone
+- Short, punchy messages
+- Use trending language
+- Focus on entertainment value
+- Optimal length: 100-150 characters
+
+For each platform create these variations:
+1. "Problem-Solution": Start with pain point, then present solution
+2. "Benefit-Driven": Focus on key benefits and outcomes
+3. "Social Proof": Imply credibility and results
+4. "FOMO/Urgency": Create sense of urgency or exclusivity
+5. "Direct Offer": Clear value proposition
 
 Headline Guidelines:
 - Maximum 6 words
@@ -44,7 +63,8 @@ Return ONLY a valid JSON object with these fields:
     {
       "type": "story|short|aida",
       "content": "string",
-      "platform": "facebook|google"
+      "platform": "facebook|google|linkedin|tiktok",
+      "headline": "string"
     }
   ],
   "headlines": ["string", "string", "string", "string", "string"]
@@ -64,11 +84,11 @@ Return ONLY a valid JSON object with these fields:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4o',
         messages: [
           {
             role: 'system',
-            content: 'You are an expert marketing copywriter specializing in platform-specific ad copy. Create diverse, engaging ad variations that match each platform\'s style.'
+            content: 'You are an expert marketing copywriter specializing in platform-specific ad copy. Create diverse, engaging ad variations that match each platform\'s style and requirements.'
           },
           { role: 'user', content: prompt }
         ],
@@ -97,31 +117,73 @@ Return ONLY a valid JSON object with these fields:
     console.log('Parsed campaign:', campaign);
 
     // Ensure we have enough variations for each platform
-    const facebookAds = campaign.adCopies.filter((ad: any) => ad.platform === 'facebook');
-    const googleAds = campaign.adCopies.filter((ad: any) => ad.platform === 'google');
+    const platforms = ['facebook', 'google', 'linkedin', 'tiktok'];
+    const platformAds = {};
+    
+    // Initialize arrays for each platform
+    platforms.forEach(platform => {
+      platformAds[platform] = campaign.adCopies.filter((ad: any) => ad.platform === platform);
+    });
 
-    // If we don't have enough ads for each platform, duplicate some while varying the headlines
-    while (facebookAds.length < 5) {
-      const sourceAd = facebookAds[Math.floor(Math.random() * facebookAds.length)];
-      facebookAds.push({
-        ...sourceAd,
-        headline: campaign.headlines[facebookAds.length % campaign.headlines.length]
-      });
-    }
+    // Ensure minimum 5 ads per platform
+    platforms.forEach(platform => {
+      while (platformAds[platform].length < 5) {
+        const sourceAd = platformAds[platform][Math.floor(Math.random() * platformAds[platform].length)] || campaign.adCopies[0];
+        platformAds[platform].push({
+          ...sourceAd,
+          platform,
+          headline: campaign.headlines[platformAds[platform].length % campaign.headlines.length]
+        });
+      }
+    });
 
-    while (googleAds.length < 5) {
-      const sourceAd = googleAds[Math.floor(Math.random() * googleAds.length)];
-      googleAds.push({
-        ...sourceAd,
-        headline: campaign.headlines[googleAds.length % campaign.headlines.length]
-      });
-    }
+    // Combine all platform ads
+    campaign.adCopies = Object.values(platformAds).flat();
 
-    campaign.adCopies = [...facebookAds, ...googleAds];
+    // Add platform-specific sizes
+    campaign.adCopies = campaign.adCopies.map((ad: any) => ({
+      ...ad,
+      size: getPlatformAdSize(ad.platform)
+    }));
 
     return { campaign };
   } catch (error) {
     console.error('Error in generateCampaign:', error);
     throw error;
+  }
+}
+
+function getPlatformAdSize(platform: string) {
+  switch (platform) {
+    case 'facebook':
+      return {
+        width: 1200,
+        height: 628,
+        label: "Facebook Feed"
+      };
+    case 'google':
+      return {
+        width: 1200,
+        height: 628,
+        label: "Google Display"
+      };
+    case 'linkedin':
+      return {
+        width: 1200,
+        height: 627,
+        label: "LinkedIn Feed"
+      };
+    case 'tiktok':
+      return {
+        width: 1080,
+        height: 1920,
+        label: "TikTok Feed"
+      };
+    default:
+      return {
+        width: 1200,
+        height: 628,
+        label: "Standard Display"
+      };
   }
 }
