@@ -47,6 +47,7 @@ const AdWizard = () => {
   };
 
   const handleWizardStartOver = async () => {
+    console.log('Starting over wizard...');
     await handleStartOver();
     setCurrentStep(1);
     toast({
@@ -131,7 +132,7 @@ const AdWizard = () => {
                 videoAdsEnabled={videoAdsEnabled}
                 generatedAds={[]} // Reset generated ads on start over
                 onAdsGenerated={handleAdsGenerated}
-                hasLoadedInitialAds={hasLoadedInitialAds}
+                hasLoadedInitialAds={false} // Force new generation
               />
             )}
           </>
