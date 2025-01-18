@@ -41,6 +41,7 @@ const AdGalleryStep = ({
   const [selectedFormat, setSelectedFormat] = useState(AD_FORMATS[0]);
   const [hasGeneratedInitialAds, setHasGeneratedInitialAds] = useState(false);
   const { projectId } = useParams();
+
   const {
     platform,
     showPlatformChangeDialog,
@@ -58,22 +59,23 @@ const AdGalleryStep = ({
     reset: resetAdGeneration,
   } = useAdGeneration(businessIdea, targetAudience, adHooks);
 
-  const handleGenerateAds = useCallback((selectedPlatform: string) => {
+  const handleGenerateAds = useCallback(async (selectedPlatform: string) => {
     if (!isGenerating) {
       console.log('Generating ads for platform:', selectedPlatform);
-      generateAds(selectedPlatform);
+      await generateAds(selectedPlatform);
     }
   }, [generateAds, isGenerating]);
 
-  const handleStartOver = useCallback(() => {
+  const handleStartOver = useCallback(async () => {
+    console.log('Starting over...');
     resetAdGeneration();
     setHasGeneratedInitialAds(false);
-    onStartOver();
+    await onStartOver();
   }, [onStartOver, resetAdGeneration]);
 
   useEffect(() => {
     if (generatedAds.length === 0) {
-      console.log('Resetting ad generation state');
+      console.log('Resetting ad generation state due to empty generatedAds');
       setHasGeneratedInitialAds(false);
       resetAdGeneration();
     }
@@ -118,7 +120,7 @@ const AdGalleryStep = ({
 
     const isNewProject = projectId === 'new';
     const updatedAds = isNewProject 
-      ? adVariants // For new projects, use only new variants
+      ? adVariants
       : generatedAds.map(existingAd => {
           const newVariant = adVariants.find(
             variant => variant.platform === existingAd.platform && variant.id === existingAd.id
