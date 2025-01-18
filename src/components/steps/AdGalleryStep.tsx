@@ -59,12 +59,18 @@ const AdGalleryStep = ({
 
   const handleGenerateAds = useCallback((selectedPlatform: string) => {
     if (!isGenerating) {
+      console.log('Generating ads for platform:', selectedPlatform);
       generateAds(selectedPlatform);
     }
   }, [generateAds, isGenerating]);
 
   // Effect for initial ad generation
   useEffect(() => {
+    // Reset hasGeneratedInitialAds when generatedAds is empty (after start over)
+    if (generatedAds.length === 0) {
+      setHasGeneratedInitialAds(false);
+    }
+
     if (!hasLoadedInitialAds || hasGeneratedInitialAds) return;
 
     const isNewProject = projectId === 'new';
@@ -72,7 +78,12 @@ const AdGalleryStep = ({
     const shouldGenerateAds = isNewProject || existingPlatformAds.length === 0;
 
     if (shouldGenerateAds) {
-      console.log('Generating initial ads:', { isNewProject, platform, existingAdsCount: existingPlatformAds.length });
+      console.log('Generating initial ads:', { 
+        isNewProject, 
+        platform, 
+        existingAdsCount: existingPlatformAds.length,
+        hasGeneratedInitialAds
+      });
       handleGenerateAds(platform);
     }
 
