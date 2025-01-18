@@ -99,22 +99,28 @@ export type Database = {
       }
       anonymous_usage: {
         Row: {
+          completed: boolean | null
           created_at: string
           id: string
           session_id: string
           used: boolean | null
+          wizard_data: Json | null
         }
         Insert: {
+          completed?: boolean | null
           created_at?: string
           id?: string
           session_id: string
           used?: boolean | null
+          wizard_data?: Json | null
         }
         Update: {
+          completed?: boolean | null
           created_at?: string
           id?: string
           session_id?: string
           used?: boolean | null
+          wizard_data?: Json | null
         }
         Relationships: []
       }
@@ -541,6 +547,7 @@ export type Database = {
           audience_analysis: Json | null
           business_idea: Json | null
           created_at: string
+          current_step: number | null
           generated_ads: Json | null
           id: string
           selected_hooks: Json | null
@@ -554,6 +561,7 @@ export type Database = {
           audience_analysis?: Json | null
           business_idea?: Json | null
           created_at?: string
+          current_step?: number | null
           generated_ads?: Json | null
           id?: string
           selected_hooks?: Json | null
@@ -567,6 +575,7 @@ export type Database = {
           audience_analysis?: Json | null
           business_idea?: Json | null
           created_at?: string
+          current_step?: number | null
           generated_ads?: Json | null
           id?: string
           selected_hooks?: Json | null

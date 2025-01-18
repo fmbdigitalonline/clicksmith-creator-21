@@ -10,13 +10,13 @@ Target Audience:
 ${JSON.stringify(targetAudience, null, 2)}
 
 Create a complete marketing campaign with:
-1. 3 Ad copies (different versions)
-2. 3 Headlines (6 words max)
+1. 10 Ad copies (different versions)
+2. 10 Headlines (6 words max)
 
 Ad Copy Guidelines:
 - Create 10 different versions and rotate:
   1. "Longer story": Longer, storytelling-based use pain point one from audience analysis
-  2. "personal emotional story  ": personal emotional story use pain point two from audience analysis
+  2. "personal emotional story": personal emotional story use pain point two from audience analysis
   3. "AIDA version": Middle-length with bullet points use pain point three from audience analysis
 - Should be addressing about audience analysis painpoints
 - Some ad copies must also address the benefits of the products based on the positive experience the product provides
@@ -27,7 +27,7 @@ Ad Copy Guidelines:
 Headline Guidelines:
 - Maximum 6 words
 - Straight to the point
-- Highlight the result of using this product, the benefitial experience, or goal that is going te be achieved when using this product
+- Highlight the result of using this product, the beneficial experience, or goal that is going to be achieved when using this product
 - Based on market awareness/sophistication
 
 Return ONLY a valid JSON object with these fields:
@@ -38,7 +38,7 @@ Return ONLY a valid JSON object with these fields:
       "content": "string"
     }
   ],
-  "headlines": ["string", "string", "string"]
+  "headlines": ["string", "string", "string", "string", "string", "string", "string", "string", "string", "string"]
 }`;
 
   try {
@@ -59,12 +59,12 @@ Return ONLY a valid JSON object with these fields:
         messages: [
           {
             role: 'system',
-            content: 'You are an expert marketing copywriter. Always respond with raw JSON only, no markdown.'
+            content: 'You are an expert marketing copywriter. Always respond with raw JSON only, no markdown. Generate exactly 10 unique ad copies and 10 unique headlines.'
           },
           { role: 'user', content: prompt }
         ],
-        temperature: 0.7,
-        max_tokens: 2000,
+        temperature: 0.8,
+        max_tokens: 2500,
       }),
     });
 
@@ -86,6 +86,14 @@ Return ONLY a valid JSON object with these fields:
 
     const campaign = JSON.parse(content);
     console.log('Parsed campaign:', campaign);
+
+    // Validate the response has 10 ad copies and 10 headlines
+    if (!Array.isArray(campaign.adCopies) || campaign.adCopies.length !== 10) {
+      throw new Error('Generated content must include exactly 10 ad copies');
+    }
+    if (!Array.isArray(campaign.headlines) || campaign.headlines.length !== 10) {
+      throw new Error('Generated content must include exactly 10 headlines');
+    }
 
     return { campaign };
   } catch (error) {
