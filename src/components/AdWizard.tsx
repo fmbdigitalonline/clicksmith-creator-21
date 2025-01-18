@@ -49,7 +49,6 @@ const AdWizard = () => {
     setCurrentStep,
   } = useAdWizardState();
 
-  // Initialize anonymous session
   useEffect(() => {
     const initializeAnonymousSession = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -92,7 +91,6 @@ const AdWizard = () => {
     initializeAnonymousSession();
   }, [sessionId, navigate, toast]);
 
-  // Load saved progress including generated ads
   useEffect(() => {
     const loadProgress = async () => {
       try {
@@ -271,6 +269,13 @@ const AdWizard = () => {
     }
   };
 
+  // Add a new handler for starting over that clears generated ads
+  const handleWizardStartOver = async () => {
+    setGeneratedAds([]); // Clear the generated ads
+    setHasLoadedInitialAds(false); // Reset the loading state
+    handleStartOver(); // Call the original start over handler
+  };
+
   const currentStepComponent = useMemo(() => {
     switch (currentStep) {
       case 1:
@@ -298,7 +303,7 @@ const AdWizard = () => {
             businessIdea={businessIdea}
             targetAudience={targetAudience}
             adHooks={selectedHooks}
-            onStartOver={handleStartOver}
+            onStartOver={handleWizardStartOver}
             onBack={handleBack}
             onCreateProject={handleCreateProject}
             videoAdsEnabled={videoAdsEnabled}
