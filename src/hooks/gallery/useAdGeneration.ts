@@ -96,9 +96,28 @@ export const useAdGeneration = (
     setGenerationStatus("Checking credits availability...");
     
     try {
-      const hasCredits = await checkCredits();
-      if (!hasCredits) return;
+      const { data: creditCheck, error: creditError } = await supabase.rpc(
+        'check_user_credits',
+        { p_user_id: (await supabase.auth.getUser()).data.user?.id, required_credits: 1 }
+      );
 
+      if (creditError) {
+        throw creditError;
+      }
+
+      const result = creditCheck[0];
+      
+      if (!result.has_credits) {
+        toast({
+          title: "No credits available",
+          description: result.error_message,
+          variant: "destructive",
+        });
+        navigate('/pricing');
+        return;
+      }
+
+      // If we got here, we have credits (either subscription or free tier)
       setGenerationStatus("Initializing ad generation...");
       
       // Generate video ads if enabled
@@ -163,34 +182,6 @@ export const useAdGeneration = (
       setIsGenerating(false);
       setGenerationStatus("");
     }
-  };
-
-  const checkCredits = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('User not authenticated');
-
-    const { data: creditCheck, error: creditsError } = await supabase.rpc(
-      'check_user_credits',
-      { p_user_id: user.id, required_credits: 1 }
-    );
-
-    if (creditsError) {
-      throw creditsError;
-    }
-
-    const result = creditCheck[0];
-    
-    if (!result.has_credits) {
-      toast({
-        title: "No credits available",
-        description: result.error_message,
-        variant: "destructive",
-      });
-      navigate('/pricing');
-      return false;
-    }
-
-    return true;
   };
 
   const validateResponse = (data: any) => {
