@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 
 export const useAdGeneration = (
   businessIdea: BusinessIdea,
@@ -20,13 +20,13 @@ export const useAdGeneration = (
   const { projectId } = useParams();
   const queryClient = useQueryClient();
 
-  const resetState = () => {
+  const reset = useCallback(() => {
     console.log('Resetting ad generation state in hook');
     setAdVariants([]);
     setVideoVariants([]);
     setGenerationStatus("");
     setIsGenerating(false);
-  };
+  }, []);
 
   const generateAds = async (selectedPlatform: string) => {
     setIsGenerating(true);
@@ -167,6 +167,6 @@ export const useAdGeneration = (
     videoVariants,
     generationStatus,
     generateAds,
-    resetState,
+    reset,
   };
 };
