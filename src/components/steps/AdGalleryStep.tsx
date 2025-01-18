@@ -64,14 +64,25 @@ const AdGalleryStep = ({
     }
   }, [generateAds, isGenerating]);
 
-  // Effect for initial ad generation
+  // Reset state when generatedAds is empty (after start over)
   useEffect(() => {
-    // Reset hasGeneratedInitialAds when generatedAds is empty (after start over)
     if (generatedAds.length === 0) {
+      console.log('Resetting ad generation state');
       setHasGeneratedInitialAds(false);
     }
+  }, [generatedAds]);
 
-    if (!hasLoadedInitialAds || hasGeneratedInitialAds) return;
+  // Effect for initial ad generation
+  useEffect(() => {
+    if (!hasLoadedInitialAds) {
+      console.log('Initial ads not loaded yet');
+      return;
+    }
+
+    if (hasGeneratedInitialAds) {
+      console.log('Initial ads already generated');
+      return;
+    }
 
     const isNewProject = projectId === 'new';
     const existingPlatformAds = generatedAds.filter(ad => ad.platform === platform);
@@ -82,12 +93,18 @@ const AdGalleryStep = ({
         isNewProject, 
         platform, 
         existingAdsCount: existingPlatformAds.length,
-        hasGeneratedInitialAds
+        hasGeneratedInitialAds,
+        hasLoadedInitialAds
       });
       handleGenerateAds(platform);
+      setHasGeneratedInitialAds(true);
+    } else {
+      console.log('Using existing ads:', {
+        platform,
+        existingAdsCount: existingPlatformAds.length
+      });
+      setHasGeneratedInitialAds(true);
     }
-
-    setHasGeneratedInitialAds(true);
   }, [hasLoadedInitialAds, hasGeneratedInitialAds, platform, projectId, generatedAds, handleGenerateAds]);
 
   // Effect for managing generated ads state
