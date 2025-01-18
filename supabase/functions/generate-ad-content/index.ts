@@ -105,22 +105,29 @@ serve(async (req) => {
       case 'video_ads':
         console.log('Generating complete ad campaign with params:', { businessIdea, targetAudience, campaign });
         try {
+          const { platform } = body;
           const campaignData = await generateCampaign(businessIdea, targetAudience);
           console.log('Campaign data generated:', campaignData);
           
+          // Filter ads by platform
+          const platformAds = campaignData.campaign.adCopies.filter((ad: any) => 
+            ad.platform === platform || !platform
+          );
+
           const imageData = await generateImagePrompts(businessIdea, targetAudience, campaignData.campaign);
           console.log('Image data generated:', imageData);
           
           responseData = sanitizeJson({
-            variants: campaignData.campaign.adCopies.map((copy: any, index: number) => ({
-              platform: 'facebook',
-              headline: campaignData.campaign.headlines[index % campaignData.campaign.headlines.length],
+            variants: platformAds.map((copy: any, index: number) => ({
+              platform: copy.platform,
+              headline: copy.headline || campaignData.campaign.headlines[index % campaignData.campaign.headlines.length],
               description: copy.content,
               imageUrl: imageData.images[0]?.url,
+              id: crypto.randomUUID(),
               size: {
-                width: 1200,
-                height: 628,
-                label: "Facebook Feed"
+                width: copy.platform === 'facebook' ? 1200 : 1200,
+                height: copy.platform === 'facebook' ? 628 : 628,
+                label: `${copy.platform === 'facebook' ? 'Facebook' : 'Google'} Feed`
               }
             }))
           });
