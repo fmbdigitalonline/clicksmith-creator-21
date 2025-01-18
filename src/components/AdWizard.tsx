@@ -226,7 +226,6 @@ const AdWizard = () => {
 
         if (updateError) throw updateError;
         
-        // Show signup prompt after completion
         toast({
           title: "Trial completed!",
           description: "Sign up now to save your work and get 12 free generations.",
@@ -269,11 +268,20 @@ const AdWizard = () => {
     }
   };
 
-  // Add a new handler for starting over that clears generated ads
   const handleWizardStartOver = async () => {
     setGeneratedAds([]); // Clear the generated ads
     setHasLoadedInitialAds(false); // Reset the loading state
-    handleStartOver(); // Call the original start over handler
+    await handleStartOver(); // Wait for the original start over handler to complete
+    
+    // Force a re-render of the AdGalleryStep by changing a key prop
+    const timestamp = new Date().getTime();
+    setCurrentStep(1); // Reset to first step
+    
+    toast({
+      title: "Starting Over",
+      description: "Your progress has been cleared. You can now start fresh.",
+      variant: "default",
+    });
   };
 
   const currentStepComponent = useMemo(() => {
@@ -300,6 +308,7 @@ const AdWizard = () => {
       case 4:
         return businessIdea && targetAudience && audienceAnalysis ? (
           <AdGalleryStep
+            key={`gallery-${hasLoadedInitialAds}`} // Add key to force re-render
             businessIdea={businessIdea}
             targetAudience={targetAudience}
             adHooks={selectedHooks}
