@@ -20,6 +20,14 @@ export const useAdGeneration = (
   const { projectId } = useParams();
   const queryClient = useQueryClient();
 
+  const resetState = () => {
+    console.log('Resetting ad generation state in hook');
+    setAdVariants([]);
+    setVideoVariants([]);
+    setGenerationStatus("");
+    setIsGenerating(false);
+  };
+
   const generateAds = async (selectedPlatform: string) => {
     setIsGenerating(true);
     setGenerationStatus("Checking credits availability...");
@@ -159,5 +167,6 @@ export const useAdGeneration = (
     videoVariants,
     generationStatus,
     generateAds,
+    resetState,
   };
 };

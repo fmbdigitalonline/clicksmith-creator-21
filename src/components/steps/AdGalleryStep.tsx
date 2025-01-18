@@ -55,6 +55,7 @@ const AdGalleryStep = ({
     adVariants,
     generationStatus,
     generateAds,
+    resetState: resetAdGeneration,
   } = useAdGeneration(businessIdea, targetAudience, adHooks);
 
   const handleGenerateAds = useCallback((selectedPlatform: string) => {
@@ -69,8 +70,9 @@ const AdGalleryStep = ({
     if (generatedAds.length === 0) {
       console.log('Resetting ad generation state');
       setHasGeneratedInitialAds(false);
+      resetAdGeneration();
     }
-  }, [generatedAds]);
+  }, [generatedAds, resetAdGeneration]);
 
   // Effect for initial ad generation
   useEffect(() => {
