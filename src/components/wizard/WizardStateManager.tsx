@@ -22,6 +22,7 @@ interface WizardStateManagerProps {
     hasLoadedInitialAds: boolean;
     handleVideoAdsToggle: (enabled: boolean) => Promise<void>;
     handleAdsGenerated: (newAds: any[]) => Promise<void>;
+    handleStartOver: () => Promise<void>;
   }) => React.ReactNode;
 }
 
@@ -129,6 +130,62 @@ export const WizardStateManager = ({ projectId, children }: WizardStateManagerPr
     }
   };
 
+  const handleStartOver = async () => {
+    console.log('Starting over...');
+    setGeneratedAds([]); // Clear generated ads
+    setHasLoadedInitialAds(false); // Reset loading state
+
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    try {
+      if (!user) {
+        // For anonymous users, clear wizard data
+        const { error: updateError } = await supabase
+          .from('anonymous_usage')
+          .update({ 
+            wizard_data: null,
+            completed: false
+          })
+          .eq('session_id', sessionId);
+
+        if (updateError) throw updateError;
+      } else if (projectId && projectId !== 'new') {
+        // For authenticated users with a project, clear project data
+        const { error: updateError } = await supabase
+          .from('projects')
+          .update({
+            business_idea: null,
+            target_audience: null,
+            audience_analysis: null,
+            selected_hooks: null,
+            generated_ads: null,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', projectId);
+
+        if (updateError) throw updateError;
+      } else {
+        // For authenticated users without a project, clear wizard progress
+        const { error: deleteError } = await supabase
+          .from('wizard_progress')
+          .delete()
+          .eq('user_id', user.id);
+
+        if (deleteError) throw deleteError;
+      }
+
+      // Navigate back to first step
+      navigate('/ad-wizard/new');
+    } catch (error) {
+      console.error('Error clearing progress:', error);
+      toast({
+        title: "Couldn't clear progress",
+        description: "There was an error clearing your progress. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleAdsGenerated = async (newAds: any[]) => {
     console.log('Handling newly generated ads:', newAds);
     setGeneratedAds(newAds);
@@ -199,5 +256,6 @@ export const WizardStateManager = ({ projectId, children }: WizardStateManagerPr
     hasLoadedInitialAds,
     handleVideoAdsToggle,
     handleAdsGenerated,
+    handleStartOver,
   });
 };
