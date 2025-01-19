@@ -58,12 +58,6 @@ const VALID_GENERATION_TYPES = [
 
 serve(async (req) => {
   try {
-    console.log('Edge Function received request:', { 
-      method: req.method,
-      url: req.url,
-      headers: Object.fromEntries(req.headers.entries())
-    });
-
     if (req.method === 'OPTIONS') {
       return new Response(null, { 
         status: 204,
@@ -73,10 +67,6 @@ serve(async (req) => {
           'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
         }
       });
-    }
-
-    if (!['GET', 'POST'].includes(req.method)) {
-      throw new Error(`Method ${req.method} not allowed. Only GET and POST requests are accepted.`);
     }
 
     let body;
@@ -134,16 +124,16 @@ serve(async (req) => {
           const imageData = await generateImagePrompts(businessIdea, targetAudience, campaignData.campaign);
           console.log('Image data generated:', imageData);
           
-          // Create 10 variants with platform-specific formats
-          const variants = campaignData.campaign.adCopies.map((copy: any, index: number) => {
+          // Generate 10 variants for the specified platform
+          const variants = Array.from({ length: 10 }, (_, index) => {
             const format = type === 'video_ads' 
               ? PLATFORM_FORMATS[platform as keyof typeof PLATFORM_FORMATS].video 
               : PLATFORM_FORMATS[platform as keyof typeof PLATFORM_FORMATS].image;
 
             const variant = {
               platform,
-              headline: campaignData.campaign.headlines[index],
-              description: copy.content,
+              headline: campaignData.campaign.headlines[index % campaignData.campaign.headlines.length],
+              description: campaignData.campaign.adCopies[index % campaignData.campaign.adCopies.length].content,
               imageUrl: imageData.images[0]?.url,
               size: format
             };
