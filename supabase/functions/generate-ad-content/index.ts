@@ -6,6 +6,27 @@ import { generateCampaign } from "./handlers/campaignGeneration.ts";
 import { analyzeAudience } from "./handlers/audienceAnalysis.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 
+const PLATFORM_FORMATS = {
+  facebook: {
+    image: { width: 1200, height: 628, label: "Facebook Feed" },
+    video: { width: 1280, height: 720, label: "Facebook Video" },
+    story: { width: 1080, height: 1920, label: "Facebook Story" }
+  },
+  google: {
+    image: { width: 1200, height: 628, label: "Google Display" },
+    video: { width: 1920, height: 1080, label: "Google Video" },
+    square: { width: 1080, height: 1080, label: "Google Square" }
+  },
+  linkedin: {
+    image: { width: 1200, height: 627, label: "LinkedIn Feed" },
+    video: { width: 1920, height: 1080, label: "LinkedIn Video" }
+  },
+  tiktok: {
+    video: { width: 1080, height: 1920, label: "TikTok Video" },
+    image: { width: 1080, height: 1920, label: "TikTok Feed" }
+  }
+};
+
 const sanitizeJson = (obj: unknown): unknown => {
   if (typeof obj === 'string') {
     return obj.replace(/[\u0000-\u001F\u007F-\u009F]/g, '')
@@ -77,7 +98,7 @@ serve(async (req) => {
       throw new Error('Empty request body');
     }
 
-    const { type, businessIdea, targetAudience, regenerationCount = 0, timestamp, forceRegenerate = false, campaign } = body;
+    const { type, platform = 'facebook', businessIdea, targetAudience, regenerationCount = 0, timestamp, forceRegenerate = false, campaign } = body;
     
     if (!type) {
       throw new Error('type is required in request body');
@@ -87,7 +108,11 @@ serve(async (req) => {
       throw new Error(`Invalid generation type: ${type}. Valid types are: ${VALID_GENERATION_TYPES.join(', ')}`);
     }
 
-    console.log('Processing request:', { type, timestamp });
+    if (!PLATFORM_FORMATS[platform as keyof typeof PLATFORM_FORMATS]) {
+      throw new Error(`Unsupported platform: ${platform}. Supported platforms are: ${Object.keys(PLATFORM_FORMATS).join(', ')}`);
+    }
+
+    console.log('Processing request:', { type, timestamp, platform });
 
     let responseData;
     switch (type) {
@@ -101,7 +126,7 @@ serve(async (req) => {
         break;
       case 'complete_ads':
       case 'video_ads':
-        console.log('Generating complete ad campaign with params:', { businessIdea, targetAudience, campaign });
+        console.log('Generating complete ad campaign with params:', { businessIdea, targetAudience, campaign, platform });
         try {
           const campaignData = await generateCampaign(businessIdea, targetAudience);
           console.log('Campaign data generated:', campaignData);
@@ -109,18 +134,28 @@ serve(async (req) => {
           const imageData = await generateImagePrompts(businessIdea, targetAudience, campaignData.campaign);
           console.log('Image data generated:', imageData);
           
-          // Create 10 variants by combining headlines, ad copies, and images
-          const variants = campaignData.campaign.adCopies.map((copy: any, index: number) => ({
-            platform: body.platform || 'facebook',
-            headline: campaignData.campaign.headlines[index],
-            description: copy.content,
-            imageUrl: imageData.images[0]?.url,
-            size: {
-              width: 1200,
-              height: 628,
-              label: "Facebook Feed"
+          // Create 10 variants with platform-specific formats
+          const variants = campaignData.campaign.adCopies.map((copy: any, index: number) => {
+            const format = type === 'video_ads' 
+              ? PLATFORM_FORMATS[platform as keyof typeof PLATFORM_FORMATS].video 
+              : PLATFORM_FORMATS[platform as keyof typeof PLATFORM_FORMATS].image;
+
+            const variant = {
+              platform,
+              headline: campaignData.campaign.headlines[index],
+              description: copy.content,
+              imageUrl: imageData.images[0]?.url,
+              size: format
+            };
+
+            // Add platform-specific properties
+            if (platform === 'google') {
+              variant['displayUrl'] = businessIdea.website || '';
+              variant['callToAction'] = 'Learn More';
             }
-          }));
+
+            return variant;
+          });
 
           responseData = sanitizeJson({ variants });
         } catch (error) {
