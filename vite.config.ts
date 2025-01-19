@@ -14,13 +14,9 @@ export default defineConfig(({ mode }) => ({
       protocol: 'wss',
       host: '51d85d4a-57a5-4cf4-a478-7ea91ed58660.lovableproject.com',
       timeout: 5000,
-      overlay: true,
-      path: '@vite/client',
-      server: {
-        https: true,
-        cors: true,
-      }
-    }
+      overlay: true
+    },
+    https: true
   },
   plugins: [
     react(),
