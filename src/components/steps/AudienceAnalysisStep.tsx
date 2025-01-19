@@ -5,6 +5,7 @@ import { BusinessIdea, TargetAudience, AudienceAnalysis } from "@/types/adWizard
 import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import StepNavigation from "../wizard/StepNavigation";
 
 interface AudienceAnalysisStepProps {
   businessIdea: BusinessIdea;
@@ -23,7 +24,7 @@ const AudienceAnalysisStep = ({
   const { toast } = useToast();
 
   const handleNext = async () => {
-    if (isLoading) return; // Prevent multiple clicks
+    if (isLoading) return;
     
     setIsLoading(true);
     try {
