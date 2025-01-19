@@ -41,7 +41,8 @@ export const useAdGeneration = (
           businessIdea,
           targetAudience,
           adHooks,
-          userId: user.id
+          userId: user.id,
+          numVariants: 10 // Explicitly request 10 variants
         },
       });
 
@@ -58,11 +59,13 @@ export const useAdGeneration = (
         throw error;
       }
 
-      // Process variants based on platform
-      const variants = data.variants.map((variant: any) => ({
-        ...variant,
+      console.log('Generated variants:', data.variants);
+
+      // Ensure we have exactly 10 variants
+      const variants = Array.from({ length: 10 }, (_, index) => ({
+        ...data.variants[index % data.variants.length],
+        id: crypto.randomUUID(), // Ensure unique IDs
         platform: selectedPlatform,
-        size: getPlatformAdSize(selectedPlatform),
       }));
 
       setAdVariants(variants);
@@ -85,41 +88,6 @@ export const useAdGeneration = (
     } finally {
       setIsGenerating(false);
       setGenerationStatus("");
-    }
-  };
-
-  const getPlatformAdSize = (platform: string) => {
-    switch (platform) {
-      case 'google':
-        return {
-          width: 1200,
-          height: 628,
-          label: "Google Display"
-        };
-      case 'facebook':
-        return {
-          width: 1200,
-          height: 628,
-          label: "Facebook Feed"
-        };
-      case 'linkedin':
-        return {
-          width: 1200,
-          height: 627,
-          label: "LinkedIn Feed"
-        };
-      case 'tiktok':
-        return {
-          width: 1080,
-          height: 1920,
-          label: "TikTok Feed"
-        };
-      default:
-        return {
-          width: 1200,
-          height: 628,
-          label: "Standard Display"
-        };
     }
   };
 
