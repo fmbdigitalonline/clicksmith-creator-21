@@ -1,27 +1,28 @@
-import { defineConfig } from "vite";
+import { defineConfig, ConfigEnv } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 
-// https://vitejs.dev/config/
-export default defineConfig(({ mode }) => ({
+export default defineConfig(({ mode }: ConfigEnv) => ({
   server: {
     host: true,
     port: 8080,
     strictPort: true,
     hmr: {
-      clientPort: 443,
-      protocol: 'wss',
-      host: '51d85d4a-57a5-4cf4-a478-7ea91ed58660.lovableproject.com',
-      timeout: 5000,
-      overlay: true
+      clientPort: 8080,
+      protocol: 'ws',
+      host: 'localhost',
+      timeout: 120000,
+      overlay: true,
     },
-    https: true
+    https: {
+      cert: '',  // path to cert if needed
+      key: '',   // path to key if needed
+    }
   },
   plugins: [
     react(),
-    mode === 'development' &&
-    componentTagger(),
+    mode === 'development' && componentTagger(),
   ].filter(Boolean),
   resolve: {
     alias: {
