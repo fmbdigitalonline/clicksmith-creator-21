@@ -36,12 +36,14 @@ export const useAdGeneration = (
               width: format.width,
               height: format.height
             },
-            maxLength: 30
+            maxLength: 30 // Default to 30 seconds
           }
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
 
       if (!data.videoUrl) {
         throw new Error('No video URL returned from generation');
@@ -59,6 +61,7 @@ export const useAdGeneration = (
 
       setVideoVariants(prev => [...prev, newVariant]);
 
+      // Save to project if we have a project ID
       if (projectId && projectId !== 'new') {
         const { error: updateError } = await supabase
           .from('projects')
@@ -93,29 +96,8 @@ export const useAdGeneration = (
     setGenerationStatus("Checking credits availability...");
     
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('User not authenticated');
-
-      const { data: creditCheck, error: creditsError } = await supabase.rpc(
-        'check_user_credits',
-        { p_user_id: user.id, required_credits: 1 }
-      );
-
-      if (creditsError) {
-        throw creditsError;
-      }
-
-      const result = creditCheck[0];
-      
-      if (!result.has_credits) {
-        toast({
-          title: "No credits available",
-          description: result.error_message,
-          variant: "destructive",
-        });
-        navigate('/pricing');
-        return;
-      }
+      const hasCredits = await checkCredits();
+      if (!hasCredits) return;
 
       setGenerationStatus("Initializing ad generation...");
       
@@ -148,6 +130,7 @@ export const useAdGeneration = (
         }
       }
 
+      // Generate image ads
       setGenerationStatus("Generating image ads...");
       const { data, error } = await supabase.functions.invoke('generate-ad-content', {
         body: {
@@ -161,6 +144,7 @@ export const useAdGeneration = (
 
       if (error) throw error;
 
+      // Process image variants
       const variants = validateResponse(data);
       setAdVariants(prev => [...prev, ...variants]);
 
@@ -179,6 +163,34 @@ export const useAdGeneration = (
       setIsGenerating(false);
       setGenerationStatus("");
     }
+  };
+
+  const checkCredits = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    const { data: creditCheck, error: creditsError } = await supabase.rpc(
+      'check_user_credits',
+      { p_user_id: user.id, required_credits: 1 }
+    );
+
+    if (creditsError) {
+      throw creditsError;
+    }
+
+    const result = creditCheck[0];
+    
+    if (!result.has_credits) {
+      toast({
+        title: "No credits available",
+        description: result.error_message,
+        variant: "destructive",
+      });
+      navigate('/pricing');
+      return false;
+    }
+
+    return true;
   };
 
   const validateResponse = (data: any) => {
