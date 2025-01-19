@@ -24,7 +24,9 @@ const AudienceAnalysisStep = ({
   const { toast } = useToast();
 
   const handleNext = async () => {
-    if (isLoading) return;
+    if (isLoading) {
+      return;
+    }
     
     setIsLoading(true);
     try {
