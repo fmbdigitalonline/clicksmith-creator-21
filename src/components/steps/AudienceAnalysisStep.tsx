@@ -75,7 +75,7 @@ const AudienceAnalysisStep = ({
     if (analysis) {
       setIsTransitioning(true);
       try {
-        // Simulate a small delay to ensure smooth transition
+        // Add a small delay to ensure smooth transition animation
         await new Promise(resolve => setTimeout(resolve, 300));
         onNext(analysis);
       } finally {
@@ -113,7 +113,7 @@ const AudienceAnalysisStep = ({
           <Button
             onClick={handleNext}
             disabled={!analysis || isLoading || isTransitioning}
-            className="bg-facebook hover:bg-facebook/90 text-white w-full md:w-auto relative"
+            className="bg-facebook hover:bg-facebook/90 text-white w-full md:w-auto relative animate-in fade-in duration-300"
           >
             {isTransitioning ? (
               <>

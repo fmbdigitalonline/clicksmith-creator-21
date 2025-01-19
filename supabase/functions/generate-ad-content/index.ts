@@ -5,6 +5,7 @@ import { generateImagePrompts } from "./handlers/imagePromptGeneration.ts";
 import { generateCampaign } from "./handlers/campaignGeneration.ts";
 import { analyzeAudience } from "./handlers/audienceAnalysis.ts";
 import { corsHeaders } from "../_shared/cors.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
 // Helper function to sanitize JSON strings
 const sanitizeJson = (obj: unknown): unknown => {
@@ -56,9 +57,10 @@ serve(async (req) => {
       });
     }
 
-    if (!['GET', 'POST'].includes(req.method)) {
-      throw new Error(`Method ${req.method} not allowed. Only GET and POST requests are accepted.`);
-    }
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
 
     let body;
     try {
@@ -79,7 +81,7 @@ serve(async (req) => {
       throw new Error('Empty request body');
     }
 
-    const { type, businessIdea, targetAudience, regenerationCount = 0, timestamp, forceRegenerate = false, campaign } = body;
+    const { type, businessIdea, targetAudience, regenerationCount = 0, timestamp, forceRegenerate = false, campaign, userId } = body;
     
     if (!type) {
       throw new Error('type is required in request body');
@@ -87,6 +89,40 @@ serve(async (req) => {
 
     if (!VALID_GENERATION_TYPES.includes(type)) {
       throw new Error(`Invalid generation type: ${type}. Valid types are: ${VALID_GENERATION_TYPES.join(', ')}`);
+    }
+
+    // Check and deduct credits before generation
+    if (userId && type !== 'audience_analysis') {
+      const { data: creditCheck, error: creditError } = await supabase.rpc(
+        'check_user_credits',
+        { p_user_id: userId, required_credits: 1 }
+      );
+
+      if (creditError) {
+        console.error('Error checking credits:', creditError);
+        throw new Error('Failed to check credits');
+      }
+
+      const result = creditCheck[0];
+      if (!result.has_credits) {
+        return new Response(
+          JSON.stringify({ error: 'No credits available', message: result.error_message }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 402 }
+        );
+      }
+
+      // Deduct credits before generation
+      const { data: deductResult, error: deductError } = await supabase.rpc(
+        'deduct_user_credits',
+        { input_user_id: userId, credits_to_deduct: 1 }
+      );
+
+      if (deductError) {
+        console.error('Error deducting credits:', deductError);
+        throw new Error('Failed to deduct credits');
+      }
+
+      console.log('Credits deducted successfully:', deductResult);
     }
 
     console.log('Processing request:', { type, timestamp });
