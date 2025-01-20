@@ -1,14 +1,14 @@
 import { BusinessIdea, TargetAudience } from "../types.ts";
 
 export const analyzeAudience = async (businessIdea: BusinessIdea, targetAudience: TargetAudience) => {
-  console.log('Starting audience analysis...');
+  console.log('Starting audience analysis with:', { businessIdea, targetAudience });
   
   const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
   if (!openAIApiKey) {
     throw new Error('OpenAI API key not configured');
   }
 
-  const prompt = `Analyze this target audience for a business:
+  const prompt = `As an expert market researcher, analyze this target audience for a business:
   
   Business Description: ${businessIdea.description}
   Value Proposition: ${businessIdea.valueProposition}
@@ -23,7 +23,7 @@ export const analyzeAudience = async (businessIdea: BusinessIdea, targetAudience
   
   Provide a detailed analysis in JSON format with these exact fields:
   {
-    "expandedDefinition": "A comprehensive description of the target audience and their context",
+    "expandedDefinition": "A comprehensive description of who they are and their context",
     "marketDesire": "The deep underlying desire or need driving their behavior",
     "awarenessLevel": "Their current understanding of the problem and available solutions",
     "sophisticationLevel": "Their familiarity with and expectations for solutions",
@@ -32,7 +32,7 @@ export const analyzeAudience = async (businessIdea: BusinessIdea, targetAudience
   }`;
 
   try {
-    console.log('Sending request to OpenAI...');
+    console.log('Sending request to OpenAI with prompt:', prompt);
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -44,7 +44,7 @@ export const analyzeAudience = async (businessIdea: BusinessIdea, targetAudience
         messages: [
           {
             role: 'system',
-            content: 'You are an expert market researcher. Always respond with valid JSON only, no markdown or additional text.'
+            content: 'You are an expert market researcher. Respond with valid JSON only, no markdown or additional text.'
           },
           { role: 'user', content: prompt }
         ],

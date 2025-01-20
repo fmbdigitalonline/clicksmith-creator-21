@@ -105,7 +105,9 @@ serve(async (req) => {
         responseData = await generateHooks(businessIdea, targetAudience);
         break;
       case 'audience_analysis':
+        console.log('Handling audience analysis request');
         responseData = await analyzeAudience(businessIdea, targetAudience);
+        console.log('Audience analysis response:', responseData);
         break;
       default:
         throw new Error(`Unsupported generation type: ${type}`);
