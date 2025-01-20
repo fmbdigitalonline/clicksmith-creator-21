@@ -1,15 +1,14 @@
 import { BusinessIdea, TargetAudience } from "../types.ts";
 
-export const analyzeAudience = async (businessIdea: BusinessIdea, targetAudience: TargetAudience, regenerationCount: number = 0) => {
-  console.log('Starting audience analysis...', { regenerationCount });
+export const analyzeAudience = async (businessIdea: BusinessIdea, targetAudience: TargetAudience) => {
+  console.log('Starting audience analysis...');
   
   const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
   if (!openAIApiKey) {
     throw new Error('OpenAI API key not configured');
   }
 
-  const prompt = `Analyze the following target audience for a business 
-  (consider this is regeneration attempt #${regenerationCount}, so provide fresh insights and perspectives):
+  const prompt = `Analyze this target audience for a business:
   
   Business Description: ${businessIdea.description}
   Value Proposition: ${businessIdea.valueProposition}
@@ -22,20 +21,14 @@ export const analyzeAudience = async (businessIdea: BusinessIdea, targetAudience
   ICP: ${targetAudience.icp}
   Core Message: ${targetAudience.coreMessage}
   
-  Important: For each regeneration, explore different angles and provide unique insights focusing on:
-  - Different market segments within the target audience
-  - Alternative pain points and desires
-  - Varied sophistication levels and awareness states
-  - Fresh objections and concerns
-  
-  Return a JSON object with these exact fields (no markdown formatting):
+  Provide a detailed analysis in JSON format with these exact fields:
   {
-    "expandedDefinition": "string describing potential group struggling with a problem",
-    "marketDesire": "string describing deep market desire",
-    "awarenessLevel": "string describing familiarity with problem/solution",
-    "sophisticationLevel": "string describing familiarity with competing solutions",
-    "deepPainPoints": ["3 main problems as array of strings"],
-    "potentialObjections": ["3 main objections as array of strings"]
+    "expandedDefinition": "A comprehensive description of the target audience and their context",
+    "marketDesire": "The deep underlying desire or need driving their behavior",
+    "awarenessLevel": "Their current understanding of the problem and available solutions",
+    "sophisticationLevel": "Their familiarity with and expectations for solutions",
+    "deepPainPoints": ["Three specific, deep-rooted problems they face"],
+    "potentialObjections": ["Three main objections they might have"]
   }`;
 
   try {
@@ -51,7 +44,7 @@ export const analyzeAudience = async (businessIdea: BusinessIdea, targetAudience
         messages: [
           {
             role: 'system',
-            content: 'You are an expert market researcher. Always respond with raw JSON only, no markdown.'
+            content: 'You are an expert market researcher. Always respond with valid JSON only, no markdown or additional text.'
           },
           { role: 'user', content: prompt }
         ],
@@ -101,6 +94,10 @@ export const analyzeAudience = async (businessIdea: BusinessIdea, targetAudience
 
     if (!Array.isArray(analysis.deepPainPoints) || !Array.isArray(analysis.potentialObjections)) {
       throw new Error('Pain points and objections must be arrays');
+    }
+
+    if (analysis.deepPainPoints.length !== 3 || analysis.potentialObjections.length !== 3) {
+      throw new Error('Both deepPainPoints and potentialObjections must contain exactly 3 items');
     }
 
     return { analysis };
