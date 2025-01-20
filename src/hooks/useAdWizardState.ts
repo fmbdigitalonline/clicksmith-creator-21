@@ -19,7 +19,6 @@ export const useAdWizardState = () => {
   const { toast } = useToast();
   const { projectId } = useParams();
 
-  // Load saved progress when component mounts
   useEffect(() => {
     const loadSavedProgress = async () => {
       try {
@@ -109,10 +108,47 @@ export const useAdWizardState = () => {
   }, [projectId]);
 
   const handleAudienceSelect = useCallback(async (audience: TargetAudience) => {
-    setTargetAudience(audience);
-    await saveWizardProgress({ target_audience: audience }, projectId);
-    setCurrentStep(3);
-  }, [projectId]);
+    try {
+      setTargetAudience(audience);
+      await saveWizardProgress({ target_audience: audience }, projectId);
+
+      console.log('Generating audience analysis for:', audience);
+      
+      const { data, error } = await supabase.functions.invoke('generate-ad-content', {
+        body: { 
+          type: 'audience_analysis',
+          businessIdea,
+          targetAudience: audience
+        }
+      });
+
+      if (error) {
+        console.error('Error generating audience analysis:', error);
+        toast({
+          title: "Analysis Generation Failed",
+          description: error.message,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (!data?.analysis) {
+        throw new Error('Invalid response format from audience analysis');
+      }
+
+      console.log('Generated audience analysis:', data.analysis);
+      setAudienceAnalysis(data.analysis);
+      await saveWizardProgress({ audience_analysis: data.analysis }, projectId);
+      setCurrentStep(3);
+    } catch (error) {
+      console.error('Error in handleAudienceSelect:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to analyze audience",
+        variant: "destructive",
+      });
+    }
+  }, [businessIdea, projectId, toast]);
 
   const handleAnalysisComplete = useCallback(async (analysis: AudienceAnalysis) => {
     try {
