@@ -108,11 +108,12 @@ export const useAdWizardState = () => {
   }, [projectId]);
 
   const handleAudienceSelect = useCallback(async (audience: TargetAudience) => {
+    console.log('Handling audience selection:', audience);
     try {
       setTargetAudience(audience);
       await saveWizardProgress({ target_audience: audience }, projectId);
 
-      console.log('Generating audience analysis for:', audience);
+      console.log('Generating audience analysis for:', { businessIdea, audience });
       
       const { data, error } = await supabase.functions.invoke('generate-ad-content', {
         body: { 
