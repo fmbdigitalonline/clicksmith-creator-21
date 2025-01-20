@@ -8,37 +8,43 @@ export const analyzeAudience = async (businessIdea: BusinessIdea, targetAudience
     throw new Error('OpenAI API key not configured');
   }
 
-  const prompt = `As an expert market researcher, analyze this target audience for a business:
-  
-  Business Description: ${businessIdea.description}
-  Value Proposition: ${businessIdea.valueProposition}
-  
-  Target Audience:
-  Name: ${targetAudience.name}
-  Description: ${targetAudience.description}
-  Demographics: ${targetAudience.demographics}
-  Pain Points: ${targetAudience.painPoints.join(', ')}
-  ICP: ${targetAudience.icp}
-  Core Message: ${targetAudience.coreMessage}
-  
-  Provide a detailed analysis in JSON format with these exact fields:
-  {
-    "expandedDefinition": "A comprehensive description of who they are and their context",
-    "marketDesire": "The deep underlying desire or need driving their behavior",
-    "awarenessLevel": "Their current understanding of the problem and available solutions",
-    "sophisticationLevel": "Their familiarity with and expectations for solutions",
-    "deepPainPoints": ["Three specific, deep-rooted problems they face"],
-    "potentialObjections": ["Three main objections they might have"]
-  }`;
+  // Create an AbortController with a timeout
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 8000); // Set to 8s to ensure we're under Supabase's 10s limit
 
   try {
-    console.log('Sending request to OpenAI with prompt:', prompt);
+    const prompt = `As an expert market researcher, analyze this target audience for a business:
+    
+    Business Description: ${businessIdea.description}
+    Value Proposition: ${businessIdea.valueProposition}
+    
+    Target Audience:
+    Name: ${targetAudience.name}
+    Description: ${targetAudience.description}
+    Demographics: ${targetAudience.demographics}
+    Pain Points: ${targetAudience.painPoints.join(', ')}
+    ICP: ${targetAudience.icp}
+    Core Message: ${targetAudience.coreMessage}
+    
+    Provide a detailed analysis in JSON format with these exact fields:
+    {
+      "expandedDefinition": "A comprehensive description of who they are and their context",
+      "marketDesire": "The deep underlying desire or need driving their behavior",
+      "awarenessLevel": "Their current understanding of the problem and available solutions",
+      "sophisticationLevel": "Their familiarity with and expectations for solutions",
+      "deepPainPoints": ["Three specific, deep-rooted problems they face"],
+      "potentialObjections": ["Three main objections they might have"]
+    }`;
+
+    console.log('Sending request to OpenAI with timeout control');
+    
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${openAIApiKey}`,
         'Content-Type': 'application/json',
       },
+      signal: controller.signal, // Add abort signal
       body: JSON.stringify({
         model: 'gpt-4o-mini',
         messages: [
@@ -49,7 +55,9 @@ export const analyzeAudience = async (businessIdea: BusinessIdea, targetAudience
           { role: 'user', content: prompt }
         ],
         temperature: 0.7,
-        max_tokens: 2000,
+        max_tokens: 1000, // Reduced from 2000 to help with timeout
+        presence_penalty: 0.1, // Added to encourage faster responses
+        frequency_penalty: 0.1, // Added to encourage faster responses
       }),
     });
 
@@ -102,7 +110,13 @@ export const analyzeAudience = async (businessIdea: BusinessIdea, targetAudience
 
     return { analysis };
   } catch (error) {
+    if (error.name === 'AbortError') {
+      console.error('Request timed out after 8 seconds');
+      throw new Error('Analysis generation timed out. Please try again.');
+    }
     console.error('Error in analyzeAudience:', error);
     throw error;
+  } finally {
+    clearTimeout(timeoutId);
   }
 };
