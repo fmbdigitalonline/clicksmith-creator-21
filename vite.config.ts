@@ -1,28 +1,25 @@
-import { defineConfig, ConfigEnv } from "vite";
+import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 
-export default defineConfig(({ mode }: ConfigEnv) => ({
+// https://vitejs.dev/config/
+export default defineConfig(({ mode }) => ({
   server: {
-    host: true,
+    host: "::",
     port: 8080,
-    strictPort: true,
-    hmr: {
-      clientPort: 8080,
-      protocol: 'ws',
-      host: 'localhost',
-      timeout: 120000,
-      overlay: true,
+    proxy: {
+      '/api/replicate': {
+        target: 'https://api.replicate.com/v1',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/replicate/, ''),
+      },
     },
-    https: {
-      cert: '',  // path to cert if needed
-      key: '',   // path to key if needed
-    }
   },
   plugins: [
     react(),
-    mode === 'development' && componentTagger(),
+    mode === 'development' &&
+    componentTagger(),
   ].filter(Boolean),
   resolve: {
     alias: {
