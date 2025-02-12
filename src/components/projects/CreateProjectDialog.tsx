@@ -1,7 +1,6 @@
-
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import ProjectForm, { ProjectFormData } from "./ProjectForm";
 import ProjectActions from "./ProjectActions";
@@ -24,80 +23,90 @@ const CreateProjectDialog = ({
   initialBusinessIdea,
 }: CreateProjectDialogProps) => {
   const { toast } = useToast();
+  const [userId, setUserId] = useState<string | null>(null);
   const [showActions, setShowActions] = useState(false);
   const [createdProjectId, setCreatedProjectId] = useState<string | null>(null);
   const [includeWizardProgress, setIncludeWizardProgress] = useState(true);
   
-  const handleSubmit = async (values: ProjectFormData) => {
-    try {
+  useEffect(() => {
+    const getCurrentUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        toast({
-          title: "Error creating project",
-          description: "You must be logged in to create a project",
-          variant: "destructive",
-        });
-        return;
+      if (user) {
+        setUserId(user.id);
       }
+    };
+    getCurrentUser();
+  }, []);
 
-      // Get current wizard progress if checkbox is checked
-      let wizardProgress = null;
-      if (includeWizardProgress) {
-        const { data: progressData } = await supabase
-          .from('wizard_progress')
-          .select('*')
-          .eq('user_id', user.id)
-          .single();
-        
-        wizardProgress = progressData;
-      }
-
-      const tags = values.tags
-        ? values.tags.split(",").map((tag) => tag.trim())
-        : [];
-
-      const { data, error } = await supabase
-        .from("projects")
-        .insert({
-          title: values.title,
-          description: values.description || null,
-          tags,
-          user_id: user.id,
-          status: "draft",
-          business_idea: wizardProgress?.business_idea || {
-            description: values.businessIdea,
-            valueProposition: `Enhanced version of: ${values.businessIdea}`,
-          },
-          target_audience: wizardProgress?.target_audience || null,
-          audience_analysis: wizardProgress?.audience_analysis || null,
-          selected_hooks: wizardProgress?.selected_hooks || null,
-          generated_ads: wizardProgress?.generated_ads || [],
-          ad_format: wizardProgress?.ad_format || null,
-          video_ad_preferences: wizardProgress?.video_ad_preferences || null
-        })
-        .select()
-        .single();
-
-      if (error) {
-        throw error;
-      }
-
-      if (data) {
-        setCreatedProjectId(data.id);
-        setShowActions(true);
-        toast({
-          title: "Project created",
-          description: "Your project has been created successfully.",
-        });
-        onSuccess(data.id);
-      }
-    } catch (error) {
-      console.error('Error creating project:', error);
+  const handleSubmit = async (values: ProjectFormData) => {
+    if (!userId) {
       toast({
         title: "Error creating project",
-        description: error instanceof Error ? error.message : "Failed to create project",
+        description: "You must be logged in to create a project",
         variant: "destructive",
       });
+      return;
+    }
+
+    const tags = values.tags
+      ? values.tags.split(",").map((tag) => tag.trim())
+      : [];
+
+    let projectData: any = {
+      title: values.title,
+      description: values.description || null,
+      tags,
+      user_id: userId,
+      status: "draft",
+      business_idea: {
+        description: values.businessIdea,
+        valueProposition: `Enhanced version of: ${values.businessIdea}`,
+      },
+    };
+
+    if (includeWizardProgress) {
+      // Fetch current wizard progress
+      const { data: wizardProgress } = await supabase
+        .from('wizard_progress')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+
+      if (wizardProgress) {
+        // Include wizard progress data in project
+        projectData = {
+          ...projectData,
+          target_audience: wizardProgress.target_audience,
+          audience_analysis: wizardProgress.audience_analysis,
+          selected_hooks: wizardProgress.selected_hooks,
+          ad_format: wizardProgress.ad_format,
+          video_ad_preferences: wizardProgress.video_ad_preferences,
+        };
+      }
+    }
+
+    const { data, error } = await supabase
+      .from("projects")
+      .insert(projectData)
+      .select();
+
+    if (error) {
+      toast({
+        title: "Error creating project",
+        description: error.message,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (data && data[0]) {
+      setCreatedProjectId(data[0].id);
+      setShowActions(true);
+      toast({
+        title: "Project created",
+        description: "Your project has been created successfully.",
+      });
+      onSuccess(data[0].id);
     }
   };
 
@@ -111,6 +120,14 @@ const CreateProjectDialog = ({
   const handleBackToProjects = () => {
     onOpenChange(false);
   };
+
+  useEffect(() => {
+    if (!open) {
+      setShowActions(false);
+      setCreatedProjectId(null);
+      setIncludeWizardProgress(true);
+    }
+  }, [open]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
