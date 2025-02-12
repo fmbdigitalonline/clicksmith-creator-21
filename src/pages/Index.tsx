@@ -129,8 +129,11 @@ const Index = () => {
             <Target className="h-12 w-12 text-primary animate-pulse" />
           </div>
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-8">
-            The Ultimate Tool to Validate Your Business Idea in Minutes
+            Know If Your Idea Will Work Before You Invest—AI Validates Products, Services, and Campaigns
           </h1>
+          <p className="text-xl text-muted-foreground mb-12 max-w-3xl mx-auto">
+            Our AI Generates Your Ideal Customer Profile and Tailored Ads in Minutes—So You Can Test What Works Before Committing Resources.
+          </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-8 mb-12">
             <div className="flex items-center gap-2 text-xl text-muted-foreground">
               <CheckCircle className="h-6 w-6 text-primary" />
@@ -145,9 +148,6 @@ const Index = () => {
               <span>Real-Time Results</span>
             </div>
           </div>
-          <p className="text-xl text-muted-foreground mb-6 max-w-3xl mx-auto">
-            In today's fast-paced digital world, establishing a strong online presence is no longer optional—it's essential. But how do you know if your business idea will resonate with your target audience?
-          </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button size="lg" asChild>
               <Link to="/login">
