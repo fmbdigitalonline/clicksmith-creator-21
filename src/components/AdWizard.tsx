@@ -1,4 +1,3 @@
-
 import { useAdWizardState } from "@/hooks/useAdWizardState";
 import IdeaStep from "./steps/BusinessIdeaStep";
 import AudienceStep from "./steps/AudienceStep";
@@ -12,6 +11,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { Toggle } from "./ui/toggle";
 import { Video, Image } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { BusinessIdea } from "@/types/adWizard";
 
 const AdWizard = () => {
   const [showCreateProject, setShowCreateProject] = useState(false);
@@ -63,8 +63,15 @@ const AdWizard = () => {
           setVideoAdsEnabled(project.video_ads_enabled || false);
           
           // Initialize business idea from project data
-          if (project.business_idea) {
-            setBusinessIdea(project.business_idea);
+          if (project.business_idea && 
+              typeof project.business_idea === 'object' && 
+              'description' in project.business_idea && 
+              'valueProposition' in project.business_idea) {
+            const businessIdea: BusinessIdea = {
+              description: String(project.business_idea.description),
+              valueProposition: String(project.business_idea.valueProposition)
+            };
+            setBusinessIdea(businessIdea);
             if (!businessIdea) {
               setCurrentStep(1);
             }
