@@ -1,6 +1,6 @@
 
 import { useQuery } from "@tanstack/react-query";
-import { Image, Type } from "lucide-react";
+import { Image, Type, Layout } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
@@ -38,7 +38,8 @@ const AdStatsCard = () => {
 
       return {
         totalImages: images?.length || 0,
-        totalPrimaryTexts: uniquePrimaryTexts.size,
+        totalAdTexts: uniquePrimaryTexts.size,
+        totalAds: feedback?.length || 0,
         avgRating: feedback?.length 
           ? (feedback.reduce((acc, curr) => acc + (curr.rating || 0), 0) / feedback.length).toFixed(1)
           : "N/A",
@@ -67,9 +68,19 @@ const AdStatsCard = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <Type className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">Primary Texts</span>
+              <span className="text-sm text-muted-foreground">Ad Texts</span>
             </div>
-            <span className="text-2xl font-bold">{adStats?.totalPrimaryTexts || 0}</span>
+            <span className="text-2xl font-bold">{adStats?.totalAdTexts || 0}</span>
+          </div>
+
+          <Separator />
+
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Layout className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">Total Ads</span>
+            </div>
+            <span className="text-2xl font-bold">{adStats?.totalAds || 0}</span>
           </div>
 
           <div className="text-xs text-muted-foreground mt-1">
