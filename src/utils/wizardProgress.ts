@@ -20,27 +20,48 @@ export const saveWizardProgress = async (data: any, projectId: string | undefine
 
       if (error) throw error;
     } else {
-      // Use the new atomic update function for wizard progress
-      const { data: result, error } = await supabase
-        .rpc('update_wizard_progress_with_lock', {
-          p_user_id: user.id,
-          p_current_step: data.current_step || 1,
-          p_business_idea: data.business_idea || null,
-          p_target_audience: data.target_audience || null,
-          p_audience_analysis: data.audience_analysis || null,
-          p_selected_hooks: data.selected_hooks || null
-        });
+      // First check if wizard progress exists
+      const { data: existingProgress, error: fetchError } = await supabase
+        .from('wizard_progress')
+        .select('*')
+        .eq('user_id', user.id)
+        .maybeSingle();
 
-      if (error) throw error;
+      if (fetchError) throw fetchError;
 
-      if (!result) {
-        // If the function returns false, it means we couldn't acquire the lock
-        toast({
-          title: "Save in progress",
-          description: "Another save operation is in progress. Please wait a moment.",
-          variant: "default",
-        });
-        return;
+      if (!existingProgress) {
+        // Create new wizard progress if it doesn't exist
+        const { error: insertError } = await supabase
+          .from('wizard_progress')
+          .insert({
+            user_id: user.id,
+            ...data,
+            version: 1
+          });
+
+        if (insertError) throw insertError;
+      } else {
+        // Use the atomic update function for wizard progress
+        const { data: result, error } = await supabase
+          .rpc('update_wizard_progress_with_lock', {
+            p_user_id: user.id,
+            p_current_step: data.current_step || existingProgress.current_step || 1,
+            p_business_idea: data.business_idea || existingProgress.business_idea || null,
+            p_target_audience: data.target_audience || existingProgress.target_audience || null,
+            p_audience_analysis: data.audience_analysis || existingProgress.audience_analysis || null,
+            p_selected_hooks: data.selected_hooks || existingProgress.selected_hooks || null
+          });
+
+        if (error) throw error;
+
+        if (!result) {
+          toast({
+            title: "Save in progress",
+            description: "Another save operation is in progress. Please wait a moment.",
+            variant: "default",
+          });
+          return;
+        }
       }
     }
 
