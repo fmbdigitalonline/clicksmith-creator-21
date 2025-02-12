@@ -628,6 +628,8 @@ export type Database = {
           id: string
           is_migration: boolean | null
           last_save_attempt: string | null
+          lock_id: string | null
+          locked_at: string | null
           migration_token: string | null
           selected_hooks: Json | null
           target_audience: Json | null
@@ -646,6 +648,8 @@ export type Database = {
           id?: string
           is_migration?: boolean | null
           last_save_attempt?: string | null
+          lock_id?: string | null
+          locked_at?: string | null
           migration_token?: string | null
           selected_hooks?: Json | null
           target_audience?: Json | null
@@ -664,6 +668,8 @@ export type Database = {
           id?: string
           is_migration?: boolean | null
           last_save_attempt?: string | null
+          lock_id?: string | null
+          locked_at?: string | null
           migration_token?: string | null
           selected_hooks?: Json | null
           target_audience?: Json | null
@@ -718,6 +724,8 @@ export type Database = {
               id: string
               is_migration: boolean | null
               last_save_attempt: string | null
+              lock_id: string | null
+              locked_at: string | null
               migration_token: string | null
               selected_hooks: Json | null
               target_audience: Json | null
@@ -743,6 +751,8 @@ export type Database = {
               id: string
               is_migration: boolean | null
               last_save_attempt: string | null
+              lock_id: string | null
+              locked_at: string | null
               migration_token: string | null
               selected_hooks: Json | null
               target_audience: Json | null
@@ -813,6 +823,17 @@ export type Database = {
           p_current_step: number
         }
         Returns: undefined
+      }
+      update_wizard_progress_with_lock: {
+        Args: {
+          p_user_id: string
+          p_current_step: number
+          p_business_idea: Json
+          p_target_audience: Json
+          p_audience_analysis: Json
+          p_selected_hooks: Json
+        }
+        Returns: boolean
       }
     }
     Enums: {

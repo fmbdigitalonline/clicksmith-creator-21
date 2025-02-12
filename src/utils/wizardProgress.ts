@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
@@ -19,22 +20,28 @@ export const saveWizardProgress = async (data: any, projectId: string | undefine
 
       if (error) throw error;
     } else {
-      // Use upsert with on_conflict parameter
-      const { error } = await supabase
-        .from('wizard_progress')
-        .upsert(
-          {
-            user_id: user.id,
-            ...data,
-            updated_at: new Date().toISOString()
-          },
-          {
-            onConflict: 'user_id',
-            ignoreDuplicates: false
-          }
-        );
+      // Use the new atomic update function for wizard progress
+      const { data: result, error } = await supabase
+        .rpc('update_wizard_progress_with_lock', {
+          p_user_id: user.id,
+          p_current_step: data.current_step || 1,
+          p_business_idea: data.business_idea || null,
+          p_target_audience: data.target_audience || null,
+          p_audience_analysis: data.audience_analysis || null,
+          p_selected_hooks: data.selected_hooks || null
+        });
 
       if (error) throw error;
+
+      if (!result) {
+        // If the function returns false, it means we couldn't acquire the lock
+        toast({
+          title: "Save in progress",
+          description: "Another save operation is in progress. Please wait a moment.",
+          variant: "default",
+        });
+        return;
+      }
     }
 
     console.log('Progress saved successfully:', data);
