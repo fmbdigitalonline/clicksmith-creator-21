@@ -34,13 +34,22 @@ export const useAdWizardState = () => {
   }, [projectId]);
 
   const handleAnalysisComplete = useCallback(async (analysis: AudienceAnalysis) => {
-    if (isLoading) return; // Prevent multiple submissions
+    if (isLoading) {
+      console.log('Already processing, skipping duplicate request');
+      return;
+    }
     
     setIsLoading(true);
+    console.log('Starting analysis completion process');
+    
     try {
+      console.log('Setting audience analysis');
       setAudienceAnalysis(analysis);
+      
+      console.log('Saving wizard progress');
       await saveWizardProgress({ audience_analysis: analysis }, projectId);
 
+      console.log('Generating hooks');
       const { data, error } = await supabase.functions.invoke('generate-ad-content', {
         body: { 
           type: 'hooks',
@@ -53,12 +62,16 @@ export const useAdWizardState = () => {
       });
 
       if (error) {
+        console.error('Error generating hooks:', error);
         throw error;
       }
 
       if (data?.hooks && Array.isArray(data.hooks)) {
+        console.log('Setting hooks and saving progress');
         setSelectedHooks(data.hooks);
         await saveWizardProgress({ selected_hooks: data.hooks }, projectId);
+        
+        console.log('Advancing to next step');
         setCurrentStep(4);
       } else {
         throw new Error('Invalid hooks data received');
@@ -71,6 +84,7 @@ export const useAdWizardState = () => {
         variant: "destructive",
       });
     } finally {
+      console.log('Completing analysis process');
       setIsLoading(false);
     }
   }, [businessIdea, targetAudience, toast, projectId, isLoading]);
