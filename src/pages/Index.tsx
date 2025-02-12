@@ -129,7 +129,7 @@ const Index = () => {
             <Target className="h-12 w-12 text-primary animate-pulse" />
           </div>
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-8">
-            Know If Your Idea Will Work Before You Invest—AI Validates Products, Services, and Campaigns
+            Know If Your Idea Will Work Before You Invest
           </h1>
           <p className="text-xl text-muted-foreground mb-12 max-w-3xl mx-auto">
             Our AI Generates Your Ideal Customer Profile and Tailored Ads in Minutes—So You Can Test What Works Before Committing Resources.
