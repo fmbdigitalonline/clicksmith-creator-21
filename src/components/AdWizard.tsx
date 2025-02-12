@@ -43,38 +43,47 @@ const AdWizard = () => {
 
       if (projectId === "new") {
         // Clear any existing wizard progress when starting new
-        await supabase
+        const { data: existingProgress } = await supabase
           .from('wizard_progress')
-          .delete()
-          .eq('user_id', user.id);
+          .select('*')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (existingProgress) {
+          await supabase
+            .from('wizard_progress')
+            .delete()
+            .eq('user_id', user.id);
+        }
       } else if (projectId) {
         // If it's an existing project, fetch its data
-        const { data: project } = await supabase
+        const { data: project, error } = await supabase
           .from('projects')
           .select('*')
           .eq('id', projectId)
-          .single();
+          .maybeSingle();
 
-        if (!project) {
-          // If project doesn't exist, redirect to new project
+        if (error || !project) {
+          console.error('Error fetching project:', error);
           navigate('/ad-wizard/new');
-        } else {
-          // Set video ads enabled based on project settings
-          setVideoAdsEnabled(project.video_ads_enabled || false);
-          
-          // Initialize business idea from project data
-          if (project.business_idea && 
-              typeof project.business_idea === 'object' && 
-              'description' in project.business_idea && 
-              'valueProposition' in project.business_idea) {
-            const businessIdea: BusinessIdea = {
-              description: String(project.business_idea.description),
-              valueProposition: String(project.business_idea.valueProposition)
-            };
-            setBusinessIdea(businessIdea);
-            if (!businessIdea) {
-              setCurrentStep(1);
-            }
+          return;
+        }
+
+        // Set video ads enabled based on project settings
+        setVideoAdsEnabled(project.video_ads_enabled || false);
+        
+        // Initialize business idea from project data
+        if (project.business_idea && 
+            typeof project.business_idea === 'object' && 
+            'description' in project.business_idea && 
+            'valueProposition' in project.business_idea) {
+          const businessIdea: BusinessIdea = {
+            description: String(project.business_idea.description),
+            valueProposition: String(project.business_idea.valueProposition)
+          };
+          setBusinessIdea(businessIdea);
+          if (!businessIdea) {
+            setCurrentStep(1);
           }
         }
       }
