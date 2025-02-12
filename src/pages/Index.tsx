@@ -126,14 +126,28 @@ const Index = () => {
       {/* Hero Section */}
       <section className="relative py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-primary/5 to-background">
         <div className="max-w-5xl mx-auto text-center">
+          <div className="flex justify-center mb-6">
+            <Target className="h-12 w-12 text-primary animate-pulse" />
+          </div>
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-8">
             The Ultimate Tool to Validate Your Business Idea in Minutes
           </h1>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-8 mb-12">
+            <div className="flex items-center gap-2 text-xl text-muted-foreground">
+              <CheckCircle className="h-6 w-6 text-primary" />
+              <span>AI-Powered Analysis</span>
+            </div>
+            <div className="flex items-center gap-2 text-xl text-muted-foreground">
+              <CheckCircle className="h-6 w-6 text-primary" />
+              <span>Multi-Platform Support</span>
+            </div>
+            <div className="flex items-center gap-2 text-xl text-muted-foreground">
+              <CheckCircle className="h-6 w-6 text-primary" />
+              <span>Real-Time Results</span>
+            </div>
+          </div>
           <p className="text-xl text-muted-foreground mb-6 max-w-3xl mx-auto">
             In today's fast-paced digital world, establishing a strong online presence is no longer optional—it's essential. But how do you know if your business idea will resonate with your target audience?
-          </p>
-          <p className="text-xl text-muted-foreground mb-12 max-w-3xl mx-auto">
-            Simply describe your business idea, and our AI generates your Ideal Customer Profile (ICP) and high-converting social media ads for all platforms—so you can see what works, what sticks, and what flops—before you even launch.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button size="lg" asChild>
@@ -151,25 +165,55 @@ const Index = () => {
         </div>
       </section>
 
-      {/* How It Works Section */}
+      {/* Video Explainer Section */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-accent/5">
+        <div className="max-w-5xl mx-auto text-center">
+          <h2 className="text-3xl font-bold mb-8">See How It Works</h2>
+          <div className="aspect-video bg-black/5 rounded-lg overflow-hidden mb-8">
+            <iframe 
+              className="w-full h-full"
+              src="https://www.youtube.com/embed/placeholder"
+              title="Product Demo"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            ></iframe>
+          </div>
+          <p className="text-muted-foreground">
+            Watch our 2-minute demo to see how easy it is to validate your business idea
+          </p>
+        </div>
+      </section>
+
+      {/* Visual Steps Section */}
       <section className="py-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-5xl mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-4">
+          <h2 className="text-3xl font-bold text-center mb-12">
             How It Works
           </h2>
-          <p className="text-center text-muted-foreground mb-12 max-w-3xl mx-auto">
-            We understand that the process of validating a business idea can seem daunting. That's why we've designed our platform to be as simple and intuitive as possible.
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
             {howItWorks.map((step, index) => (
-              <div key={step.title} className="p-6 bg-accent/5 rounded-lg">
-                <div className="flex items-start gap-4">
-                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-medium">
-                    {index + 1}
+              <div key={step.title} className="relative">
+                {index < howItWorks.length - 1 && (
+                  <div className="hidden md:block absolute top-1/2 -right-6 transform -translate-y-1/2">
+                    <ArrowRight className="h-8 w-8 text-primary/30" />
                   </div>
-                  <div>
-                    <h3 className="font-semibold text-xl mb-2">{step.title}</h3>
-                    <p className="text-muted-foreground">{step.description}</p>
+                )}
+                <div className="bg-accent/5 rounded-lg p-8 h-full">
+                  <div className="flex items-start gap-4">
+                    <div className="flex-shrink-0 w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xl">
+                      {index + 1}
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-xl mb-4">{step.title}</h3>
+                      <ul className="space-y-2">
+                        {step.description.split('. ').map((point, i) => (
+                          <li key={i} className="flex items-start gap-2">
+                            <CheckCircle className="h-5 w-5 text-primary mt-1 flex-shrink-0" />
+                            <span className="text-muted-foreground">{point}.</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -178,38 +222,44 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Features Section */}
+      {/* Features Grid with Images */}
       <section className="py-16 px-4 sm:px-6 lg:px-8 bg-accent/5">
         <div className="max-w-5xl mx-auto">
           <h2 className="text-3xl font-bold text-center mb-12">
             Why Choose Our Platform?
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {features.map((feature) => (
-              <div key={feature.title} className="p-6 bg-background rounded-lg shadow-sm">
-                <feature.icon className="h-8 w-8 text-primary mb-4" />
-                <h3 className="font-semibold text-xl mb-2">{feature.title}</h3>
-                <p className="text-muted-foreground">{feature.description}</p>
+            {features.map((feature, index) => (
+              <div key={feature.title} className="group bg-background rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow">
+                <div className="aspect-video bg-primary/5 flex items-center justify-center p-8">
+                  <feature.icon className="h-16 w-16 text-primary group-hover:scale-110 transition-transform" />
+                </div>
+                <div className="p-6">
+                  <h3 className="font-semibold text-xl mb-2">{feature.title}</h3>
+                  <p className="text-muted-foreground">{feature.description}</p>
+                </div>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Pain Points Section */}
+      {/* Visual Pain Points */}
       <section className="py-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-5xl mx-auto">
           <h2 className="text-3xl font-bold text-center mb-4">
             Deep Pain Points: Solving Your Biggest Challenges
           </h2>
           <p className="text-center text-muted-foreground mb-12 max-w-3xl mx-auto">
-            Let's dive deeper into some of the specific challenges that entrepreneurs and marketers face when trying to validate a business idea—and how we address them.
+            Let's dive deeper into some of the specific challenges that entrepreneurs and marketers face.
           </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {painPoints.map((point) => (
-              <div key={point.title} className="p-6 bg-accent/5 rounded-lg">
-                <point.icon className="h-8 w-8 text-primary mb-4" />
-                <h3 className="font-semibold text-xl mb-2">{point.title}</h3>
+              <div key={point.title} className="bg-accent/5 rounded-lg p-6 flex flex-col items-center text-center">
+                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-6">
+                  <point.icon className="h-8 w-8 text-primary" />
+                </div>
+                <h3 className="font-semibold text-xl mb-4">{point.title}</h3>
                 <p className="text-muted-foreground">{point.description}</p>
               </div>
             ))}
@@ -217,21 +267,27 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Testimonials Section */}
+      {/* Enhanced Testimonials */}
       <section className="py-16 px-4 sm:px-6 lg:px-8 bg-accent/5">
         <div className="max-w-5xl mx-auto">
           <h2 className="text-3xl font-bold text-center mb-12">
             Don't Just Take Our Word for It
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {testimonials.map((testimonial) => (
-              <div key={testimonial.author} className="p-6 bg-background rounded-lg shadow-sm">
-                <MessageCircle className="h-8 w-8 text-primary mb-4" />
-                <blockquote className="text-lg mb-4">
+              <div key={testimonial.author} className="bg-background rounded-lg shadow-sm p-6 relative">
+                <div className="absolute -top-4 left-6">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                    <MessageCircle className="h-4 w-4 text-primary" />
+                  </div>
+                </div>
+                <blockquote className="text-lg mb-6">
                   "{testimonial.quote}"
                 </blockquote>
-                <div className="flex items-center gap-2">
-                  <BadgeCheck className="h-5 w-5 text-primary" />
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                    <BadgeCheck className="h-6 w-6 text-primary" />
+                  </div>
                   <div>
                     <div className="font-medium">{testimonial.author}</div>
                     <div className="text-sm text-muted-foreground">{testimonial.role}</div>
@@ -243,19 +299,22 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Concerns Section */}
+      {/* Visual Concerns Section */}
       <section className="py-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-5xl mx-auto">
           <h2 className="text-3xl font-bold text-center mb-4">
-            Concerns We Address
+            Common Concerns Addressed
           </h2>
           <p className="text-center text-muted-foreground mb-12 max-w-3xl mx-auto">
             We understand that trying a new tool can be intimidating. Here's how we address common concerns:
           </p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {concerns.map((concern) => (
-              <div key={concern.title} className="p-6 bg-accent/5 rounded-lg">
-                <h3 className="font-semibold text-xl mb-2">{concern.title}</h3>
+            {concerns.map((concern, index) => (
+              <div key={concern.title} className="bg-accent/5 rounded-lg p-6">
+                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                  <CheckCircle className="h-6 w-6 text-primary" />
+                </div>
+                <h3 className="font-semibold text-xl mb-4">{concern.title}</h3>
                 <p className="text-muted-foreground">{concern.description}</p>
               </div>
             ))}
@@ -263,7 +322,7 @@ const Index = () => {
         </div>
       </section>
 
-      {/* FAQ Section */}
+      {/* Enhanced FAQ Section */}
       <section className="py-16 px-4 sm:px-6 lg:px-8 bg-accent/5">
         <div className="max-w-5xl mx-auto">
           <h2 className="text-3xl font-bold text-center mb-12">
@@ -271,24 +330,42 @@ const Index = () => {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {faq.map((item) => (
-              <div key={item.question} className="p-6 bg-background rounded-lg shadow-sm">
-                <h3 className="font-semibold text-xl mb-2">{item.question}</h3>
-                <p className="text-muted-foreground">{item.answer}</p>
+              <div key={item.question} className="bg-background rounded-lg shadow-sm p-6">
+                <div className="flex items-start gap-4">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <MessageCircle className="h-4 w-4 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-xl mb-2">{item.question}</h3>
+                    <p className="text-muted-foreground">{item.answer}</p>
+                  </div>
+                </div>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* CTA Section */}
+      {/* Enhanced CTA Section */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-primary/5">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-3xl font-bold mb-6">
             Ready to Validate Your Business Idea?
           </h2>
-          <p className="text-xl text-muted-foreground mb-8">
-            Get started with 12 free generations. No credit card required.
-          </p>
+          <div className="flex justify-center gap-8 mb-8">
+            <div className="flex items-center gap-2">
+              <CheckCircle className="h-6 w-6 text-primary" />
+              <span className="text-muted-foreground">12 Free Generations</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <CheckCircle className="h-6 w-6 text-primary" />
+              <span className="text-muted-foreground">No Credit Card</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <CheckCircle className="h-6 w-6 text-primary" />
+              <span className="text-muted-foreground">Instant Access</span>
+            </div>
+          </div>
           <Button size="lg" asChild>
             <Link to="/login">
               Start Now for Free
