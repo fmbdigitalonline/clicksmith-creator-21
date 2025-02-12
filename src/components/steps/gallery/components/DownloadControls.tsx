@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Save, Download } from "lucide-react";
 import {
@@ -42,29 +43,29 @@ const DownloadControls = ({
         </Select>
 
         <Button
-          onClick={onSave}
-          className="flex-1 bg-facebook hover:bg-facebook/90"
+          onClick={onDownload}
+          className="flex-1"
+          variant="outline"
           disabled={isSaving}
         >
-          {isSaving ? (
-            "Saving..."
-          ) : (
-            <>
-              <Save className="w-4 h-4 mr-2" />
-              Save Ad
-            </>
-          )}
+          <Download className="w-4 h-4 mr-2" />
+          Download
         </Button>
       </div>
       
       <Button
-        onClick={onDownload}
-        variant="outline"
-        className="w-full"
+        onClick={onSave}
+        className="w-full bg-facebook hover:bg-facebook/90"
         disabled={isSaving}
       >
-        <Download className="w-4 h-4 mr-2" />
-        Download
+        {isSaving ? (
+          "Saving..."
+        ) : (
+          <>
+            <Save className="w-4 h-4 mr-2" />
+            Save Ad
+          </>
+        )}
       </Button>
     </div>
   );
