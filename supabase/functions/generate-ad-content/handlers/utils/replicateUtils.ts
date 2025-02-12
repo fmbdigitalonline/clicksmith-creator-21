@@ -22,7 +22,7 @@ const MODELS = {
   sdxl: "39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b",
   sdxlBase: "8beff3369e81422112d93b89ca01426147de542cd4684c244b673b105188fe5f",
   sdv15: "a4a8bafd6089e5dad6dd6dc5b3304a8ff88a27615fa0b67d135b0dfd814187be",
-  flux: "stability-ai/sdxl:1bfb924045802467cf8869d96b231a12e6aa994abfe37e337c63a4e49a8c6c41"  // Using SDXL for more reliable results
+  flux: "stability-ai/sdxl:1bfb924045802467cf8869d96b231a12e6aa994abfe37e337c63a4e49a8c6c41"
 } as const;
 
 async function delay(ms: number): Promise<void> {
@@ -52,30 +52,42 @@ async function retryWithBackoff<T>(
   throw lastError || new Error('Operation failed after retries');
 }
 
-// Function to scale dimensions while maintaining aspect ratio and max height of 1440
+// Round to nearest multiple of 8
+function roundTo8(num: number): number {
+  return Math.round(num / 8) * 8;
+}
+
+// Function to scale dimensions while maintaining aspect ratio and ensuring dimensions are divisible by 8
 function getScaledDimensions(width: number, height: number): { width: number; height: number } {
-  const MAX_HEIGHT = 1440;
-  const MAX_WIDTH = 1440;
+  const MAX_HEIGHT = 1024; // Changed from 1440 to be more compatible with common model requirements
+  const MAX_WIDTH = 1024;  // Changed from 1440 to be more compatible with common model requirements
   
-  if (height <= MAX_HEIGHT && width <= MAX_WIDTH) {
-    return { width, height };
-  }
-
-  const aspectRatio = width / height;
+  let newWidth = width;
+  let newHeight = height;
   
-  if (height > MAX_HEIGHT) {
-    const newHeight = MAX_HEIGHT;
-    const newWidth = Math.round(newHeight * aspectRatio);
-    return { width: newWidth, height: newHeight };
+  // Scale down if either dimension exceeds maximum
+  if (height > MAX_HEIGHT || width > MAX_WIDTH) {
+    const aspectRatio = width / height;
+    
+    if (height > MAX_HEIGHT) {
+      newHeight = MAX_HEIGHT;
+      newWidth = Math.round(newHeight * aspectRatio);
+    }
+    
+    if (newWidth > MAX_WIDTH) {
+      newWidth = MAX_WIDTH;
+      newHeight = Math.round(newWidth / aspectRatio);
+    }
   }
   
-  if (width > MAX_WIDTH) {
-    const newWidth = MAX_WIDTH;
-    const newHeight = Math.round(newWidth / aspectRatio);
-    return { width: newWidth, height: newHeight };
-  }
-
-  return { width, height };
+  // Ensure dimensions are divisible by 8
+  newWidth = roundTo8(newWidth);
+  newHeight = roundTo8(newHeight);
+  
+  console.log('Original dimensions:', { width, height });
+  console.log('Scaled dimensions:', { width: newWidth, height: newHeight });
+  
+  return { width: newWidth, height: newHeight };
 }
 
 export async function generateWithReplicate(
@@ -93,7 +105,7 @@ export async function generateWithReplicate(
   const config = { ...defaultOptions, ...options };
   
   try {
-    const apiKey = Deno.env.get('REPLICATE_API_TOKEN');  // Changed from REPLICATE_API_KEY to REPLICATE_API_TOKEN
+    const apiKey = Deno.env.get('REPLICATE_API_TOKEN');
     if (!apiKey) {
       throw new Error('REPLICATE_API_TOKEN is not set in environment variables');
     }
