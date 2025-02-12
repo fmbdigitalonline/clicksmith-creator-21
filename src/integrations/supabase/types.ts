@@ -17,6 +17,7 @@ export type Database = {
           headline: string | null
           id: string
           primary_text: string | null
+          project_data: Json | null
           project_id: string | null
           rating: number | null
           saved_images: Json | null
@@ -30,6 +31,7 @@ export type Database = {
           headline?: string | null
           id?: string
           primary_text?: string | null
+          project_data?: Json | null
           project_id?: string | null
           rating?: number | null
           saved_images?: Json | null
@@ -43,6 +45,7 @@ export type Database = {
           headline?: string | null
           id?: string
           primary_text?: string | null
+          project_data?: Json | null
           project_id?: string | null
           rating?: number | null
           saved_images?: Json | null
@@ -52,6 +55,13 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "ad_feedback_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "valid_project_reference"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
@@ -99,22 +109,40 @@ export type Database = {
       }
       anonymous_usage: {
         Row: {
+          completed: boolean | null
           created_at: string
           id: string
+          last_completed_step: number | null
+          last_save_attempt: string | null
+          save_count: number | null
           session_id: string
+          updated_at: string | null
           used: boolean | null
+          wizard_data: Json | null
         }
         Insert: {
+          completed?: boolean | null
           created_at?: string
           id?: string
+          last_completed_step?: number | null
+          last_save_attempt?: string | null
+          save_count?: number | null
           session_id: string
+          updated_at?: string | null
           used?: boolean | null
+          wizard_data?: Json | null
         }
         Update: {
+          completed?: boolean | null
           created_at?: string
           id?: string
+          last_completed_step?: number | null
+          last_save_attempt?: string | null
+          save_count?: number | null
           session_id?: string
+          updated_at?: string | null
           used?: boolean | null
+          wizard_data?: Json | null
         }
         Relationships: []
       }
@@ -124,7 +152,7 @@ export type Database = {
           credits_amount: number
           error_message: string | null
           id: string
-          operation_type: string
+          operation_type: Database["public"]["Enums"]["credit_operation_type"]
           status: string
           user_id: string
         }
@@ -133,7 +161,7 @@ export type Database = {
           credits_amount: number
           error_message?: string | null
           id?: string
-          operation_type: string
+          operation_type?: Database["public"]["Enums"]["credit_operation_type"]
           status: string
           user_id: string
         }
@@ -142,8 +170,35 @@ export type Database = {
           credits_amount?: number
           error_message?: string | null
           id?: string
-          operation_type?: string
+          operation_type?: Database["public"]["Enums"]["credit_operation_type"]
           status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      data_backups: {
+        Row: {
+          backup_type: Database["public"]["Enums"]["backup_type"]
+          created_at: string
+          data: string
+          id: string
+          metadata: Json
+          user_id: string
+        }
+        Insert: {
+          backup_type?: Database["public"]["Enums"]["backup_type"]
+          created_at?: string
+          data: string
+          id?: string
+          metadata?: Json
+          user_id: string
+        }
+        Update: {
+          backup_type?: Database["public"]["Enums"]["backup_type"]
+          created_at?: string
+          data?: string
+          id?: string
+          metadata?: Json
           user_id?: string
         }
         Relationships: []
@@ -234,6 +289,33 @@ export type Database = {
         }
         Relationships: []
       }
+      migration_locks: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          lock_type: string
+          metadata: Json | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          id?: string
+          lock_type: string
+          metadata?: Json | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          lock_type?: string
+          metadata?: Json | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       notes: {
         Row: {
           content: string | null
@@ -308,6 +390,48 @@ export type Database = {
         }
         Relationships: []
       }
+      payments: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string
+          customer_email: string | null
+          description: string | null
+          id: string
+          status: string
+          stripe_payment_intent: string | null
+          stripe_session_id: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          currency: string
+          customer_email?: string | null
+          description?: string | null
+          id?: string
+          status: string
+          stripe_payment_intent?: string | null
+          stripe_session_id: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          customer_email?: string | null
+          description?: string | null
+          id?: string
+          status?: string
+          stripe_payment_intent?: string | null
+          stripe_session_id?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       plans: {
         Row: {
           active: boolean | null
@@ -354,6 +478,7 @@ export type Database = {
           full_name: string | null
           id: string
           is_active: boolean | null
+          payment_status: string | null
           updated_at: string
           username: string | null
         }
@@ -363,6 +488,7 @@ export type Database = {
           full_name?: string | null
           id: string
           is_active?: boolean | null
+          payment_status?: string | null
           updated_at?: string
           username?: string | null
         }
@@ -372,6 +498,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           is_active?: boolean | null
+          payment_status?: string | null
           updated_at?: string
           username?: string | null
         }
@@ -496,11 +623,17 @@ export type Database = {
           audience_analysis: Json | null
           business_idea: Json | null
           created_at: string
+          current_step: number | null
+          generated_ads: Json | null
           id: string
+          is_migration: boolean | null
+          last_save_attempt: string | null
+          migration_token: string | null
           selected_hooks: Json | null
           target_audience: Json | null
           updated_at: string
           user_id: string
+          version: number | null
           video_ad_preferences: Json | null
         }
         Insert: {
@@ -508,11 +641,17 @@ export type Database = {
           audience_analysis?: Json | null
           business_idea?: Json | null
           created_at?: string
+          current_step?: number | null
+          generated_ads?: Json | null
           id?: string
+          is_migration?: boolean | null
+          last_save_attempt?: string | null
+          migration_token?: string | null
           selected_hooks?: Json | null
           target_audience?: Json | null
           updated_at?: string
           user_id: string
+          version?: number | null
           video_ad_preferences?: Json | null
         }
         Update: {
@@ -520,11 +659,17 @@ export type Database = {
           audience_analysis?: Json | null
           business_idea?: Json | null
           created_at?: string
+          current_step?: number | null
+          generated_ads?: Json | null
           id?: string
+          is_migration?: boolean | null
+          last_save_attempt?: string | null
+          migration_token?: string | null
           selected_hooks?: Json | null
           target_audience?: Json | null
           updated_at?: string
           user_id?: string
+          version?: number | null
           video_ad_preferences?: Json | null
         }
         Relationships: []
@@ -534,6 +679,79 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_user_credits: {
+        Args: {
+          p_user_id: string
+          p_credits: number
+        }
+        Returns: {
+          success: boolean
+          current_credits: number
+          error_message: string
+        }[]
+      }
+      allocate_credits: {
+        Args: {
+          p_user_id: string
+          p_credits: number
+          p_payment_id: string
+          p_description: string
+        }
+        Returns: {
+          success: boolean
+          message: string
+        }[]
+      }
+      atomic_migration:
+        | {
+            Args: {
+              p_user_id: string
+              p_session_id: string
+            }
+            Returns: {
+              ad_format: Json | null
+              audience_analysis: Json | null
+              business_idea: Json | null
+              created_at: string
+              current_step: number | null
+              generated_ads: Json | null
+              id: string
+              is_migration: boolean | null
+              last_save_attempt: string | null
+              migration_token: string | null
+              selected_hooks: Json | null
+              target_audience: Json | null
+              updated_at: string
+              user_id: string
+              version: number | null
+              video_ad_preferences: Json | null
+            }
+          }
+        | {
+            Args: {
+              p_user_id: string
+              p_session_id: string
+              p_calculated_step?: number
+            }
+            Returns: {
+              ad_format: Json | null
+              audience_analysis: Json | null
+              business_idea: Json | null
+              created_at: string
+              current_step: number | null
+              generated_ads: Json | null
+              id: string
+              is_migration: boolean | null
+              last_save_attempt: string | null
+              migration_token: string | null
+              selected_hooks: Json | null
+              target_audience: Json | null
+              updated_at: string
+              user_id: string
+              version: number | null
+              video_ad_preferences: Json | null
+            }
+          }
       check_user_credits: {
         Args: {
           p_user_id: string
@@ -543,6 +761,10 @@ export type Database = {
           has_credits: boolean
           error_message: string
         }[]
+      }
+      cleanup_stale_locks: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
       deduct_user_credits: {
         Args: {
@@ -565,9 +787,37 @@ export type Database = {
         }
         Returns: undefined
       }
+      migrate_anonymous_to_authenticated: {
+        Args: {
+          p_session_id: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      migrate_wizard_data: {
+        Args: {
+          p_user_id: string
+          p_session_id: string
+          p_wizard_data: Json
+        }
+        Returns: Json
+      }
+      migrate_wizard_progress: {
+        Args: {
+          p_user_id: string
+          p_session_id: string
+          p_business_idea: Json
+          p_target_audience: Json
+          p_audience_analysis: Json
+          p_generated_ads: Json
+          p_current_step: number
+        }
+        Returns: undefined
+      }
     }
     Enums: {
-      [_ in never]: never
+      backup_type: "auto" | "manual"
+      credit_operation_type: "credit_add" | "credit_deduct" | "credit_refund"
     }
     CompositeTypes: {
       [_ in never]: never
