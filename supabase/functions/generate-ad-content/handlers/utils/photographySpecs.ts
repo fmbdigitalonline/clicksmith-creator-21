@@ -1,3 +1,4 @@
+
 export const getBasePhotographySpecs = (): string => `
 - High-quality, professional commercial photography
 - Sharp focus and clear composition

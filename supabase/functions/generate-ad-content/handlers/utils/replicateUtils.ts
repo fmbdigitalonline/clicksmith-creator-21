@@ -19,9 +19,9 @@ interface RetryConfig {
 
 // Default model configurations
 const MODELS = {
-  sdxl: "39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b",
-  sdxlBase: "8beff3369e81422112d93b89ca01426147de542cd4684c244b673b105188fe5f",
-  sdv15: "a4a8bafd6089e5dad6dd6dc5b3304a8ff88a27615fa0b67d135b0dfd814187be",
+  sdxl: "stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b",
+  sdxlBase: "stability-ai/sdxl:8beff3369e81422112d93b89ca01426147de542cd4684c244b673b105188fe5f",
+  sdv15: "stability-ai/stable-diffusion:a4a8bafd6089e5dad6dd6dc5b3304a8ff88a27615fa0b67d135b0dfd814187be",
   flux: "stability-ai/sdxl:1bfb924045802467cf8869d96b231a12e6aa994abfe37e337c63a4e49a8c6c41"
 } as const;
 
@@ -95,7 +95,7 @@ export async function generateWithReplicate(
   options: ImageOptions = { width: 1024, height: 1024 }
 ): Promise<string> {
   const defaultOptions = {
-    model: 'flux',
+    model: 'sdxl',  // Changed to use SDXL directly for better photorealism
     numOutputs: 1,
     maxAttempts: 30,
     maxRetries: 3,
@@ -132,17 +132,17 @@ export async function generateWithReplicate(
         
         const result = await replicate.run(modelId, {
           input: {
-            prompt,
+            prompt: `Ultra realistic commercial photograph, professional DSLR quality, 8k resolution, crystal clear, highly detailed commercial photography: ${prompt}`,
             width: scaledDimensions.width,
             height: scaledDimensions.height,
             num_samples: config.numOutputs,
             scheduler: "DPMSolverMultistep",
-            num_inference_steps: 30,
-            guidance_scale: 7.5,
-            prompt_strength: 0.8,
+            num_inference_steps: 50,  // Increased from 30 for better quality
+            guidance_scale: 8.5,      // Increased from 7.5 for stronger prompt adherence
+            prompt_strength: 0.9,     // Increased from 0.8 for better results
             refine: "expert_ensemble_refiner",
-            high_noise_frac: 0.8,
-            negative_prompt: "low quality, blurry, watermark"
+            high_noise_frac: 0.9,     // Increased for better detail
+            negative_prompt: "cartoon, illustration, painting, drawing, art, digital art, anime, manga, low quality, blurry, watermark, text, logo, artificial, AI-generated, unrealistic, distorted, deformed"
           }
         });
 
