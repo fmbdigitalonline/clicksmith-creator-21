@@ -1,63 +1,62 @@
 import { BusinessIdea, TargetAudience } from "../types.ts";
 
-export const analyzeAudience = async (businessIdea: BusinessIdea, targetAudience: TargetAudience) => {
-  console.log('Starting audience analysis with:', { businessIdea, targetAudience });
+export const analyzeAudience = async (businessIdea: BusinessIdea, targetAudience: TargetAudience, regenerationCount: number = 0) => {
+  console.log('Starting audience analysis...', { regenerationCount });
   
   const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
   if (!openAIApiKey) {
     throw new Error('OpenAI API key not configured');
   }
 
-  // Create an AbortController with a timeout
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 8000); // Set to 8s to ensure we're under Supabase's 10s limit
+  const prompt = `Analyze the following target audience for a business 
+  (consider this is regeneration attempt #${regenerationCount}, so provide fresh insights and perspectives):
+  
+  Business Description: ${businessIdea.description}
+  Value Proposition: ${businessIdea.valueProposition}
+  
+  Target Audience:
+  Name: ${targetAudience.name}
+  Description: ${targetAudience.description}
+  Demographics: ${targetAudience.demographics}
+  Pain Points: ${targetAudience.painPoints.join(', ')}
+  ICP: ${targetAudience.icp}
+  Core Message: ${targetAudience.coreMessage}
+  
+  Important: For each regeneration, explore different angles and provide unique insights focusing on:
+  - Different market segments within the target audience
+  - Alternative pain points and desires
+  - Varied sophistication levels and awareness states
+  - Fresh objections and concerns
+  
+  Return a JSON object with these exact fields (no markdown formatting):
+  {
+    "expandedDefinition": "string describing potential group struggling with a problem",
+    "marketDesire": "string describing deep market desire",
+    "awarenessLevel": "string describing familiarity with problem/solution",
+    "sophisticationLevel": "string describing familiarity with competing solutions",
+    "deepPainPoints": ["3 main problems as array of strings"],
+    "potentialObjections": ["3 main objections as array of strings"]
+  }`;
 
   try {
-    const prompt = `As an expert market researcher, analyze this target audience for a business:
-    
-    Business Description: ${businessIdea.description}
-    Value Proposition: ${businessIdea.valueProposition}
-    
-    Target Audience:
-    Name: ${targetAudience.name}
-    Description: ${targetAudience.description}
-    Demographics: ${targetAudience.demographics}
-    Pain Points: ${targetAudience.painPoints.join(', ')}
-    ICP: ${targetAudience.icp}
-    Core Message: ${targetAudience.coreMessage}
-    
-    Provide a detailed analysis in JSON format with these exact fields:
-    {
-      "expandedDefinition": "A comprehensive description of who they are and their context",
-      "marketDesire": "The deep underlying desire or need driving their behavior",
-      "awarenessLevel": "Their current understanding of the problem and available solutions",
-      "sophisticationLevel": "Their familiarity with and expectations for solutions",
-      "deepPainPoints": ["Three specific, deep-rooted problems they face"],
-      "potentialObjections": ["Three main objections they might have"]
-    }`;
-
-    console.log('Sending request to OpenAI with timeout control');
-    
+    console.log('Sending request to OpenAI...');
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${openAIApiKey}`,
         'Content-Type': 'application/json',
       },
-      signal: controller.signal, // Add abort signal
       body: JSON.stringify({
         model: 'gpt-4o-mini',
         messages: [
           {
             role: 'system',
-            content: 'You are an expert market researcher. Respond with valid JSON only, no markdown or additional text.'
+            content: 'You are an expert market researcher. Always respond with raw JSON only, no markdown.'
           },
           { role: 'user', content: prompt }
         ],
         temperature: 0.7,
-        max_tokens: 1000, // Reduced from 2000 to help with timeout
-        presence_penalty: 0.1, // Added to encourage faster responses
-        frequency_penalty: 0.1, // Added to encourage faster responses
+        max_tokens: 2000,
       }),
     });
 
@@ -104,19 +103,9 @@ export const analyzeAudience = async (businessIdea: BusinessIdea, targetAudience
       throw new Error('Pain points and objections must be arrays');
     }
 
-    if (analysis.deepPainPoints.length !== 3 || analysis.potentialObjections.length !== 3) {
-      throw new Error('Both deepPainPoints and potentialObjections must contain exactly 3 items');
-    }
-
     return { analysis };
   } catch (error) {
-    if (error.name === 'AbortError') {
-      console.error('Request timed out after 8 seconds');
-      throw new Error('Analysis generation timed out. Please try again.');
-    }
     console.error('Error in analyzeAudience:', error);
     throw error;
-  } finally {
-    clearTimeout(timeoutId);
   }
 };

@@ -1,76 +1,36 @@
-import { VideoAdVariant } from "@/types/videoAdTypes";
-import { Loader2 } from "lucide-react";
-
 interface MediaPreviewProps {
-  imageUrl?: string | null;
-  videoUrl?: string;
+  imageUrl: string | null;
   isVideo?: boolean;
   format: {
     width: number;
     height: number;
     label: string;
   };
-  status?: VideoAdVariant['status'];
-  error?: string;
 }
 
-const MediaPreview = ({ 
-  imageUrl, 
-  videoUrl,
-  isVideo = false,
-  format,
-  status = 'completed',
-  error
-}: MediaPreviewProps) => {
-  if (error) {
+const MediaPreview = ({ imageUrl, isVideo, format }: MediaPreviewProps) => {
+  if (isVideo) {
     return (
-      <div className="w-full h-full flex items-center justify-center bg-gray-100 text-red-500">
-        <p className="text-sm text-center px-4">{error}</p>
+      <div className="w-full h-full flex items-center justify-center bg-gray-100">
+        <p className="text-gray-500">Video Preview</p>
       </div>
     );
   }
 
-  if (status === 'generating' || status === 'pending') {
+  if (!imageUrl) {
     return (
-      <div className="w-full h-full flex flex-col items-center justify-center bg-gray-100">
-        <Loader2 className="w-8 h-8 animate-spin text-facebook mb-2" />
-        <p className="text-sm text-gray-600">Generating video...</p>
+      <div className="w-full h-full flex items-center justify-center bg-gray-100">
+        <p className="text-gray-500">No image available</p>
       </div>
-    );
-  }
-
-  if (isVideo && videoUrl) {
-    return (
-      <video
-        className="w-full h-full object-cover"
-        controls
-        style={{
-          aspectRatio: `${format.width} / ${format.height}`,
-        }}
-      >
-        <source src={videoUrl} type="video/mp4" />
-        Your browser does not support the video tag.
-      </video>
-    );
-  }
-
-  if (imageUrl) {
-    return (
-      <img
-        src={imageUrl}
-        alt="Ad preview"
-        className="w-full h-full object-cover"
-        style={{
-          aspectRatio: `${format.width} / ${format.height}`,
-        }}
-      />
     );
   }
 
   return (
-    <div className="w-full h-full flex items-center justify-center bg-gray-100">
-      <p className="text-sm text-gray-500">No preview available</p>
-    </div>
+    <img
+      src={imageUrl}
+      alt={`Ad preview (${format.label})`}
+      className="object-cover w-full h-full transition-transform duration-300 ease-in-out"
+    />
   );
 };
 

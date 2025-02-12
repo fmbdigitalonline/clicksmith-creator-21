@@ -27,8 +27,8 @@ export const CreditDisplay = () => {
 
       if (error && error.code !== "PGRST116") {
         toast({
-          title: "Error checking subscription",
-          description: "We couldn't verify your subscription status. Please try again.",
+          title: "Error fetching subscription",
+          description: error.message,
           variant: "destructive",
         });
         return null;
@@ -37,7 +37,7 @@ export const CreditDisplay = () => {
       return data;
     },
     enabled: !!user?.id,
-    refetchInterval: 5000,
+    refetchInterval: 5000, // Refetch every 5 seconds
     refetchOnWindowFocus: true,
   });
 
@@ -53,23 +53,24 @@ export const CreditDisplay = () => {
 
       if (error && error.code !== "PGRST116") {
         toast({
-          title: "Error checking usage",
-          description: "We couldn't verify your usage status. Please try again.",
+          title: "Error fetching free tier usage",
+          description: error.message,
           variant: "destructive",
         });
         return null;
       }
 
-      return data || { generations_used: 0 };
+      return data;
     },
     enabled: !!user?.id,
-    refetchInterval: 5000,
+    refetchInterval: 5000, // Refetch every 5 seconds
     refetchOnWindowFocus: true,
   });
 
   const getCreditsDisplay = () => {
     if (!user) return "";
 
+    // Check if user is admin (info@fmbonline.nl)
     if (user.email === "info@fmbonline.nl") {
       return "Unlimited credits";
     }

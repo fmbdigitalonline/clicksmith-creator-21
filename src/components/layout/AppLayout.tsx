@@ -1,5 +1,5 @@
 import Navigation from "../Navigation";
-import AppSidebar from "../AppSidebar"; // Changed to default import
+import { AppSidebar } from "../AppSidebar";
 import BreadcrumbNav from "../Breadcrumb";
 
 export const AppLayout = ({ children }: { children: React.ReactNode }) => {

@@ -34,6 +34,7 @@ export const generatePDF = async (variant: any, imageUrl: string): Promise<Blob>
       doc.addImage(img, 'JPEG', 20, 80, imgWidth, imgHeight);
     }
     
+    // Return blob instead of saving
     return doc.output('blob');
   } catch (error) {
     console.error('Error generating PDF:', error);
@@ -77,8 +78,12 @@ export const generateWord = async (variant: any, imageUrl: string): Promise<Blob
       }],
     });
 
-    // Use toBlob() instead of toBuffer() for browser environments
-    return await Packer.toBlob(doc);
+    // Return blob instead of handling download
+    return await Packer.toBuffer(doc).then(buffer => {
+      return new Blob([buffer], { 
+        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' 
+      });
+    });
   } catch (error) {
     console.error('Error generating Word document:', error);
     throw error;

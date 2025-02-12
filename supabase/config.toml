@@ -21,7 +21,3 @@ enabled = true
 
 [auth]
 enabled = true
-
-[functions]
-[functions.stripe-webhook]
-verify_jwt = false

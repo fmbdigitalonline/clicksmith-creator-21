@@ -1,9 +1,29 @@
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { SavedAdsList } from "./components/SavedAdsList";
+import { Json } from "@/integrations/supabase/types";
+import { SavedAdCard } from "./components/SavedAdCard";
 import { EmptyState } from "./components/EmptyState";
-import { SavedAd, AdFeedbackRow } from "./types";
+
+interface SavedAd {
+  id: string;
+  saved_images: string[];
+  headline?: string;
+  primary_text?: string;
+  rating: number;
+  feedback: string;
+  created_at: string;
+}
+
+interface AdFeedbackRow {
+  id: string;
+  saved_images: Json;
+  headline?: string;
+  primary_text?: string;
+  rating: number;
+  feedback: string;
+  created_at: string;
+}
 
 export const SavedAdsGallery = () => {
   const [savedAds, setSavedAds] = useState<SavedAd[]>([]);
@@ -12,69 +32,38 @@ export const SavedAdsGallery = () => {
 
   const fetchSavedAds = async () => {
     try {
-      console.log("Starting to fetch saved ads...");
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      
-      if (userError) {
-        console.error("Error fetching user:", userError);
-        throw userError;
-      }
-
+      const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        console.log("No authenticated user found");
         setIsLoading(false);
         return;
       }
 
-      console.log("Authenticated user found:", user.id);
-
-      // Only get saved ad feedback
-      const { data: feedbackData, error: feedbackError } = await supabase
+      const { data, error } = await supabase
         .from('ad_feedback')
         .select('*')
         .eq('user_id', user.id)
-        .not('saved_images', 'is', null);
+        .not('saved_images', 'is', null)
+        .order('created_at', { ascending: false });
 
-      if (feedbackError) {
-        console.error('Error fetching feedback data:', feedbackError);
-        throw feedbackError;
+      if (error) {
+        throw error;
       }
 
-      console.log("Raw feedback data:", feedbackData);
+      const convertedAds: SavedAd[] = (data as AdFeedbackRow[]).map(ad => ({
+        ...ad,
+        saved_images: Array.isArray(ad.saved_images) 
+          ? (ad.saved_images as string[])
+          : typeof ad.saved_images === 'string'
+            ? [ad.saved_images as string]
+            : []
+      }));
 
-      // Convert feedback data
-      const feedbackAds: SavedAd[] = (feedbackData || []).filter((ad: AdFeedbackRow) => {
-        const hasImages = ad.saved_images !== null && 
-          (Array.isArray(ad.saved_images) ? ad.saved_images.length > 0 : typeof ad.saved_images === 'string');
-        return hasImages;
-      }).map((ad: AdFeedbackRow) => {
-        let images: string[] = [];
-        if (Array.isArray(ad.saved_images)) {
-          images = ad.saved_images.filter((img): img is string => 
-            typeof img === 'string' && img.length > 0
-          );
-        } else if (typeof ad.saved_images === 'string' && ad.saved_images.length > 0) {
-          images = [ad.saved_images];
-        }
-        
-        return {
-          id: ad.id,
-          saved_images: images,
-          headline: ad.headline || '',
-          primary_text: ad.primary_text || '',
-          rating: ad.rating || 0,
-          feedback: ad.feedback || '',
-          created_at: ad.created_at
-        };
-      });
-
-      console.log("Processed feedback ads:", feedbackAds);
-      setSavedAds(feedbackAds);
+      setSavedAds(convertedAds);
     } catch (error) {
-      console.error('Error in fetchSavedAds:', error);
+      console.error('Error fetching saved ads:', error);
       toast({
-        title: "Error Loading Ads",
-        description: error instanceof Error ? error.message : "Failed to load saved ads. Please try again.",
+        title: "Error",
+        description: "Failed to load saved ads. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -83,32 +72,29 @@ export const SavedAdsGallery = () => {
   };
 
   useEffect(() => {
-    let isMounted = true;
-
-    const loadAds = async () => {
-      if (isMounted) {
-        await fetchSavedAds();
-      }
-    };
-
-    loadAds();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+    fetchSavedAds();
+  }, [toast]);
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <div className="text-gray-500">Loading saved ads...</div>
-      </div>
-    );
+    return <div>Loading saved ads...</div>;
   }
 
   if (savedAds.length === 0) {
     return <EmptyState />;
   }
 
-  return <SavedAdsList ads={savedAds} onFeedbackSubmit={fetchSavedAds} />;
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {savedAds.map((ad) => (
+        <SavedAdCard
+          key={ad.id}
+          id={ad.id}
+          primaryText={ad.primary_text}
+          headline={ad.headline}
+          imageUrl={ad.saved_images[0]}
+          onFeedbackSubmit={fetchSavedAds}
+        />
+      ))}
+    </div>
+  );
 };

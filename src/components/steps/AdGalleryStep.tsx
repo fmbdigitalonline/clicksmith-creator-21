@@ -1,4 +1,4 @@
-import { BusinessIdea, TargetAudience, AdHook, AdImage } from "@/types/adWizard";
+import { BusinessIdea, TargetAudience, AdHook } from "@/types/adWizard";
 import { TabsContent } from "@/components/ui/tabs";
 import LoadingState from "./complete/LoadingState";
 import PlatformTabs from "./gallery/PlatformTabs";
@@ -7,40 +7,29 @@ import PlatformChangeDialog from "./gallery/PlatformChangeDialog";
 import { usePlatformSwitch } from "@/hooks/usePlatformSwitch";
 import { useAdGeneration } from "./gallery/useAdGeneration";
 import AdGenerationControls from "./gallery/AdGenerationControls";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { AdSizeSelector, AD_FORMATS } from "./gallery/components/AdSizeSelector";
-import { useParams } from "react-router-dom";
 
 interface AdGalleryStepProps {
   businessIdea: BusinessIdea;
   targetAudience: TargetAudience;
   adHooks: AdHook[];
-  generatedImages?: AdImage[];
   onStartOver: () => void;
   onBack: () => void;
   onCreateProject: () => void;
   videoAdsEnabled?: boolean;
-  generatedAds?: any[];
-  onAdsGenerated?: (ads: any[]) => void;
-  hasLoadedInitialAds?: boolean;
 }
 
 const AdGalleryStep = ({
   businessIdea,
   targetAudience,
   adHooks,
-  generatedImages,
   onStartOver,
   onBack,
   onCreateProject,
   videoAdsEnabled = false,
-  generatedAds = [],
-  onAdsGenerated,
-  hasLoadedInitialAds = false,
 }: AdGalleryStepProps) => {
   const [selectedFormat, setSelectedFormat] = useState(AD_FORMATS[0]);
-  const [hasGeneratedInitialAds, setHasGeneratedInitialAds] = useState(false);
-  const { projectId } = useParams();
   const {
     platform,
     showPlatformChangeDialog,
@@ -57,63 +46,11 @@ const AdGalleryStep = ({
     generateAds,
   } = useAdGeneration(businessIdea, targetAudience, adHooks);
 
-  const handleGenerateAds = useCallback((selectedPlatform: string) => {
-    if (!isGenerating) {
-      generateAds(selectedPlatform);
-    }
-  }, [generateAds, isGenerating]);
-
-  // Effect for initial ad generation
   useEffect(() => {
-    if (!hasLoadedInitialAds || hasGeneratedInitialAds) return;
-
-    const isNewProject = projectId === 'new';
-    const existingPlatformAds = generatedAds.filter(ad => ad.platform === platform);
-    const shouldGenerateAds = isNewProject || existingPlatformAds.length === 0;
-
-    if (shouldGenerateAds) {
-      console.log('Generating initial ads:', { isNewProject, platform, existingAdsCount: existingPlatformAds.length });
-      handleGenerateAds(platform);
+    if (adVariants.length === 0) {
+      generateAds(platform);
     }
-
-    setHasGeneratedInitialAds(true);
-  }, [hasLoadedInitialAds, hasGeneratedInitialAds, platform, projectId, generatedAds, handleGenerateAds]);
-
-  // Effect for managing generated ads state
-  useEffect(() => {
-    if (!onAdsGenerated || adVariants.length === 0) return;
-
-    const isNewProject = projectId === 'new';
-    const updatedAds = isNewProject 
-      ? adVariants // For new projects, use only new variants
-      : generatedAds.map(existingAd => {
-          // Find if there's a new variant for this ad
-          const newVariant = adVariants.find(
-            variant => variant.platform === existingAd.platform && variant.id === existingAd.id
-          );
-          return newVariant || existingAd;
-        });
-
-    // Add any new variants that don't exist in the current ads
-    if (!isNewProject) {
-      adVariants.forEach(newVariant => {
-        const exists = updatedAds.some(
-          ad => ad.platform === newVariant.platform && ad.id === newVariant.id
-        );
-        if (!exists) {
-          updatedAds.push(newVariant);
-        }
-      });
-    }
-
-    console.log('Updating ads state:', { 
-      isNewProject, 
-      adVariantsCount: adVariants.length,
-      updatedAdsCount: updatedAds.length 
-    });
-    
-    onAdsGenerated(updatedAds);
-  }, [adVariants, onAdsGenerated, projectId, generatedAds]);
+  }, [videoAdsEnabled]);
 
   const onPlatformChange = (newPlatform: "facebook" | "google" | "linkedin" | "tiktok") => {
     handlePlatformChange(newPlatform, adVariants.length > 0);
@@ -121,11 +58,12 @@ const AdGalleryStep = ({
 
   const onConfirmPlatformChange = () => {
     const newPlatform = confirmPlatformChange();
-    handleGenerateAds(newPlatform);
+    generateAds(newPlatform);
   };
 
   const onCancelPlatformChange = () => {
     const currentPlatform = cancelPlatformChange();
+    // Force update the PlatformTabs to stay on the current platform
     const tabsElement = document.querySelector(`[data-state="active"][value="${currentPlatform}"]`);
     if (tabsElement) {
       (tabsElement as HTMLElement).click();
@@ -146,7 +84,7 @@ const AdGalleryStep = ({
       </div>
       <PlatformContent
         platformName={platformName}
-        adVariants={generatedAds.length > 0 ? generatedAds : adVariants}
+        adVariants={adVariants.filter(variant => variant.platform === platformName)}
         onCreateProject={onCreateProject}
         videoAdsEnabled={videoAdsEnabled}
         selectedFormat={selectedFormat}
@@ -159,7 +97,7 @@ const AdGalleryStep = ({
       <AdGenerationControls
         onBack={onBack}
         onStartOver={onStartOver}
-        onRegenerate={() => handleGenerateAds(platform)}
+        onRegenerate={() => generateAds(platform)}
         isGenerating={isGenerating}
         generationStatus={generationStatus}
       />

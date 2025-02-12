@@ -3,7 +3,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 export const creditOperationLogger = async (
   supabaseClient: ReturnType<typeof createClient>,
   userId: string,
-  operationType: 'purchase' | 'deduct',
+  operationType: 'add' | 'deduct',
   creditsAmount: number,
   errorMessage?: string
 ) => {

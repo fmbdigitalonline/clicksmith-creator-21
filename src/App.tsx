@@ -27,14 +27,6 @@ function App() {
               path="/"
               element={
                 <ProtectedRoute>
-                  <Navigate to="/ad-wizard/new" replace />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute>
                   <AppLayout>
                     <Dashboard />
                   </AppLayout>
@@ -81,7 +73,7 @@ function App() {
                 </ProtectedRoute>
               }
             />
-            <Route path="*" element={<Navigate to="/ad-wizard/new" replace />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
           <OnboardingDialog />
           <Toaster />

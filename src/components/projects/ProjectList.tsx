@@ -8,14 +8,12 @@ import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Database } from "@/integrations/supabase/types";
 
-type DatabaseProject = Database['public']['Tables']['projects']['Row'];
-
-interface Project extends Omit<DatabaseProject, 'business_idea'> {
+type Project = Database['public']['Tables']['projects']['Row'] & {
   business_idea: {
     description: string;
     valueProposition: string;
   } | null;
-}
+};
 
 interface ProjectListProps {
   onStartAdWizard: (projectId?: string) => void;
@@ -42,11 +40,7 @@ const ProjectList = ({ onStartAdWizard }: ProjectListProps) => {
         throw error;
       }
 
-      // Transform the data to ensure business_idea has the correct type
-      return (data as DatabaseProject[]).map(project => ({
-        ...project,
-        business_idea: project.business_idea as Project['business_idea']
-      }));
+      return data as Project[];
     },
   });
 

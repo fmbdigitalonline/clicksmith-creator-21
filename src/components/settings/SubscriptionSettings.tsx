@@ -84,8 +84,6 @@ export const SubscriptionSettings = ({ subscription, isLoadingSubscription }: Su
     );
   }
 
-  console.log('Subscription data:', subscription); // Add this line for debugging
-
   return (
     <Card>
       <CardHeader>
@@ -100,7 +98,7 @@ export const SubscriptionSettings = ({ subscription, isLoadingSubscription }: Su
             <div className="space-y-2">
               <div className="flex justify-between items-center">
                 <span className="font-medium">Current Plan</span>
-                <span className="text-lg font-semibold">{subscription.plan?.name}</span>
+                <span className="text-lg font-semibold">{subscription.plan?.name || 'Unknown Plan'}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="font-medium">Credits Remaining</span>

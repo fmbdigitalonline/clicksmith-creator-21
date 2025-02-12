@@ -25,20 +25,17 @@ const Pricing = () => {
   const { data: plans, isLoading, error } = useQuery({
     queryKey: ['plans'],
     queryFn: async () => {
-      console.log('Fetching plans...');
       const { data, error } = await supabase
         .from('plans')
         .select('*')
+        .in('price', [10, 29, 99])
+        .order('price')
         .eq('active', true)
-        .order('price');
+        .limit(3);
       
       if (error) throw error;
-      console.log('Fetched plans:', data);
       return data as Plan[];
-    },
-    staleTime: 0, // Always fetch fresh data
-    refetchOnMount: true,
-    refetchOnWindowFocus: true
+    }
   });
 
   const handleSubscribe = async (plan: Plan) => {
@@ -64,10 +61,7 @@ const Pricing = () => {
       }
 
       const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { 
-          priceId: plan.stripe_price_id,
-          mode: plan.name === 'Bundle' ? 'payment' : 'subscription'
-        }
+        body: { priceId: plan.stripe_price_id }
       });
 
       if (error) throw error;

@@ -22,7 +22,13 @@ interface PricingCardProps {
 
 export const PricingCard = ({ plan, onSubscribe }: PricingCardProps) => {
   const { toast } = useToast();
-  console.log('Rendering pricing card for plan:', plan);
+
+  // Test price IDs for development
+  const TEST_PRICE_IDS: Record<number, string> = {
+    10: 'price_1QVTQNIOVV4fCSYwjdxRnrPY', // Bundle (one-time)
+    29: 'price_1QVTOxIOVV4fCSYw6reL9sxq', // Starter (monthly)
+    99: 'price_1QVTPZIOVV4fCSYw6az4odG0'  // Pro (monthly)
+  };
 
   const handleSubscribe = async () => {
     try {
@@ -30,18 +36,30 @@ export const PricingCard = ({ plan, onSubscribe }: PricingCardProps) => {
       
       if (!user) {
         toast({
-          title: "Sign in required",
-          description: "Please sign in to your account first to subscribe to this plan.",
+          title: "Authentication required",
+          description: "Please sign in to subscribe to a plan",
           variant: "destructive",
         });
         return;
       }
 
-      console.log('Creating checkout session for plan:', plan);
+      // Force using test price IDs for now (remove this later)
+      const priceId = TEST_PRICE_IDS[plan.price];
+      console.log('Using price ID:', priceId, 'for plan price:', plan.price);
+
+      if (!priceId) {
+        toast({
+          title: "Configuration error",
+          description: "This plan is not properly configured. Please try another plan or contact support.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: { 
-          priceId: plan.stripe_price_id,
-          mode: plan.name.toLowerCase().includes('bundle') ? 'payment' : 'subscription'
+          priceId,
+          mode: plan.price === 10 ? 'payment' : 'subscription'
         }
       });
 
@@ -49,38 +67,20 @@ export const PricingCard = ({ plan, onSubscribe }: PricingCardProps) => {
 
       if (error) {
         console.error('Checkout error:', error);
-        let friendlyMessage = "We're having trouble setting up your payment. Please try again in a few moments.";
-        
-        // Customize messages based on common error scenarios
-        if (error.message?.includes('payment method type')) {
-          friendlyMessage = "This payment method isn't available in your region yet. Please try using a credit card instead.";
-        } else if (error.message?.includes('stripe_price_id')) {
-          friendlyMessage = "There seems to be an issue with this plan. Our team has been notified and we're working on fixing it.";
-        }
-
-        toast({
-          title: "Oops! Something went wrong",
-          description: friendlyMessage,
-          variant: "destructive",
-        });
-        return;
+        throw error;
       }
 
       if (data?.url) {
         console.log('Redirecting to:', data.url);
         window.location.href = data.url;
       } else {
-        toast({
-          title: "Something's not quite right",
-          description: "We couldn't set up your payment page. Please try again or contact our support if this keeps happening.",
-          variant: "destructive",
-        });
+        throw new Error('No checkout URL received');
       }
     } catch (error: any) {
       console.error('Checkout error:', error);
       toast({
-        title: "Unable to process your request",
-        description: "We're experiencing some technical difficulties. Please try again in a few moments or contact our support team if the issue persists.",
+        title: "Error",
+        description: "Failed to start checkout process. Please try again.",
         variant: "destructive",
       });
     }
@@ -88,7 +88,7 @@ export const PricingCard = ({ plan, onSubscribe }: PricingCardProps) => {
 
   return (
     <Card className="flex flex-col relative overflow-hidden">
-      {plan.name === 'Pro Package' && (
+      {plan.price === 29 && (
         <div className="absolute top-0 right-0 bg-primary text-primary-foreground px-4 py-1 rounded-bl-lg text-sm font-medium">
           Most Popular
         </div>
@@ -100,21 +100,21 @@ export const PricingCard = ({ plan, onSubscribe }: PricingCardProps) => {
       <CardContent className="flex-grow">
         <div className="mb-6">
           <span className="text-4xl font-bold">${plan.price}</span>
-          <span className="text-muted-foreground">/month</span>
+          <span className="text-muted-foreground">/{plan.price === 10 ? 'one-time' : 'month'}</span>
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger>
                 <Info className="inline-block ml-2 h-4 w-4 text-muted-foreground hover:text-foreground cursor-help" />
               </TooltipTrigger>
               <TooltipContent>
-                <p>Monthly subscription. Cancel anytime.</p>
+                <p>{plan.price === 10 ? 'One-time payment' : 'Billed monthly. Cancel anytime.'}</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
         </div>
         <div className="space-y-4">
           <div className="font-medium text-lg flex items-center gap-2">
-            {plan.credits.toLocaleString()} credits per month
+            {plan.credits} credits {plan.price === 10 ? '' : 'per month'}
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger>
@@ -142,7 +142,7 @@ export const PricingCard = ({ plan, onSubscribe }: PricingCardProps) => {
           onClick={handleSubscribe}
           size="lg"
         >
-          Subscribe Now
+          {plan.price === 10 ? 'Buy Now' : 'Subscribe Now'}
         </Button>
       </CardFooter>
     </Card>

@@ -99,28 +99,22 @@ export type Database = {
       }
       anonymous_usage: {
         Row: {
-          completed: boolean | null
           created_at: string
           id: string
           session_id: string
           used: boolean | null
-          wizard_data: Json | null
         }
         Insert: {
-          completed?: boolean | null
           created_at?: string
           id?: string
           session_id: string
           used?: boolean | null
-          wizard_data?: Json | null
         }
         Update: {
-          completed?: boolean | null
           created_at?: string
           id?: string
           session_id?: string
           used?: boolean | null
-          wizard_data?: Json | null
         }
         Relationships: []
       }
@@ -130,7 +124,7 @@ export type Database = {
           credits_amount: number
           error_message: string | null
           id: string
-          operation_type: Database["public"]["Enums"]["credit_operation_type"]
+          operation_type: string
           status: string
           user_id: string
         }
@@ -139,7 +133,7 @@ export type Database = {
           credits_amount: number
           error_message?: string | null
           id?: string
-          operation_type?: Database["public"]["Enums"]["credit_operation_type"]
+          operation_type: string
           status: string
           user_id: string
         }
@@ -148,7 +142,7 @@ export type Database = {
           credits_amount?: number
           error_message?: string | null
           id?: string
-          operation_type?: Database["public"]["Enums"]["credit_operation_type"]
+          operation_type?: string
           status?: string
           user_id?: string
         }
@@ -314,48 +308,6 @@ export type Database = {
         }
         Relationships: []
       }
-      payments: {
-        Row: {
-          amount: number
-          created_at: string
-          currency: string
-          customer_email: string | null
-          description: string | null
-          id: string
-          status: string
-          stripe_payment_intent: string | null
-          stripe_session_id: string
-          updated_at: string
-          user_id: string | null
-        }
-        Insert: {
-          amount: number
-          created_at?: string
-          currency: string
-          customer_email?: string | null
-          description?: string | null
-          id?: string
-          status: string
-          stripe_payment_intent?: string | null
-          stripe_session_id: string
-          updated_at?: string
-          user_id?: string | null
-        }
-        Update: {
-          amount?: number
-          created_at?: string
-          currency?: string
-          customer_email?: string | null
-          description?: string | null
-          id?: string
-          status?: string
-          stripe_payment_intent?: string | null
-          stripe_session_id?: string
-          updated_at?: string
-          user_id?: string | null
-        }
-        Relationships: []
-      }
       plans: {
         Row: {
           active: boolean | null
@@ -402,7 +354,6 @@ export type Database = {
           full_name: string | null
           id: string
           is_active: boolean | null
-          payment_status: string | null
           updated_at: string
           username: string | null
         }
@@ -412,7 +363,6 @@ export type Database = {
           full_name?: string | null
           id: string
           is_active?: boolean | null
-          payment_status?: string | null
           updated_at?: string
           username?: string | null
         }
@@ -422,7 +372,6 @@ export type Database = {
           full_name?: string | null
           id?: string
           is_active?: boolean | null
-          payment_status?: string | null
           updated_at?: string
           username?: string | null
         }
@@ -547,8 +496,6 @@ export type Database = {
           audience_analysis: Json | null
           business_idea: Json | null
           created_at: string
-          current_step: number | null
-          generated_ads: Json | null
           id: string
           selected_hooks: Json | null
           target_audience: Json | null
@@ -561,8 +508,6 @@ export type Database = {
           audience_analysis?: Json | null
           business_idea?: Json | null
           created_at?: string
-          current_step?: number | null
-          generated_ads?: Json | null
           id?: string
           selected_hooks?: Json | null
           target_audience?: Json | null
@@ -575,8 +520,6 @@ export type Database = {
           audience_analysis?: Json | null
           business_idea?: Json | null
           created_at?: string
-          current_step?: number | null
-          generated_ads?: Json | null
           id?: string
           selected_hooks?: Json | null
           target_audience?: Json | null
@@ -591,29 +534,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      add_user_credits: {
-        Args: {
-          p_user_id: string
-          p_credits: number
-        }
-        Returns: {
-          success: boolean
-          current_credits: number
-          error_message: string
-        }[]
-      }
-      allocate_credits: {
-        Args: {
-          p_user_id: string
-          p_credits: number
-          p_payment_id: string
-          p_description: string
-        }
-        Returns: {
-          success: boolean
-          message: string
-        }[]
-      }
       check_user_credits: {
         Args: {
           p_user_id: string
@@ -647,7 +567,7 @@ export type Database = {
       }
     }
     Enums: {
-      credit_operation_type: "credit_add" | "credit_deduct" | "credit_refund"
+      [_ in never]: never
     }
     CompositeTypes: {
       [_ in never]: never
