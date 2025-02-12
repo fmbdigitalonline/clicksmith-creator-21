@@ -1,3 +1,4 @@
+
 import { useAdWizardState } from "@/hooks/useAdWizardState";
 import IdeaStep from "./steps/BusinessIdeaStep";
 import AudienceStep from "./steps/AudienceStep";
@@ -31,6 +32,7 @@ const AdWizard = () => {
     handleStartOver,
     canNavigateToStep,
     setCurrentStep,
+    setBusinessIdea,
   } = useAdWizardState();
 
   // Handle project initialization
@@ -59,12 +61,20 @@ const AdWizard = () => {
         } else {
           // Set video ads enabled based on project settings
           setVideoAdsEnabled(project.video_ads_enabled || false);
+          
+          // Initialize business idea from project data
+          if (project.business_idea) {
+            setBusinessIdea(project.business_idea);
+            if (!businessIdea) {
+              setCurrentStep(1);
+            }
+          }
         }
       }
     };
 
     initializeProject();
-  }, [projectId, navigate]);
+  }, [projectId, navigate, setBusinessIdea, businessIdea, setCurrentStep]);
 
   const handleCreateProject = () => {
     setShowCreateProject(true);

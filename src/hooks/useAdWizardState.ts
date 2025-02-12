@@ -23,7 +23,7 @@ export const useAdWizardState = () => {
 
   const handleIdeaSubmit = useCallback(async (idea: BusinessIdea) => {
     setBusinessIdea(idea);
-    await saveWizardProgress({ business_idea: idea }, projectId);
+    await saveWizardProgress({ business_idea: idea, current_step: 2 }, projectId);
     setCurrentStep(2);
   }, [projectId]);
 
@@ -171,6 +171,7 @@ export const useAdWizardState = () => {
     handleStartOver,
     canNavigateToStep,
     setCurrentStep,
+    setBusinessIdea,
     isLoading,
   };
 };
