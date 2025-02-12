@@ -45,56 +45,60 @@ export function OnboardingDialog() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    checkOnboardingStatus();
-  }, []);
+    const checkOnboardingStatus = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
 
-  const checkOnboardingStatus = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+        // Check user's profile first
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('created_at, full_name')
+          .eq('id', user.id)
+          .single();
+        
+        // Only proceed with onboarding if this is a new user (profile was just created)
+        // and they haven't completed onboarding yet
+        if (profile) {
+          const createdAt = new Date(profile.created_at);
+          const now = new Date();
+          const isNewUser = now.getTime() - createdAt.getTime() < 5000; // Within 5 seconds
+          
+          if (isNewUser) {
+            const { data: onboarding } = await supabase
+              .from("onboarding")
+              .select("completed")
+              .eq("user_id", user.id)
+              .maybeSingle();
 
-      const { data: onboarding, error } = await supabase
-        .from("onboarding")
-        .select("*")
-        .eq("user_id", user.id)
-        .maybeSingle();
+            if (!onboarding) {
+              setOpen(true);
+              // Create onboarding record
+              await supabase
+                .from("onboarding")
+                .insert([{ user_id: user.id, steps_completed: [] }]);
+            } else if (!onboarding.completed) {
+              setOpen(true);
+            }
 
-      if (error && error.code !== "PGRST116") {
-        console.error("Error fetching onboarding status:", error);
-        toast({
-          title: "Error checking onboarding status",
-          description: error.message,
-          variant: "destructive",
-        });
-        return;
-      }
-
-      if (!onboarding || !onboarding.completed) {
-        setOpen(true);
-        if (!onboarding) {
-          const { error: insertError } = await supabase
-            .from("onboarding")
-            .insert([{ user_id: user.id, steps_completed: [] }]);
-
-          if (insertError) {
-            console.error("Error creating onboarding record:", insertError);
-            toast({
-              title: "Error initializing onboarding",
-              description: insertError.message,
-              variant: "destructive",
-            });
+            // If user already has a full name, pre-fill it
+            if (profile.full_name) {
+              setFullName(profile.full_name);
+            }
           }
         }
+      } catch (error) {
+        console.error("Error in checkOnboardingStatus:", error);
+        toast({
+          title: "Error",
+          description: "Failed to check onboarding status",
+          variant: "destructive",
+        });
       }
-    } catch (error) {
-      console.error("Error in checkOnboardingStatus:", error);
-      toast({
-        title: "Error",
-        description: "Failed to check onboarding status",
-        variant: "destructive",
-      });
-    }
-  };
+    };
+
+    checkOnboardingStatus();
+  }, [toast]);
 
   const handleStepComplete = async () => {
     try {
