@@ -33,58 +33,79 @@ export const useAdWizardState = () => {
     setCurrentStep(3);
   }, [projectId]);
 
+  const generateHooks = async (businessIdea: BusinessIdea, targetAudience: TargetAudience, analysis: AudienceAnalysis) => {
+    const maxRetries = 3;
+    let retryCount = 0;
+    
+    while (retryCount < maxRetries) {
+      try {
+        const { data, error } = await supabase.functions.invoke('generate-ad-content', {
+          body: { 
+            type: 'hooks',
+            businessIdea,
+            targetAudience: {
+              ...targetAudience,
+              audienceAnalysis: analysis
+            }
+          }
+        });
+
+        if (error) throw error;
+        if (!data?.hooks || !Array.isArray(data.hooks)) {
+          throw new Error('Invalid hooks data received');
+        }
+
+        return data.hooks;
+      } catch (error) {
+        retryCount++;
+        if (retryCount === maxRetries) throw error;
+        
+        // Wait before retrying (exponential backoff)
+        await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
+      }
+    }
+  };
+
   const handleAnalysisComplete = useCallback(async (analysis: AudienceAnalysis) => {
-    if (isLoading) {
-      console.log('Already processing, skipping duplicate request');
+    if (isLoading || !businessIdea || !targetAudience) {
+      console.log('Skipping: already processing or missing required data');
       return;
     }
     
     setIsLoading(true);
-    console.log('Starting analysis completion process');
     
     try {
-      console.log('Setting audience analysis');
+      // First save the analysis
       setAudienceAnalysis(analysis);
-      
-      console.log('Saving wizard progress');
       await saveWizardProgress({ audience_analysis: analysis }, projectId);
 
-      console.log('Generating hooks');
-      const { data, error } = await supabase.functions.invoke('generate-ad-content', {
-        body: { 
-          type: 'hooks',
-          businessIdea,
-          targetAudience: {
-            ...targetAudience,
-            audienceAnalysis: analysis
-          }
-        }
-      });
-
-      if (error) {
-        console.error('Error generating hooks:', error);
-        throw error;
-      }
-
-      if (data?.hooks && Array.isArray(data.hooks)) {
-        console.log('Setting hooks and saving progress');
-        setSelectedHooks(data.hooks);
-        await saveWizardProgress({ selected_hooks: data.hooks }, projectId);
-        
-        console.log('Advancing to next step');
-        setCurrentStep(4);
-      } else {
-        throw new Error('Invalid hooks data received');
-      }
+      // Then generate hooks with retry mechanism
+      const hooks = await generateHooks(businessIdea, targetAudience, analysis);
+      
+      // Save hooks and update state
+      await saveWizardProgress({ selected_hooks: hooks }, projectId);
+      setSelectedHooks(hooks);
+      
+      // Only advance step after everything is successful
+      setCurrentStep(4);
     } catch (error) {
       console.error('Error in handleAnalysisComplete:', error);
+      
+      let errorMessage = "Failed to generate hooks";
+      if (error instanceof Error) {
+        if (error.message.includes('Extension context invalidated')) {
+          errorMessage = "Connection error. Please try again.";
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to generate hooks",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
-      console.log('Completing analysis process');
       setIsLoading(false);
     }
   }, [businessIdea, targetAudience, toast, projectId, isLoading]);
