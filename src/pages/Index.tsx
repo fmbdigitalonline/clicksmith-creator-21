@@ -40,8 +40,8 @@ const Index = () => {
     },
     {
       icon: BarChart,
-      title: "Real-Time Analytics",
-      description: "Track engagement and performance across platforms. Get real-time insights into key metrics like click-through rates and ROI."
+      title: "Deep Audience Analysis",
+      description: "Gain comprehensive insights into your audience's behaviors, preferences, and pain points to create more targeted campaigns."
     },
     {
       icon: DollarSign,
@@ -206,10 +206,10 @@ const Index = () => {
               <div className="bg-accent/5 p-6 rounded-lg">
                 <h3 className="font-semibold text-xl mb-4 flex items-center gap-2">
                   <BarChart className="h-6 w-6 text-primary" />
-                  Real-Time Analytics
+                  Deep Audience Analysis
                 </h3>
                 <p className="text-muted-foreground">
-                  Track your ad performance across all platforms in one unified dashboard.
+                  Gain comprehensive insights into your audience's behaviors, preferences, and pain points to create more targeted campaigns.
                 </p>
               </div>
             </div>
@@ -254,50 +254,7 @@ const Index = () => {
                     <p className="text-muted-foreground">Create ads for Facebook, Instagram, LinkedIn, and more.</p>
                   </div>
                 </div>
-                <div className="flex items-start gap-3">
-                  <CheckCircle className="h-6 w-6 text-primary flex-shrink-0 mt-1" />
-                  <div>
-                    <h3 className="font-semibold mb-1">Custom Branding</h3>
-                    <p className="text-muted-foreground">Easily customize ads to match your brand identity.</p>
-                  </div>
-                </div>
               </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Results Showcase */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-6xl mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div className="space-y-6">
-              <h2 className="text-3xl font-bold mb-4">
-                Track Your Success
-              </h2>
-              <div className="space-y-4">
-                <div className="flex items-start gap-3">
-                  <PieChart className="h-6 w-6 text-primary flex-shrink-0 mt-1" />
-                  <div>
-                    <h3 className="font-semibold mb-1">Comprehensive Analytics</h3>
-                    <p className="text-muted-foreground">Monitor engagement, clicks, and conversions across all platforms.</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <BarChart className="h-6 w-6 text-primary flex-shrink-0 mt-1" />
-                  <div>
-                    <h3 className="font-semibold mb-1">Performance Insights</h3>
-                    <p className="text-muted-foreground">Get detailed reports on which ads and platforms perform best.</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="relative rounded-lg overflow-hidden shadow-xl">
-              <img
-                src="/placeholder.svg"
-                alt="Analytics Dashboard"
-                className="w-full h-auto"
-              />
             </div>
           </div>
         </div>
