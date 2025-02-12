@@ -1,6 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "@/hooks/use-toast";
 
 export const saveWizardProgress = async (data: any, projectId: string | undefined) => {
   try {
@@ -10,19 +10,17 @@ export const saveWizardProgress = async (data: any, projectId: string | undefine
     }
 
     if (projectId && projectId !== 'new') {
-      // If we have a project ID, save to projects table
       const { error } = await supabase
         .from('projects')
         .update({
           ...data,
           updated_at: new Date().toISOString()
         })
-        .eq('id', projectId)
-        .eq('user_id', user.id);
+        .eq('id', projectId);
 
       if (error) throw error;
     } else {
-      // For new projects, use wizard_progress table
+      // First check if wizard progress exists
       const { data: existingProgress, error: fetchError } = await supabase
         .from('wizard_progress')
         .select('*')
@@ -57,7 +55,6 @@ export const saveWizardProgress = async (data: any, projectId: string | undefine
         if (error) throw error;
 
         if (!result) {
-          const { toast } = useToast();
           toast({
             title: "Save in progress",
             description: "Another save operation is in progress. Please wait a moment.",
@@ -71,7 +68,6 @@ export const saveWizardProgress = async (data: any, projectId: string | undefine
     console.log('Progress saved successfully:', data);
   } catch (error) {
     console.error('Error saving progress:', error);
-    const { toast } = useToast();
     toast({
       title: "Error saving progress",
       description: error instanceof Error ? error.message : "Failed to save progress",
@@ -92,64 +88,26 @@ export const clearWizardProgress = async (projectId: string | undefined, userId:
           selected_hooks: null,
           updated_at: new Date().toISOString()
         })
-        .eq('id', projectId)
-        .eq('user_id', userId);
+        .eq('id', projectId);
 
       if (error) throw error;
     } else {
-      // First check if wizard progress exists
-      const { data: existingProgress } = await supabase
+      const { error } = await supabase
         .from('wizard_progress')
-        .select('*')
-        .eq('user_id', userId)
-        .maybeSingle();
+        .delete()
+        .eq('user_id', userId);
 
-      if (existingProgress) {
-        const { error } = await supabase
-          .from('wizard_progress')
-          .delete()
-          .eq('user_id', userId);
-
-        if (error) throw error;
-      }
+      if (error) throw error;
     }
 
     return true;
   } catch (error) {
     console.error('Error clearing progress:', error);
-    const { toast } = useToast();
     toast({
       title: "Error",
       description: "Failed to clear progress",
       variant: "destructive",
     });
-    return false;
-  }
-};
-
-export const initializeWizardProgress = async (userId: string) => {
-  try {
-    const { data: existingProgress } = await supabase
-      .from('wizard_progress')
-      .select('*')
-      .eq('user_id', userId)
-      .maybeSingle();
-
-    if (!existingProgress) {
-      const { error } = await supabase
-        .from('wizard_progress')
-        .insert({
-          user_id: userId,
-          current_step: 1,
-          version: 1
-        });
-
-      if (error) throw error;
-    }
-
-    return true;
-  } catch (error) {
-    console.error('Error initializing wizard progress:', error);
     return false;
   }
 };

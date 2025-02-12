@@ -11,7 +11,6 @@ import { useNavigate, useParams } from "react-router-dom";
 import { Toggle } from "./ui/toggle";
 import { Video, Image } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { BusinessIdea } from "@/types/adWizard";
 
 const AdWizard = () => {
   const [showCreateProject, setShowCreateProject] = useState(false);
@@ -32,7 +31,6 @@ const AdWizard = () => {
     handleStartOver,
     canNavigateToStep,
     setCurrentStep,
-    setBusinessIdea,
   } = useAdWizardState();
 
   // Handle project initialization
@@ -43,54 +41,30 @@ const AdWizard = () => {
 
       if (projectId === "new") {
         // Clear any existing wizard progress when starting new
-        const { data: existingProgress } = await supabase
+        await supabase
           .from('wizard_progress')
-          .select('*')
-          .eq('user_id', user.id)
-          .maybeSingle();
-
-        if (existingProgress) {
-          await supabase
-            .from('wizard_progress')
-            .delete()
-            .eq('user_id', user.id);
-        }
+          .delete()
+          .eq('user_id', user.id);
       } else if (projectId) {
         // If it's an existing project, fetch its data
-        const { data: project, error } = await supabase
+        const { data: project } = await supabase
           .from('projects')
           .select('*')
           .eq('id', projectId)
-          .maybeSingle();
+          .single();
 
-        if (error || !project) {
-          console.error('Error fetching project:', error);
+        if (!project) {
+          // If project doesn't exist, redirect to new project
           navigate('/ad-wizard/new');
-          return;
-        }
-
-        // Set video ads enabled based on project settings
-        setVideoAdsEnabled(project.video_ads_enabled || false);
-        
-        // Initialize business idea from project data
-        if (project.business_idea && 
-            typeof project.business_idea === 'object' && 
-            'description' in project.business_idea && 
-            'valueProposition' in project.business_idea) {
-          const businessIdea: BusinessIdea = {
-            description: String(project.business_idea.description),
-            valueProposition: String(project.business_idea.valueProposition)
-          };
-          setBusinessIdea(businessIdea);
-          if (!businessIdea) {
-            setCurrentStep(1);
-          }
+        } else {
+          // Set video ads enabled based on project settings
+          setVideoAdsEnabled(project.video_ads_enabled || false);
         }
       }
     };
 
     initializeProject();
-  }, [projectId, navigate, setBusinessIdea, businessIdea, setCurrentStep]);
+  }, [projectId, navigate]);
 
   const handleCreateProject = () => {
     setShowCreateProject(true);
