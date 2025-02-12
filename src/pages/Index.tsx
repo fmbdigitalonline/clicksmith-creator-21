@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { ArrowRight, CheckCircle, MessageCircle, BadgeCheck, Target, ArrowRight as ArrowRightIcon, Lightbulb, PieChart, DollarSign, Users, BarChart } from "lucide-react";
@@ -181,6 +180,126 @@ const Index = () => {
           <p className="text-muted-foreground">
             Watch our 2-minute demo to see how easy it is to validate your business idea
           </p>
+        </div>
+      </section>
+
+      {/* Platform Preview Section */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-6xl mx-auto">
+          <h2 className="text-3xl font-bold text-center mb-4">
+            See the Platform in Action
+          </h2>
+          <p className="text-center text-muted-foreground mb-12 max-w-3xl mx-auto">
+            Our intuitive interface makes it easy to validate your business idea and create high-converting ads
+          </p>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div className="space-y-6">
+              <div className="bg-accent/5 p-6 rounded-lg">
+                <h3 className="font-semibold text-xl mb-4 flex items-center gap-2">
+                  <Target className="h-6 w-6 text-primary" />
+                  ICP Generation Dashboard
+                </h3>
+                <p className="text-muted-foreground">
+                  Get detailed insights about your ideal customer profile, including demographics, behaviors, and preferences.
+                </p>
+              </div>
+              <div className="bg-accent/5 p-6 rounded-lg">
+                <h3 className="font-semibold text-xl mb-4 flex items-center gap-2">
+                  <BarChart className="h-6 w-6 text-primary" />
+                  Real-Time Analytics
+                </h3>
+                <p className="text-muted-foreground">
+                  Track your ad performance across all platforms in one unified dashboard.
+                </p>
+              </div>
+            </div>
+            <div className="relative rounded-lg overflow-hidden shadow-xl">
+              <img
+                src="/placeholder.svg"
+                alt="ICP Dashboard"
+                className="w-full h-auto"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Ad Creation Showcase */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-accent/5">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div className="relative rounded-lg overflow-hidden shadow-xl order-2 lg:order-1">
+              <img
+                src="/placeholder.svg"
+                alt="Ad Creation Interface"
+                className="w-full h-auto"
+              />
+            </div>
+            <div className="space-y-6 order-1 lg:order-2">
+              <h2 className="text-3xl font-bold mb-4">
+                Create Stunning Ads in Minutes
+              </h2>
+              <div className="space-y-4">
+                <div className="flex items-start gap-3">
+                  <CheckCircle className="h-6 w-6 text-primary flex-shrink-0 mt-1" />
+                  <div>
+                    <h3 className="font-semibold mb-1">AI-Powered Ad Generation</h3>
+                    <p className="text-muted-foreground">Generate multiple ad variations optimized for each platform.</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <CheckCircle className="h-6 w-6 text-primary flex-shrink-0 mt-1" />
+                  <div>
+                    <h3 className="font-semibold mb-1">Multi-Platform Support</h3>
+                    <p className="text-muted-foreground">Create ads for Facebook, Instagram, LinkedIn, and more.</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <CheckCircle className="h-6 w-6 text-primary flex-shrink-0 mt-1" />
+                  <div>
+                    <h3 className="font-semibold mb-1">Custom Branding</h3>
+                    <p className="text-muted-foreground">Easily customize ads to match your brand identity.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Results Showcase */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div className="space-y-6">
+              <h2 className="text-3xl font-bold mb-4">
+                Track Your Success
+              </h2>
+              <div className="space-y-4">
+                <div className="flex items-start gap-3">
+                  <PieChart className="h-6 w-6 text-primary flex-shrink-0 mt-1" />
+                  <div>
+                    <h3 className="font-semibold mb-1">Comprehensive Analytics</h3>
+                    <p className="text-muted-foreground">Monitor engagement, clicks, and conversions across all platforms.</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <BarChart className="h-6 w-6 text-primary flex-shrink-0 mt-1" />
+                  <div>
+                    <h3 className="font-semibold mb-1">Performance Insights</h3>
+                    <p className="text-muted-foreground">Get detailed reports on which ads and platforms perform best.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="relative rounded-lg overflow-hidden shadow-xl">
+              <img
+                src="/placeholder.svg"
+                alt="Analytics Dashboard"
+                className="w-full h-auto"
+              />
+            </div>
+          </div>
         </div>
       </section>
 
