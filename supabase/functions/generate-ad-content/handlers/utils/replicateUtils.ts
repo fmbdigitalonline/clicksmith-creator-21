@@ -1,3 +1,4 @@
+
 import Replicate from "https://esm.sh/replicate@0.25.1";
 
 interface ImageOptions {
@@ -118,7 +119,11 @@ export async function generateWithReplicate(
             width: scaledDimensions.width,
             height: scaledDimensions.height,
             num_outputs: config.numOutputs,
-            prompt_upsampling: true,
+            prompt_strength: 7,
+            num_inference_steps: 25,
+            guidance_scale: 7.5,
+            scheduler: "K_EULER",
+            negative_prompt: "blurry, low quality, low resolution, watermark"
           }
         });
 
