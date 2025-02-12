@@ -1,3 +1,4 @@
+
 import { BusinessIdea, TargetAudience, MarketingCampaign } from '../Types.ts';
 import { generateWithReplicate } from './utils/replicateUtils.ts';
 
