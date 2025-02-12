@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { AdFeedbackControls } from "@/components/steps/gallery/components/AdFeedbackControls";
 import { Json } from "@/integrations/supabase/types";
 import DownloadControls from "./DownloadControls";
-import { convertToFormat } from "@/utils/imageUtils";
+import { convertImage } from "@/utils/imageUtils";
 
 interface SavedAd {
   id: string;
@@ -116,7 +116,7 @@ export const SavedAdsGallery = () => {
 
       const response = await fetch(ad.saved_images[0]);
       const blob = await response.blob();
-      const convertedBlob = await convertToFormat(URL.createObjectURL(blob), format);
+      const convertedBlob = await convertImage(URL.createObjectURL(blob), format, ad); // Using convertImage instead of convertToFormat
       const url = URL.createObjectURL(convertedBlob);
       const link = document.createElement('a');
       link.href = url;
