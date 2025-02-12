@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from "react";
 import {
   BusinessIdea,
@@ -16,6 +17,7 @@ export const useAdWizardState = () => {
   const [targetAudience, setTargetAudience] = useState<TargetAudience | null>(null);
   const [audienceAnalysis, setAudienceAnalysis] = useState<AudienceAnalysis | null>(null);
   const [selectedHooks, setSelectedHooks] = useState<AdHook[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const { projectId } = useParams();
 
@@ -32,6 +34,9 @@ export const useAdWizardState = () => {
   }, [projectId]);
 
   const handleAnalysisComplete = useCallback(async (analysis: AudienceAnalysis) => {
+    if (isLoading) return; // Prevent multiple submissions
+    
+    setIsLoading(true);
     try {
       setAudienceAnalysis(analysis);
       await saveWizardProgress({ audience_analysis: analysis }, projectId);
@@ -48,12 +53,7 @@ export const useAdWizardState = () => {
       });
 
       if (error) {
-        toast({
-          title: "Error generating hooks",
-          description: error.message,
-          variant: "destructive",
-        });
-        return;
+        throw error;
       }
 
       if (data?.hooks && Array.isArray(data.hooks)) {
@@ -70,8 +70,10 @@ export const useAdWizardState = () => {
         description: error instanceof Error ? error.message : "Failed to generate hooks",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
-  }, [businessIdea, targetAudience, toast, projectId]);
+  }, [businessIdea, targetAudience, toast, projectId, isLoading]);
 
   const handleBack = useCallback(() => {
     setCurrentStep(prev => Math.max(1, prev - 1));
@@ -134,6 +136,7 @@ export const useAdWizardState = () => {
     handleStartOver,
     canNavigateToStep,
     setCurrentStep,
+    isLoading,
   };
 };
 

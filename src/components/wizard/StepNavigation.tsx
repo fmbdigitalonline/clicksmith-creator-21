@@ -1,5 +1,6 @@
+
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
 
 interface StepNavigationProps {
   onBack?: () => void;
@@ -23,6 +24,7 @@ const StepNavigation = ({
           variant="outline"
           onClick={onBack}
           className="space-x-2 w-full md:w-auto"
+          disabled={loading}
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Previous Step</span>
@@ -34,8 +36,17 @@ const StepNavigation = ({
           disabled={nextDisabled || loading}
           className="bg-facebook hover:bg-facebook/90 text-white w-full md:w-auto"
         >
-          <span>Next Step</span>
-          <ArrowRight className="w-4 h-4 ml-2" />
+          {loading ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              <span>Processing...</span>
+            </>
+          ) : (
+            <>
+              <span>Next Step</span>
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </>
+          )}
         </Button>
       )}
     </div>
