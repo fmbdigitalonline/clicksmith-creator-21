@@ -22,7 +22,7 @@ const MODELS = {
   sdxl: "39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b",
   sdxlBase: "8beff3369e81422112d93b89ca01426147de542cd4684c244b673b105188fe5f",
   sdv15: "a4a8bafd6089e5dad6dd6dc5b3304a8ff88a27615fa0b67d135b0dfd814187be",
-  flux: "black-forest-labs/flux-1.1-pro"
+  flux: "black-forest-labs/flux-schnell"  // Updated to use the schnell model which is more reliable
 } as const;
 
 async function delay(ms: number): Promise<void> {
@@ -124,11 +124,12 @@ export async function generateWithReplicate(
             width: scaledDimensions.width,
             height: scaledDimensions.height,
             num_outputs: config.numOutputs,
-            prompt_strength: 7,
-            num_inference_steps: 25,
-            guidance_scale: 7.5,
-            scheduler: "K_EULER",
-            negative_prompt: "blurry, low quality, low resolution, watermark"
+            go_fast: true,
+            megapixels: "1",
+            aspect_ratio: `${scaledDimensions.width}:${scaledDimensions.height}`,
+            output_format: "webp",
+            output_quality: 80,
+            num_inference_steps: 4
           }
         });
 
