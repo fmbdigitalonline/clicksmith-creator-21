@@ -1,3 +1,4 @@
+
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -6,6 +7,8 @@ import {
   ChevronRight,
   PlusCircle,
   Images,
+  Home,
+  BookmarkIcon,
 } from "lucide-react";
 import {
   Sidebar,
@@ -21,14 +24,19 @@ import { Button } from "./ui/button";
 
 const menuItems = [
   {
-    title: "Dashboard",
-    icon: LayoutDashboard,
+    title: "Home",
+    icon: Home,
     url: "/",
   },
   {
     title: "Projects",
     icon: FolderKanban,
     url: "/projects",
+  },
+  {
+    title: "Saved Ads",
+    icon: BookmarkIcon,
+    url: "/saved-ads",
   },
   {
     title: "Ad Gallery",

@@ -1,18 +1,15 @@
-import { Link, useLocation, useNavigate } from "react-router-dom";
+
+import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Home, Settings, CreditCard, PlusCircle, BookmarkIcon, Images } from "lucide-react";
+import { Settings, CreditCard, PlusCircle, Images } from "lucide-react";
 import { CreditDisplay } from "./CreditDisplay";
 
 const Navigation = () => {
   const location = useLocation();
-  const navigate = useNavigate();
   const currentPath = location.pathname;
   
   const isActive = (path: string) => {
-    if (path === "/") {
-      return currentPath === "/" || currentPath === "/projects";
-    }
     if (path === "/ad-wizard") {
       return currentPath.includes('/ad-wizard');
     }
@@ -20,7 +17,7 @@ const Navigation = () => {
   };
 
   const handleStartClick = () => {
-    navigate("/ad-wizard/new");
+    window.location.href = "/ad-wizard/new";
   };
 
   const showAdGallery = currentPath.includes('/ad-wizard');
@@ -43,20 +40,6 @@ const Navigation = () => {
               <PlusCircle className="h-4 w-4" />
               <span>Start</span>
             </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              asChild
-              className={cn(
-                "gap-2",
-                isActive("/") && "bg-accent"
-              )}
-            >
-              <Link to="/">
-                <Home className="h-4 w-4" />
-                <span>Home</span>
-              </Link>
-            </Button>
             {showAdGallery && (
               <Button
                 variant="ghost"
@@ -73,20 +56,6 @@ const Navigation = () => {
                 </Link>
               </Button>
             )}
-            <Button
-              variant="ghost"
-              size="sm"
-              asChild
-              className={cn(
-                "gap-2",
-                isActive("/saved-ads") && "bg-accent"
-              )}
-            >
-              <Link to="/saved-ads">
-                <BookmarkIcon className="h-4 w-4" />
-                <span>Saved Ads</span>
-              </Link>
-            </Button>
             <Button
               variant="ghost"
               size="sm"
