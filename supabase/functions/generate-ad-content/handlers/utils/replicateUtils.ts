@@ -93,6 +93,11 @@ export async function generateWithReplicate(
   const config = { ...defaultOptions, ...options };
   
   try {
+    const apiKey = Deno.env.get('REPLICATE_API_KEY');
+    if (!apiKey) {
+      throw new Error('REPLICATE_API_KEY is not set in environment variables');
+    }
+
     console.log('Starting image generation with configuration:', {
       prompt,
       model: config.model,
@@ -100,7 +105,7 @@ export async function generateWithReplicate(
     });
 
     const replicate = new Replicate({
-      auth: Deno.env.get('REPLICATE_API_KEY'),
+      auth: apiKey,
     });
 
     // Scale dimensions to comply with API limitations
