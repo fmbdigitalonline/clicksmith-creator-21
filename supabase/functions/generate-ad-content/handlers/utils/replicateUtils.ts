@@ -22,7 +22,7 @@ const MODELS = {
   sdxl: "39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b",
   sdxlBase: "8beff3369e81422112d93b89ca01426147de542cd4684c244b673b105188fe5f",
   sdv15: "a4a8bafd6089e5dad6dd6dc5b3304a8ff88a27615fa0b67d135b0dfd814187be",
-  flux: "black-forest-labs/flux-schnell"  // Updated to use the schnell model which is more reliable
+  flux: "stability-ai/sdxl:1bfb924045802467cf8869d96b231a12e6aa994abfe37e337c63a4e49a8c6c41"  // Using SDXL for more reliable results
 } as const;
 
 async function delay(ms: number): Promise<void> {
@@ -93,9 +93,9 @@ export async function generateWithReplicate(
   const config = { ...defaultOptions, ...options };
   
   try {
-    const apiKey = Deno.env.get('REPLICATE_API_KEY');
+    const apiKey = Deno.env.get('REPLICATE_API_TOKEN');  // Changed from REPLICATE_API_KEY to REPLICATE_API_TOKEN
     if (!apiKey) {
-      throw new Error('REPLICATE_API_KEY is not set in environment variables');
+      throw new Error('REPLICATE_API_TOKEN is not set in environment variables');
     }
 
     console.log('Starting image generation with configuration:', {
@@ -123,13 +123,14 @@ export async function generateWithReplicate(
             prompt,
             width: scaledDimensions.width,
             height: scaledDimensions.height,
-            num_outputs: config.numOutputs,
-            go_fast: true,
-            megapixels: "1",
-            aspect_ratio: `${scaledDimensions.width}:${scaledDimensions.height}`,
-            output_format: "webp",
-            output_quality: 80,
-            num_inference_steps: 4
+            num_samples: config.numOutputs,
+            scheduler: "DPMSolverMultistep",
+            num_inference_steps: 30,
+            guidance_scale: 7.5,
+            prompt_strength: 0.8,
+            refine: "expert_ensemble_refiner",
+            high_noise_frac: 0.8,
+            negative_prompt: "low quality, blurry, watermark"
           }
         });
 
