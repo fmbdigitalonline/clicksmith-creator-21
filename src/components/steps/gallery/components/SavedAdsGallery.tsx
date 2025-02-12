@@ -1,9 +1,12 @@
+
 import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { AdFeedbackControls } from "@/components/steps/gallery/components/AdFeedbackControls";
 import { Json } from "@/integrations/supabase/types";
+import DownloadControls from "./DownloadControls";
+import { convertToFormat } from "@/utils/imageUtils";
 
 interface SavedAd {
   id: string;
@@ -28,6 +31,7 @@ interface AdFeedbackRow {
 export const SavedAdsGallery = () => {
   const [savedAds, setSavedAds] = useState<SavedAd[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -75,6 +79,66 @@ export const SavedAdsGallery = () => {
 
     fetchSavedAds();
   }, [toast]);
+
+  const handleSave = async (adId: string) => {
+    setIsSaving(true);
+    try {
+      const ad = savedAds.find(a => a.id === adId);
+      if (!ad) return;
+
+      toast({
+        title: "Success!",
+        description: "Ad saved successfully.",
+      });
+    } catch (error) {
+      console.error('Error saving ad:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save ad. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDownload = async (adId: string, format: "jpg" | "png" | "pdf" | "docx") => {
+    try {
+      const ad = savedAds.find(a => a.id === adId);
+      if (!ad || !ad.saved_images[0]) {
+        toast({
+          title: "Error",
+          description: "No image available for download",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const response = await fetch(ad.saved_images[0]);
+      const blob = await response.blob();
+      const convertedBlob = await convertToFormat(URL.createObjectURL(blob), format);
+      const url = URL.createObjectURL(convertedBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `saved-ad-${adId}.${format}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: "Success!",
+        description: `Your ad has been downloaded as ${format.toUpperCase()}.`,
+      });
+    } catch (error) {
+      console.error('Error downloading:', error);
+      toast({
+        title: "Error",
+        description: "Failed to download file. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   if (isLoading) {
     return <div>Loading saved ads...</div>;
@@ -124,6 +188,17 @@ export const SavedAdsGallery = () => {
               </div>
             </CardContent>
           )}
+
+          {/* Download Controls */}
+          <CardContent className="p-4 border-t">
+            <DownloadControls
+              downloadFormat="jpg"
+              onFormatChange={(format) => handleDownload(ad.id, format)}
+              onSave={() => handleSave(ad.id)}
+              onDownload={() => handleDownload(ad.id, "jpg")}
+              isSaving={isSaving}
+            />
+          </CardContent>
 
           {/* Feedback Controls */}
           <CardContent className="p-4 border-t bg-gray-50">
