@@ -10,17 +10,19 @@ export const saveWizardProgress = async (data: any, projectId: string | undefine
     }
 
     if (projectId && projectId !== 'new') {
+      // If we have a project ID, save to projects table
       const { error } = await supabase
         .from('projects')
         .update({
           ...data,
           updated_at: new Date().toISOString()
         })
-        .eq('id', projectId);
+        .eq('id', projectId)
+        .eq('user_id', user.id);
 
       if (error) throw error;
     } else {
-      // First check if wizard progress exists
+      // For new projects, use wizard_progress table
       const { data: existingProgress, error: fetchError } = await supabase
         .from('wizard_progress')
         .select('*')
@@ -55,7 +57,6 @@ export const saveWizardProgress = async (data: any, projectId: string | undefine
         if (error) throw error;
 
         if (!result) {
-          // Use toast from the imported hook
           const { toast } = useToast();
           toast({
             title: "Save in progress",
@@ -70,7 +71,6 @@ export const saveWizardProgress = async (data: any, projectId: string | undefine
     console.log('Progress saved successfully:', data);
   } catch (error) {
     console.error('Error saving progress:', error);
-    // Use toast from the imported hook
     const { toast } = useToast();
     toast({
       title: "Error saving progress",
@@ -92,7 +92,8 @@ export const clearWizardProgress = async (projectId: string | undefined, userId:
           selected_hooks: null,
           updated_at: new Date().toISOString()
         })
-        .eq('id', projectId);
+        .eq('id', projectId)
+        .eq('user_id', userId);
 
       if (error) throw error;
     } else {
