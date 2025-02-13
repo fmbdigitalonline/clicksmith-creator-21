@@ -31,17 +31,29 @@ export const useAdWizardState = () => {
           const { data: { user } } = await supabase.auth.getUser();
           if (!user) return;
 
+          // Get count of existing projects for this user
+          const { count } = await supabase
+            .from('projects')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', user.id);
+
+          const projectNumber = (count || 0) + 1;
+          const projectTitle = `My Ad Campaign ${projectNumber}`;
+
           const { data, error } = await supabase
             .from("projects")
             .insert({
-              title: "My Ad Campaign",
+              title: projectTitle,
               user_id: user.id,
               status: "draft"
             })
             .select()
             .single();
 
-          if (error) throw error;
+          if (error) {
+            console.error('Error creating project:', error);
+            throw error;
+          }
 
           setAutoCreatedProjectId(data.id);
           navigate(`/ad-wizard/${data.id}`, { replace: true });
