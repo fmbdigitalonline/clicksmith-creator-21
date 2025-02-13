@@ -53,16 +53,26 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
             // Initialize free tier usage for new users
             if (user) {
-              const { data: existingUsage } = await supabase
+              const { data: existingUsage, error: usageError } = await supabase
                 .from('free_tier_usage')
                 .select('*')
                 .eq('user_id', user.id)
-                .single();
+                .maybeSingle();
+
+              if (usageError && !usageError.message.includes('PGRST116')) {
+                console.error("Error checking free tier usage:", usageError);
+                throw usageError;
+              }
 
               if (!existingUsage) {
-                await supabase
+                const { error: insertError } = await supabase
                   .from('free_tier_usage')
                   .insert([{ user_id: user.id, generations_used: 0 }]);
+
+                if (insertError) {
+                  console.error("Error initializing free tier usage:", insertError);
+                  throw insertError;
+                }
               }
               
               setIsAuthenticated(true);
