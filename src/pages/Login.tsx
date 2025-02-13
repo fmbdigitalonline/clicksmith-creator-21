@@ -84,8 +84,8 @@ const Login = () => {
               message: 'text-sm font-medium text-destructive',
             }
           }}
+          view="sign_in"
           redirectTo={`${window.location.origin}/dashboard`}
-          onlyThirdPartyProviders={false}
           providers={[]}
           magicLink={false}
           showLinks={true}
