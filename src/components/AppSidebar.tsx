@@ -26,7 +26,7 @@ const menuItems = [
   {
     title: "Home",
     icon: Home,
-    url: "/dashboard",  // Changed from "/" to "/dashboard"
+    url: "/dashboard",
   },
   {
     title: "Projects",
@@ -42,7 +42,6 @@ const menuItems = [
     title: "Ad Gallery",
     icon: Images,
     url: "/ad-wizard",
-    showCondition: (pathname: string) => pathname.includes('/ad-wizard'),
   },
   {
     title: "Settings",
@@ -57,8 +56,8 @@ export function AppSidebar() {
   const currentPath = location.pathname;
 
   const isActive = (path: string) => {
-    if (path === "/dashboard") {  // Changed from "/" to "/dashboard"
-      return currentPath === "/dashboard";  // Changed condition to be exact
+    if (path === "/dashboard") {
+      return currentPath === "/dashboard";
     }
     if (path === "/ad-wizard") {
       return currentPath.includes('/ad-wizard');
@@ -86,9 +85,7 @@ export function AppSidebar() {
           <SidebarGroupLabel>Menu</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {menuItems
-                .filter(item => !item.showCondition || item.showCondition(currentPath))
-                .map((item) => (
+              {menuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild
