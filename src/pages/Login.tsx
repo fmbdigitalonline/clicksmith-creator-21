@@ -65,16 +65,10 @@ const Login = () => {
               Start validating your business ideas today with 12 free credits. No credit card required.
             </AlertDescription>
           </Alert>
-          <Alert className="bg-accent/5 border-accent/10">
-            <AlertDescription className="text-xs text-center text-muted-foreground">
-              By signing up, you agree to our Terms of Service and Privacy Policy. We'll send you product updates and announcements. You can unsubscribe at any time.
-            </AlertDescription>
-          </Alert>
         </div>
         
         <Auth
           supabaseClient={supabase}
-          view="sign_up"
           appearance={{
             theme: ThemeSupa,
             style: {
@@ -119,6 +113,14 @@ const Login = () => {
             }
           }}
         />
+        
+        <div className="mt-6">
+          <Alert className="bg-accent/5 border-accent/10">
+            <AlertDescription className="text-[11px] text-center text-muted-foreground leading-relaxed">
+              By signing up, you agree to our Terms of Service and Privacy Policy. We'll send you product updates and announcements. You can unsubscribe at any time.
+            </AlertDescription>
+          </Alert>
+        </div>
       </Card>
     </div>
   );
