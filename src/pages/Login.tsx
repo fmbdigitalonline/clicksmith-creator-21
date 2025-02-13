@@ -1,3 +1,4 @@
+
 import { Auth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { supabase } from "@/integrations/supabase/client";
@@ -5,6 +6,8 @@ import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { BadgeCheck } from "lucide-react";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -22,8 +25,8 @@ const Login = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN') {
         toast({
-          title: "Welcome back!",
-          description: "You have successfully logged in.",
+          title: "Welcome!",
+          description: "You have successfully logged in. Enjoy your 12 free credits!",
         });
         navigate('/');
       } else if (event === 'SIGNED_OUT') {
@@ -52,8 +55,21 @@ const Login = () => {
   return (
     <div className="container mx-auto flex items-center justify-center min-h-screen py-8">
       <Card className="w-full max-w-md p-8">
+        <div className="mb-6 space-y-4">
+          <div className="flex items-center gap-2 justify-center text-primary">
+            <BadgeCheck className="h-6 w-6" />
+            <span className="font-semibold">12 Free Credits Included!</span>
+          </div>
+          <Alert className="bg-primary/5 border-primary/10">
+            <AlertDescription className="text-sm text-center">
+              Start validating your business ideas today with 12 free credits. No credit card required.
+            </AlertDescription>
+          </Alert>
+        </div>
+        
         <Auth
           supabaseClient={supabase}
+          view="sign_up"
           appearance={{
             theme: ThemeSupa,
             style: {
@@ -74,7 +90,6 @@ const Login = () => {
           providers={[]}
           magicLink={false}
           showLinks={true}
-          view="sign_in"
           localization={{
             variables: {
               sign_up: {
@@ -82,10 +97,11 @@ const Login = () => {
                 password_label: 'Create a Password (minimum 6 characters)',
                 email_input_placeholder: 'Your email address',
                 password_input_placeholder: 'Password (minimum 6 characters)',
-                button_label: 'Sign up',
+                button_label: 'Sign up and get 12 free credits',
                 loading_button_label: 'Creating account ...',
-                link_text: "Don't have an account? Sign up",
-                confirmation_text: 'Check your email for the confirmation link'
+                link_text: "Already have an account? Sign in",
+                confirmation_text: 'Check your email for the confirmation link',
+                terms_of_service: "By signing up, you agree to our Terms of Service and Privacy Policy. We'll send you product updates and announcements. You can unsubscribe at any time."
               },
               sign_in: {
                 email_label: 'Email address',
@@ -94,7 +110,7 @@ const Login = () => {
                 password_input_placeholder: 'Password (minimum 6 characters)',
                 button_label: 'Sign in',
                 loading_button_label: 'Signing in ...',
-                link_text: 'Already have an account? Sign in'
+                link_text: "Don't have an account? Sign up and get 12 free credits"
               }
             }
           }}
