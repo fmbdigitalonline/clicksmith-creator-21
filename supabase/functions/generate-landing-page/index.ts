@@ -1,5 +1,3 @@
-
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
@@ -8,8 +6,12 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { 
+      status: 204,
+      headers: corsHeaders,
+    });
   }
 
   try {
@@ -86,87 +88,95 @@ Content Guidelines:
 
 IMPORTANT: Return ONLY the JSON object, with no additional formatting, markdown, or code blocks.`;
 
-    const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${Deno.env.get('DEEPSEEK_API_KEY')}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'deepseek-chat',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are an expert landing page copywriter. You must return ONLY valid JSON without any markdown formatting or code blocks.',
-          },
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
-        temperature: 0.7,
-      }),
-    });
-
-    if (!response.ok) {
-      console.error('DeepSeek API error:', response.status, await response.text());
-      throw new Error(`DeepSeek API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    console.log('DeepSeek response:', JSON.stringify(data, null, 2));
+    console.log('Making request to DeepSeek API...');
     
-    if (!data.choices?.[0]?.message?.content) {
-      throw new Error('Invalid response format from DeepSeek');
-    }
-
-    let landingPageContent = data.choices[0].message.content;
-    console.log('Raw landing page content:', landingPageContent);
-
-    // Clean the response by removing any markdown or code block syntax
-    landingPageContent = landingPageContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-    console.log('Cleaned landing page content:', landingPageContent);
-
-    // Parse and validate the response
     try {
-      const parsedContent = JSON.parse(landingPageContent);
-      console.log('Parsed content:', JSON.stringify(parsedContent, null, 2));
+      const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${Deno.env.get('DEEPSEEK_API_KEY')}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'deepseek-chat',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are an expert landing page copywriter. You must return ONLY valid JSON without any markdown formatting or code blocks.',
+            },
+            {
+              role: 'user',
+              content: prompt,
+            },
+          ],
+          temperature: 0.7,
+        }),
+      });
 
-      // Validate the structure
-      if (!parsedContent.hero || !parsedContent.features || !parsedContent.benefits) {
-        throw new Error('Missing required sections in the response');
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('DeepSeek API error:', response.status, errorText);
+        throw new Error(`DeepSeek API error: ${response.status} - ${errorText}`);
       }
 
-      const structuredContent = {
-        hero: {
-          title: parsedContent.hero?.title || "Transform Your Business Today",
-          description: parsedContent.hero?.description || "Take your business to the next level with our innovative solution",
-          cta: parsedContent.hero?.cta || "Get Started Now",
-        },
-        features: Array.isArray(parsedContent.features) ? parsedContent.features : [],
-        benefits: Array.isArray(parsedContent.benefits) ? parsedContent.benefits : [],
-        painPoints: Array.isArray(parsedContent.painPoints) ? parsedContent.painPoints : [],
-        socialProof: {
-          testimonials: Array.isArray(parsedContent.socialProof?.testimonials) 
-            ? parsedContent.socialProof.testimonials 
-            : [],
-        },
-        callToAction: {
-          title: parsedContent.callToAction?.title || "Ready to Transform Your Business?",
-          description: parsedContent.callToAction?.description || "Join thousands of satisfied customers and start your journey today.",
-          buttonText: parsedContent.callToAction?.buttonText || "Get Started",
-        },
-      };
+      const data = await response.json();
+      console.log('DeepSeek response received:', JSON.stringify(data, null, 2));
+      
+      if (!data.choices?.[0]?.message?.content) {
+        throw new Error('Invalid response format from DeepSeek');
+      }
 
-      console.log('Final structured content:', JSON.stringify(structuredContent, null, 2));
+      let landingPageContent = data.choices[0].message.content;
+      console.log('Raw landing page content:', landingPageContent);
 
-      return new Response(JSON.stringify(structuredContent), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    } catch (parseError) {
-      console.error('Error parsing landing page content:', parseError);
-      console.error('Failed content:', landingPageContent);
-      throw new Error(`Failed to parse landing page content: ${parseError.message}`);
+      // Clean the response by removing any markdown or code block syntax
+      landingPageContent = landingPageContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      console.log('Cleaned landing page content:', landingPageContent);
+
+      // Parse and validate the response
+      try {
+        const parsedContent = JSON.parse(landingPageContent);
+        console.log('Parsed content:', JSON.stringify(parsedContent, null, 2));
+
+        // Validate the structure
+        if (!parsedContent.hero || !parsedContent.features || !parsedContent.benefits) {
+          throw new Error('Missing required sections in the response');
+        }
+
+        const structuredContent = {
+          hero: {
+            title: parsedContent.hero?.title || "Transform Your Business Today",
+            description: parsedContent.hero?.description || "Take your business to the next level with our innovative solution",
+            cta: parsedContent.hero?.cta || "Get Started Now",
+          },
+          features: Array.isArray(parsedContent.features) ? parsedContent.features : [],
+          benefits: Array.isArray(parsedContent.benefits) ? parsedContent.benefits : [],
+          painPoints: Array.isArray(parsedContent.painPoints) ? parsedContent.painPoints : [],
+          socialProof: {
+            testimonials: Array.isArray(parsedContent.socialProof?.testimonials) 
+              ? parsedContent.socialProof.testimonials 
+              : [],
+          },
+          callToAction: {
+            title: parsedContent.callToAction?.title || "Ready to Transform Your Business?",
+            description: parsedContent.callToAction?.description || "Join thousands of satisfied customers and start your journey today.",
+            buttonText: parsedContent.callToAction?.buttonText || "Get Started",
+          },
+        };
+
+        console.log('Final structured content:', JSON.stringify(structuredContent, null, 2));
+
+        return new Response(JSON.stringify(structuredContent), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      } catch (parseError) {
+        console.error('Error parsing landing page content:', parseError);
+        console.error('Failed content:', landingPageContent);
+        throw new Error(`Failed to parse landing page content: ${parseError.message}`);
+      }
+    } catch (apiError) {
+      console.error('Error calling DeepSeek API:', apiError);
+      throw apiError;
     }
   } catch (error) {
     console.error('Error in generate-landing-page function:', error);
