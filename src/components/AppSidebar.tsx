@@ -30,6 +30,7 @@ export function AppSidebar() {
   const currentPath = location.pathname;
   const [adWizardUrl, setAdWizardUrl] = useState("/ad-wizard/new");
 
+  // Update the Ad Gallery URL based on the current project context
   useEffect(() => {
     if (currentPath.includes('/ad-wizard/') && projectId && projectId !== 'new') {
       setAdWizardUrl(`/ad-wizard/${projectId}`);
@@ -79,7 +80,7 @@ export function AppSidebar() {
   };
 
   return (
-    <Sidebar className="border-r h-full">
+    <Sidebar>
       <SidebarContent>
         <div className="px-4 py-4">
           <Button 
@@ -101,7 +102,7 @@ export function AppSidebar() {
                     isActive={isActive(item.url)}
                     tooltip={item.title}
                   >
-                    <Link to={item.url} className="flex items-center gap-2 px-4 py-2">
+                    <Link to={item.url} className="flex items-center gap-2">
                       <item.icon className="h-4 w-4" />
                       <span>{item.title}</span>
                       {isActive(item.url) && (
