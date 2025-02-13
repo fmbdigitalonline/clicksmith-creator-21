@@ -17,7 +17,7 @@ const LandingPage = () => {
         .from("projects")
         .select("*, business_idea, target_audience, audience_analysis")
         .eq("id", projectId)
-        .single();
+        .maybeSingle(); // Changed from .single() to .maybeSingle()
 
       if (error) {
         toast({
@@ -28,8 +28,18 @@ const LandingPage = () => {
         throw error;
       }
 
+      if (!data) {
+        toast({
+          title: "Project not found",
+          description: "The requested project could not be found.",
+          variant: "destructive",
+        });
+        throw new Error("Project not found");
+      }
+
       return data;
     },
+    retry: false, // Don't retry on failure since we're handling the "not found" case
   });
 
   const { data: landingPage, isLoading: landingPageLoading } = useQuery({
@@ -40,7 +50,7 @@ const LandingPage = () => {
           .from("landing_pages")
           .select("*")
           .eq("project_id", projectId)
-          .maybeSingle(); // Changed from .single() to .maybeSingle()
+          .maybeSingle(); // Using maybeSingle() here as well
 
         if (error && error.code !== "PGRST116") { // Only throw for non-404 errors
           toast({
