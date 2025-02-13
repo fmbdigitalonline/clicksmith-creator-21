@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { ArrowRight, CheckCircle, MessageCircle, BadgeCheck, Target, ArrowRight as ArrowRightIcon, Lightbulb, PieChart, DollarSign, Users, BarChart } from "lucide-react";
@@ -240,8 +239,8 @@ const Index = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div className="relative rounded-lg overflow-hidden shadow-xl order-2 lg:order-1">
               <img
-                src="/placeholder.svg"
-                alt="Ad Creation Interface"
+                src="/lovable-uploads/0dfd5554-ef5c-4b3f-bd7d-d72195f31b6e.png"
+                alt="Ad Creation Interface showing Facebook ad examples"
                 className="w-full h-auto"
               />
             </div>
