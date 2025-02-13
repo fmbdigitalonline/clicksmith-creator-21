@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { ArrowRight, CheckCircle, MessageCircle, BadgeCheck, Target, ArrowRight as ArrowRightIcon, Lightbulb, PieChart, DollarSign, Users, BarChart } from "lucide-react";
+import { TextCycle } from "react-text-cycle";
 
 const Index = () => {
   const howItWorks = [
@@ -129,7 +130,15 @@ const Index = () => {
             <Target className="h-12 w-12 text-primary animate-pulse" />
           </div>
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-8">
-            Know If Your Idea Will Work Before You Invest
+            Know If Your{' '}
+            <span className="text-primary">
+              <TextCycle
+                items={['Idea', 'Product', 'Service', 'Marketing', 'Course']}
+                interval={2000}
+                className="inline-block"
+              />
+            </span>{' '}
+            Will Work Before You Invest
           </h1>
           <p className="text-xl text-muted-foreground mb-12 max-w-3xl mx-auto">
             Our AI Generates Your Ideal Customer Profile and Tailored Ads in Minutes—So You Can Test What Works Before Committing Resources.
