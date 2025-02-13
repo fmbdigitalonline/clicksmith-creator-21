@@ -26,7 +26,6 @@ export const useAdWizardState = () => {
   // Create project automatically when starting new wizard
   useEffect(() => {
     const createInitialProject = async () => {
-      // Only create a new project if we're on the "new" route and haven't created one yet
       if (projectId === "new" && !autoCreatedProjectId) {
         try {
           console.log('Creating initial project...');
@@ -36,7 +35,6 @@ export const useAdWizardState = () => {
             return;
           }
 
-          // Get count of existing projects for this user
           const { count } = await supabase
             .from('projects')
             .select('*', { count: 'exact', head: true })
@@ -63,7 +61,6 @@ export const useAdWizardState = () => {
 
           console.log('Created new project:', data.id);
           setAutoCreatedProjectId(data.id);
-          // Replace the URL without reloading the page
           navigate(`/ad-wizard/${data.id}`, { replace: true });
           
           toast({
@@ -100,11 +97,22 @@ export const useAdWizardState = () => {
           if (error) throw error;
           if (project) {
             console.log('Loaded project data:', project);
-            if (project.business_idea) setBusinessIdea(project.business_idea);
-            if (project.target_audience) setTargetAudience(project.target_audience);
-            if (project.audience_analysis) setAudienceAnalysis(project.audience_analysis);
-            if (project.selected_hooks) setSelectedHooks(project.selected_hooks);
-            if (project.current_step) setCurrentStep(project.current_step);
+            // Type cast the data to match our defined types
+            if (project.business_idea) {
+              setBusinessIdea(project.business_idea as BusinessIdea);
+            }
+            if (project.target_audience) {
+              setTargetAudience(project.target_audience as TargetAudience);
+            }
+            if (project.audience_analysis) {
+              setAudienceAnalysis(project.audience_analysis as AudienceAnalysis);
+            }
+            if (project.selected_hooks) {
+              setSelectedHooks(project.selected_hooks as AdHook[]);
+            }
+            if (project.current_step) {
+              setCurrentStep(Number(project.current_step));
+            }
           }
         } catch (error) {
           console.error('Error loading project:', error);
@@ -214,7 +222,6 @@ export const useAdWizardState = () => {
   const handleBack = useCallback(() => {
     const newStep = Math.max(1, currentStep - 1);
     setCurrentStep(newStep);
-    // Save the current step to the project
     saveWizardProgress({ 
       current_step: newStep 
     }, autoCreatedProjectId || projectId);
@@ -225,7 +232,6 @@ export const useAdWizardState = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Use the current project ID (either auto-created or from URL)
       const currentProjectId = autoCreatedProjectId || projectId;
       
       const success = await clearWizardProgress(currentProjectId, user.id);
@@ -237,7 +243,6 @@ export const useAdWizardState = () => {
         setSelectedHooks([]);
         setCurrentStep(1);
 
-        // If using auto-created project, create a new one
         if (autoCreatedProjectId) {
           setAutoCreatedProjectId(null);
           navigate('/ad-wizard/new', { replace: true });
