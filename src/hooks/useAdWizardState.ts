@@ -1,5 +1,5 @@
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
   BusinessIdea,
   TargetAudience,
@@ -8,7 +8,7 @@ import {
 } from "@/types/adWizard";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { saveWizardProgress, clearWizardProgress } from "@/utils/wizardProgress";
 
 export const useAdWizardState = () => {
@@ -18,20 +18,69 @@ export const useAdWizardState = () => {
   const [audienceAnalysis, setAudienceAnalysis] = useState<AudienceAnalysis | null>(null);
   const [selectedHooks, setSelectedHooks] = useState<AdHook[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [autoCreatedProjectId, setAutoCreatedProjectId] = useState<string | null>(null);
   const { toast } = useToast();
+  const navigate = useNavigate();
   const { projectId } = useParams();
+
+  // Create project automatically when starting new wizard
+  useEffect(() => {
+    const createInitialProject = async () => {
+      if (projectId === "new" && !autoCreatedProjectId) {
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) return;
+
+          const { data, error } = await supabase
+            .from("projects")
+            .insert({
+              title: "My Ad Campaign",
+              user_id: user.id,
+              status: "draft"
+            })
+            .select()
+            .single();
+
+          if (error) throw error;
+
+          setAutoCreatedProjectId(data.id);
+          navigate(`/ad-wizard/${data.id}`, { replace: true });
+          
+          toast({
+            title: "Project created",
+            description: "Your progress will be saved automatically.",
+          });
+        } catch (error) {
+          console.error('Error creating initial project:', error);
+          toast({
+            title: "Error",
+            description: "Failed to create project",
+            variant: "destructive",
+          });
+        }
+      }
+    };
+
+    createInitialProject();
+  }, [projectId, navigate, toast, autoCreatedProjectId]);
 
   const handleIdeaSubmit = useCallback(async (idea: BusinessIdea) => {
     setBusinessIdea(idea);
-    await saveWizardProgress({ business_idea: idea }, projectId);
+    await saveWizardProgress({ 
+      business_idea: idea,
+      current_step: 2
+    }, autoCreatedProjectId || projectId);
     setCurrentStep(2);
-  }, [projectId]);
+  }, [projectId, autoCreatedProjectId]);
 
   const handleAudienceSelect = useCallback(async (audience: TargetAudience) => {
     setTargetAudience(audience);
-    await saveWizardProgress({ target_audience: audience }, projectId);
+    await saveWizardProgress({ 
+      target_audience: audience,
+      current_step: 3
+    }, autoCreatedProjectId || projectId);
     setCurrentStep(3);
-  }, [projectId]);
+  }, [projectId, autoCreatedProjectId]);
 
   const generateHooks = async (businessIdea: BusinessIdea, targetAudience: TargetAudience, analysis: AudienceAnalysis) => {
     const maxRetries = 3;
@@ -60,7 +109,6 @@ export const useAdWizardState = () => {
         retryCount++;
         if (retryCount === maxRetries) throw error;
         
-        // Wait before retrying (exponential backoff)
         await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
       }
     }
@@ -75,18 +123,20 @@ export const useAdWizardState = () => {
     setIsLoading(true);
     
     try {
-      // First save the analysis
       setAudienceAnalysis(analysis);
-      await saveWizardProgress({ audience_analysis: analysis }, projectId);
+      await saveWizardProgress({ 
+        audience_analysis: analysis,
+        current_step: 3
+      }, autoCreatedProjectId || projectId);
 
-      // Then generate hooks with retry mechanism
       const hooks = await generateHooks(businessIdea, targetAudience, analysis);
       
-      // Save hooks and update state
-      await saveWizardProgress({ selected_hooks: hooks }, projectId);
-      setSelectedHooks(hooks);
+      await saveWizardProgress({ 
+        selected_hooks: hooks,
+        current_step: 4
+      }, autoCreatedProjectId || projectId);
       
-      // Only advance step after everything is successful
+      setSelectedHooks(hooks);
       setCurrentStep(4);
     } catch (error) {
       console.error('Error in handleAnalysisComplete:', error);
@@ -108,7 +158,7 @@ export const useAdWizardState = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [businessIdea, targetAudience, toast, projectId, isLoading]);
+  }, [businessIdea, targetAudience, toast, projectId, autoCreatedProjectId, isLoading]);
 
   const handleBack = useCallback(() => {
     setCurrentStep(prev => Math.max(1, prev - 1));
@@ -119,7 +169,7 @@ export const useAdWizardState = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const success = await clearWizardProgress(projectId, user.id);
+      const success = await clearWizardProgress(projectId || autoCreatedProjectId, user.id);
       
       if (success) {
         setBusinessIdea(null);
@@ -127,6 +177,12 @@ export const useAdWizardState = () => {
         setAudienceAnalysis(null);
         setSelectedHooks([]);
         setCurrentStep(1);
+
+        // If using auto-created project, create a new one
+        if (autoCreatedProjectId) {
+          setAutoCreatedProjectId(null);
+          navigate('/ad-wizard/new', { replace: true });
+        }
 
         toast({
           title: "Progress Reset",
@@ -141,7 +197,7 @@ export const useAdWizardState = () => {
         variant: "destructive",
       });
     }
-  }, [projectId, toast]);
+  }, [projectId, autoCreatedProjectId, navigate, toast]);
 
   const canNavigateToStep = useCallback((step: number): boolean => {
     switch (step) {
