@@ -302,14 +302,45 @@ const PreviewMode = ({ content, colorScheme, renderSection }: any) => {
   return (
     <div className="space-y-12">
       {/* Hero Section */}
-      <section className={`text-center py-16 px-4 rounded-lg bg-gradient-to-r ${colorScheme.colors.primary}`}>
-        <h1 className="text-4xl md:text-5xl font-bold mb-6">{content.hero?.title}</h1>
-        <p className={`text-xl text-${colorScheme.colors.text} max-w-2xl mx-auto mb-8`}>
-          {content.hero?.description}
-        </p>
-        <Button size="lg" className={`bg-${colorScheme.colors.accent}`}>
-          {content.hero?.cta}
-        </Button>
+      <section className={`py-16 px-4 bg-gradient-to-r ${colorScheme.colors.primary}`}>
+        <div className="max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+            <div className="space-y-8">
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">
+                {content.hero?.title}
+              </h1>
+              <div className="space-y-4">
+                <p className={`text-xl text-${colorScheme.colors.text}`}>
+                  {content.hero?.description}
+                </p>
+                <ul className="space-y-2">
+                  {content.features?.slice(0, 2).map((feature: string, index: number) => (
+                    <li key={index} className="flex items-center gap-2">
+                      <div className={`w-1.5 h-1.5 rounded-full bg-${colorScheme.colors.accent}`} />
+                      <span className={`text-${colorScheme.colors.text}`}>{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <Button size="lg" className={`bg-${colorScheme.colors.accent} text-white px-8`}>
+                {content.hero?.cta}
+              </Button>
+            </div>
+            <div className="relative">
+              {projectImages[0] ? (
+                <img
+                  src={projectImages[0]}
+                  alt="Hero"
+                  className="w-full rounded-lg shadow-2xl"
+                />
+              ) : (
+                <div className="aspect-[4/3] rounded-lg bg-gradient-to-br from-gray-100 to-gray-200 shadow-lg flex items-center justify-center">
+                  <p className="text-gray-400">Add project images to display here</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       </section>
 
       {/* Features Section */}
