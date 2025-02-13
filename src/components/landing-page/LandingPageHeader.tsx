@@ -15,6 +15,18 @@ const LandingPageHeader = ({ project, landingPage }: LandingPageHeaderProps) => 
   const { toast } = useToast();
 
   const handleSave = async () => {
+    // Get the current user's ID
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "Please sign in to save landing pages.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const content = generateLandingPageContent(project);
     
     if (landingPage) {
@@ -41,6 +53,7 @@ const LandingPageHeader = ({ project, landingPage }: LandingPageHeaderProps) => 
         .from("landing_pages")
         .insert({
           project_id: project.id,
+          user_id: user.id, // Add the user_id field
           title: project.title,
           content,
           slug: generateSlug(project.title),
