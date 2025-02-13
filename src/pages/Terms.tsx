@@ -74,7 +74,7 @@ const Terms = () => {
 
             <section>
               <h2 className="text-xl font-semibold mb-3">10. Contact Information</h2>
-              <p className="text-muted-foreground">If you have any questions about these Terms, please contact us at support@clicksmith.com</p>
+              <p className="text-muted-foreground">If you have any questions about these Terms, please contact us at info@fmbonline.com</p>
             </section>
           </div>
         </ScrollArea>

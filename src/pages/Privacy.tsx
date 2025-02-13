@@ -89,7 +89,7 @@ const Privacy = () => {
 
             <section>
               <h2 className="text-xl font-semibold mb-3">9. Contact Us</h2>
-              <p className="text-muted-foreground">If you have any questions about this Privacy Policy, please contact us at support@clicksmith.com</p>
+              <p className="text-muted-foreground">If you have any questions about this Privacy Policy, please contact us at info@fmbonline.com</p>
             </section>
           </div>
         </ScrollArea>
