@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { BusinessIdea, TargetAudience, AdHook } from "@/types/adWizard";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,12 +16,33 @@ export const useAdGeneration = (
   const { toast } = useToast();
   const navigate = useNavigate();
   const { projectId } = useParams();
-  
-  const {
-    savedAds: adVariants,
-    isLoading,
-    saveGeneratedAds
-  } = useAdPersistence(projectId);
+  const [adVariants, setAdVariants] = useState<any[]>([]);
+
+  // Load saved ads when component mounts
+  useEffect(() => {
+    const loadSavedAds = async () => {
+      if (!projectId || projectId === 'new') return;
+
+      setGenerationStatus("Loading saved ads...");
+      try {
+        const { data: project } = await supabase
+          .from('projects')
+          .select('generated_ads')
+          .eq('id', projectId)
+          .single();
+        
+        if (project?.generated_ads && Array.isArray(project.generated_ads)) {
+          setAdVariants(project.generated_ads);
+        }
+      } catch (error) {
+        console.error('Error loading saved ads:', error);
+      } finally {
+        setGenerationStatus("");
+      }
+    };
+
+    loadSavedAds();
+  }, [projectId]);
 
   const checkCredits = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -70,11 +92,65 @@ export const useAdGeneration = (
 
       if (error) throw error;
 
-      const variants = validateResponse(data);
       setGenerationStatus("Processing generated content...");
       
-      const processedVariants = await processVariants(variants);
-      await saveGeneratedAds(processedVariants);
+      const processedVariants = await Promise.all(data.variants.map(async (variant: any) => {
+        if (!variant.imageUrl) {
+          console.warn('Variant missing imageUrl:', variant);
+          return null;
+        }
+
+        try {
+          const { data: imageVariant, error: storeError } = await supabase
+            .from('ad_image_variants')
+            .insert({
+              original_image_url: variant.imageUrl,
+              resized_image_urls: variant.resizedUrls || {},
+              user_id: (await supabase.auth.getUser()).data.user?.id,
+              project_id: projectId !== 'new' ? projectId : null
+            })
+            .select()
+            .single();
+
+          if (storeError) {
+            console.error('Error storing image variant:', storeError);
+            return null;
+          }
+
+          return {
+            ...variant,
+            id: imageVariant.id,
+            imageUrl: variant.imageUrl,
+            resizedUrls: variant.resizedUrls || {},
+            platform: selectedPlatform
+          };
+        } catch (error) {
+          console.error('Error processing variant:', error);
+          return null;
+        }
+      }));
+
+      const validVariants = processedVariants.filter(Boolean);
+      
+      // Save to project if we have a project ID
+      if (projectId && projectId !== 'new') {
+        const newVariants = [...adVariants, ...validVariants];
+        const { error: updateError } = await supabase
+          .from('projects')
+          .update({
+            generated_ads: newVariants
+          })
+          .eq('id', projectId);
+
+        if (updateError) {
+          console.error('Error updating project:', updateError);
+          throw updateError;
+        }
+        
+        setAdVariants(newVariants);
+      } else {
+        setAdVariants(prev => [...prev, ...validVariants]);
+      }
 
       toast({
         title: "Ads generated successfully",
@@ -93,62 +169,10 @@ export const useAdGeneration = (
     }
   };
 
-  const validateResponse = (data: any) => {
-    if (!data) throw new Error("No data received from generation");
-    
-    const variants = data.variants;
-    if (!Array.isArray(variants) || variants.length === 0) {
-      throw new Error("Invalid or empty variants received");
-    }
-    
-    return variants;
-  };
-
-  const processVariants = async (variants: any[]) => {
-    const processedVariants = await Promise.all(variants.map(async (variant: any) => {
-      if (!variant.imageUrl) {
-        console.warn('Variant missing imageUrl:', variant);
-        return null;
-      }
-
-      try {
-        const { data: imageVariant, error: storeError } = await supabase
-          .from('ad_image_variants')
-          .insert({
-            original_image_url: variant.imageUrl,
-            resized_image_urls: variant.resizedUrls || {},
-            user_id: (await supabase.auth.getUser()).data.user?.id,
-            project_id: projectId !== 'new' ? projectId : null
-          })
-          .select()
-          .single();
-
-        if (storeError) {
-          console.error('Error storing image variant:', storeError);
-          return null;
-        }
-
-        return {
-          ...variant,
-          id: imageVariant.id,
-          imageUrl: variant.imageUrl,
-          resizedUrls: variant.resizedUrls || {},
-          platform: variant.platform
-        };
-      } catch (error) {
-        console.error('Error processing variant:', error);
-        return null;
-      }
-    }));
-
-    return processedVariants.filter(Boolean);
-  };
-
   return {
     isGenerating,
     adVariants,
     generationStatus,
     generateAds,
-    isLoading
   };
 };
