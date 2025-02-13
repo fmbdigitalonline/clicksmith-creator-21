@@ -1,10 +1,10 @@
 
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@supabase/auth-helpers-react";
+import { useSession } from "@supabase/auth-helpers-react";
 
 const LandingNav = () => {
-  const auth = useAuth();
+  const session = useSession();
   
   return (
     <nav className="fixed top-0 left-0 right-0 h-16 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50">
@@ -25,7 +25,7 @@ const LandingNav = () => {
                 Pricing
               </Link>
             </Button>
-            {auth?.user ? (
+            {session ? (
               <Button
                 variant="default"
                 size="sm"
