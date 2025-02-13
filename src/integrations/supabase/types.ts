@@ -511,6 +511,7 @@ export type Database = {
           audience_analysis: Json | null
           business_idea: Json | null
           created_at: string
+          current_step: number | null
           description: string | null
           generated_ads: Json | null
           id: string
@@ -532,6 +533,7 @@ export type Database = {
           audience_analysis?: Json | null
           business_idea?: Json | null
           created_at?: string
+          current_step?: number | null
           description?: string | null
           generated_ads?: Json | null
           id?: string
@@ -553,6 +555,7 @@ export type Database = {
           audience_analysis?: Json | null
           business_idea?: Json | null
           created_at?: string
+          current_step?: number | null
           description?: string | null
           generated_ads?: Json | null
           id?: string

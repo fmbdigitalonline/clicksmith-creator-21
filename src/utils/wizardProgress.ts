@@ -13,10 +13,13 @@ export const saveWizardProgress = async (data: any, projectId: string | undefine
       throw new Error('No project ID available for saving progress');
     }
 
+    // Remove current_step from data if it exists to avoid schema issues
+    const { current_step, ...updateData } = data;
+
     const { error } = await supabase
       .from('projects')
       .update({
-        ...data,
+        ...updateData,
         updated_at: new Date().toISOString()
       })
       .eq('id', projectId);
