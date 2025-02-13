@@ -1,3 +1,4 @@
+
 export async function generateHooks(businessIdea: any, targetAudience: any) {
   const prompt = `Create marketing hooks for this business and target audience:
 

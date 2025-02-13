@@ -1,3 +1,4 @@
+
 import { BusinessIdea, TargetAudience } from "../types.ts";
 
 export const analyzeAudience = async (businessIdea: BusinessIdea, targetAudience: TargetAudience, regenerationCount: number = 0) => {
