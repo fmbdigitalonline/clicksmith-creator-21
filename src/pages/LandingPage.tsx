@@ -35,23 +35,29 @@ const LandingPage = () => {
   const { data: landingPage, isLoading: landingPageLoading } = useQuery({
     queryKey: ["landing-page", projectId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("landing_pages")
-        .select("*")
-        .eq("project_id", projectId)
-        .single();
+      try {
+        const { data, error } = await supabase
+          .from("landing_pages")
+          .select("*")
+          .eq("project_id", projectId)
+          .maybeSingle(); // Changed from .single() to .maybeSingle()
 
-      if (error && error.code !== "PGRST116") { // Not found error is expected
-        toast({
-          title: "Error loading landing page",
-          description: error.message,
-          variant: "destructive",
-        });
-        throw error;
+        if (error && error.code !== "PGRST116") { // Only throw for non-404 errors
+          toast({
+            title: "Error loading landing page",
+            description: error.message,
+            variant: "destructive",
+          });
+          throw error;
+        }
+
+        return data; // This will be null if no landing page exists
+      } catch (error) {
+        console.error("Error fetching landing page:", error);
+        return null; // Return null on error to allow graceful fallback
       }
-
-      return data;
     },
+    retry: false, // Don't retry on failure since we're handling the "not found" case
   });
 
   if (projectLoading || landingPageLoading) {
