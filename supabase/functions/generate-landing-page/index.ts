@@ -22,35 +22,40 @@ serve(async (req) => {
     });
 
     // Enhanced prompt for more professional and complete content
-    const prompt = `Generate a professional and complete landing page content. Return ONLY a valid JSON object (no markdown, no code blocks) with the following structure:
+    const prompt = `Generate a comprehensive and professional landing page content. Return ONLY a valid JSON object (no markdown, no code blocks) with the following structure:
 
 {
   "hero": {
-    "title": "Write a powerful headline (8-12 words) that immediately grabs attention by addressing the main value proposition or solving a critical pain point. Make it action-oriented and benefit-focused.",
-    "description": "Write a compelling 2-3 sentence description (40-60 words) that elaborates on the value proposition, addresses key pain points, and creates desire through concrete benefits. Use emotionally resonant language.",
+    "title": "Write a powerful headline (10-15 words) that immediately grabs attention by addressing the main value proposition or solving a critical pain point. Make it action-oriented and benefit-focused.",
+    "description": "Write a compelling 4-5 sentence description (80-120 words) that elaborates on the value proposition, addresses key pain points, and creates desire through concrete benefits. Use emotionally resonant language and specific details from the business description.",
     "cta": "Write a strong call-to-action button text (3-5 words) that creates urgency"
   },
   "features": [
-    "Write 3 detailed feature descriptions (15-20 words each) that highlight the unique capabilities and technological advantages of the solution"
+    "Write 4-5 detailed feature descriptions (30-40 words each) that highlight the unique capabilities and technological advantages of the solution. Each feature should connect directly to a customer benefit or pain point solution."
   ],
   "benefits": [
-    "Write 3 compelling benefit statements (15-20 words each) that focus on transformation and positive outcomes for the user"
+    "Write 4-5 compelling benefit statements (30-40 words each) that focus on transformation and positive outcomes for the user. Include specific metrics, results, or improvements where possible."
   ],
   "painPoints": [
-    "Write 2 specific pain point solutions (20-25 words each) that demonstrate deep understanding of user challenges and how your solution addresses them"
+    "Write 3-4 specific pain point solutions (35-45 words each) that demonstrate deep understanding of user challenges and how your solution addresses them. Use real scenarios and concrete examples."
   ],
   "socialProof": {
     "testimonials": [
       {
-        "content": "Write a detailed, results-focused testimonial (30-40 words) that highlights specific improvements or outcomes",
-        "name": "Create a realistic customer name",
-        "role": "Add a relevant professional title and company type"
+        "content": "Write a detailed, results-focused testimonial (50-70 words) that highlights specific improvements or outcomes, using realistic scenarios and metrics",
+        "name": "Create a realistic customer name that matches the target demographic",
+        "role": "Add a relevant professional title and company type that aligns with the target audience"
+      },
+      {
+        "content": "Write another unique testimonial (50-70 words) focusing on a different aspect of the solution's benefits",
+        "name": "Create another realistic customer name",
+        "role": "Add another relevant professional title and company type"
       }
     ]
   },
   "callToAction": {
-    "title": "Write an urgent, benefit-focused headline (8-10 words) that motivates immediate action",
-    "description": "Write a compelling final pitch (25-35 words) that summarizes the key value proposition and creates FOMO",
+    "title": "Write an urgent, benefit-focused headline (12-15 words) that motivates immediate action",
+    "description": "Write a compelling final pitch (50-70 words) that summarizes the key value proposition and creates FOMO",
     "buttonText": "Write action-oriented button text (3-5 words)"
   }
 }
@@ -73,18 +78,18 @@ Market Analysis:
 - Deep Pain Points: ${JSON.stringify(audienceAnalysis?.deepPainPoints || [])}
 
 Content Guidelines:
-1. Use clear, professional language that resonates with the target audience
-2. Focus on concrete benefits and measurable outcomes
-3. Include specific numbers, statistics, or metrics where relevant
-4. Use action-oriented and emotionally engaging language
-5. Maintain a confident, authoritative tone
-6. Address specific pain points and their solutions
-7. End each section with a clear value proposition
-8. Use industry-relevant terminology without jargon
-9. Incorporate social proof and credibility markers
-10. Ensure all content aligns with the business's core value proposition
+1. Generate substantial, detailed content for each section
+2. Use specific numbers, statistics, or metrics where relevant
+3. Include industry-relevant terminology
+4. Address deep pain points directly
+5. Focus on transformation and outcomes
+6. Use action-oriented and emotionally engaging language
+7. Maintain a professional, authoritative tone
+8. Ensure all content aligns with the business's core value proposition
+9. Write in a clear, engaging style that resonates with the target audience
+10. Provide detailed, specific examples rather than generic statements
 
-IMPORTANT: Return ONLY the JSON object, with no additional formatting, markdown, or code blocks.`;
+IMPORTANT: Write comprehensive, detailed content. The total word count should be at least 800-1000 words spread across all sections. Return ONLY the JSON object, with no additional formatting, markdown, or code blocks.`;
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -93,11 +98,11 @@ IMPORTANT: Return ONLY the JSON object, with no additional formatting, markdown,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4',
         messages: [
           {
             role: 'system',
-            content: 'You are an expert landing page copywriter. You must return ONLY valid JSON without any markdown formatting or code blocks.',
+            content: 'You are an expert landing page copywriter specializing in creating comprehensive, professional content. You must return ONLY valid JSON without any markdown formatting or code blocks.',
           },
           {
             role: 'user',
@@ -105,6 +110,7 @@ IMPORTANT: Return ONLY the JSON object, with no additional formatting, markdown,
           },
         ],
         temperature: 0.7,
+        max_tokens: 2500,
       }),
     });
 
