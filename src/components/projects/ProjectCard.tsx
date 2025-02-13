@@ -1,8 +1,10 @@
+
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -50,6 +52,7 @@ const ProjectCard = ({ project, onUpdate, onStartAdWizard }: ProjectCardProps) =
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const handleDelete = async () => {
     const { error } = await supabase
@@ -71,6 +74,19 @@ const ProjectCard = ({ project, onUpdate, onStartAdWizard }: ProjectCardProps) =
       description: "Your project has been deleted successfully.",
     });
     onUpdate();
+  };
+
+  const handleCreateLandingPage = () => {
+    if (!project.business_idea || !project.target_audience || !project.audience_analysis) {
+      toast({
+        title: "Missing information",
+        description: "Please complete the business idea, target audience, and market analysis steps before creating a landing page.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    navigate(`/landing-page/${project.id}`);
   };
 
   const getValidationProgress = () => {
@@ -107,6 +123,7 @@ const ProjectCard = ({ project, onUpdate, onStartAdWizard }: ProjectCardProps) =
           onEdit={() => setIsEditOpen(true)}
           onDelete={() => setIsDeleteOpen(true)}
           onStartAdWizard={onStartAdWizard}
+          onCreateLandingPage={handleCreateLandingPage}
           hasCampaign={!!project.marketing_campaign}
         />
       </Card>

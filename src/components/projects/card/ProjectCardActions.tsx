@@ -1,11 +1,13 @@
+
 import { CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Edit2, Trash2, PlayCircle } from "lucide-react";
+import { Edit2, Trash2, PlayCircle, Layout } from "lucide-react";
 
 interface ProjectCardActionsProps {
   onEdit: () => void;
   onDelete: () => void;
   onStartAdWizard: () => void;
+  onCreateLandingPage: () => void;
   hasCampaign: boolean;
 }
 
@@ -13,6 +15,7 @@ const ProjectCardActions = ({
   onEdit, 
   onDelete, 
   onStartAdWizard,
+  onCreateLandingPage,
   hasCampaign 
 }: ProjectCardActionsProps) => {
   return (
@@ -30,6 +33,14 @@ const ProjectCardActions = ({
         onClick={onDelete}
       >
         <Trash2 className="h-4 w-4" />
+      </Button>
+      <Button
+        variant="outline"
+        className="gap-2"
+        onClick={onCreateLandingPage}
+      >
+        <Layout className="h-4 w-4" />
+        Create Landing Page
       </Button>
       <Button
         variant="default"
