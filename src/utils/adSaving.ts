@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { AdHook, AdImage } from "@/types/adWizard";
 import { SavedAd, SavedAdJson } from "@/types/savedAd";
@@ -57,6 +58,7 @@ export const saveAd = async (params: SaveAdParams): Promise<SaveAdResult> => {
         throw projectError;
       }
 
+      // Convert existing ads to SavedAd format
       const existingAds = ((project?.generated_ads as SavedAdJson[]) || []).map(ad => ({
         image: ad.image as AdImage,
         hook: ad.hook as AdHook,
@@ -65,6 +67,7 @@ export const saveAd = async (params: SaveAdParams): Promise<SaveAdResult> => {
         savedAt: ad.savedAt as string,
       }));
 
+      // Create new ad object
       const newAd: SavedAd = {
         image,
         hook,
@@ -73,6 +76,7 @@ export const saveAd = async (params: SaveAdParams): Promise<SaveAdResult> => {
         savedAt: new Date().toISOString()
       };
 
+      // Convert ads to JSON format for storage
       const jsonAds: SavedAdJson[] = [...existingAds, newAd].map(ad => ({
         image: ad.image as Json,
         hook: ad.hook as Json,
@@ -81,6 +85,7 @@ export const saveAd = async (params: SaveAdParams): Promise<SaveAdResult> => {
         savedAt: ad.savedAt as Json,
       }));
 
+      // Update project with new ad
       const { error: updateError } = await supabase
         .from('projects')
         .update({
@@ -100,6 +105,7 @@ export const saveAd = async (params: SaveAdParams): Promise<SaveAdResult> => {
       };
     }
 
+    // Always save feedback separately in ad_feedback table
     const baseFeedbackData = {
       id: uuidv4(),
       user_id: user.id,
@@ -108,16 +114,13 @@ export const saveAd = async (params: SaveAdParams): Promise<SaveAdResult> => {
       saved_images: [image.url],
       primary_text: primaryText || null,
       headline: headline || null,
-      created_at: new Date().toISOString()
+      created_at: new Date().toISOString(),
+      project_id: validProjectId // Add project_id to ad_feedback
     };
-
-    const feedbackData = validProjectId 
-      ? { ...baseFeedbackData, project_id: validProjectId }
-      : baseFeedbackData;
 
     const { error: feedbackError } = await supabase
       .from('ad_feedback')
-      .insert(feedbackData);
+      .insert(baseFeedbackData);
 
     if (feedbackError) {
       console.error('Error saving feedback:', feedbackError);
