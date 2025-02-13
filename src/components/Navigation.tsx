@@ -52,7 +52,7 @@ const Navigation = () => {
                   isActive("/ad-wizard") && "bg-accent"
                 )}
               >
-                <Link to="/ad-wizard">
+                <Link to="/ad-wizard/new">
                   <Images className="h-4 w-4" />
                   <span>Ad Gallery</span>
                 </Link>

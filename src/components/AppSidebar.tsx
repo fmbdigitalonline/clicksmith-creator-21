@@ -41,7 +41,7 @@ const menuItems = [
   {
     title: "Ad Gallery",
     icon: Images,
-    url: "/ad-wizard",
+    url: "/ad-wizard/new",
   },
   {
     title: "Settings",
@@ -59,7 +59,7 @@ export function AppSidebar() {
     if (path === "/dashboard") {
       return currentPath === "/dashboard";
     }
-    if (path === "/ad-wizard") {
+    if (path === "/ad-wizard/new") {
       return currentPath.includes('/ad-wizard');
     }
     return currentPath === path;
