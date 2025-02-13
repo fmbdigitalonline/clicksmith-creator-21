@@ -11,11 +11,74 @@ interface LandingPageContentProps {
   landingPage: any;
 }
 
+const layouts = [
+  {
+    id: "modern",
+    gradients: {
+      hero: "bg-gradient-to-r from-purple-100 to-purple-50",
+      features: "bg-white",
+      benefits: "bg-gray-50",
+      painPoints: "bg-white",
+      testimonials: "bg-gradient-to-r from-blue-50 to-indigo-50",
+      cta: "bg-gradient-to-r from-purple-100 to-purple-50"
+    }
+  },
+  {
+    id: "clean",
+    gradients: {
+      hero: "bg-gradient-to-r from-blue-50 to-cyan-50",
+      features: "bg-white",
+      benefits: "bg-gradient-to-b from-gray-50 to-white",
+      painPoints: "bg-gradient-to-r from-gray-50 to-blue-50",
+      testimonials: "bg-white",
+      cta: "bg-gradient-to-r from-blue-50 to-cyan-50"
+    }
+  },
+  {
+    id: "bold",
+    gradients: {
+      hero: "bg-gradient-to-r from-orange-100 to-rose-100",
+      features: "bg-gradient-to-b from-gray-50 to-white",
+      benefits: "bg-white",
+      painPoints: "bg-gradient-to-r from-orange-50 to-rose-50",
+      testimonials: "bg-gray-50",
+      cta: "bg-gradient-to-r from-orange-100 to-rose-100"
+    }
+  },
+  {
+    id: "nature",
+    gradients: {
+      hero: "bg-gradient-to-r from-green-50 to-emerald-50",
+      features: "bg-white",
+      benefits: "bg-gradient-to-b from-emerald-50 to-white",
+      painPoints: "bg-white",
+      testimonials: "bg-gradient-to-r from-green-50 to-emerald-50",
+      cta: "bg-gradient-to-r from-green-100 to-emerald-100"
+    }
+  },
+  {
+    id: "sunset",
+    gradients: {
+      hero: "bg-gradient-to-r from-amber-100 to-orange-100",
+      features: "bg-gradient-to-b from-gray-50 to-white",
+      benefits: "bg-white",
+      painPoints: "bg-gradient-to-r from-amber-50 to-orange-50",
+      testimonials: "bg-gray-50",
+      cta: "bg-gradient-to-r from-amber-100 to-orange-100"
+    }
+  }
+];
+
 const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) => {
   const [activeView, setActiveView] = useState<"edit" | "preview">("preview");
   const [isGenerating, setIsGenerating] = useState(false);
   const { toast } = useToast();
   const [content, setContent] = useState(landingPage?.content || generateInitialContent(project));
+
+  // Select a random layout when generating new content
+  const [currentLayout, setCurrentLayout] = useState(() => 
+    layouts[Math.floor(Math.random() * layouts.length)]
+  );
 
   const generateLandingPageContent = async () => {
     setIsGenerating(true);
@@ -34,6 +97,13 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
       if (error) throw error;
 
       setContent(data);
+      
+      // Select a new random layout different from the current one
+      let newLayout;
+      do {
+        newLayout = layouts[Math.floor(Math.random() * layouts.length)];
+      } while (newLayout.id === currentLayout.id);
+      setCurrentLayout(newLayout);
       
       // Update landing page in database
       const { error: dbError } = await supabase
@@ -82,7 +152,7 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
           </Button>
         </div>
         <TabsContent value="preview" className="mt-6">
-          <PreviewMode content={content} />
+          <PreviewMode content={content} layout={currentLayout} />
         </TabsContent>
         <TabsContent value="edit" className="mt-6">
           <EditMode content={content} />
@@ -92,7 +162,7 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
   );
 };
 
-const PreviewMode = ({ content }: { content: any }) => {
+const PreviewMode = ({ content, layout }: { content: any; layout: typeof layouts[0] }) => {
   if (!content) {
     return (
       <div className="text-center py-16">
@@ -104,16 +174,16 @@ const PreviewMode = ({ content }: { content: any }) => {
   return (
     <div className="space-y-12">
       {/* Hero Section */}
-      <section className="text-center py-16 px-4 bg-gradient-to-r from-purple-100 to-purple-50 rounded-lg">
+      <section className={`text-center py-16 px-4 rounded-lg ${layout.gradients.hero}`}>
         <h1 className="text-4xl md:text-5xl font-bold mb-6">{content.hero?.title}</h1>
         <p className="text-xl text-gray-600 max-w-2xl mx-auto mb-8">{content.hero?.description}</p>
         <Button size="lg">{content.hero?.cta}</Button>
       </section>
 
       {/* Features Section */}
-      <section className="py-12">
+      <section className={`py-12 rounded-lg ${layout.gradients.features}`}>
         <h2 className="text-3xl font-bold text-center mb-8">Key Features</h2>
-        <div className="grid md:grid-cols-3 gap-6">
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto px-4">
           {content.features?.map((feature: string, index: number) => (
             <Card key={index} className="p-6">
               <p className="text-gray-600">{feature}</p>
@@ -123,12 +193,12 @@ const PreviewMode = ({ content }: { content: any }) => {
       </section>
 
       {/* Benefits Section */}
-      <section className="py-12 bg-gray-50 rounded-lg">
+      <section className={`py-12 rounded-lg ${layout.gradients.benefits}`}>
         <h2 className="text-3xl font-bold text-center mb-8">Benefits</h2>
         <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto px-4">
           {content.benefits?.map((benefit: string, index: number) => (
             <div key={index} className="flex items-start gap-4">
-              <div className="w-2 h-2 rounded-full bg-purple-500 mt-2" />
+              <div className="w-2 h-2 rounded-full bg-blue-500 mt-2" />
               <p className="flex-1 text-gray-600">{benefit}</p>
             </div>
           ))}
@@ -136,7 +206,7 @@ const PreviewMode = ({ content }: { content: any }) => {
       </section>
 
       {/* Pain Points Section */}
-      <section className="py-12">
+      <section className={`py-12 rounded-lg ${layout.gradients.painPoints}`}>
         <h2 className="text-3xl font-bold text-center mb-8">We Solve Your Challenges</h2>
         <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto px-4">
           {content.painPoints?.map((point: string, index: number) => (
@@ -148,7 +218,7 @@ const PreviewMode = ({ content }: { content: any }) => {
       </section>
 
       {/* Testimonials Section */}
-      <section className="py-12 bg-gray-50 rounded-lg">
+      <section className={`py-12 rounded-lg ${layout.gradients.testimonials}`}>
         <h2 className="text-3xl font-bold text-center mb-8">What Our Customers Say</h2>
         <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto px-4">
           {content.socialProof?.testimonials?.map((testimonial: any, index: number) => (
@@ -164,7 +234,7 @@ const PreviewMode = ({ content }: { content: any }) => {
       </section>
 
       {/* Call to Action Section */}
-      <section className="text-center py-16 px-4 bg-gradient-to-r from-purple-100 to-purple-50 rounded-lg">
+      <section className={`text-center py-16 px-4 rounded-lg ${layout.gradients.cta}`}>
         <h2 className="text-3xl font-bold mb-4">{content.callToAction?.title}</h2>
         <p className="text-xl text-gray-600 max-w-2xl mx-auto mb-8">
           {content.callToAction?.description}
