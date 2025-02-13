@@ -20,6 +20,9 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
   const generateLandingPageContent = async () => {
     setIsGenerating(true);
     try {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) throw new Error("No authenticated user found");
+
       const { data, error } = await supabase.functions.invoke('generate-landing-page', {
         body: {
           businessIdea: project.business_idea,
@@ -38,6 +41,8 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
         .upsert({
           project_id: project.id,
           content: data,
+          title: project.title || "Landing Page",
+          user_id: userData.user.id,
         });
 
       if (dbError) throw dbError;
