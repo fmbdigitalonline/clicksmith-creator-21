@@ -17,7 +17,7 @@ const Login = () => {
     // Check if user is already logged in
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
-        navigate('/');
+        navigate('/dashboard');
       }
     });
 
@@ -28,7 +28,7 @@ const Login = () => {
           title: "Welcome!",
           description: "You have successfully logged in. Enjoy your 12 free credits!",
         });
-        navigate('/');
+        navigate('/dashboard');
       } else if (event === 'SIGNED_OUT') {
         toast({
           title: "Signed out",
@@ -84,7 +84,7 @@ const Login = () => {
               message: 'text-sm font-medium text-destructive',
             }
           }}
-          redirectTo={`${window.location.origin}/`}
+          redirectTo={`${window.location.origin}/dashboard`}
           onlyThirdPartyProviders={false}
           providers={[]}
           magicLink={false}
