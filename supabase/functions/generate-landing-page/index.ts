@@ -15,65 +15,34 @@ serve(async (req) => {
   try {
     const { businessIdea, targetAudience, audienceAnalysis } = await req.json();
 
-    const prompt = `Write a compelling landing page content for ${businessIdea?.valueProposition || 'this business'}. 
+    console.log('Received data:', { businessIdea, targetAudience, audienceAnalysis });
 
-Target Audience: ${targetAudience?.icp || 'General audience'}
-Key Pain Points: ${Array.isArray(targetAudience?.painPoints) ? targetAudience.painPoints.join(', ') : 'Not specified'}
-Benefits: ${Array.isArray(audienceAnalysis?.benefits) ? audienceAnalysis.benefits.join(', ') : 'Not specified'}
+    // Create a comprehensive prompt for the landing page
+    const prompt = `Create a professional and compelling landing page content for a business with the following details:
 
-Follow the AIDA formula (Attention, Interest, Desire, Action) and structure the content as follows:
+Business Value Proposition: ${businessIdea?.valueProposition || 'Not specified'}
+Business Description: ${businessIdea?.description || 'Not specified'}
 
-1. Attention (Headline - 8-12 words):
-- Grab attention by addressing key pain point or desire
-- Use emotional hooks (fear of failure, success excitement, curiosity)
-- Highlight primary benefit
-Example: "The Ultimate Tool to Validate Your Business Idea in Minutes"
+Target Audience:
+- Description: ${targetAudience?.description || 'Not specified'}
+- Demographics: ${targetAudience?.demographics || 'Not specified'}
+- Pain Points: ${JSON.stringify(targetAudience?.painPoints || [])}
+- Core Message: ${targetAudience?.coreMessage || 'Not specified'}
 
-2. Interest (Subtitle):
-- First sentence (8-12 words): Explain relevance and versatility
-- Second sentence (8-12 words): Create desire through unique features
-- Final part (4-6 words): Subtle call-to-action
-Example: "Our AI generates your Ideal Customer Profile and high-converting ads—so you can test what works before launching. Try it free today."
+Market Analysis:
+- Market Desire: ${audienceAnalysis?.marketDesire || 'Not specified'}
+- Awareness Level: ${audienceAnalysis?.awarenessLevel || 'Not specified'}
+- Deep Pain Points: ${JSON.stringify(audienceAnalysis?.deepPainPoints || [])}
 
-3. Features Section (List 4-5 key features):
-- Focus on problem-solving capabilities
-- Highlight technical advantages
-- Emphasize ease of use
-- Include automation and time-saving aspects
+Generate a structured landing page content that includes:
+1. Hero section with compelling headline, description, and call-to-action
+2. 3-4 key features that solve main pain points
+3. 4-5 clear benefits that address market desires
+4. 2-3 pain points with solutions
+5. 2-3 testimonials that showcase transformation
+6. Strong call-to-action section
 
-4. Benefits Section (List 4-5 key benefits):
-- Focus on outcomes and results
-- Include measurable improvements
-- Highlight competitive advantages
-- Emphasize value proposition
-
-5. Pain Points Section (Address 3-4 main challenges):
-- Identify common industry problems
-- Explain how your solution addresses each
-- Include relevant statistics or examples
-- Show understanding of user frustrations
-
-6. Social Proof Section:
-- Include 2-3 testimonial placeholders
-- Focus on transformation stories
-- Highlight specific results
-- Include industry relevance
-
-7. Call to Action Section:
-- Compelling headline
-- Value proposition summary
-- Urgency creation
-- Clear action button text
-
-Tone & Style:
-- Professional but approachable
-- Confident and solution-focused
-- Clear and jargon-free
-- Empathetic to user challenges
-
-Please provide structured, detailed content for each section that can be easily parsed into a modern, visually appealing landing page.`;
-
-    console.log('Sending prompt to OpenAI:', prompt);
+Return the content in a structured JSON format suitable for a modern, professional landing page.`;
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -86,77 +55,63 @@ Please provide structured, detailed content for each section that can be easily 
         messages: [
           {
             role: 'system',
-            content: 'You are an expert copywriter specializing in creating compelling landing pages that convert. Always structure your response clearly with section headers and use "-" for list items.'
+            content: 'You are an expert copywriter and landing page specialist. Create compelling, conversion-focused content that follows modern landing page best practices. Always return properly structured JSON.',
           },
           {
             role: 'user',
-            content: prompt
-          }
+            content: prompt,
+          },
         ],
         temperature: 0.7,
       }),
     });
 
+    if (!response.ok) {
+      throw new Error(`OpenAI API error: ${response.status}`);
+    }
+
     const data = await response.json();
     const landingPageContent = data.choices[0].message.content;
 
-    // Parse the response into structured content
-    const contentSections = parseLandingPageContent(landingPageContent);
+    // Parse the response and ensure it has the required structure
+    try {
+      const parsedContent = JSON.parse(landingPageContent);
+      const structuredContent = {
+        hero: {
+          title: parsedContent.hero?.title || "Transform Your Business Today",
+          description: parsedContent.hero?.description || "Take your business to the next level with our innovative solution",
+          cta: parsedContent.hero?.cta || "Get Started Now",
+        },
+        features: Array.isArray(parsedContent.features) ? parsedContent.features : [],
+        benefits: Array.isArray(parsedContent.benefits) ? parsedContent.benefits : [],
+        painPoints: Array.isArray(parsedContent.painPoints) ? parsedContent.painPoints : [],
+        socialProof: {
+          testimonials: Array.isArray(parsedContent.socialProof?.testimonials) 
+            ? parsedContent.socialProof.testimonials 
+            : [],
+        },
+        callToAction: {
+          title: parsedContent.callToAction?.title || "Ready to Transform Your Business?",
+          description: parsedContent.callToAction?.description || "Join thousands of satisfied customers and start your journey today.",
+          buttonText: parsedContent.callToAction?.buttonText || "Get Started",
+        },
+      };
 
-    return new Response(JSON.stringify(contentSections), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+      return new Response(JSON.stringify(structuredContent), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    } catch (parseError) {
+      console.error('Error parsing OpenAI response:', parseError);
+      throw new Error('Failed to parse landing page content');
+    }
   } catch (error) {
-    console.error('Error generating landing page content:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    console.error('Error in generate-landing-page function:', error);
+    return new Response(
+      JSON.stringify({ error: error.message || 'Failed to generate landing page content' }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    );
   }
 });
-
-function parseLandingPageContent(content: string) {
-  const sections = content.split('\n\n');
-  
-  // Helper function to extract list items
-  const extractListItems = (section: string) => 
-    section?.split('\n')
-      .filter(line => line.trim().startsWith('-'))
-      .map(line => line.replace('-', '').trim()) || [];
-
-  // Find section by keyword
-  const findSection = (keyword: string) => 
-    sections.find(s => s.toLowerCase().includes(keyword.toLowerCase()));
-
-  // Extract headline and subtitle
-  const headlineSection = findSection('Attention') || findSection('Headline');
-  const headline = headlineSection?.split('\n')[0]?.replace('Headline:', '').trim();
-  
-  const subtitleSection = findSection('Interest') || findSection('Subtitle');
-  const subtitle = subtitleSection?.split('\n').slice(1).join(' ').trim();
-
-  return {
-    hero: {
-      title: headline || 'Transform Your Business Idea into Reality',
-      description: subtitle || 'Start validating your business idea today',
-      cta: 'Get Started Now',
-    },
-    features: extractListItems(findSection('Features') || ''),
-    benefits: extractListItems(findSection('Benefits') || ''),
-    painPoints: extractListItems(findSection('Pain Points') || ''),
-    socialProof: {
-      testimonials: extractListItems(findSection('Social Proof') || '')
-        .map(testimonial => ({
-          content: testimonial,
-          name: 'Satisfied Customer',
-          role: 'Business Owner'
-        }))
-    },
-    callToAction: {
-      title: 'Ready to Transform Your Business Idea?',
-      description: findSection('Call to Action')?.split('\n').slice(1).join(' ').trim() || 
-                  'Join thousands of entrepreneurs who have successfully validated their business ideas',
-      buttonText: 'Start Now',
-    },
-  };
-}
