@@ -26,7 +26,7 @@ const menuItems = [
   {
     title: "Home",
     icon: Home,
-    url: "/",
+    url: "/dashboard",  // Changed from "/" to "/dashboard"
   },
   {
     title: "Projects",
@@ -57,8 +57,8 @@ export function AppSidebar() {
   const currentPath = location.pathname;
 
   const isActive = (path: string) => {
-    if (path === "/") {
-      return currentPath === "/" || currentPath === "/projects";
+    if (path === "/dashboard") {  // Changed from "/" to "/dashboard"
+      return currentPath === "/dashboard";  // Changed condition to be exact
     }
     if (path === "/ad-wizard") {
       return currentPath.includes('/ad-wizard');
