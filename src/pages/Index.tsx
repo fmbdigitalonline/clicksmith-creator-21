@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { ArrowRight, CheckCircle, MessageCircle, BadgeCheck, Target, ArrowRight as ArrowRightIcon, Lightbulb, PieChart, DollarSign, Users, BarChart } from "lucide-react";
@@ -224,8 +225,8 @@ const Index = () => {
             </div>
             <div className="relative rounded-lg overflow-hidden shadow-xl">
               <img
-                src="/placeholder.svg"
-                alt="ICP Dashboard"
+                src="/lovable-uploads/a05c52ef-e7a9-4c52-963d-41069902f12f.png"
+                alt="ICP Generation Dashboard showing audience personas"
                 className="w-full h-auto"
               />
             </div>
