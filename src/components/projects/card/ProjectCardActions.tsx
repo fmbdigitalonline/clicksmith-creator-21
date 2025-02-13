@@ -2,22 +2,46 @@
 import { CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Edit2, Trash2, PlayCircle, Layout } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
 
 interface ProjectCardActionsProps {
+  projectId: string;
   onEdit: () => void;
   onDelete: () => void;
   onStartAdWizard: () => void;
-  onCreateLandingPage: () => void;
   hasCampaign: boolean;
+  hasBusinessIdea?: boolean;
+  hasTargetAudience?: boolean;
+  hasAudienceAnalysis?: boolean;
 }
 
 const ProjectCardActions = ({ 
+  projectId,
   onEdit, 
   onDelete, 
   onStartAdWizard,
-  onCreateLandingPage,
-  hasCampaign 
+  hasCampaign,
+  hasBusinessIdea,
+  hasTargetAudience,
+  hasAudienceAnalysis
 }: ProjectCardActionsProps) => {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  const handleCreateLandingPage = () => {
+    if (!hasBusinessIdea || !hasTargetAudience || !hasAudienceAnalysis) {
+      toast({
+        title: "Missing information",
+        description: "Please complete the business idea, target audience, and market analysis steps before creating a landing page.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    navigate(`/landing-page/${projectId}`);
+  };
+
   return (
     <CardFooter className="flex justify-end space-x-2">
       <Button
@@ -37,7 +61,7 @@ const ProjectCardActions = ({
       <Button
         variant="outline"
         className="gap-2"
-        onClick={onCreateLandingPage}
+        onClick={handleCreateLandingPage}
       >
         <Layout className="h-4 w-4" />
         Create Landing Page

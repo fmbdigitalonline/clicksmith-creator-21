@@ -76,19 +76,6 @@ const ProjectCard = ({ project, onUpdate, onStartAdWizard }: ProjectCardProps) =
     onUpdate();
   };
 
-  const handleCreateLandingPage = () => {
-    if (!project.business_idea || !project.target_audience || !project.audience_analysis) {
-      toast({
-        title: "Missing information",
-        description: "Please complete the business idea, target audience, and market analysis steps before creating a landing page.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    navigate(`/landing-page/${project.id}`);
-  };
-
   const getValidationProgress = () => {
     let progress = 0;
     if (project.business_idea) progress += 25;
@@ -120,11 +107,14 @@ const ProjectCard = ({ project, onUpdate, onStartAdWizard }: ProjectCardProps) =
           )}
         </CardContent>
         <ProjectCardActions
+          projectId={project.id}
           onEdit={() => setIsEditOpen(true)}
           onDelete={() => setIsDeleteOpen(true)}
           onStartAdWizard={onStartAdWizard}
-          onCreateLandingPage={handleCreateLandingPage}
           hasCampaign={!!project.marketing_campaign}
+          hasBusinessIdea={!!project.business_idea}
+          hasTargetAudience={!!project.target_audience}
+          hasAudienceAnalysis={!!project.audience_analysis}
         />
       </Card>
 
