@@ -3,6 +3,8 @@ import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface LandingPageContentProps {
   project: any;
@@ -11,15 +13,66 @@ interface LandingPageContentProps {
 
 const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) => {
   const [activeView, setActiveView] = useState<"edit" | "preview">("preview");
-  const content = landingPage?.content || generateInitialContent(project);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const { toast } = useToast();
+  const [content, setContent] = useState(landingPage?.content || generateInitialContent(project));
+
+  const generateLandingPageContent = async () => {
+    setIsGenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-landing-page', {
+        body: {
+          businessIdea: project.business_idea,
+          targetAudience: project.target_audience,
+          audienceAnalysis: project.audience_analysis,
+        },
+      });
+
+      if (error) throw error;
+
+      setContent(data);
+      
+      // Update or create landing page in database
+      const { error: dbError } = await supabase
+        .from('landing_pages')
+        .upsert({
+          project_id: project.id,
+          content: data,
+        });
+
+      if (dbError) throw dbError;
+
+      toast({
+        title: "Success",
+        description: "Landing page content generated successfully!",
+      });
+    } catch (error) {
+      console.error('Error generating landing page:', error);
+      toast({
+        title: "Error",
+        description: "Failed to generate landing page content. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   return (
     <div className="space-y-8">
       <Tabs value={activeView} onValueChange={(v) => setActiveView(v as "edit" | "preview")}>
-        <TabsList>
-          <TabsTrigger value="preview">Preview</TabsTrigger>
-          <TabsTrigger value="edit">Edit</TabsTrigger>
-        </TabsList>
+        <div className="flex justify-between items-center">
+          <TabsList>
+            <TabsTrigger value="preview">Preview</TabsTrigger>
+            <TabsTrigger value="edit">Edit</TabsTrigger>
+          </TabsList>
+          <Button 
+            onClick={generateLandingPageContent}
+            disabled={isGenerating}
+          >
+            {isGenerating ? "Generating..." : "Generate New Content"}
+          </Button>
+        </div>
         <TabsContent value="preview" className="mt-6">
           <PreviewMode content={content} />
         </TabsContent>
