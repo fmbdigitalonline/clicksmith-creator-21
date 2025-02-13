@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -42,8 +43,6 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
           content: data,
           title: project.title || "Landing Page",
           user_id: userData.user.id,
-        }, {
-          onConflict: 'project_id' // This ensures we update if a record exists
         });
 
       if (dbError) {
@@ -94,20 +93,28 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
 };
 
 const PreviewMode = ({ content }: { content: any }) => {
+  if (!content) {
+    return (
+      <div className="text-center py-16">
+        <p className="text-gray-500">No content available. Click "Generate New Content" to create a landing page.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-12">
       {/* Hero Section */}
       <section className="text-center py-16 px-4 bg-gradient-to-r from-purple-100 to-purple-50 rounded-lg">
-        <h1 className="text-4xl md:text-5xl font-bold mb-6">{content.hero.title}</h1>
-        <p className="text-xl text-gray-600 max-w-2xl mx-auto mb-8">{content.hero.description}</p>
-        <Button size="lg">{content.hero.cta}</Button>
+        <h1 className="text-4xl md:text-5xl font-bold mb-6">{content.hero?.title}</h1>
+        <p className="text-xl text-gray-600 max-w-2xl mx-auto mb-8">{content.hero?.description}</p>
+        <Button size="lg">{content.hero?.cta}</Button>
       </section>
 
       {/* Features Section */}
       <section className="py-12">
         <h2 className="text-3xl font-bold text-center mb-8">Key Features</h2>
         <div className="grid md:grid-cols-3 gap-6">
-          {content.features.map((feature: string, index: number) => (
+          {content.features?.map((feature: string, index: number) => (
             <Card key={index} className="p-6">
               <p className="text-gray-600">{feature}</p>
             </Card>
@@ -119,7 +126,7 @@ const PreviewMode = ({ content }: { content: any }) => {
       <section className="py-12 bg-gray-50 rounded-lg">
         <h2 className="text-3xl font-bold text-center mb-8">Benefits</h2>
         <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto px-4">
-          {content.benefits.map((benefit: string, index: number) => (
+          {content.benefits?.map((benefit: string, index: number) => (
             <div key={index} className="flex items-start gap-4">
               <div className="w-2 h-2 rounded-full bg-purple-500 mt-2" />
               <p className="flex-1 text-gray-600">{benefit}</p>
@@ -132,7 +139,7 @@ const PreviewMode = ({ content }: { content: any }) => {
       <section className="py-12">
         <h2 className="text-3xl font-bold text-center mb-8">We Solve Your Challenges</h2>
         <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto px-4">
-          {content.painPoints.map((point: string, index: number) => (
+          {content.painPoints?.map((point: string, index: number) => (
             <Card key={index} className="p-6">
               <p className="text-gray-600">{point}</p>
             </Card>
@@ -144,7 +151,7 @@ const PreviewMode = ({ content }: { content: any }) => {
       <section className="py-12 bg-gray-50 rounded-lg">
         <h2 className="text-3xl font-bold text-center mb-8">What Our Customers Say</h2>
         <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto px-4">
-          {content.testimonials.map((testimonial: any, index: number) => (
+          {content.socialProof?.testimonials?.map((testimonial: any, index: number) => (
             <Card key={index} className="p-6">
               <p className="text-gray-600 mb-4">{testimonial.content}</p>
               <div className="font-medium">
@@ -158,11 +165,11 @@ const PreviewMode = ({ content }: { content: any }) => {
 
       {/* Call to Action Section */}
       <section className="text-center py-16 px-4 bg-gradient-to-r from-purple-100 to-purple-50 rounded-lg">
-        <h2 className="text-3xl font-bold mb-4">{content.callToAction.title}</h2>
+        <h2 className="text-3xl font-bold mb-4">{content.callToAction?.title}</h2>
         <p className="text-xl text-gray-600 max-w-2xl mx-auto mb-8">
-          {content.callToAction.description}
+          {content.callToAction?.description}
         </p>
-        <Button size="lg">{content.callToAction.buttonText}</Button>
+        <Button size="lg">{content.callToAction?.buttonText}</Button>
       </section>
     </div>
   );
@@ -190,7 +197,9 @@ const generateInitialContent = (project: any) => {
     features: audience_analysis?.keyFeatures || [],
     benefits: audience_analysis?.benefits || [],
     painPoints: target_audience?.painPoints || [],
-    testimonials: [],
+    socialProof: {
+      testimonials: []
+    },
     callToAction: {
       title: "Ready to Get Started?",
       description: "Join thousands of satisfied customers and transform your business today.",
