@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { AdHook, AdImage } from "@/types/adWizard";
 import { SavedAd, SavedAdJson } from "@/types/savedAd";
@@ -46,6 +47,7 @@ export const saveAd = async (params: SaveAdParams): Promise<SaveAdResult> => {
     const validProjectId = isValidUUID ? projectId : null;
 
     if (validProjectId) {
+      // Only attempt to fetch and update project if we have a valid UUID
       const { data: project, error: projectError } = await supabase
         .from('projects')
         .select('generated_ads')
