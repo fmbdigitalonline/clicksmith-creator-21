@@ -112,7 +112,8 @@ const Login = () => {
               }
             }
           }}
-        />
+        >
+        </Auth>
         
         <div className="mt-6">
           <Alert className="bg-accent/5 border-accent/10">
