@@ -143,13 +143,25 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
         return (
           <Carousel className="w-full max-w-5xl mx-auto">
             <CarouselContent>
-              {sectionContent.map((item: any, index: number) => (
+              {Array.isArray(sectionContent) ? sectionContent.map((item: any, index: number) => (
                 <CarouselItem key={index} className="md:basis-1/2 lg:basis-1/3">
                   <Card className="p-6">
-                    <p className={`text-${colorScheme.colors.text}`}>{item}</p>
+                    {typeof item === 'object' && item.content ? (
+                      <div>
+                        <p className={`text-${colorScheme.colors.text}`}>{item.content}</p>
+                        {item.name && (
+                          <p className="mt-2 font-semibold">{item.name}</p>
+                        )}
+                        {item.role && (
+                          <p className="text-sm text-gray-500">{item.role}</p>
+                        )}
+                      </div>
+                    ) : (
+                      <p className={`text-${colorScheme.colors.text}`}>{item}</p>
+                    )}
                   </Card>
                 </CarouselItem>
-              ))}
+              )) : null}
             </CarouselContent>
             <CarouselPrevious />
             <CarouselNext />
@@ -159,9 +171,21 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
       case "grid":
         return (
           <div className={`grid md:grid-cols-${layout.columns} gap-6 max-w-6xl mx-auto px-4`}>
-            {sectionContent.map((item: any, index: number) => (
+            {Array.isArray(sectionContent) ? sectionContent.map((item: any, index: number) => (
               <Card key={index} className="p-6">
-                <p className={`text-${colorScheme.colors.text}`}>{item}</p>
+                {typeof item === 'object' && item.content ? (
+                  <div>
+                    <p className={`text-${colorScheme.colors.text}`}>{item.content}</p>
+                    {item.name && (
+                      <p className="mt-2 font-semibold">{item.name}</p>
+                    )}
+                    {item.role && (
+                      <p className="text-sm text-gray-500">{item.role}</p>
+                    )}
+                  </div>
+                ) : (
+                  <p className={`text-${colorScheme.colors.text}`}>{item}</p>
+                )}
                 {images[index] && (
                   <div className="mt-4">
                     <img 
@@ -172,7 +196,7 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
                   </div>
                 )}
               </Card>
-            ))}
+            )) : null}
           </div>
         );
 
@@ -180,12 +204,24 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
         return (
           <div className="flex flex-col md:flex-row items-center gap-8 max-w-6xl mx-auto px-4">
             <div className="flex-1 space-y-6">
-              {sectionContent.map((item: any, index: number) => (
+              {Array.isArray(sectionContent) ? sectionContent.map((item: any, index: number) => (
                 <div key={index} className="flex items-start gap-4">
                   <div className={`w-2 h-2 rounded-full bg-${colorScheme.colors.accent} mt-2`} />
-                  <p className={`flex-1 text-${colorScheme.colors.text}`}>{item}</p>
+                  {typeof item === 'object' && item.content ? (
+                    <div className="flex-1">
+                      <p className={`text-${colorScheme.colors.text}`}>{item.content}</p>
+                      {item.name && (
+                        <p className="mt-2 font-semibold">{item.name}</p>
+                      )}
+                      {item.role && (
+                        <p className="text-sm text-gray-500">{item.role}</p>
+                      )}
+                    </div>
+                  ) : (
+                    <p className={`flex-1 text-${colorScheme.colors.text}`}>{item}</p>
+                  )}
                 </div>
-              ))}
+              )) : null}
             </div>
             {images[0] && (
               <div className="flex-1">
@@ -202,9 +238,23 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
       default:
         return (
           <div className="max-w-4xl mx-auto px-4">
-            {sectionContent.map((item: any, index: number) => (
-              <p key={index} className={`text-${colorScheme.colors.text} mb-4`}>{item}</p>
-            ))}
+            {Array.isArray(sectionContent) ? sectionContent.map((item: any, index: number) => (
+              <div key={index}>
+                {typeof item === 'object' && item.content ? (
+                  <div className="mb-4">
+                    <p className={`text-${colorScheme.colors.text}`}>{item.content}</p>
+                    {item.name && (
+                      <p className="mt-2 font-semibold">{item.name}</p>
+                    )}
+                    {item.role && (
+                      <p className="text-sm text-gray-500">{item.role}</p>
+                    )}
+                  </div>
+                ) : (
+                  <p className={`text-${colorScheme.colors.text} mb-4`}>{item}</p>
+                )}
+              </div>
+            )) : null}
           </div>
         );
     }
