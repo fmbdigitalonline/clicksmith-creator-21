@@ -294,6 +294,8 @@ export type Database = {
           content: Json
           created_at: string
           id: string
+          image_placements: Json | null
+          layout_style: Json | null
           project_id: string
           published: boolean | null
           slug: string | null
@@ -305,6 +307,8 @@ export type Database = {
           content: Json
           created_at?: string
           id?: string
+          image_placements?: Json | null
+          layout_style?: Json | null
           project_id: string
           published?: boolean | null
           slug?: string | null
@@ -316,6 +320,8 @@ export type Database = {
           content?: Json
           created_at?: string
           id?: string
+          image_placements?: Json | null
+          layout_style?: Json | null
           project_id?: string
           published?: boolean | null
           slug?: string | null

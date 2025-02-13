@@ -1,70 +1,58 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
 
 interface LandingPageContentProps {
   project: any;
   landingPage: any;
 }
 
-const layouts = [
+const colorSchemes = [
   {
     id: "modern",
-    gradients: {
-      hero: "bg-gradient-to-r from-purple-100 to-purple-50",
-      features: "bg-white",
-      benefits: "bg-gray-50",
-      painPoints: "bg-white",
-      testimonials: "bg-gradient-to-r from-blue-50 to-indigo-50",
-      cta: "bg-gradient-to-r from-purple-100 to-purple-50"
+    colors: {
+      primary: "from-purple-100 to-purple-50",
+      secondary: "from-blue-50 to-indigo-50",
+      accent: "blue-500",
+      text: "gray-600"
     }
   },
   {
     id: "clean",
-    gradients: {
-      hero: "bg-gradient-to-r from-blue-50 to-cyan-50",
-      features: "bg-white",
-      benefits: "bg-gradient-to-b from-gray-50 to-white",
-      painPoints: "bg-gradient-to-r from-gray-50 to-blue-50",
-      testimonials: "bg-white",
-      cta: "bg-gradient-to-r from-blue-50 to-cyan-50"
+    colors: {
+      primary: "from-blue-50 to-cyan-50",
+      secondary: "from-gray-50 to-white",
+      accent: "cyan-500",
+      text: "gray-700"
     }
   },
   {
     id: "bold",
-    gradients: {
-      hero: "bg-gradient-to-r from-orange-100 to-rose-100",
-      features: "bg-gradient-to-b from-gray-50 to-white",
-      benefits: "bg-white",
-      painPoints: "bg-gradient-to-r from-orange-50 to-rose-50",
-      testimonials: "bg-gray-50",
-      cta: "bg-gradient-to-r from-orange-100 to-rose-100"
+    colors: {
+      primary: "from-orange-100 to-rose-100",
+      secondary: "from-amber-50 to-rose-50",
+      accent: "rose-500",
+      text: "gray-800"
     }
   },
   {
     id: "nature",
-    gradients: {
-      hero: "bg-gradient-to-r from-green-50 to-emerald-50",
-      features: "bg-white",
-      benefits: "bg-gradient-to-b from-emerald-50 to-white",
-      painPoints: "bg-white",
-      testimonials: "bg-gradient-to-r from-green-50 to-emerald-50",
-      cta: "bg-gradient-to-r from-green-100 to-emerald-100"
-    }
-  },
-  {
-    id: "sunset",
-    gradients: {
-      hero: "bg-gradient-to-r from-amber-100 to-orange-100",
-      features: "bg-gradient-to-b from-gray-50 to-white",
-      benefits: "bg-white",
-      painPoints: "bg-gradient-to-r from-amber-50 to-orange-50",
-      testimonials: "bg-gray-50",
-      cta: "bg-gradient-to-r from-amber-100 to-orange-100"
+    colors: {
+      primary: "from-green-50 to-emerald-50",
+      secondary: "from-emerald-50 to-white",
+      accent: "emerald-500",
+      text: "gray-700"
     }
   }
 ];
@@ -72,13 +60,25 @@ const layouts = [
 const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) => {
   const [activeView, setActiveView] = useState<"edit" | "preview">("preview");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [projectImages, setProjectImages] = useState<string[]>([]);
   const { toast } = useToast();
   const [content, setContent] = useState(landingPage?.content || generateInitialContent(project));
+  const [colorScheme, setColorScheme] = useState(colorSchemes[0]);
 
-  // Select a random layout when generating new content
-  const [currentLayout, setCurrentLayout] = useState(() => 
-    layouts[Math.floor(Math.random() * layouts.length)]
-  );
+  useEffect(() => {
+    const fetchProjectImages = async () => {
+      const { data: adImages } = await supabase
+        .from('ad_image_variants')
+        .select('original_image_url')
+        .eq('project_id', project.id);
+
+      if (adImages) {
+        setProjectImages(adImages.map(img => img.original_image_url));
+      }
+    };
+
+    fetchProjectImages();
+  }, [project.id]);
 
   const generateLandingPageContent = async () => {
     setIsGenerating(true);
@@ -86,40 +86,38 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error("No authenticated user found");
 
+      // Select a new random color scheme different from the current one
+      let newColorScheme;
+      do {
+        newColorScheme = colorSchemes[Math.floor(Math.random() * colorSchemes.length)];
+      } while (newColorScheme.id === colorScheme.id);
+      setColorScheme(newColorScheme);
+
       const { data, error } = await supabase.functions.invoke('generate-landing-page', {
         body: {
           businessIdea: project.business_idea,
           targetAudience: project.target_audience,
           audienceAnalysis: project.audience_analysis,
+          projectImages
         },
       });
 
       if (error) throw error;
 
-      setContent(data);
-      
-      // Select a new random layout different from the current one
-      let newLayout;
-      do {
-        newLayout = layouts[Math.floor(Math.random() * layouts.length)];
-      } while (newLayout.id === currentLayout.id);
-      setCurrentLayout(newLayout);
-      
-      // Update landing page in database
-      const { error: dbError } = await supabase
+      const { data: dbResponse, error: dbError } = await supabase
         .from('landing_pages')
         .upsert({
           project_id: project.id,
           content: data,
           title: project.title || "Landing Page",
           user_id: userData.user.id,
+          layout_style: data.layout,
+          image_placements: data.imagePlacements
         });
 
-      if (dbError) {
-        console.error('Database error:', dbError);
-        throw new Error('Failed to save landing page data');
-      }
+      if (dbError) throw dbError;
 
+      setContent(data);
       toast({
         title: "Success",
         description: "Landing page content generated successfully!",
@@ -136,6 +134,82 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
     }
   };
 
+  const renderSection = (sectionType: string, sectionContent: any, images: any[]) => {
+    const layout = content.layout?.structure[sectionType];
+    if (!layout) return null;
+
+    switch (layout.type) {
+      case "carousel":
+        return (
+          <Carousel className="w-full max-w-5xl mx-auto">
+            <CarouselContent>
+              {sectionContent.map((item: any, index: number) => (
+                <CarouselItem key={index} className="md:basis-1/2 lg:basis-1/3">
+                  <Card className="p-6">
+                    <p className={`text-${colorScheme.colors.text}`}>{item}</p>
+                  </Card>
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+            <CarouselPrevious />
+            <CarouselNext />
+          </Carousel>
+        );
+      
+      case "grid":
+        return (
+          <div className={`grid md:grid-cols-${layout.columns} gap-6 max-w-6xl mx-auto px-4`}>
+            {sectionContent.map((item: any, index: number) => (
+              <Card key={index} className="p-6">
+                <p className={`text-${colorScheme.colors.text}`}>{item}</p>
+                {images[index] && (
+                  <div className="mt-4">
+                    <img 
+                      src={images[index].url} 
+                      alt=""
+                      className="w-full h-48 object-cover rounded-lg shadow-lg" 
+                    />
+                  </div>
+                )}
+              </Card>
+            ))}
+          </div>
+        );
+
+      case "split":
+        return (
+          <div className="flex flex-col md:flex-row items-center gap-8 max-w-6xl mx-auto px-4">
+            <div className="flex-1 space-y-6">
+              {sectionContent.map((item: any, index: number) => (
+                <div key={index} className="flex items-start gap-4">
+                  <div className={`w-2 h-2 rounded-full bg-${colorScheme.colors.accent} mt-2`} />
+                  <p className={`flex-1 text-${colorScheme.colors.text}`}>{item}</p>
+                </div>
+              ))}
+            </div>
+            {images[0] && (
+              <div className="flex-1">
+                <img 
+                  src={images[0].url} 
+                  alt="" 
+                  className="w-full rounded-lg shadow-xl"
+                />
+              </div>
+            )}
+          </div>
+        );
+
+      default:
+        return (
+          <div className="max-w-4xl mx-auto px-4">
+            {sectionContent.map((item: any, index: number) => (
+              <p key={index} className={`text-${colorScheme.colors.text} mb-4`}>{item}</p>
+            ))}
+          </div>
+        );
+    }
+  };
+
   return (
     <div className="space-y-8">
       <Tabs value={activeView} onValueChange={(v) => setActiveView(v as "edit" | "preview")}>
@@ -148,11 +222,15 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
             onClick={generateLandingPageContent}
             disabled={isGenerating}
           >
-            {isGenerating ? "Generating..." : "Generate New Content"}
+            {isGenerating ? "Generating..." : "Generate New Layout"}
           </Button>
         </div>
         <TabsContent value="preview" className="mt-6">
-          <PreviewMode content={content} layout={currentLayout} />
+          <PreviewMode 
+            content={content} 
+            colorScheme={colorScheme} 
+            renderSection={renderSection}
+          />
         </TabsContent>
         <TabsContent value="edit" className="mt-6">
           <EditMode content={content} />
@@ -162,11 +240,11 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
   );
 };
 
-const PreviewMode = ({ content, layout }: { content: any; layout: typeof layouts[0] }) => {
+const PreviewMode = ({ content, colorScheme, renderSection }: any) => {
   if (!content) {
     return (
       <div className="text-center py-16">
-        <p className="text-gray-500">No content available. Click "Generate New Content" to create a landing page.</p>
+        <p className="text-gray-500">No content available. Click "Generate New Layout" to create a landing page.</p>
       </div>
     );
   }
@@ -174,72 +252,43 @@ const PreviewMode = ({ content, layout }: { content: any; layout: typeof layouts
   return (
     <div className="space-y-12">
       {/* Hero Section */}
-      <section className={`text-center py-16 px-4 rounded-lg ${layout.gradients.hero}`}>
+      <section className={`text-center py-16 px-4 rounded-lg bg-gradient-to-r ${colorScheme.colors.primary}`}>
         <h1 className="text-4xl md:text-5xl font-bold mb-6">{content.hero?.title}</h1>
-        <p className="text-xl text-gray-600 max-w-2xl mx-auto mb-8">{content.hero?.description}</p>
-        <Button size="lg">{content.hero?.cta}</Button>
+        <p className={`text-xl text-${colorScheme.colors.text} max-w-2xl mx-auto mb-8`}>
+          {content.hero?.description}
+        </p>
+        <Button size="lg" className={`bg-${colorScheme.colors.accent}`}>
+          {content.hero?.cta}
+        </Button>
       </section>
 
       {/* Features Section */}
-      <section className={`py-12 rounded-lg ${layout.gradients.features}`}>
+      <section className="py-12">
         <h2 className="text-3xl font-bold text-center mb-8">Key Features</h2>
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto px-4">
-          {content.features?.map((feature: string, index: number) => (
-            <Card key={index} className="p-6">
-              <p className="text-gray-600">{feature}</p>
-            </Card>
-          ))}
-        </div>
+        {renderSection('features', content.features, content.imagePlacements?.features || [])}
       </section>
 
       {/* Benefits Section */}
-      <section className={`py-12 rounded-lg ${layout.gradients.benefits}`}>
+      <section className={`py-12 bg-gradient-to-r ${colorScheme.colors.secondary}`}>
         <h2 className="text-3xl font-bold text-center mb-8">Benefits</h2>
-        <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto px-4">
-          {content.benefits?.map((benefit: string, index: number) => (
-            <div key={index} className="flex items-start gap-4">
-              <div className="w-2 h-2 rounded-full bg-blue-500 mt-2" />
-              <p className="flex-1 text-gray-600">{benefit}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Pain Points Section */}
-      <section className={`py-12 rounded-lg ${layout.gradients.painPoints}`}>
-        <h2 className="text-3xl font-bold text-center mb-8">We Solve Your Challenges</h2>
-        <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto px-4">
-          {content.painPoints?.map((point: string, index: number) => (
-            <Card key={index} className="p-6">
-              <p className="text-gray-600">{point}</p>
-            </Card>
-          ))}
-        </div>
+        {renderSection('benefits', content.benefits, content.imagePlacements?.benefits || [])}
       </section>
 
       {/* Testimonials Section */}
-      <section className={`py-12 rounded-lg ${layout.gradients.testimonials}`}>
+      <section className="py-12">
         <h2 className="text-3xl font-bold text-center mb-8">What Our Customers Say</h2>
-        <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto px-4">
-          {content.socialProof?.testimonials?.map((testimonial: any, index: number) => (
-            <Card key={index} className="p-6">
-              <p className="text-gray-600 mb-4">{testimonial.content}</p>
-              <div className="font-medium">
-                <p className="text-gray-900">{testimonial.name}</p>
-                <p className="text-gray-500">{testimonial.role}</p>
-              </div>
-            </Card>
-          ))}
-        </div>
+        {renderSection('testimonials', content.socialProof?.testimonials, content.imagePlacements?.testimonials || [])}
       </section>
 
       {/* Call to Action Section */}
-      <section className={`text-center py-16 px-4 rounded-lg ${layout.gradients.cta}`}>
+      <section className={`text-center py-16 px-4 rounded-lg bg-gradient-to-r ${colorScheme.colors.primary}`}>
         <h2 className="text-3xl font-bold mb-4">{content.callToAction?.title}</h2>
-        <p className="text-xl text-gray-600 max-w-2xl mx-auto mb-8">
+        <p className={`text-xl text-${colorScheme.colors.text} max-w-2xl mx-auto mb-8`}>
           {content.callToAction?.description}
         </p>
-        <Button size="lg">{content.callToAction?.buttonText}</Button>
+        <Button size="lg" className={`bg-${colorScheme.colors.accent}`}>
+          {content.callToAction?.buttonText}
+        </Button>
       </section>
     </div>
   );
@@ -272,7 +321,7 @@ const generateInitialContent = (project: any) => {
       title: "Ready to Get Started?",
       description: "Join thousands of satisfied customers and transform your business today.",
       buttonText: "Start Now",
-    },
+    }
   };
 };
 

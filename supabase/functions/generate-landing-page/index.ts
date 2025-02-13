@@ -7,22 +7,99 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const layoutTemplates = [
+  {
+    id: "hero-centered",
+    structure: {
+      hero: { type: "centered", imagePosition: "background" },
+      features: { type: "grid", columns: 3 },
+      benefits: { type: "split", imagePosition: "right" },
+      testimonials: { type: "carousel" }
+    }
+  },
+  {
+    id: "hero-split",
+    structure: {
+      hero: { type: "split", imagePosition: "right" },
+      features: { type: "masonry" },
+      benefits: { type: "grid", columns: 2 },
+      testimonials: { type: "grid" }
+    }
+  },
+  {
+    id: "hero-fullscreen",
+    structure: {
+      hero: { type: "fullscreen", imagePosition: "overlay" },
+      features: { type: "carousel" },
+      benefits: { type: "alternating" },
+      testimonials: { type: "centered" }
+    }
+  },
+  {
+    id: "minimal",
+    structure: {
+      hero: { type: "minimal", imagePosition: "floating" },
+      features: { type: "list" },
+      benefits: { type: "cards" },
+      testimonials: { type: "slider" }
+    }
+  }
+];
+
+const generateImagePlacements = (images: string[], layout: any) => {
+  const placements = {
+    hero: [],
+    features: [],
+    benefits: [],
+    testimonials: []
+  };
+
+  // Distribute images across sections based on layout type
+  let imageIndex = 0;
+  const sections = Object.keys(layout.structure);
+  
+  for (const section of sections) {
+    const sectionLayout = layout.structure[section];
+    const imagesNeeded = sectionLayout.type === "grid" ? sectionLayout.columns : 1;
+    
+    for (let i = 0; i < imagesNeeded; i++) {
+      if (imageIndex < images.length) {
+        placements[section].push({
+          url: images[imageIndex],
+          position: sectionLayout.imagePosition || "center",
+          effect: ["mockup", "floating", "shadow"][Math.floor(Math.random() * 3)]
+        });
+        imageIndex = (imageIndex + 1) % images.length;
+      }
+    }
+  }
+
+  return placements;
+};
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { businessIdea, targetAudience, audienceAnalysis } = await req.json();
+    const { businessIdea, targetAudience, audienceAnalysis, projectImages = [] } = await req.json();
 
     console.log('Received project data:', {
       businessIdea: JSON.stringify(businessIdea, null, 2),
       targetAudience: JSON.stringify(targetAudience, null, 2),
-      audienceAnalysis: JSON.stringify(audienceAnalysis, null, 2)
+      audienceAnalysis: JSON.stringify(audienceAnalysis, null, 2),
+      imageCount: projectImages.length
     });
 
+    // Select a random layout template
+    const selectedLayout = layoutTemplates[Math.floor(Math.random() * layoutTemplates.length)];
+    
+    // Generate image placements based on the selected layout
+    const imagePlacements = generateImagePlacements(projectImages, selectedLayout);
+
     // Enhanced prompt for more professional and complete content
-    const prompt = `Generate a comprehensive and professional landing page content. Return ONLY a valid JSON object (no markdown, no code blocks) with the following structure:
+    const prompt = `Generate a comprehensive and professional landing page content. Use this layout structure: ${JSON.stringify(selectedLayout.structure)}. Return ONLY a valid JSON object with the following structure:
 
 {
   "hero": {
@@ -77,6 +154,9 @@ Market Analysis:
 - Awareness Level: ${audienceAnalysis?.awarenessLevel || 'Not specified'}
 - Deep Pain Points: ${JSON.stringify(audienceAnalysis?.deepPainPoints || [])}
 
+Image Integration:
+There are ${projectImages.length} project images available to showcase. Create content that naturally references and integrates with these visuals based on the selected layout structure.
+
 Content Guidelines:
 1. Generate substantial, detailed content for each section
 2. Use specific numbers, statistics, or metrics where relevant
@@ -89,7 +169,7 @@ Content Guidelines:
 9. Write in a clear, engaging style that resonates with the target audience
 10. Provide detailed, specific examples rather than generic statements
 
-IMPORTANT: Write comprehensive, detailed content. The total word count should be at least 800-1000 words spread across all sections. Return ONLY the JSON object, with no additional formatting, markdown, or code blocks.`;
+IMPORTANT: Write comprehensive, detailed content that naturally integrates with the provided images and layout structure. The total word count should be at least 800-1000 words spread across all sections.`;
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -143,30 +223,13 @@ IMPORTANT: Write comprehensive, detailed content. The total word count should be
         throw new Error('Missing required sections in the response');
       }
 
-      const structuredContent = {
-        hero: {
-          title: parsedContent.hero?.title || "Transform Your Business Today",
-          description: parsedContent.hero?.description || "Take your business to the next level with our innovative solution",
-          cta: parsedContent.hero?.cta || "Get Started Now",
-        },
-        features: Array.isArray(parsedContent.features) ? parsedContent.features : [],
-        benefits: Array.isArray(parsedContent.benefits) ? parsedContent.benefits : [],
-        painPoints: Array.isArray(parsedContent.painPoints) ? parsedContent.painPoints : [],
-        socialProof: {
-          testimonials: Array.isArray(parsedContent.socialProof?.testimonials) 
-            ? parsedContent.socialProof.testimonials 
-            : [],
-        },
-        callToAction: {
-          title: parsedContent.callToAction?.title || "Ready to Transform Your Business?",
-          description: parsedContent.callToAction?.description || "Join thousands of satisfied customers and start your journey today.",
-          buttonText: parsedContent.callToAction?.buttonText || "Get Started",
-        },
+      const finalContent = {
+        ...parsedContent,
+        layout: selectedLayout,
+        imagePlacements
       };
 
-      console.log('Final structured content:', JSON.stringify(structuredContent, null, 2));
-
-      return new Response(JSON.stringify(structuredContent), {
+      return new Response(JSON.stringify(finalContent), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     } catch (parseError) {
