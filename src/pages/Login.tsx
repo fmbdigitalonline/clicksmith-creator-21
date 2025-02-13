@@ -84,8 +84,8 @@ const Login = () => {
               message: 'text-sm font-medium text-destructive',
             }
           }}
-          view="sign_in"
           redirectTo={`${window.location.origin}/dashboard`}
+          onlyThirdPartyProviders={false}
           providers={[]}
           magicLink={false}
           showLinks={true}
@@ -112,8 +112,7 @@ const Login = () => {
               }
             }
           }}
-        >
-        </Auth>
+        />
         
         <div className="mt-6">
           <Alert className="bg-accent/5 border-accent/10">
