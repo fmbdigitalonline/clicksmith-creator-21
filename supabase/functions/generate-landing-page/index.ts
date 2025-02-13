@@ -15,13 +15,13 @@ serve(async (req) => {
   try {
     const { businessIdea, targetAudience, audienceAnalysis } = await req.json();
 
-    const prompt = `Write a compelling headline and subtitle combination for a landing page that promotes ${businessIdea.valueProposition}. 
+    const prompt = `Write a compelling headline and subtitle combination for a landing page that promotes ${businessIdea?.valueProposition || 'this business'}. 
 
-Target Audience: ${targetAudience.icp}
+Target Audience: ${targetAudience?.icp || 'General audience'}
 
-Key Pain Points: ${targetAudience.painPoints.join(', ')}
+Key Pain Points: ${Array.isArray(targetAudience?.painPoints) ? targetAudience.painPoints.join(', ') : 'Not specified'}
 
-Benefits: ${audienceAnalysis.benefits.join(', ')}
+Benefits: ${Array.isArray(audienceAnalysis?.benefits) ? audienceAnalysis.benefits.join(', ') : 'Not specified'}
 
 The content should follow the AIDA formula (Attention, Interest, Desire, Action) and adhere to the following structure:
 
@@ -32,6 +32,8 @@ The content should follow the AIDA formula (Attention, Interest, Desire, Action)
 5. Call to Action: Compelling reason to act now
 
 Use a professional but approachable tone. Focus on clear value proposition and problem-solving.`;
+
+    console.log('Sending prompt to OpenAI:', prompt);
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',

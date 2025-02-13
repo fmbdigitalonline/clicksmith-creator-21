@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -43,9 +42,14 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
           content: data,
           title: project.title || "Landing Page",
           user_id: userData.user.id,
+        }, {
+          onConflict: 'project_id' // This ensures we update if a record exists
         });
 
-      if (dbError) throw dbError;
+      if (dbError) {
+        console.error('Database error:', dbError);
+        throw new Error('Failed to save landing page data');
+      }
 
       toast({
         title: "Success",
@@ -55,7 +59,7 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
       console.error('Error generating landing page:', error);
       toast({
         title: "Error",
-        description: "Failed to generate landing page content. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to generate landing page content. Please try again.",
         variant: "destructive",
       });
     } finally {
