@@ -93,7 +93,7 @@ Important: Return ONLY valid JSON exactly matching the structure above. Each sec
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o',  // Using the more powerful model for better content
+        model: 'gpt-4o-mini',  // Changed back to gpt-4o-mini
         messages: [
           {
             role: 'system',
