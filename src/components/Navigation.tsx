@@ -26,8 +26,12 @@ const Navigation = () => {
     <nav className="fixed top-0 left-0 right-0 h-16 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50">
       <div className="container h-full">
         <div className="flex h-full items-center justify-between">
-          <Link to="/" className="font-semibold">
-            Viable
+          <Link to="/" className="flex items-center">
+            <img 
+              src="/lovable-uploads/f8e07bf5-8804-4da4-b270-0ec6c5b8559c.png" 
+              alt="Viable" 
+              className="h-8 w-auto"
+            />
           </Link>
           <div className="flex items-center gap-4">
             <CreditDisplay />
