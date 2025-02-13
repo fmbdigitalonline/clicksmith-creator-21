@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect } from "react";
 import {
   BusinessIdea,
@@ -23,64 +22,6 @@ export const useAdWizardState = () => {
   const { projectId } = useParams();
   const [autoCreatedProjectId, setAutoCreatedProjectId] = useState<string | null>(null);
 
-  // Create project automatically when starting new wizard
-  useEffect(() => {
-    const createInitialProject = async () => {
-      if (projectId === "new" && !autoCreatedProjectId) {
-        try {
-          console.log('Creating initial project...');
-          const { data: { user } } = await supabase.auth.getUser();
-          if (!user) {
-            console.log('No authenticated user found');
-            return;
-          }
-
-          const { count } = await supabase
-            .from('projects')
-            .select('*', { count: 'exact', head: true })
-            .eq('user_id', user.id);
-
-          const projectNumber = (count || 0) + 1;
-          const projectTitle = `My Ad Campaign ${projectNumber}`;
-
-          const { data, error } = await supabase
-            .from("projects")
-            .insert({
-              title: projectTitle,
-              user_id: user.id,
-              status: "draft",
-              current_step: 1
-            })
-            .select()
-            .single();
-
-          if (error) {
-            console.error('Error creating project:', error);
-            throw error;
-          }
-
-          console.log('Created new project:', data.id);
-          setAutoCreatedProjectId(data.id);
-          navigate(`/ad-wizard/${data.id}`, { replace: true });
-          
-          toast({
-            title: "Project created",
-            description: "Your progress will be saved automatically.",
-          });
-        } catch (error) {
-          console.error('Error creating initial project:', error);
-          toast({
-            title: "Error",
-            description: "Failed to create project",
-            variant: "destructive",
-          });
-        }
-      }
-    };
-
-    createInitialProject();
-  }, [projectId, navigate, toast, autoCreatedProjectId]);
-
   // Load existing project data
   useEffect(() => {
     const loadProjectData = async () => {
@@ -97,7 +38,6 @@ export const useAdWizardState = () => {
           if (error) throw error;
           if (project) {
             console.log('Loaded project data:', project);
-            // Type cast the data to match our defined types
             if (project.business_idea) {
               setBusinessIdea(project.business_idea as BusinessIdea);
             }
@@ -123,14 +63,81 @@ export const useAdWizardState = () => {
     loadProjectData();
   }, [projectId, autoCreatedProjectId]);
 
+  const createInitialProject = async (idea: BusinessIdea) => {
+    try {
+      console.log('Creating initial project...');
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.log('No authenticated user found');
+        return null;
+      }
+
+      const { count } = await supabase
+        .from('projects')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id);
+
+      const projectNumber = (count || 0) + 1;
+      const projectTitle = `My Ad Campaign ${projectNumber}`;
+
+      const { data, error } = await supabase
+        .from("projects")
+        .insert({
+          title: projectTitle,
+          user_id: user.id,
+          status: "draft",
+          current_step: 1,
+          business_idea: idea
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error creating project:', error);
+        throw error;
+      }
+
+      console.log('Created new project:', data.id);
+      return data.id;
+    } catch (error) {
+      console.error('Error creating initial project:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create project",
+        variant: "destructive",
+      });
+      return null;
+    }
+  };
+
   const handleIdeaSubmit = useCallback(async (idea: BusinessIdea) => {
     setBusinessIdea(idea);
+    
+    let currentProjectId = projectId;
+    
+    // If we're on the 'new' route, create a project now
+    if (projectId === 'new') {
+      const newProjectId = await createInitialProject(idea);
+      if (!newProjectId) {
+        return; // Exit if project creation failed
+      }
+      setAutoCreatedProjectId(newProjectId);
+      navigate(`/ad-wizard/${newProjectId}`, { replace: true });
+      currentProjectId = newProjectId;
+      
+      toast({
+        title: "Project created",
+        description: "Your progress will be saved automatically.",
+      });
+    }
+
     await saveWizardProgress({ 
       business_idea: idea,
       current_step: 2
-    }, autoCreatedProjectId || projectId);
+    }, currentProjectId);
+    
     setCurrentStep(2);
-  }, [projectId, autoCreatedProjectId]);
+  }, [projectId, navigate]);
 
   const handleAudienceSelect = useCallback(async (audience: TargetAudience) => {
     setTargetAudience(audience);
