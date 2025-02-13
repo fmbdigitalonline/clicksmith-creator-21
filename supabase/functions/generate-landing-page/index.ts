@@ -1,3 +1,4 @@
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
@@ -108,15 +109,15 @@ IMPORTANT: Return ONLY the JSON object, with no additional formatting, markdown,
     });
 
     if (!response.ok) {
-      console.error('OpenAI API error:', response.status, await response.text());
-      throw new Error(`OpenAI API error: ${response.status}`);
+      console.error('DeepSeek API error:', response.status, await response.text());
+      throw new Error(`DeepSeek API error: ${response.status}`);
     }
 
     const data = await response.json();
-    console.log('OpenAI response:', JSON.stringify(data, null, 2));
+    console.log('DeepSeek response:', JSON.stringify(data, null, 2));
     
     if (!data.choices?.[0]?.message?.content) {
-      throw new Error('Invalid response format from OpenAI');
+      throw new Error('Invalid response format from DeepSeek');
     }
 
     let landingPageContent = data.choices[0].message.content;
