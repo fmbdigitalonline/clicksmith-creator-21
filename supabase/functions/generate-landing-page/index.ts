@@ -15,10 +15,40 @@ serve(async (req) => {
   try {
     const { businessIdea, targetAudience, audienceAnalysis } = await req.json();
 
-    console.log('Received data:', { businessIdea, targetAudience, audienceAnalysis });
+    console.log('Received project data:', {
+      businessIdea: JSON.stringify(businessIdea, null, 2),
+      targetAudience: JSON.stringify(targetAudience, null, 2),
+      audienceAnalysis: JSON.stringify(audienceAnalysis, null, 2)
+    });
 
     // Create a comprehensive prompt for the landing page
-    const prompt = `Create a professional and compelling landing page content for a business with the following details:
+    const prompt = `Generate a landing page content in JSON format with the following structure:
+{
+  "hero": {
+    "title": "Main attention-grabbing headline",
+    "description": "Compelling subheadline",
+    "cta": "Call to action button text"
+  },
+  "features": ["Feature 1", "Feature 2", "Feature 3"],
+  "benefits": ["Benefit 1", "Benefit 2", "Benefit 3"],
+  "painPoints": ["Pain point and solution 1", "Pain point and solution 2"],
+  "socialProof": {
+    "testimonials": [
+      {
+        "content": "Testimonial text",
+        "name": "Customer name",
+        "role": "Customer role/position"
+      }
+    ]
+  },
+  "callToAction": {
+    "title": "Final call to action heading",
+    "description": "Compelling reason to act now",
+    "buttonText": "Action button text"
+  }
+}
+
+Use this business information to create compelling content:
 
 Business Value Proposition: ${businessIdea?.valueProposition || 'Not specified'}
 Business Description: ${businessIdea?.description || 'Not specified'}
@@ -34,15 +64,7 @@ Market Analysis:
 - Awareness Level: ${audienceAnalysis?.awarenessLevel || 'Not specified'}
 - Deep Pain Points: ${JSON.stringify(audienceAnalysis?.deepPainPoints || [])}
 
-Generate a structured landing page content that includes:
-1. Hero section with compelling headline, description, and call-to-action
-2. 3-4 key features that solve main pain points
-3. 4-5 clear benefits that address market desires
-4. 2-3 pain points with solutions
-5. 2-3 testimonials that showcase transformation
-6. Strong call-to-action section
-
-Return the content in a structured JSON format suitable for a modern, professional landing page.`;
+Important: Return ONLY valid JSON that matches the structure above exactly.`;
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -55,7 +77,7 @@ Return the content in a structured JSON format suitable for a modern, profession
         messages: [
           {
             role: 'system',
-            content: 'You are an expert copywriter and landing page specialist. Create compelling, conversion-focused content that follows modern landing page best practices. Always return properly structured JSON.',
+            content: 'You are a landing page expert. Always return valid JSON matching the exact structure provided, with no additional formatting or text.',
           },
           {
             role: 'user',
@@ -67,15 +89,30 @@ Return the content in a structured JSON format suitable for a modern, profession
     });
 
     if (!response.ok) {
+      console.error('OpenAI API error:', response.status, await response.text());
       throw new Error(`OpenAI API error: ${response.status}`);
     }
 
     const data = await response.json();
+    console.log('OpenAI response:', JSON.stringify(data, null, 2));
+    
+    if (!data.choices?.[0]?.message?.content) {
+      throw new Error('Invalid response format from OpenAI');
+    }
+
     const landingPageContent = data.choices[0].message.content;
+    console.log('Raw landing page content:', landingPageContent);
 
     // Parse the response and ensure it has the required structure
     try {
       const parsedContent = JSON.parse(landingPageContent);
+      console.log('Parsed content:', JSON.stringify(parsedContent, null, 2));
+
+      // Validate the structure
+      if (!parsedContent.hero || !parsedContent.features || !parsedContent.benefits) {
+        throw new Error('Missing required sections in the response');
+      }
+
       const structuredContent = {
         hero: {
           title: parsedContent.hero?.title || "Transform Your Business Today",
@@ -97,17 +134,23 @@ Return the content in a structured JSON format suitable for a modern, profession
         },
       };
 
+      console.log('Final structured content:', JSON.stringify(structuredContent, null, 2));
+
       return new Response(JSON.stringify(structuredContent), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     } catch (parseError) {
-      console.error('Error parsing OpenAI response:', parseError);
-      throw new Error('Failed to parse landing page content');
+      console.error('Error parsing landing page content:', parseError);
+      console.error('Failed content:', landingPageContent);
+      throw new Error(`Failed to parse landing page content: ${parseError.message}`);
     }
   } catch (error) {
     console.error('Error in generate-landing-page function:', error);
     return new Response(
-      JSON.stringify({ error: error.message || 'Failed to generate landing page content' }),
+      JSON.stringify({ 
+        error: error.message || 'Failed to generate landing page content',
+        details: error.stack
+      }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
