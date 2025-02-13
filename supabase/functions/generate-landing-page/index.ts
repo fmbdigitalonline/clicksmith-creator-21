@@ -21,41 +21,48 @@ serve(async (req) => {
       audienceAnalysis: JSON.stringify(audienceAnalysis, null, 2)
     });
 
-    // Create a comprehensive prompt using AIDA formula
-    const prompt = `Generate a landing page content in JSON format with the following structure. Follow the AIDA (Attention, Interest, Desire, Action) formula for the hero section:
+    // Enhanced prompt for more professional and complete content
+    const prompt = `Generate a professional and complete landing page content in JSON format. The content should be compelling, detailed, and follow modern marketing best practices. The response must match this structure exactly:
 
 {
   "hero": {
-    "title": "Write a compelling headline (8-12 words) that grabs attention by addressing a key pain point or desire from the business value proposition",
-    "description": "Write a compelling subtitle (20-30 words) that builds interest and creates desire by explaining the value proposition and unique benefits. End with an action-oriented implication.",
-    "cta": "Write a clear, action-oriented button text"
+    "title": "Write a powerful headline (8-12 words) that immediately grabs attention by addressing the main value proposition or solving a critical pain point. Make it action-oriented and benefit-focused.",
+    "description": "Write a compelling 2-3 sentence description (40-60 words) that elaborates on the value proposition, addresses key pain points, and creates desire through concrete benefits. Use emotionally resonant language.",
+    "cta": "Write a strong call-to-action button text (3-5 words) that creates urgency"
   },
-  "features": ["Write 3 key features that demonstrate how the product/service delivers on its promise"],
-  "benefits": ["Write 3 concrete benefits that users will experience"],
-  "painPoints": ["Write 2 major pain points and their solutions"],
+  "features": [
+    "Write 3 detailed feature descriptions (15-20 words each) that highlight the unique capabilities and technological advantages of the solution"
+  ],
+  "benefits": [
+    "Write 3 compelling benefit statements (15-20 words each) that focus on transformation and positive outcomes for the user"
+  ],
+  "painPoints": [
+    "Write 2 specific pain point solutions (20-25 words each) that demonstrate deep understanding of user challenges and how your solution addresses them"
+  ],
   "socialProof": {
     "testimonials": [
       {
-        "content": "Write a testimonial highlighting real results",
-        "name": "Customer name",
-        "role": "Customer role/position"
+        "content": "Write a detailed, results-focused testimonial (30-40 words) that highlights specific improvements or outcomes",
+        "name": "Create a realistic customer name",
+        "role": "Add a relevant professional title and company type"
       }
     ]
   },
   "callToAction": {
-    "title": "Write a final call to action heading that creates urgency",
-    "description": "Write a compelling reason to act now, emphasizing the main benefit",
-    "buttonText": "Write action-oriented button text"
+    "title": "Write an urgent, benefit-focused headline (8-10 words) that motivates immediate action",
+    "description": "Write a compelling final pitch (25-35 words) that summarizes the key value proposition and creates FOMO",
+    "buttonText": "Write action-oriented button text (3-5 words)"
   }
 }
 
-Use this business information to create compelling content:
+Use this business information to create professional, conversion-focused content:
 
-Business Value Proposition: ${businessIdea?.valueProposition || 'Not specified'}
-Business Description: ${businessIdea?.description || 'Not specified'}
+Business Details:
+- Value Proposition: ${businessIdea?.valueProposition || 'Not specified'}
+- Description: ${businessIdea?.description || 'Not specified'}
 
-Target Audience:
-- Description: ${targetAudience?.description || 'Not specified'}
+Target Audience Insights:
+- Audience Description: ${targetAudience?.description || 'Not specified'}
 - Demographics: ${targetAudience?.demographics || 'Not specified'}
 - Pain Points: ${JSON.stringify(targetAudience?.painPoints || [])}
 - Core Message: ${targetAudience?.coreMessage || 'Not specified'}
@@ -65,16 +72,19 @@ Market Analysis:
 - Awareness Level: ${audienceAnalysis?.awarenessLevel || 'Not specified'}
 - Deep Pain Points: ${JSON.stringify(audienceAnalysis?.deepPainPoints || [])}
 
-Guidelines for the copy:
-1. Use the AIDA formula (Attention, Interest, Desire, Action)
-2. Keep language professional but approachable
-3. Focus on solutions and positive outcomes
-4. Use persuasive, emotional hooks
-5. Avoid jargon
-6. Make benefits concrete and specific
-7. End with clear calls to action
+Content Guidelines:
+1. Use clear, professional language that resonates with the target audience
+2. Focus on concrete benefits and measurable outcomes
+3. Include specific numbers, statistics, or metrics where relevant
+4. Use action-oriented and emotionally engaging language
+5. Maintain a confident, authoritative tone
+6. Address specific pain points and their solutions
+7. End each section with a clear value proposition
+8. Use industry-relevant terminology without jargon
+9. Incorporate social proof and credibility markers
+10. Ensure all content aligns with the business's core value proposition
 
-Important: Return ONLY valid JSON that matches the structure above exactly.`;
+Important: Return ONLY valid JSON exactly matching the structure above. Each section must be complete and professional.`;
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -83,11 +93,11 @@ Important: Return ONLY valid JSON that matches the structure above exactly.`;
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4o',  // Using the more powerful model for better content
         messages: [
           {
             role: 'system',
-            content: 'You are a landing page copywriting expert skilled in AIDA formula. Always return valid JSON matching the exact structure provided, with no additional formatting or text.',
+            content: 'You are an expert landing page copywriter with deep experience in conversion optimization and persuasive writing. Create professional, high-converting landing page content that follows modern marketing best practices.',
           },
           {
             role: 'user',
@@ -113,7 +123,7 @@ Important: Return ONLY valid JSON that matches the structure above exactly.`;
     const landingPageContent = data.choices[0].message.content;
     console.log('Raw landing page content:', landingPageContent);
 
-    // Parse the response and ensure it has the required structure
+    // Parse and validate the response
     try {
       const parsedContent = JSON.parse(landingPageContent);
       console.log('Parsed content:', JSON.stringify(parsedContent, null, 2));
