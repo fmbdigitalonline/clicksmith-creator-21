@@ -65,6 +65,11 @@ const Login = () => {
               Start validating your business ideas today with 12 free credits. No credit card required.
             </AlertDescription>
           </Alert>
+          <Alert className="bg-accent/5 border-accent/10">
+            <AlertDescription className="text-xs text-center text-muted-foreground">
+              By signing up, you agree to our Terms of Service and Privacy Policy. We'll send you product updates and announcements. You can unsubscribe at any time.
+            </AlertDescription>
+          </Alert>
         </div>
         
         <Auth
@@ -100,8 +105,7 @@ const Login = () => {
                 button_label: 'Sign up and get 12 free credits',
                 loading_button_label: 'Creating account ...',
                 link_text: "Already have an account? Sign in",
-                confirmation_text: 'Check your email for the confirmation link',
-                terms_of_service: "By signing up, you agree to our Terms of Service and Privacy Policy. We'll send you product updates and announcements. You can unsubscribe at any time."
+                confirmation_text: 'Check your email for the confirmation link'
               },
               sign_in: {
                 email_label: 'Email address',
