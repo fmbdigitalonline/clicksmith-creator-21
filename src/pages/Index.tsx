@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { ArrowRight, CheckCircle, MessageCircle, BadgeCheck, Target, ArrowRight as ArrowRightIcon, Lightbulb, PieChart, DollarSign, Users, BarChart } from "lucide-react";
 import { TextCycler } from "@/components/TextCycler";
+import LandingNav from "@/components/LandingNav";
 
 const Index = () => {
   const howItWorks = [
@@ -123,8 +124,9 @@ const Index = () => {
 
   return (
     <div className="min-h-screen">
+      <LandingNav />
       {/* Hero Section */}
-      <section className="relative py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-primary/5 to-background">
+      <section className="relative pt-32 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-primary/5 to-background">
         <div className="max-w-5xl mx-auto text-center">
           <div className="flex justify-center mb-6">
             <Target className="h-12 w-12 text-primary animate-pulse" />
