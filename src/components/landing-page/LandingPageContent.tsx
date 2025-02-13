@@ -35,7 +35,7 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
 
       setContent(data);
       
-      // Update or create landing page in database
+      // Update landing page in database
       const { error: dbError } = await supabase
         .from('landing_pages')
         .upsert({
@@ -176,8 +176,6 @@ const PreviewMode = ({ content }: { content: any }) => {
 };
 
 const EditMode = ({ content }: { content: any }) => {
-  // For now, we'll just show the JSON content
-  // In a future iteration, we can add proper editing capabilities
   return (
     <pre className="p-4 bg-gray-50 rounded-lg overflow-auto">
       {JSON.stringify(content, null, 2)}
