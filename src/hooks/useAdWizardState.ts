@@ -18,18 +18,23 @@ export const useAdWizardState = () => {
   const [audienceAnalysis, setAudienceAnalysis] = useState<AudienceAnalysis | null>(null);
   const [selectedHooks, setSelectedHooks] = useState<AdHook[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [autoCreatedProjectId, setAutoCreatedProjectId] = useState<string | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
   const { projectId } = useParams();
+  const [autoCreatedProjectId, setAutoCreatedProjectId] = useState<string | null>(null);
 
   // Create project automatically when starting new wizard
   useEffect(() => {
     const createInitialProject = async () => {
+      // Only create a new project if we're on the "new" route and haven't created one yet
       if (projectId === "new" && !autoCreatedProjectId) {
         try {
+          console.log('Creating initial project...');
           const { data: { user } } = await supabase.auth.getUser();
-          if (!user) return;
+          if (!user) {
+            console.log('No authenticated user found');
+            return;
+          }
 
           // Get count of existing projects for this user
           const { count } = await supabase
@@ -45,7 +50,8 @@ export const useAdWizardState = () => {
             .insert({
               title: projectTitle,
               user_id: user.id,
-              status: "draft"
+              status: "draft",
+              current_step: 1
             })
             .select()
             .single();
@@ -55,7 +61,9 @@ export const useAdWizardState = () => {
             throw error;
           }
 
+          console.log('Created new project:', data.id);
           setAutoCreatedProjectId(data.id);
+          // Replace the URL without reloading the page
           navigate(`/ad-wizard/${data.id}`, { replace: true });
           
           toast({
@@ -75,6 +83,37 @@ export const useAdWizardState = () => {
 
     createInitialProject();
   }, [projectId, navigate, toast, autoCreatedProjectId]);
+
+  // Load existing project data
+  useEffect(() => {
+    const loadProjectData = async () => {
+      const currentProjectId = autoCreatedProjectId || projectId;
+      if (currentProjectId && currentProjectId !== 'new') {
+        try {
+          console.log('Loading project data for:', currentProjectId);
+          const { data: project, error } = await supabase
+            .from('projects')
+            .select('*')
+            .eq('id', currentProjectId)
+            .single();
+
+          if (error) throw error;
+          if (project) {
+            console.log('Loaded project data:', project);
+            if (project.business_idea) setBusinessIdea(project.business_idea);
+            if (project.target_audience) setTargetAudience(project.target_audience);
+            if (project.audience_analysis) setAudienceAnalysis(project.audience_analysis);
+            if (project.selected_hooks) setSelectedHooks(project.selected_hooks);
+            if (project.current_step) setCurrentStep(project.current_step);
+          }
+        } catch (error) {
+          console.error('Error loading project:', error);
+        }
+      }
+    };
+
+    loadProjectData();
+  }, [projectId, autoCreatedProjectId]);
 
   const handleIdeaSubmit = useCallback(async (idea: BusinessIdea) => {
     setBusinessIdea(idea);
@@ -173,15 +212,23 @@ export const useAdWizardState = () => {
   }, [businessIdea, targetAudience, toast, projectId, autoCreatedProjectId, isLoading]);
 
   const handleBack = useCallback(() => {
-    setCurrentStep(prev => Math.max(1, prev - 1));
-  }, []);
+    const newStep = Math.max(1, currentStep - 1);
+    setCurrentStep(newStep);
+    // Save the current step to the project
+    saveWizardProgress({ 
+      current_step: newStep 
+    }, autoCreatedProjectId || projectId);
+  }, [currentStep, projectId, autoCreatedProjectId]);
 
   const handleStartOver = useCallback(async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const success = await clearWizardProgress(projectId || autoCreatedProjectId, user.id);
+      // Use the current project ID (either auto-created or from URL)
+      const currentProjectId = autoCreatedProjectId || projectId;
+      
+      const success = await clearWizardProgress(currentProjectId, user.id);
       
       if (success) {
         setBusinessIdea(null);
