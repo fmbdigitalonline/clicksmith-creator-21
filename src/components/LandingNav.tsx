@@ -25,24 +25,6 @@ const LandingNav = () => {
               </Link>
             </Button>
             <Button
-              variant="ghost"
-              size="sm"
-              asChild
-            >
-              <Link to="/terms">
-                Terms
-              </Link>
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              asChild
-            >
-              <Link to="/privacy">
-                Privacy
-              </Link>
-            </Button>
-            <Button
               variant="default"
               size="sm"
               asChild

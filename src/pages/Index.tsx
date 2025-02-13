@@ -480,12 +480,12 @@ const Index = () => {
                 <Link to="/login" className="block text-muted-foreground hover:text-primary">
                   Sign Up
                 </Link>
-                <a href="#" className="block text-muted-foreground hover:text-primary">
-                  Privacy Policy
-                </a>
-                <a href="#" className="block text-muted-foreground hover:text-primary">
+                <Link to="/terms" className="block text-muted-foreground hover:text-primary">
                   Terms of Service
-                </a>
+                </Link>
+                <Link to="/privacy" className="block text-muted-foreground hover:text-primary">
+                  Privacy Policy
+                </Link>
               </div>
             </div>
           </div>
