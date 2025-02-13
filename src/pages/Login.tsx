@@ -2,7 +2,7 @@
 import { Auth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
@@ -117,7 +117,8 @@ const Login = () => {
         <div className="mt-6">
           <Alert className="bg-accent/5 border-accent/10">
             <AlertDescription className="text-[11px] text-center text-muted-foreground leading-relaxed">
-              By signing up, you agree to our Terms of Service and Privacy Policy. We'll send you product updates and announcements. You can unsubscribe at any time.
+              By signing up, you agree to our <Link to="/terms" className="text-primary hover:underline">Terms of Service</Link> and{' '}
+              <Link to="/privacy" className="text-primary hover:underline">Privacy Policy</Link>. We'll send you product updates and announcements. You can unsubscribe at any time.
             </AlertDescription>
           </Alert>
         </div>
