@@ -39,7 +39,7 @@ const ProjectCardActions = ({
       return;
     }
     
-    navigate(`/landing-page/${projectId}`);
+    navigate(`/projects/${projectId}/landing-page`);
   };
 
   return (
