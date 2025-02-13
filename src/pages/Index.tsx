@@ -140,7 +140,7 @@ const Index = () => {
                 className="inline-block"
               />
             </span>{' '}
-            Will Work Before You Invest
+            Will Succeed Before You Invest
           </h1>
           <p className="text-xl text-muted-foreground mb-12 max-w-3xl mx-auto">
             Our AI Generates Your Ideal Customer Profile and Tailored Ads in Minutes—So You Can Test What Works Before Committing Resources.
