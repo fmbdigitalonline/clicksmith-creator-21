@@ -86,37 +86,35 @@ const ProjectCard = ({ project, onUpdate, onStartAdWizard }: ProjectCardProps) =
   };
 
   return (
-    <>
-      <Card className="cursor-pointer transition-all hover:shadow-md" onClick={() => setIsDetailsOpen(true)}>
-        <ProjectCardHeader 
-          title={project.title} 
-          validationProgress={getValidationProgress()} 
-        />
-        <CardContent>
-          <p className="text-sm text-muted-foreground mb-4">
-            {project.business_idea?.description || project.description || "No description provided"}
-          </p>
-          {project.tags && project.tags.length > 0 && (
-            <div className="mt-4 flex flex-wrap gap-2">
-              {project.tags.map((tag) => (
-                <Badge key={tag} variant="secondary">
-                  {tag}
-                </Badge>
-              ))}
-            </div>
-          )}
-        </CardContent>
-        <ProjectCardActions
-          projectId={project.id}
-          onEdit={() => setIsEditOpen(true)}
-          onDelete={() => setIsDeleteOpen(true)}
-          onStartAdWizard={onStartAdWizard}
-          hasCampaign={!!project.marketing_campaign}
-          hasBusinessIdea={!!project.business_idea}
-          hasTargetAudience={!!project.target_audience}
-          hasAudienceAnalysis={!!project.audience_analysis}
-        />
-      </Card>
+    <Card className="cursor-pointer transition-all hover:shadow-md flex flex-col">
+      <ProjectCardHeader 
+        title={project.title} 
+        validationProgress={getValidationProgress()} 
+      />
+      <CardContent className="flex-1">
+        <p className="text-sm text-muted-foreground mb-4 line-clamp-3">
+          {project.business_idea?.description || project.description || "No description provided"}
+        </p>
+        {project.tags && project.tags.length > 0 && (
+          <div className="mt-4 flex flex-wrap gap-2">
+            {project.tags.map((tag) => (
+              <Badge key={tag} variant="secondary" className="text-xs">
+                {tag}
+              </Badge>
+            ))}
+          </div>
+        )}
+      </CardContent>
+      <ProjectCardActions
+        projectId={project.id}
+        onEdit={() => setIsEditOpen(true)}
+        onDelete={() => setIsDeleteOpen(true)}
+        onStartAdWizard={onStartAdWizard}
+        hasCampaign={!!project.marketing_campaign}
+        hasBusinessIdea={!!project.business_idea}
+        hasTargetAudience={!!project.target_audience}
+        hasAudienceAnalysis={!!project.audience_analysis}
+      />
 
       <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
@@ -140,9 +138,14 @@ const ProjectCard = ({ project, onUpdate, onStartAdWizard }: ProjectCardProps) =
               validation project and remove all associated data.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel className="w-full sm:w-auto">Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDelete}
+              className="w-full sm:w-auto"
+            >
+              Delete
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -156,7 +159,7 @@ const ProjectCard = ({ project, onUpdate, onStartAdWizard }: ProjectCardProps) =
           setIsEditOpen(false);
         }}
       />
-    </>
+    </Card>
   );
 };
 
