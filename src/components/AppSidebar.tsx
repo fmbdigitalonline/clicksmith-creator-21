@@ -1,5 +1,5 @@
 
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   LayoutDashboard,
   FolderKanban,
@@ -21,45 +21,55 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { Button } from "./ui/button";
-
-const menuItems = [
-  {
-    title: "Home",
-    icon: Home,
-    url: "/dashboard",
-  },
-  {
-    title: "Projects",
-    icon: FolderKanban,
-    url: "/projects",
-  },
-  {
-    title: "Saved Ads",
-    icon: BookmarkIcon,
-    url: "/saved-ads",
-  },
-  {
-    title: "Ad Gallery",
-    icon: Images,
-    url: "/ad-wizard/new",
-  },
-  {
-    title: "Settings",
-    icon: Settings,
-    url: "/settings",
-  },
-];
+import { useEffect, useState } from "react";
 
 export function AppSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { projectId } = useParams();
   const currentPath = location.pathname;
+  const [adWizardUrl, setAdWizardUrl] = useState("/ad-wizard/new");
+
+  // Update the Ad Gallery URL based on the current project context
+  useEffect(() => {
+    if (currentPath.includes('/ad-wizard/') && projectId && projectId !== 'new') {
+      setAdWizardUrl(`/ad-wizard/${projectId}`);
+    }
+  }, [currentPath, projectId]);
+
+  const menuItems = [
+    {
+      title: "Home",
+      icon: Home,
+      url: "/dashboard",
+    },
+    {
+      title: "Projects",
+      icon: FolderKanban,
+      url: "/projects",
+    },
+    {
+      title: "Saved Ads",
+      icon: BookmarkIcon,
+      url: "/saved-ads",
+    },
+    {
+      title: "Ad Gallery",
+      icon: Images,
+      url: adWizardUrl,
+    },
+    {
+      title: "Settings",
+      icon: Settings,
+      url: "/settings",
+    },
+  ];
 
   const isActive = (path: string) => {
     if (path === "/dashboard") {
       return currentPath === "/dashboard";
     }
-    if (path === "/ad-wizard/new") {
+    if (path.startsWith("/ad-wizard")) {
       return currentPath.includes('/ad-wizard');
     }
     return currentPath === path;
