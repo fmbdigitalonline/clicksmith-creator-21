@@ -1,3 +1,4 @@
+
 import { Info, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,13 +24,6 @@ interface PricingCardProps {
 export const PricingCard = ({ plan, onSubscribe }: PricingCardProps) => {
   const { toast } = useToast();
 
-  // Test price IDs for development
-  const TEST_PRICE_IDS: Record<number, string> = {
-    10: 'price_1QVTQNIOVV4fCSYwjdxRnrPY', // Bundle (one-time)
-    29: 'price_1QVTOxIOVV4fCSYw6reL9sxq', // Starter (monthly)
-    99: 'price_1QVTPZIOVV4fCSYw6az4odG0'  // Pro (monthly)
-  };
-
   const handleSubscribe = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -43,11 +37,7 @@ export const PricingCard = ({ plan, onSubscribe }: PricingCardProps) => {
         return;
       }
 
-      // Force using test price IDs for now (remove this later)
-      const priceId = TEST_PRICE_IDS[plan.price];
-      console.log('Using price ID:', priceId, 'for plan price:', plan.price);
-
-      if (!priceId) {
+      if (!plan.stripe_price_id) {
         toast({
           title: "Configuration error",
           description: "This plan is not properly configured. Please try another plan or contact support.",
@@ -56,9 +46,11 @@ export const PricingCard = ({ plan, onSubscribe }: PricingCardProps) => {
         return;
       }
 
+      console.log('Creating checkout session with price ID:', plan.stripe_price_id);
+
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: { 
-          priceId,
+          priceId: plan.stripe_price_id,
           mode: plan.price === 10 ? 'payment' : 'subscription'
         }
       });
