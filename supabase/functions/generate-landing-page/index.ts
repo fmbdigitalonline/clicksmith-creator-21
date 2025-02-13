@@ -22,7 +22,7 @@ serve(async (req) => {
     });
 
     // Enhanced prompt for more professional and complete content
-    const prompt = `Generate a professional and complete landing page content in JSON format. The content should be compelling, detailed, and follow modern marketing best practices. The response must match this structure exactly:
+    const prompt = `Generate a professional and complete landing page content. Return ONLY a valid JSON object (no markdown, no code blocks) with the following structure:
 
 {
   "hero": {
@@ -84,7 +84,7 @@ Content Guidelines:
 9. Incorporate social proof and credibility markers
 10. Ensure all content aligns with the business's core value proposition
 
-Important: Return ONLY valid JSON exactly matching the structure above. Each section must be complete and professional.`;
+IMPORTANT: Return ONLY the JSON object, with no additional formatting, markdown, or code blocks.`;
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -93,11 +93,11 @@ Important: Return ONLY valid JSON exactly matching the structure above. Each sec
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',  // Changed back to gpt-4o-mini
+        model: 'gpt-4o-mini',
         messages: [
           {
             role: 'system',
-            content: 'You are an expert landing page copywriter with deep experience in conversion optimization and persuasive writing. Create professional, high-converting landing page content that follows modern marketing best practices.',
+            content: 'You are an expert landing page copywriter. You must return ONLY valid JSON without any markdown formatting or code blocks.',
           },
           {
             role: 'user',
@@ -120,8 +120,12 @@ Important: Return ONLY valid JSON exactly matching the structure above. Each sec
       throw new Error('Invalid response format from OpenAI');
     }
 
-    const landingPageContent = data.choices[0].message.content;
+    let landingPageContent = data.choices[0].message.content;
     console.log('Raw landing page content:', landingPageContent);
+
+    // Clean the response by removing any markdown or code block syntax
+    landingPageContent = landingPageContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    console.log('Cleaned landing page content:', landingPageContent);
 
     // Parse and validate the response
     try {
