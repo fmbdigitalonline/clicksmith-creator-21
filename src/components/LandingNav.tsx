@@ -8,11 +8,9 @@ const LandingNav = () => {
       <div className="container h-full">
         <div className="flex h-full items-center justify-between">
           <Link to="/" className="flex items-center">
-            <img 
-              src="/lovable-uploads/f8e07bf5-8804-4da4-b270-0ec6c5b8559c.png" 
-              alt="Viable" 
-              className="h-8 w-auto"
-            />
+            <span className="text-2xl font-bold tracking-tight text-[#1A1F2C] hover:text-primary/90 transition-colors">
+              Viable
+            </span>
           </Link>
           <div className="flex items-center gap-4">
             <Button
