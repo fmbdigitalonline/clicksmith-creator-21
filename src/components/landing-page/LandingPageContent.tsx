@@ -280,6 +280,7 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
             content={content} 
             colorScheme={colorScheme} 
             renderSection={renderSection}
+            projectImages={projectImages}
           />
         </TabsContent>
         <TabsContent value="edit" className="mt-6">
@@ -290,7 +291,14 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
   );
 };
 
-const PreviewMode = ({ content, colorScheme, renderSection }: any) => {
+interface PreviewModeProps {
+  content: any;
+  colorScheme: any;
+  renderSection: any;
+  projectImages: string[];
+}
+
+const PreviewMode = ({ content, colorScheme, renderSection, projectImages }: PreviewModeProps) => {
   if (!content) {
     return (
       <div className="text-center py-16">
