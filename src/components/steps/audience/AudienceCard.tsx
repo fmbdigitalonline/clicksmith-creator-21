@@ -13,10 +13,12 @@ const AudienceCard = ({ audience, onClick }: AudienceCardProps) => {
   const painPoints = audience.painPoints || [];
   const marketingChannels = audience.marketingChannels || [];
 
-  // Format demographics if it's an object
-  const formattedDemographics = typeof audience.demographics === 'object' 
-    ? `Age: ${audience.demographics.ageRange}, Gender: ${audience.demographics.gender}, Location: ${audience.demographics.location}, Income Level: ${audience.demographics.incomeLevel}`
-    : audience.demographics;
+  // Format demographics if it's an object, with null checking
+  const formattedDemographics = audience.demographics 
+    ? (typeof audience.demographics === 'object' 
+      ? `Age: ${audience.demographics.ageRange || 'N/A'}, Gender: ${audience.demographics.gender || 'N/A'}, Location: ${audience.demographics.location || 'N/A'}, Income Level: ${audience.demographics.incomeLevel || 'N/A'}`
+      : audience.demographics)
+    : 'Demographics not specified';
 
   return (
     <Card
