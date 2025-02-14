@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -5,6 +6,7 @@ import { BusinessIdea } from "@/types/adWizard";
 import { useToast } from "@/components/ui/use-toast";
 import { Wand2, Lightbulb, ArrowRight } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { useAudienceGeneration } from "./audience/useAudienceGeneration";
 
 const BusinessIdeaStep = ({
   onNext,
@@ -13,8 +15,9 @@ const BusinessIdeaStep = ({
 }) => {
   const [description, setDescription] = useState("");
   const { toast } = useToast();
+  const { generateAudiences, isGenerating } = useAudienceGeneration();
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (description.length < 10) {
       toast({
         title: "Description too short",
@@ -25,7 +28,6 @@ const BusinessIdeaStep = ({
     }
 
     // Format the value proposition to be more ad-friendly
-    // Remove any "Enhanced version of:" prefix and focus on the core message
     const valueProposition = description
       .replace(/^Enhanced version of:\s*/i, '')
       .split('.')
@@ -33,10 +35,21 @@ const BusinessIdeaStep = ({
       .filter(sentence => sentence.length > 0)
       .join('. ');
 
-    onNext({
+    const businessIdea = {
       description,
       valueProposition,
-    });
+    };
+
+    // Pass the business idea to parent component
+    onNext(businessIdea);
+
+    // Start generating audiences immediately
+    try {
+      await generateAudiences(businessIdea);
+    } catch (error) {
+      console.error('Error generating audiences:', error);
+      // Note: Error toast will be shown by useAudienceGeneration
+    }
   };
 
   return (
@@ -46,9 +59,16 @@ const BusinessIdeaStep = ({
           onClick={handleSubmit}
           className="bg-facebook hover:bg-facebook/90 text-white w-full md:w-auto"
           size="lg"
+          disabled={isGenerating}
         >
-          Analyze My Idea
-          <ArrowRight className="ml-2 h-5 w-5" />
+          {isGenerating ? (
+            <>Analyzing...</>
+          ) : (
+            <>
+              Analyze My Idea
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </>
+          )}
         </Button>
       </div>
 
