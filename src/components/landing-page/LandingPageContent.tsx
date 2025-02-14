@@ -183,32 +183,77 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
 };
 
 const generateInitialContent = (project: any) => {
-  const { business_idea, target_audience, audience_analysis } = project;
-  
+  // Ensure we have the required objects, even if empty
+  const businessIdea = project?.business_idea || {};
+  const audienceAnalysis = project?.audience_analysis || {};
+
+  // Default card data
+  const defaultCards = [
+    {
+      icon: "✨",
+      title: "Quality Product",
+      description: "Experience superior quality in every aspect"
+    },
+    {
+      icon: "🎯",
+      title: "Expert Service",
+      description: "Professional support when you need it"
+    },
+    {
+      icon: "💫",
+      title: "Great Value",
+      description: "Competitive pricing for premium offerings"
+    }
+  ];
+
+  // Default features
+  const defaultFeatures = [
+    {
+      title: "Easy to Use",
+      description: "Intuitive design for the best user experience"
+    },
+    {
+      title: "Reliable Service",
+      description: "Consistent performance you can count on"
+    },
+    {
+      title: "Fast Support",
+      description: "Quick assistance whenever you need help"
+    }
+  ];
+
   return {
     hero: {
-      title: business_idea?.valueProposition || project.title,
-      description: business_idea?.description || "",
+      title: businessIdea?.valueProposition || project.title || "Welcome to Our Platform",
+      description: businessIdea?.description || "Discover the best solution for your needs",
       cta: "Get Started Now",
     },
     valueProposition: {
       title: "Why Choose Us?",
-      cards: audience_analysis?.benefits?.map((benefit: string) => ({
-        icon: "✨",
-        title: benefit.split(':')[0] || benefit,
-        description: benefit.split(':')[1] || benefit,
-      })) || [],
+      cards: Array.isArray(audienceAnalysis?.benefits) 
+        ? audienceAnalysis.benefits.map((benefit: string) => ({
+            icon: "✨",
+            title: benefit.split(':')[0] || benefit,
+            description: benefit.split(':')[1] || benefit,
+          }))
+        : defaultCards,
     },
     features: {
       title: "Key Features",
-      items: audience_analysis?.keyFeatures?.map((feature: string) => ({
-        title: feature.split(':')[0] || feature,
-        description: feature.split(':')[1] || feature,
-      })) || [],
+      items: Array.isArray(audienceAnalysis?.keyFeatures)
+        ? audienceAnalysis.keyFeatures.map((feature: string) => ({
+            title: feature.split(':')[0] || feature,
+            description: feature.split(':')[1] || feature,
+          }))
+        : defaultFeatures,
     },
     testimonials: {
       title: "What Our Clients Say",
-      items: [],
+      items: [{
+        quote: "This solution has transformed how we operate. Highly recommended!",
+        author: "John Smith",
+        role: "Business Owner"
+      }],
     },
     cta: {
       title: "Ready to Get Started?",
