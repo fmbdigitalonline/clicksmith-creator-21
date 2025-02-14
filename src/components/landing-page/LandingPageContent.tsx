@@ -159,11 +159,18 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
                 className={template.structure.styles.spacing.sectionPadding}
               />
               <FeaturesSection
-                content={content.features}
+                content={{
+                  title: content.features?.title || "Key Features",
+                  description: content.features?.description,
+                  items: content.features?.items || []
+                }}
                 className={template.structure.styles.spacing.sectionPadding}
               />
               <TestimonialsSection
-                content={content.testimonials}
+                content={{
+                  title: content.testimonials?.title || "What Our Clients Say",
+                  items: content.testimonials?.items || []
+                }}
                 className={template.structure.styles.spacing.sectionPadding}
               />
               <CtaSection
