@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -6,7 +5,6 @@ import { BusinessIdea } from "@/types/adWizard";
 import { useToast } from "@/components/ui/use-toast";
 import { Wand2, Lightbulb, ArrowRight } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import { useAudienceGeneration } from "./audience/useAudienceGeneration";
 
 const BusinessIdeaStep = ({
   onNext,
@@ -14,13 +12,9 @@ const BusinessIdeaStep = ({
   onNext: (idea: BusinessIdea) => void;
 }) => {
   const [description, setDescription] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
-  const { generateAudiences, isGenerating } = useAudienceGeneration();
 
-  const handleSubmit = async () => {
-    if (isSubmitting || isGenerating) return; // Prevent multiple submissions
-    
+  const handleSubmit = () => {
     if (description.length < 10) {
       toast({
         title: "Description too short",
@@ -30,38 +24,19 @@ const BusinessIdeaStep = ({
       return;
     }
 
-    try {
-      setIsSubmitting(true);
+    // Format the value proposition to be more ad-friendly
+    // Remove any "Enhanced version of:" prefix and focus on the core message
+    const valueProposition = description
+      .replace(/^Enhanced version of:\s*/i, '')
+      .split('.')
+      .map(sentence => sentence.trim())
+      .filter(sentence => sentence.length > 0)
+      .join('. ');
 
-      // Format the value proposition to be more ad-friendly
-      const valueProposition = description
-        .replace(/^Enhanced version of:\s*/i, '')
-        .split('.')
-        .map(sentence => sentence.trim())
-        .filter(sentence => sentence.length > 0)
-        .join('. ');
-
-      const businessIdea = {
-        description,
-        valueProposition,
-      };
-
-      // First pass the business idea to parent component
-      onNext(businessIdea);
-
-      // Then start generating audiences
-      console.log('Generating audiences with business idea:', businessIdea);
-      await generateAudiences(businessIdea);
-      
-    } catch (error) {
-      console.error('Error in handleSubmit:', error);
-      toast({
-        title: "Error",
-        description: "Failed to process your business idea. Please try again.",
-        variant: "destructive",
-      });
-      setIsSubmitting(false);
-    }
+    onNext({
+      description,
+      valueProposition,
+    });
   };
 
   return (
@@ -71,16 +46,9 @@ const BusinessIdeaStep = ({
           onClick={handleSubmit}
           className="bg-facebook hover:bg-facebook/90 text-white w-full md:w-auto"
           size="lg"
-          disabled={isSubmitting || isGenerating}
         >
-          {isSubmitting || isGenerating ? (
-            <>Analyzing...</>
-          ) : (
-            <>
-              Analyze My Idea
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </>
-          )}
+          Analyze My Idea
+          <ArrowRight className="ml-2 h-5 w-5" />
         </Button>
       </div>
 
@@ -114,7 +82,6 @@ const BusinessIdeaStep = ({
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           className="min-h-[150px] text-base"
-          disabled={isSubmitting || isGenerating}
         />
       </div>
     </div>

@@ -4,46 +4,12 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Settings, CreditCard, PlusCircle, Images } from "lucide-react";
 import { CreditDisplay } from "./CreditDisplay";
-import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 
 const Navigation = () => {
   const location = useLocation();
   const { projectId } = useParams();
   const currentPath = location.pathname;
-  const [hasGeneratedAds, setHasGeneratedAds] = useState(false);
-  const [lastValidProjectId, setLastValidProjectId] = useState<string | null>(null);
   
-  useEffect(() => {
-    const checkGeneratedAds = async () => {
-      const currentProjectId = projectId || lastValidProjectId;
-      
-      if (currentProjectId && currentProjectId !== 'new') {
-        console.log('Checking generated ads for project:', currentProjectId);
-        const { data: project } = await supabase
-          .from('projects')
-          .select('generated_ads')
-          .eq('id', currentProjectId)
-          .single();
-        
-        console.log('Project data:', project);
-        
-        const hasAds = project?.generated_ads != null && 
-                      Array.isArray(project.generated_ads) && 
-                      project.generated_ads.length > 0;
-        
-        setHasGeneratedAds(hasAds);
-        
-        // Update last valid project ID if we have ads
-        if (hasAds && currentProjectId) {
-          setLastValidProjectId(currentProjectId);
-        }
-      }
-    };
-
-    checkGeneratedAds();
-  }, [projectId, lastValidProjectId]);
-
   const isActive = (path: string) => {
     if (path === "/ad-wizard") {
       return currentPath.includes('/ad-wizard');
@@ -56,13 +22,7 @@ const Navigation = () => {
   };
 
   const showAdGallery = currentPath.includes('/ad-wizard');
-  const currentProjectId = projectId || lastValidProjectId;
-  const adGalleryUrl = currentProjectId && currentProjectId !== 'new' 
-    ? `/ad-wizard/${currentProjectId}` 
-    : '/ad-wizard/new';
-  const isDisabled = (!currentProjectId || currentProjectId === 'new' || !hasGeneratedAds);
-  
-  console.log('Navigation state:', { projectId: currentProjectId, hasGeneratedAds, isDisabled });
+  const adGalleryUrl = projectId && projectId !== 'new' ? `/ad-wizard/${projectId}` : '/ad-wizard/new';
   
   return (
     <nav className="fixed top-0 left-0 right-0 h-16 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50">
@@ -88,25 +48,16 @@ const Navigation = () => {
               <Button
                 variant="ghost"
                 size="sm"
-                asChild={!isDisabled}
+                asChild
                 className={cn(
                   "gap-2",
-                  isActive("/ad-wizard") && "bg-accent",
-                  isDisabled && "opacity-50 cursor-not-allowed"
+                  isActive("/ad-wizard") && "bg-accent"
                 )}
-                disabled={isDisabled}
               >
-                {isDisabled ? (
-                  <div className="flex items-center">
-                    <Images className="h-4 w-4 mr-2" />
-                    <span>Ad Gallery</span>
-                  </div>
-                ) : (
-                  <Link to={adGalleryUrl}>
-                    <Images className="h-4 w-4" />
-                    <span>Ad Gallery</span>
-                  </Link>
-                )}
+                <Link to={adGalleryUrl}>
+                  <Images className="h-4 w-4" />
+                  <span>Ad Gallery</span>
+                </Link>
               </Button>
             )}
             <Button
