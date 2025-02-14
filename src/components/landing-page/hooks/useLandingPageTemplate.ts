@@ -14,7 +14,16 @@ export const useLandingPageTemplate = () => {
         .single();
 
       if (error) throw error;
-      return data;
+      
+      // Ensure the structure is properly typed
+      const template: LandingPageTemplate = {
+        id: data.id,
+        name: data.name,
+        description: data.description,
+        structure: data.structure as LandingPageTemplate['structure']
+      };
+
+      return template;
     },
   });
 };

@@ -86,6 +86,7 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
         });
 
       if (dbError) throw dbError;
+      if (!dbResponse || dbResponse.length === 0) throw new Error("No response from database");
 
       toast({
         title: "Success",
