@@ -92,7 +92,9 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
       if (!dbResponse?.[0]) throw new Error("No response from database");
 
       // Invalidate the landing page query to trigger a refetch
-      await queryClient.invalidateQueries(["landing-page", project.id]);
+      await queryClient.invalidateQueries({
+        queryKey: ["landing-page", project.id]
+      });
 
       toast({
         title: "Success",
