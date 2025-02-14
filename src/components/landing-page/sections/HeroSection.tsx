@@ -7,6 +7,7 @@ interface HeroSectionProps {
     title: string;
     description: string;
     cta: string;
+    image?: string; // Add image support
   };
   layout: string;
   className?: string;
@@ -20,7 +21,19 @@ const HeroSection = ({ content, layout, className }: HeroSectionProps) => {
           "grid gap-8",
           layout === "split" ? "md:grid-cols-2" : "text-center"
         )}>
-          <div className="space-y-6">
+          {layout === "split" && content.image && (
+            <div className="relative order-2 md:order-1">
+              <img 
+                src={content.image}
+                alt="Hero visual"
+                className="rounded-lg w-full h-full object-cover aspect-[4/3] shadow-lg"
+              />
+            </div>
+          )}
+          <div className={cn(
+            "space-y-6",
+            layout === "split" ? "order-1 md:order-2" : "mx-auto max-w-2xl"
+          )}>
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold">
               {content.title}
             </h1>
@@ -31,11 +44,6 @@ const HeroSection = ({ content, layout, className }: HeroSectionProps) => {
               {content.cta}
             </Button>
           </div>
-          {layout === "split" && (
-            <div className="relative">
-              <div className="aspect-video rounded-lg bg-gradient-to-br from-facebook/10 to-facebook/5" />
-            </div>
-          )}
         </div>
       </div>
     </section>

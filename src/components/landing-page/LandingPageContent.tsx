@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,16 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error("No authenticated user found");
 
+      // First, get the saved ad image
+      const { data: adFeedback } = await supabase
+        .from('ad_feedback')
+        .select('saved_images')
+        .eq('project_id', project.id)
+        .limit(1)
+        .single();
+
+      const savedImageUrl = adFeedback?.saved_images?.[0];
+
       const { data, error } = await supabase.functions.invoke('generate-landing-page', {
         body: {
           businessIdea: project.business_idea,
@@ -38,11 +49,20 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
 
       if (error) throw error;
 
+      // Add the saved image to the hero section
+      const contentWithImage = {
+        ...data,
+        hero: {
+          ...data.hero,
+          image: savedImageUrl
+        }
+      };
+
       const { data: dbResponse, error: dbError } = await supabase
         .from('landing_pages')
         .upsert({
           project_id: project.id,
-          content: data,
+          content: contentWithImage,
           title: project.title || "Landing Page",
           user_id: userData.user.id,
           layout_style: data.layout,
