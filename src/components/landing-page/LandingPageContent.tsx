@@ -7,6 +7,7 @@ import { useLandingPageTemplate } from "./hooks/useLandingPageTemplate";
 import HeroSection from "./sections/HeroSection";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface LandingPageContentProps {
   project: any;
@@ -17,6 +18,7 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
   const [activeView, setActiveView] = useState<"edit" | "preview">("preview");
   const [isGenerating, setIsGenerating] = useState(false);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   
   // Fetch the default template
   const { data: template, isLoading: isTemplateLoading } = useLandingPageTemplate();
@@ -84,10 +86,13 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
             "newsletter"
           ]
         })
-        .select();  // Add this to ensure we get the data back
+        .select();
 
       if (dbError) throw dbError;
       if (!dbResponse?.[0]) throw new Error("No response from database");
+
+      // Invalidate the landing page query to trigger a refetch
+      await queryClient.invalidateQueries(["landing-page", project.id]);
 
       toast({
         title: "Success",
