@@ -92,14 +92,14 @@ const ProjectCard = ({ project, onUpdate, onStartAdWizard }: ProjectCardProps) =
           title={project.title} 
           validationProgress={getValidationProgress()} 
         />
-        <CardContent className="p-3">
-          <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
+        <CardContent className="p-3 pt-2">
+          <p className="text-xs text-muted-foreground mb-2 line-clamp-2 leading-relaxed">
             {project.business_idea?.description || project.description || "No description provided"}
           </p>
           {project.tags && project.tags.length > 0 && (
             <div className="flex flex-wrap gap-1">
               {project.tags.map((tag) => (
-                <Badge key={tag} variant="secondary" className="text-xs">
+                <Badge key={tag} variant="secondary" className="text-[10px] px-1.5 py-0">
                   {tag}
                 </Badge>
               ))}

@@ -43,36 +43,40 @@ const ProjectCardActions = ({
   };
 
   return (
-    <CardFooter className="flex flex-wrap gap-2 justify-end">
+    <CardFooter className="flex flex-wrap gap-1.5 justify-end p-3">
       <Button
         variant="outline"
         size="icon"
+        className="h-7 w-7"
         onClick={onEdit}
       >
-        <Edit2 className="h-4 w-4" />
+        <Edit2 className="h-3.5 w-3.5" />
       </Button>
       <Button
         variant="outline"
         size="icon"
+        className="h-7 w-7"
         onClick={onDelete}
       >
-        <Trash2 className="h-4 w-4" />
+        <Trash2 className="h-3.5 w-3.5" />
       </Button>
       <Button
         variant="outline"
-        className="flex items-center gap-2 whitespace-nowrap"
+        size="sm"
+        className="h-7 text-xs"
         onClick={handleCreateLandingPage}
       >
-        <Layout className="h-4 w-4" />
-        Create Landing Page
+        <Layout className="h-3.5 w-3.5 mr-1.5" />
+        Landing Page
       </Button>
       <Button
         variant="default"
-        className="flex items-center gap-2 whitespace-nowrap"
+        size="sm"
+        className="h-7 text-xs"
         onClick={onStartAdWizard}
       >
-        <PlayCircle className="h-4 w-4" />
-        {hasCampaign ? "View Campaign" : "Create Campaign"}
+        <PlayCircle className="h-3.5 w-3.5 mr-1.5" />
+        {hasCampaign ? "View Ads" : "Create Ads"}
       </Button>
     </CardFooter>
   );
