@@ -43,7 +43,7 @@ const ProjectCardActions = ({
   };
 
   return (
-    <CardFooter className="flex justify-end space-x-2">
+    <CardFooter className="flex flex-wrap gap-2 justify-end">
       <Button
         variant="outline"
         size="icon"
@@ -60,7 +60,7 @@ const ProjectCardActions = ({
       </Button>
       <Button
         variant="outline"
-        className="gap-2"
+        className="flex items-center gap-2 whitespace-nowrap"
         onClick={handleCreateLandingPage}
       >
         <Layout className="h-4 w-4" />
@@ -68,7 +68,7 @@ const ProjectCardActions = ({
       </Button>
       <Button
         variant="default"
-        className="gap-2"
+        className="flex items-center gap-2 whitespace-nowrap"
         onClick={onStartAdWizard}
       >
         <PlayCircle className="h-4 w-4" />
