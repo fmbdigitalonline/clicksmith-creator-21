@@ -44,6 +44,7 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
           businessIdea: project.business_idea,
           targetAudience: project.target_audience,
           audienceAnalysis: project.audience_analysis,
+          projectImages: [savedImageUrl].filter(Boolean)
         },
       });
 
@@ -66,7 +67,22 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
           title: project.title || "Landing Page",
           user_id: userData.user.id,
           layout_style: data.layout,
-          image_placements: data.imagePlacements
+          image_placements: data.imagePlacements,
+          template_version: 2,
+          section_order: [
+            "hero",
+            "value_proposition",
+            "features",
+            "proof",
+            "pricing",
+            "finalCta",
+            "footer"
+          ],
+          conversion_goals: [
+            "sign_up",
+            "contact_form",
+            "newsletter"
+          ]
         });
 
       if (dbError) throw dbError;
@@ -75,6 +91,14 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
         title: "Success",
         description: "Landing page content generated successfully!",
       });
+
+      // Track section view
+      await supabase.rpc('track_section_view', {
+        p_landing_page_id: dbResponse[0].id,
+        p_section_name: 'hero',
+        p_view_time: 0
+      });
+
     } catch (error) {
       console.error('Error generating landing page:', error);
       toast({

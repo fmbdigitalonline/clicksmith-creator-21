@@ -289,6 +289,47 @@ export type Database = {
         }
         Relationships: []
       }
+      landing_page_section_analytics: {
+        Row: {
+          click_through_rate: number | null
+          created_at: string | null
+          engagement_score: number | null
+          id: string
+          landing_page_id: string | null
+          section_name: string
+          updated_at: string | null
+          view_time: number | null
+        }
+        Insert: {
+          click_through_rate?: number | null
+          created_at?: string | null
+          engagement_score?: number | null
+          id?: string
+          landing_page_id?: string | null
+          section_name: string
+          updated_at?: string | null
+          view_time?: number | null
+        }
+        Update: {
+          click_through_rate?: number | null
+          created_at?: string | null
+          engagement_score?: number | null
+          id?: string
+          landing_page_id?: string | null
+          section_name?: string
+          updated_at?: string | null
+          view_time?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "landing_page_section_analytics_landing_page_id_fkey"
+            columns: ["landing_page_id"]
+            isOneToOne: false
+            referencedRelation: "landing_pages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       landing_page_templates: {
         Row: {
           created_at: string | null
@@ -316,45 +357,119 @@ export type Database = {
         }
         Relationships: []
       }
-      landing_pages: {
+      landing_page_variations: {
         Row: {
           content: Json
+          conversion_rate: number | null
+          created_at: string | null
+          end_date: string | null
+          id: string
+          is_control: boolean | null
+          landing_page_id: string | null
+          start_date: string | null
+          updated_at: string | null
+          variant_name: string
+        }
+        Insert: {
+          content: Json
+          conversion_rate?: number | null
+          created_at?: string | null
+          end_date?: string | null
+          id?: string
+          is_control?: boolean | null
+          landing_page_id?: string | null
+          start_date?: string | null
+          updated_at?: string | null
+          variant_name: string
+        }
+        Update: {
+          content?: Json
+          conversion_rate?: number | null
+          created_at?: string | null
+          end_date?: string | null
+          id?: string
+          is_control?: boolean | null
+          landing_page_id?: string | null
+          start_date?: string | null
+          updated_at?: string | null
+          variant_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "landing_page_variations_landing_page_id_fkey"
+            columns: ["landing_page_id"]
+            isOneToOne: false
+            referencedRelation: "landing_pages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      landing_pages: {
+        Row: {
+          analytics_config: Json | null
+          bounce_rate: number | null
+          content: Json
+          conversion_goals: Json | null
+          conversion_rate: number | null
           created_at: string
           id: string
           image_placements: Json | null
           layout_style: Json | null
+          metadata: Json | null
           project_id: string
           published: boolean | null
+          section_order: Json | null
           slug: string | null
+          template_version: number | null
           title: string
+          unique_visitors: number | null
           updated_at: string
           user_id: string
+          views: number | null
         }
         Insert: {
+          analytics_config?: Json | null
+          bounce_rate?: number | null
           content: Json
+          conversion_goals?: Json | null
+          conversion_rate?: number | null
           created_at?: string
           id?: string
           image_placements?: Json | null
           layout_style?: Json | null
+          metadata?: Json | null
           project_id: string
           published?: boolean | null
+          section_order?: Json | null
           slug?: string | null
+          template_version?: number | null
           title: string
+          unique_visitors?: number | null
           updated_at?: string
           user_id: string
+          views?: number | null
         }
         Update: {
+          analytics_config?: Json | null
+          bounce_rate?: number | null
           content?: Json
+          conversion_goals?: Json | null
+          conversion_rate?: number | null
           created_at?: string
           id?: string
           image_placements?: Json | null
           layout_style?: Json | null
+          metadata?: Json | null
           project_id?: string
           published?: boolean | null
+          section_order?: Json | null
           slug?: string | null
+          template_version?: number | null
           title?: string
+          unique_visitors?: number | null
           updated_at?: string
           user_id?: string
+          views?: number | null
         }
         Relationships: [
           {
@@ -901,6 +1016,14 @@ export type Database = {
           p_audience_analysis: Json
           p_generated_ads: Json
           p_current_step: number
+        }
+        Returns: undefined
+      }
+      track_section_view: {
+        Args: {
+          p_landing_page_id: string
+          p_section_name: string
+          p_view_time: number
         }
         Returns: undefined
       }
