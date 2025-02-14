@@ -1,4 +1,3 @@
-
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -37,11 +36,14 @@ export function AppSidebar() {
   useEffect(() => {
     const checkGeneratedAds = async () => {
       if (projectId && projectId !== 'new') {
+        console.log('Checking generated ads for project:', projectId);
         const { data: project } = await supabase
           .from('projects')
           .select('generated_ads')
           .eq('id', projectId)
           .single();
+        
+        console.log('Project data:', project);
         
         // Check if generated_ads exists and is an array with items
         setHasGeneratedAds(
@@ -63,6 +65,8 @@ export function AppSidebar() {
   }, [currentPath, projectId]);
 
   const isDisabled = !projectId || projectId === 'new' || !hasGeneratedAds;
+  
+  console.log('Sidebar state:', { projectId, hasGeneratedAds, isDisabled });
 
   const menuItems = [
     {

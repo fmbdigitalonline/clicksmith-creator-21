@@ -16,11 +16,14 @@ const Navigation = () => {
   useEffect(() => {
     const checkGeneratedAds = async () => {
       if (projectId && projectId !== 'new') {
+        console.log('Checking generated ads for project:', projectId);
         const { data: project } = await supabase
           .from('projects')
           .select('generated_ads')
           .eq('id', projectId)
           .single();
+        
+        console.log('Project data:', project);
         
         // Check if generated_ads exists and is an array with items
         setHasGeneratedAds(
@@ -48,6 +51,8 @@ const Navigation = () => {
   const showAdGallery = currentPath.includes('/ad-wizard');
   const adGalleryUrl = projectId && projectId !== 'new' ? `/ad-wizard/${projectId}` : '/ad-wizard/new';
   const isDisabled = !projectId || projectId === 'new' || !hasGeneratedAds;
+  
+  console.log('Navigation state:', { projectId, hasGeneratedAds, isDisabled });
   
   return (
     <nav className="fixed top-0 left-0 right-0 h-16 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50">
