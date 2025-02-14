@@ -74,13 +74,13 @@ const landingPageTemplate = {
 };
 
 const generateImagePlacements = (images: string[], layout: any) => {
-  const placements = {
-    hero: [],
-    features: [],
-    valueProposition: [],
-    testimonials: [],
-    cta: []
-  };
+  // Initialize placements with empty arrays for each section
+  const placements: { [key: string]: any[] } = {};
+  
+  // Initialize arrays for each section that can have images
+  Object.keys(layout.structure).forEach(section => {
+    placements[section] = [];
+  });
 
   // Distribute images across sections based on layout type
   let imageIndex = 0;
@@ -228,7 +228,7 @@ Content Guidelines:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4',
         messages: [
           {
             role: 'system',
