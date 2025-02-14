@@ -18,7 +18,7 @@ const ProjectCardActions = ({ projectId, onStartAdWizard }: ProjectCardActionsPr
       // Get the project data first
       const { data: project, error: projectError } = await supabase
         .from('projects')
-        .select('business_idea, target_audience, audience_analysis')
+        .select('business_idea, target_audience, audience_analysis, title')
         .eq('id', projectId)
         .single();
 
@@ -52,10 +52,10 @@ const ProjectCardActions = ({ projectId, onStartAdWizard }: ProjectCardActionsPr
         .from('landing_pages')
         .insert({
           project_id: projectId,
+          title: `${project.title} Landing Page`,
           content: generatedContent,
-          layout: generatedContent.layout,
-          styling: generatedContent.styling,
           image_placements: generatedContent.imagePlacements,
+          styling: generatedContent.styling,
           status: 'draft'
         })
         .select()

@@ -414,12 +414,13 @@ export type Database = {
           created_at: string
           id: string
           image_placements: Json | null
-          layout_style: Json | null
+          layout: Json | null
           metadata: Json | null
           project_id: string
           published: boolean | null
           section_order: Json | null
           slug: string | null
+          styling: Json | null
           template_version: number | null
           title: string
           unique_visitors: number | null
@@ -436,12 +437,13 @@ export type Database = {
           created_at?: string
           id?: string
           image_placements?: Json | null
-          layout_style?: Json | null
+          layout?: Json | null
           metadata?: Json | null
           project_id: string
           published?: boolean | null
           section_order?: Json | null
           slug?: string | null
+          styling?: Json | null
           template_version?: number | null
           title: string
           unique_visitors?: number | null
@@ -458,12 +460,13 @@ export type Database = {
           created_at?: string
           id?: string
           image_placements?: Json | null
-          layout_style?: Json | null
+          layout?: Json | null
           metadata?: Json | null
           project_id?: string
           published?: boolean | null
           section_order?: Json | null
           slug?: string | null
+          styling?: Json | null
           template_version?: number | null
           title?: string
           unique_visitors?: number | null
