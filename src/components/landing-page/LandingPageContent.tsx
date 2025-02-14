@@ -83,10 +83,11 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
             "contact_form",
             "newsletter"
           ]
-        });
+        })
+        .select();  // Add this to ensure we get the data back
 
       if (dbError) throw dbError;
-      if (!dbResponse || dbResponse.length === 0) throw new Error("No response from database");
+      if (!dbResponse?.[0]) throw new Error("No response from database");
 
       toast({
         title: "Success",
