@@ -4,12 +4,31 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Settings, CreditCard, PlusCircle, Images } from "lucide-react";
 import { CreditDisplay } from "./CreditDisplay";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 const Navigation = () => {
   const location = useLocation();
   const { projectId } = useParams();
   const currentPath = location.pathname;
+  const [hasGeneratedAds, setHasGeneratedAds] = useState(false);
   
+  useEffect(() => {
+    const checkGeneratedAds = async () => {
+      if (projectId && projectId !== 'new') {
+        const { data: project } = await supabase
+          .from('projects')
+          .select('generated_ads')
+          .eq('id', projectId)
+          .single();
+        
+        setHasGeneratedAds(project?.generated_ads && project.generated_ads.length > 0);
+      }
+    };
+
+    checkGeneratedAds();
+  }, [projectId]);
+
   const isActive = (path: string) => {
     if (path === "/ad-wizard") {
       return currentPath.includes('/ad-wizard');
@@ -23,7 +42,7 @@ const Navigation = () => {
 
   const showAdGallery = currentPath.includes('/ad-wizard');
   const adGalleryUrl = projectId && projectId !== 'new' ? `/ad-wizard/${projectId}` : '/ad-wizard/new';
-  const isNewProject = !projectId || projectId === 'new';
+  const isDisabled = !projectId || projectId === 'new' || !hasGeneratedAds;
   
   return (
     <nav className="fixed top-0 left-0 right-0 h-16 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50">
@@ -49,15 +68,15 @@ const Navigation = () => {
               <Button
                 variant="ghost"
                 size="sm"
-                asChild={!isNewProject}
+                asChild={!isDisabled}
                 className={cn(
                   "gap-2",
                   isActive("/ad-wizard") && "bg-accent",
-                  isNewProject && "opacity-50 cursor-not-allowed"
+                  isDisabled && "opacity-50 cursor-not-allowed"
                 )}
-                disabled={isNewProject}
+                disabled={isDisabled}
               >
-                {isNewProject ? (
+                {isDisabled ? (
                   <div className="flex items-center">
                     <Images className="h-4 w-4 mr-2" />
                     <span>Ad Gallery</span>

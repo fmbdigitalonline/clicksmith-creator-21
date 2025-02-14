@@ -23,6 +23,7 @@ import {
 import { Button } from "./ui/button";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 
 export function AppSidebar() {
   const location = useLocation();
@@ -30,7 +31,24 @@ export function AppSidebar() {
   const { projectId } = useParams();
   const currentPath = location.pathname;
   const [adWizardUrl, setAdWizardUrl] = useState("/ad-wizard/new");
-  const isNewProject = !projectId || projectId === 'new';
+  const [hasGeneratedAds, setHasGeneratedAds] = useState(false);
+
+  // Check for generated ads
+  useEffect(() => {
+    const checkGeneratedAds = async () => {
+      if (projectId && projectId !== 'new') {
+        const { data: project } = await supabase
+          .from('projects')
+          .select('generated_ads')
+          .eq('id', projectId)
+          .single();
+        
+        setHasGeneratedAds(project?.generated_ads && project.generated_ads.length > 0);
+      }
+    };
+
+    checkGeneratedAds();
+  }, [projectId]);
 
   // Update the Ad Gallery URL based on the current project context
   useEffect(() => {
@@ -38,6 +56,8 @@ export function AppSidebar() {
       setAdWizardUrl(`/ad-wizard/${projectId}`);
     }
   }, [currentPath, projectId]);
+
+  const isDisabled = !projectId || projectId === 'new' || !hasGeneratedAds;
 
   const menuItems = [
     {
@@ -59,7 +79,7 @@ export function AppSidebar() {
       title: "Ad Gallery",
       icon: Images,
       url: adWizardUrl,
-      disabled: isNewProject,
+      disabled: isDisabled,
     },
     {
       title: "Settings",
