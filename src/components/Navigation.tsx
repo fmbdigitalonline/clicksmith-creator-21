@@ -23,6 +23,7 @@ const Navigation = () => {
 
   const showAdGallery = currentPath.includes('/ad-wizard');
   const adGalleryUrl = projectId && projectId !== 'new' ? `/ad-wizard/${projectId}` : '/ad-wizard/new';
+  const isNewProject = !projectId || projectId === 'new';
   
   return (
     <nav className="fixed top-0 left-0 right-0 h-16 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50">
@@ -48,16 +49,25 @@ const Navigation = () => {
               <Button
                 variant="ghost"
                 size="sm"
-                asChild
+                asChild={!isNewProject}
                 className={cn(
                   "gap-2",
-                  isActive("/ad-wizard") && "bg-accent"
+                  isActive("/ad-wizard") && "bg-accent",
+                  isNewProject && "opacity-50 cursor-not-allowed"
                 )}
+                disabled={isNewProject}
               >
-                <Link to={adGalleryUrl}>
-                  <Images className="h-4 w-4" />
-                  <span>Ad Gallery</span>
-                </Link>
+                {isNewProject ? (
+                  <div className="flex items-center">
+                    <Images className="h-4 w-4 mr-2" />
+                    <span>Ad Gallery</span>
+                  </div>
+                ) : (
+                  <Link to={adGalleryUrl}>
+                    <Images className="h-4 w-4" />
+                    <span>Ad Gallery</span>
+                  </Link>
+                )}
               </Button>
             )}
             <Button

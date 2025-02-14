@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "./ui/button";
 import { useEffect, useState } from "react";
+import { cn } from "@/lib/utils";
 
 export function AppSidebar() {
   const location = useLocation();
@@ -29,6 +30,7 @@ export function AppSidebar() {
   const { projectId } = useParams();
   const currentPath = location.pathname;
   const [adWizardUrl, setAdWizardUrl] = useState("/ad-wizard/new");
+  const isNewProject = !projectId || projectId === 'new';
 
   // Update the Ad Gallery URL based on the current project context
   useEffect(() => {
@@ -57,6 +59,7 @@ export function AppSidebar() {
       title: "Ad Gallery",
       icon: Images,
       url: adWizardUrl,
+      disabled: isNewProject,
     },
     {
       title: "Settings",
@@ -98,17 +101,27 @@ export function AppSidebar() {
               {menuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
-                    asChild
+                    asChild={!item.disabled}
                     isActive={isActive(item.url)}
-                    tooltip={item.title}
+                    tooltip={item.disabled ? "Generate ads first to access the gallery" : item.title}
+                    className={cn(
+                      item.disabled && "opacity-50 cursor-not-allowed pointer-events-none"
+                    )}
                   >
-                    <Link to={item.url} className="flex items-center gap-2">
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
-                      {isActive(item.url) && (
-                        <ChevronRight className="ml-auto h-4 w-4" />
-                      )}
-                    </Link>
+                    {item.disabled ? (
+                      <div className="flex items-center gap-2">
+                        <item.icon className="h-4 w-4" />
+                        <span>{item.title}</span>
+                      </div>
+                    ) : (
+                      <Link to={item.url} className="flex items-center gap-2">
+                        <item.icon className="h-4 w-4" />
+                        <span>{item.title}</span>
+                        {isActive(item.url) && (
+                          <ChevronRight className="ml-auto h-4 w-4" />
+                        )}
+                      </Link>
+                    )}
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
