@@ -289,6 +289,33 @@ export type Database = {
         }
         Relationships: []
       }
+      landing_page_templates: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          structure: Json
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          structure: Json
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          structure?: Json
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       landing_pages: {
         Row: {
           content: Json
