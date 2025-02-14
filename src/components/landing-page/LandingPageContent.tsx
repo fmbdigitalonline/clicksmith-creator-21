@@ -148,7 +148,7 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
             <div className="space-y-12">
               <HeroSection 
                 content={content.hero}
-                layout={template.structure.hero.layout}
+                layout={template.structure.sections.hero.layout}
                 className={template.structure.styles.spacing.sectionPadding}
               />
               <ValuePropositionSection
