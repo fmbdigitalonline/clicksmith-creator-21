@@ -7,51 +7,79 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const layoutTemplates = [
-  {
-    id: "hero-centered",
-    structure: {
-      hero: { type: "centered", imagePosition: "background" },
-      features: { type: "grid", columns: 3 },
-      benefits: { type: "split", imagePosition: "right" },
-      testimonials: { type: "carousel" }
+// Our landing page template based on Index.tsx structure
+const landingPageTemplate = {
+  id: "modern-saas",
+  structure: {
+    hero: {
+      type: "centered",
+      imagePosition: "background",
+      features: ["gradient", "cta-buttons", "customer-logos"]
+    },
+    features: {
+      type: "grid",
+      columns: 3,
+      style: "icon-top",
+      visualStyle: "modern"
+    },
+    valueProposition: {
+      type: "grid",
+      columns: 3,
+      style: "card",
+      visualStyle: "highlighted"
+    },
+    painPoints: {
+      type: "grid",
+      columns: 3,
+      style: "icon-left",
+      visualStyle: "modern"
+    },
+    testimonials: {
+      type: "grid",
+      style: "card",
+      visualStyle: "shadow"
+    },
+    faq: {
+      type: "grid",
+      columns: 2,
+      style: "card",
+      visualStyle: "minimal"
+    },
+    cta: {
+      type: "centered",
+      style: "gradient",
+      visualStyle: "modern"
     }
   },
-  {
-    id: "hero-split",
-    structure: {
-      hero: { type: "split", imagePosition: "right" },
-      features: { type: "masonry" },
-      benefits: { type: "grid", columns: 2 },
-      testimonials: { type: "grid" }
-    }
-  },
-  {
-    id: "hero-fullscreen",
-    structure: {
-      hero: { type: "fullscreen", imagePosition: "overlay" },
-      features: { type: "carousel" },
-      benefits: { type: "alternating" },
-      testimonials: { type: "centered" }
-    }
-  },
-  {
-    id: "minimal",
-    structure: {
-      hero: { type: "minimal", imagePosition: "floating" },
-      features: { type: "list" },
-      benefits: { type: "cards" },
-      testimonials: { type: "slider" }
+  styling: {
+    colors: {
+      primary: "bg-primary",
+      secondary: "bg-accent",
+      muted: "text-muted-foreground",
+      background: "bg-background"
+    },
+    typography: {
+      hero: "text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight",
+      section: "text-3xl font-bold",
+      subsection: "text-xl font-semibold",
+      body: "text-base text-muted-foreground",
+      small: "text-sm"
+    },
+    spacing: {
+      section: "py-16 px-4 sm:px-6 lg:px-8",
+      container: "max-w-5xl mx-auto",
+      gap: "gap-8"
     }
   }
-];
+};
 
 const generateImagePlacements = (images: string[], layout: any) => {
   const placements = {
     hero: [],
     features: [],
-    benefits: [],
-    testimonials: []
+    valueProposition: [],
+    testimonials: [],
+    cta: []
   };
 
   // Distribute images across sections based on layout type
@@ -67,7 +95,7 @@ const generateImagePlacements = (images: string[], layout: any) => {
         placements[section].push({
           url: images[imageIndex],
           position: sectionLayout.imagePosition || "center",
-          effect: ["mockup", "floating", "shadow"][Math.floor(Math.random() * 3)]
+          effect: sectionLayout.style || "modern"
         });
         imageIndex = (imageIndex + 1) % images.length;
       }
@@ -92,48 +120,75 @@ serve(async (req) => {
       imageCount: projectImages.length
     });
 
-    // Select a random layout template
-    const selectedLayout = layoutTemplates[Math.floor(Math.random() * layoutTemplates.length)];
+    // Use our defined template
+    const selectedLayout = landingPageTemplate;
     
-    // Generate image placements based on the selected layout
+    // Generate image placements based on our template
     const imagePlacements = generateImagePlacements(projectImages, selectedLayout);
 
-    // Enhanced prompt for more professional and complete content
-    const prompt = `Generate a comprehensive and professional landing page content. Use this layout structure: ${JSON.stringify(selectedLayout.structure)}. Return ONLY a valid JSON object with the following structure:
+    const prompt = `Generate a comprehensive and professional landing page content following our modern SaaS template structure. Return ONLY a valid JSON object with the following structure:
 
 {
   "hero": {
-    "title": "Write a powerful headline (10-15 words) that immediately grabs attention by addressing the main value proposition or solving a critical pain point. Make it action-oriented and benefit-focused.",
-    "description": "Write a compelling 4-5 sentence description (80-120 words) that elaborates on the value proposition, addresses key pain points, and creates desire through concrete benefits. Use emotionally resonant language and specific details from the business description.",
-    "cta": "Write a strong call-to-action button text (3-5 words) that creates urgency"
+    "title": "Write a powerful headline (10-12 words) that immediately grabs attention",
+    "description": "Write a compelling 2-3 sentence description (60-80 words) that highlights the main value proposition",
+    "ctaPrimary": "Write primary CTA (3-4 words)",
+    "ctaSecondary": "Write secondary CTA (3-4 words)"
   },
-  "features": [
-    "Write 4-5 detailed feature descriptions (30-40 words each) that highlight the unique capabilities and technological advantages of the solution. Each feature should connect directly to a customer benefit or pain point solution."
-  ],
-  "benefits": [
-    "Write 4-5 compelling benefit statements (30-40 words each) that focus on transformation and positive outcomes for the user. Include specific metrics, results, or improvements where possible."
-  ],
-  "painPoints": [
-    "Write 3-4 specific pain point solutions (35-45 words each) that demonstrate deep understanding of user challenges and how your solution addresses them. Use real scenarios and concrete examples."
-  ],
-  "socialProof": {
-    "testimonials": [
+  "features": {
+    "title": "Write a section title about key features (5-7 words)",
+    "description": "Write a brief section description (20-30 words)",
+    "items": [
       {
-        "content": "Write a detailed, results-focused testimonial (50-70 words) that highlights specific improvements or outcomes, using realistic scenarios and metrics",
-        "name": "Create a realistic customer name that matches the target demographic",
-        "role": "Add a relevant professional title and company type that aligns with the target audience"
-      },
-      {
-        "content": "Write another unique testimonial (50-70 words) focusing on a different aspect of the solution's benefits",
-        "name": "Create another realistic customer name",
-        "role": "Add another relevant professional title and company type"
+        "title": "Write feature title (3-4 words)",
+        "description": "Write feature description (15-20 words)",
+        "icon": "Suggest an icon name from Lucide Icons"
       }
     ]
   },
-  "callToAction": {
-    "title": "Write an urgent, benefit-focused headline (12-15 words) that motivates immediate action",
-    "description": "Write a compelling final pitch (50-70 words) that summarizes the key value proposition and creates FOMO",
-    "buttonText": "Write action-oriented button text (3-5 words)"
+  "valueProposition": {
+    "title": "Write a section title about your solution's value (5-7 words)",
+    "items": [
+      {
+        "title": "Write value point title (3-4 words)",
+        "description": "Write value point description (15-20 words)",
+        "icon": "Suggest an icon name from Lucide Icons"
+      }
+    ]
+  },
+  "painPoints": {
+    "title": "Write a section title addressing pain points (5-7 words)",
+    "items": [
+      {
+        "title": "Write pain point title (3-4 words)",
+        "description": "Write pain point solution (15-20 words)",
+        "icon": "Suggest an icon name from Lucide Icons"
+      }
+    ]
+  },
+  "testimonials": {
+    "title": "Write a social proof section title (5-7 words)",
+    "items": [
+      {
+        "quote": "Write a testimonial (40-50 words)",
+        "author": "Create a realistic name",
+        "role": "Create a relevant job title"
+      }
+    ]
+  },
+  "faq": {
+    "title": "Write an FAQ section title (4-5 words)",
+    "items": [
+      {
+        "question": "Write a relevant question (8-12 words)",
+        "answer": "Write a clear answer (30-40 words)"
+      }
+    ]
+  },
+  "cta": {
+    "title": "Write a compelling final CTA (8-10 words)",
+    "description": "Write a final pitch (30-40 words)",
+    "buttonText": "Write action text (2-3 words)"
   }
 }
 
@@ -143,8 +198,8 @@ Business Details:
 - Value Proposition: ${businessIdea?.valueProposition || 'Not specified'}
 - Description: ${businessIdea?.description || 'Not specified'}
 
-Target Audience Insights:
-- Audience Description: ${targetAudience?.description || 'Not specified'}
+Target Audience:
+- Description: ${targetAudience?.description || 'Not specified'}
 - Demographics: ${targetAudience?.demographics || 'Not specified'}
 - Pain Points: ${JSON.stringify(targetAudience?.painPoints || [])}
 - Core Message: ${targetAudience?.coreMessage || 'Not specified'}
@@ -154,22 +209,17 @@ Market Analysis:
 - Awareness Level: ${audienceAnalysis?.awarenessLevel || 'Not specified'}
 - Deep Pain Points: ${JSON.stringify(audienceAnalysis?.deepPainPoints || [])}
 
-Image Integration:
-There are ${projectImages.length} project images available to showcase. Create content that naturally references and integrates with these visuals based on the selected layout structure.
-
 Content Guidelines:
-1. Generate substantial, detailed content for each section
-2. Use specific numbers, statistics, or metrics where relevant
-3. Include industry-relevant terminology
-4. Address deep pain points directly
-5. Focus on transformation and outcomes
-6. Use action-oriented and emotionally engaging language
-7. Maintain a professional, authoritative tone
-8. Ensure all content aligns with the business's core value proposition
-9. Write in a clear, engaging style that resonates with the target audience
-10. Provide detailed, specific examples rather than generic statements
-
-IMPORTANT: Write comprehensive, detailed content that naturally integrates with the provided images and layout structure. The total word count should be at least 800-1000 words spread across all sections.`;
+1. Use modern, professional language
+2. Focus on benefits and transformations
+3. Include specific, measurable outcomes
+4. Address pain points directly
+5. Maintain consistent tone and voice
+6. Use action-oriented language
+7. Keep it concise and impactful
+8. Focus on the target audience's needs
+9. Use social proof effectively
+10. Create urgency without being pushy`;
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -182,7 +232,7 @@ IMPORTANT: Write comprehensive, detailed content that naturally integrates with 
         messages: [
           {
             role: 'system',
-            content: 'You are an expert landing page copywriter specializing in creating comprehensive, professional content. You must return ONLY valid JSON without any markdown formatting or code blocks.',
+            content: 'You are an expert landing page copywriter specializing in modern SaaS websites. Return ONLY valid JSON without any markdown formatting.',
           },
           {
             role: 'user',
@@ -209,24 +259,24 @@ IMPORTANT: Write comprehensive, detailed content that naturally integrates with 
     let landingPageContent = data.choices[0].message.content;
     console.log('Raw landing page content:', landingPageContent);
 
-    // Clean the response by removing any markdown or code block syntax
+    // Clean the response
     landingPageContent = landingPageContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     console.log('Cleaned landing page content:', landingPageContent);
 
-    // Parse and validate the response
     try {
       const parsedContent = JSON.parse(landingPageContent);
       console.log('Parsed content:', JSON.stringify(parsedContent, null, 2));
 
-      // Validate the structure
-      if (!parsedContent.hero || !parsedContent.features || !parsedContent.benefits) {
+      // Validate the content structure
+      if (!parsedContent.hero || !parsedContent.features || !parsedContent.valueProposition) {
         throw new Error('Missing required sections in the response');
       }
 
       const finalContent = {
         ...parsedContent,
         layout: selectedLayout,
-        imagePlacements
+        imagePlacements,
+        styling: selectedLayout.styling
       };
 
       return new Response(JSON.stringify(finalContent), {
