@@ -1,3 +1,4 @@
+
 import { useAdWizardState } from "@/hooks/useAdWizardState";
 import IdeaStep from "./steps/BusinessIdeaStep";
 import AudienceStep from "./steps/AudienceStep";
@@ -7,7 +8,7 @@ import WizardHeader from "./wizard/WizardHeader";
 import WizardProgress from "./WizardProgress";
 import { useState, useMemo, useEffect } from "react";
 import CreateProjectDialog from "./projects/CreateProjectDialog";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { Toggle } from "./ui/toggle";
 import { Video, Image } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,6 +18,8 @@ const AdWizard = () => {
   const [videoAdsEnabled, setVideoAdsEnabled] = useState(false);
   const navigate = useNavigate();
   const { projectId } = useParams();
+  const location = useLocation();
+  const isGalleryOnly = location.pathname.includes('/ad-gallery');
   
   const {
     currentStep,
@@ -93,6 +96,22 @@ const AdWizard = () => {
 
   // Memoize the current step component to prevent unnecessary re-renders
   const currentStepComponent = useMemo(() => {
+    if (isGalleryOnly) {
+      // Only show Ad Gallery step if we're in gallery mode
+      return businessIdea && targetAudience && audienceAnalysis ? (
+        <AdGalleryStep
+          businessIdea={businessIdea}
+          targetAudience={targetAudience}
+          adHooks={selectedHooks}
+          onStartOver={handleStartOver}
+          onBack={handleBack}
+          onCreateProject={handleCreateProject}
+          videoAdsEnabled={videoAdsEnabled}
+        />
+      ) : null;
+    }
+
+    // Show full wizard flow
     switch (currentStep) {
       case 1:
         return <IdeaStep onNext={handleIdeaSubmit} />;
@@ -128,7 +147,7 @@ const AdWizard = () => {
       default:
         return null;
     }
-  }, [currentStep, businessIdea, targetAudience, audienceAnalysis, selectedHooks, videoAdsEnabled]);
+  }, [currentStep, businessIdea, targetAudience, audienceAnalysis, selectedHooks, videoAdsEnabled, isGalleryOnly]);
 
   return (
     <div className="container max-w-6xl mx-auto px-4 py-8">
@@ -137,13 +156,15 @@ const AdWizard = () => {
         description="Quickly go from idea to ready-to-run ads by testing different audience segments with AI-powered Facebook ad campaigns."
       />
 
-      <div className="mb-8">
-        <WizardProgress
-          currentStep={currentStep}
-          onStepClick={setCurrentStep}
-          canNavigateToStep={canNavigateToStep}
-        />
-      </div>
+      {!isGalleryOnly && (
+        <div className="mb-8">
+          <WizardProgress
+            currentStep={currentStep}
+            onStepClick={setCurrentStep}
+            canNavigateToStep={canNavigateToStep}
+          />
+        </div>
+      )}
 
       <div className="flex items-center justify-end mb-6 space-x-2">
         <span className="text-sm text-gray-600">Image Ads</span>
