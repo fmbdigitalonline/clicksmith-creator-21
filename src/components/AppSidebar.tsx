@@ -1,12 +1,11 @@
 
-import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   FolderKanban,
   Settings,
   ChevronRight,
   PlusCircle,
-  Images,
   Home,
   BookmarkIcon,
 } from "lucide-react";
@@ -21,21 +20,12 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { Button } from "./ui/button";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 export function AppSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { projectId } = useParams();
   const currentPath = location.pathname;
-  const [adWizardUrl, setAdWizardUrl] = useState("/ad-wizard/new");
-
-  // Update the Ad Gallery URL based on the current project context
-  useEffect(() => {
-    if (currentPath.includes('/ad-wizard/') && projectId && projectId !== 'new') {
-      setAdWizardUrl(`/ad-wizard/${projectId}`);
-    }
-  }, [currentPath, projectId]);
 
   const menuItems = [
     {
@@ -54,11 +44,6 @@ export function AppSidebar() {
       url: "/saved-ads",
     },
     {
-      title: "Ad Gallery",
-      icon: Images,
-      url: adWizardUrl,
-    },
-    {
       title: "Settings",
       icon: Settings,
       url: "/settings",
@@ -68,9 +53,6 @@ export function AppSidebar() {
   const isActive = (path: string) => {
     if (path === "/dashboard") {
       return currentPath === "/dashboard";
-    }
-    if (path.startsWith("/ad-wizard")) {
-      return currentPath.includes('/ad-wizard');
     }
     return currentPath === path;
   };
