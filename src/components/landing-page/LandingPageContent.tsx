@@ -5,6 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLandingPageTemplate } from "./hooks/useLandingPageTemplate";
 import HeroSection from "./sections/HeroSection";
+import ValuePropositionSection from "./sections/ValuePropositionSection";
+import FeaturesSection from "./sections/FeaturesSection";
+import TestimonialsSection from "./sections/TestimonialsSection";
+import CtaSection from "./sections/CtaSection";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
@@ -144,10 +148,25 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
             <div className="space-y-12">
               <HeroSection 
                 content={content.hero}
-                layout={template.structure.sections.hero.layout}
+                layout={template.structure.hero.layout}
                 className={template.structure.styles.spacing.sectionPadding}
               />
-              {/* Additional sections will be implemented here */}
+              <ValuePropositionSection
+                content={content.valueProposition}
+                className={template.structure.styles.spacing.sectionPadding}
+              />
+              <FeaturesSection
+                content={content.features}
+                className={template.structure.styles.spacing.sectionPadding}
+              />
+              <TestimonialsSection
+                content={content.testimonials}
+                className={template.structure.styles.spacing.sectionPadding}
+              />
+              <CtaSection
+                content={content.cta}
+                className={template.structure.styles.spacing.sectionPadding}
+              />
             </div>
           )}
         </TabsContent>
@@ -187,20 +206,15 @@ const generateInitialContent = (project: any) => {
         description: feature.split(':')[1] || feature,
       })) || [],
     },
-    proof: {
-      testimonials: [],
-      statistics: [],
-      trustBadges: [],
+    testimonials: {
+      title: "What Our Clients Say",
+      items: [],
     },
-    pricing: {
-      title: "Simple Pricing",
-      plans: [],
-    },
-    finalCta: {
+    cta: {
       title: "Ready to Get Started?",
-      subtitle: "Join thousands of satisfied customers and transform your business today.",
+      description: "Join thousands of satisfied customers and transform your business today.",
       buttonText: "Start Now",
-    },
+    }
   };
 };
 
