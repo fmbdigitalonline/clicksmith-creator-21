@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -65,7 +66,7 @@ const ProjectList = ({ onStartAdWizard }: ProjectListProps) => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Your Projects</h2>
         <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
@@ -85,7 +86,7 @@ const ProjectList = ({ onStartAdWizard }: ProjectListProps) => {
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
         {projects?.map((project) => (
           <ProjectCard 
             key={project.id} 

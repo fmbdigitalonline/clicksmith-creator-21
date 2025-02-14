@@ -1,3 +1,4 @@
+
 import ProjectList from "@/components/projects/ProjectList";
 import { useNavigate } from "react-router-dom";
 
@@ -13,7 +14,7 @@ const Projects = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 py-6">
+    <div className="container mx-auto px-4 py-4">
       <ProjectList onStartAdWizard={handleStartAdWizard} />
     </div>
   );
