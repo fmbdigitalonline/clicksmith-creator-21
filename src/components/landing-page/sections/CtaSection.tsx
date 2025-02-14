@@ -11,7 +11,7 @@ interface CtaSectionProps {
   className?: string;
 }
 
-const CtaSection = ({ content, className }: CtaSectionProps) => {
+const CtaSection = ({ content = {}, className }: CtaSectionProps) => {
   const defaultContent = {
     title: "Ready to Get Started?",
     description: "Join us today and experience the difference.",

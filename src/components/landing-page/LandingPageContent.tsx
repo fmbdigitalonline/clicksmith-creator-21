@@ -173,10 +173,10 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
                 className={template.structure.styles.spacing.sectionPadding}
               />
               <CtaSection
-                content={{
-                  title: content.cta?.title || "Ready to Get Started?",
-                  description: content.cta?.description || "Join us today and experience the difference.",
-                  buttonText: content.cta?.buttonText || "Get Started"
+                content={content.cta || {
+                  title: "Ready to Get Started?",
+                  description: "Join us today and experience the difference.",
+                  buttonText: "Get Started"
                 }}
                 className={template.structure.styles.spacing.sectionPadding}
               />
