@@ -40,15 +40,20 @@ const BusinessIdeaStep = ({
       valueProposition,
     };
 
-    // Pass the business idea to parent component
-    onNext(businessIdea);
-
-    // Start generating audiences immediately
     try {
+      // First pass the business idea to parent component
+      onNext(businessIdea);
+
+      // Then start generating audiences
+      console.log('Generating audiences with business idea:', businessIdea);
       await generateAudiences(businessIdea);
     } catch (error) {
-      console.error('Error generating audiences:', error);
-      // Note: Error toast will be shown by useAudienceGeneration
+      console.error('Error in handleSubmit:', error);
+      toast({
+        title: "Error",
+        description: "Failed to process your business idea. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
