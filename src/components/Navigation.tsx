@@ -12,30 +12,37 @@ const Navigation = () => {
   const { projectId } = useParams();
   const currentPath = location.pathname;
   const [hasGeneratedAds, setHasGeneratedAds] = useState(false);
+  const [lastValidProjectId, setLastValidProjectId] = useState<string | null>(null);
   
   useEffect(() => {
     const checkGeneratedAds = async () => {
-      if (projectId && projectId !== 'new') {
-        console.log('Checking generated ads for project:', projectId);
+      const currentProjectId = projectId || lastValidProjectId;
+      
+      if (currentProjectId && currentProjectId !== 'new') {
+        console.log('Checking generated ads for project:', currentProjectId);
         const { data: project } = await supabase
           .from('projects')
           .select('generated_ads')
-          .eq('id', projectId)
+          .eq('id', currentProjectId)
           .single();
         
         console.log('Project data:', project);
         
-        // Check if generated_ads exists and is an array with items
-        setHasGeneratedAds(
-          project?.generated_ads != null && 
-          Array.isArray(project.generated_ads) && 
-          project.generated_ads.length > 0
-        );
+        const hasAds = project?.generated_ads != null && 
+                      Array.isArray(project.generated_ads) && 
+                      project.generated_ads.length > 0;
+        
+        setHasGeneratedAds(hasAds);
+        
+        // Update last valid project ID if we have ads
+        if (hasAds && currentProjectId) {
+          setLastValidProjectId(currentProjectId);
+        }
       }
     };
 
     checkGeneratedAds();
-  }, [projectId]);
+  }, [projectId, lastValidProjectId]);
 
   const isActive = (path: string) => {
     if (path === "/ad-wizard") {
@@ -49,10 +56,13 @@ const Navigation = () => {
   };
 
   const showAdGallery = currentPath.includes('/ad-wizard');
-  const adGalleryUrl = projectId && projectId !== 'new' ? `/ad-wizard/${projectId}` : '/ad-wizard/new';
-  const isDisabled = !projectId || projectId === 'new' || !hasGeneratedAds;
+  const currentProjectId = projectId || lastValidProjectId;
+  const adGalleryUrl = currentProjectId && currentProjectId !== 'new' 
+    ? `/ad-wizard/${currentProjectId}` 
+    : '/ad-wizard/new';
+  const isDisabled = (!currentProjectId || currentProjectId === 'new' || !hasGeneratedAds);
   
-  console.log('Navigation state:', { projectId, hasGeneratedAds, isDisabled });
+  console.log('Navigation state:', { projectId: currentProjectId, hasGeneratedAds, isDisabled });
   
   return (
     <nav className="fixed top-0 left-0 right-0 h-16 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50">

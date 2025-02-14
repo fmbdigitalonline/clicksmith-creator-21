@@ -31,42 +31,51 @@ export function AppSidebar() {
   const currentPath = location.pathname;
   const [adWizardUrl, setAdWizardUrl] = useState("/ad-wizard/new");
   const [hasGeneratedAds, setHasGeneratedAds] = useState(false);
+  const [lastValidProjectId, setLastValidProjectId] = useState<string | null>(null);
 
   // Check for generated ads
   useEffect(() => {
     const checkGeneratedAds = async () => {
-      if (projectId && projectId !== 'new') {
-        console.log('Checking generated ads for project:', projectId);
+      const currentProjectId = projectId || lastValidProjectId;
+      
+      if (currentProjectId && currentProjectId !== 'new') {
+        console.log('Checking generated ads for project:', currentProjectId);
         const { data: project } = await supabase
           .from('projects')
           .select('generated_ads')
-          .eq('id', projectId)
+          .eq('id', currentProjectId)
           .single();
         
         console.log('Project data:', project);
         
-        // Check if generated_ads exists and is an array with items
-        setHasGeneratedAds(
-          project?.generated_ads != null && 
-          Array.isArray(project.generated_ads) && 
-          project.generated_ads.length > 0
-        );
+        const hasAds = project?.generated_ads != null && 
+                      Array.isArray(project.generated_ads) && 
+                      project.generated_ads.length > 0;
+        
+        setHasGeneratedAds(hasAds);
+        
+        // Update last valid project ID if we have ads
+        if (hasAds && currentProjectId) {
+          setLastValidProjectId(currentProjectId);
+        }
       }
     };
 
     checkGeneratedAds();
-  }, [projectId]);
+  }, [projectId, lastValidProjectId]);
 
   // Update the Ad Gallery URL based on the current project context
   useEffect(() => {
-    if (currentPath.includes('/ad-wizard/') && projectId && projectId !== 'new') {
-      setAdWizardUrl(`/ad-wizard/${projectId}`);
+    const currentProjectId = projectId || lastValidProjectId;
+    if (currentPath.includes('/ad-wizard/') && currentProjectId && currentProjectId !== 'new') {
+      setAdWizardUrl(`/ad-wizard/${currentProjectId}`);
     }
-  }, [currentPath, projectId]);
+  }, [currentPath, projectId, lastValidProjectId]);
 
-  const isDisabled = !projectId || projectId === 'new' || !hasGeneratedAds;
+  const currentProjectId = projectId || lastValidProjectId;
+  const isDisabled = (!currentProjectId || currentProjectId === 'new' || !hasGeneratedAds);
   
-  console.log('Sidebar state:', { projectId, hasGeneratedAds, isDisabled });
+  console.log('Sidebar state:', { projectId: currentProjectId, hasGeneratedAds, isDisabled });
 
   const menuItems = [
     {
