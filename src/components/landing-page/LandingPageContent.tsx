@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -174,7 +173,11 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
                 className={template.structure.styles.spacing.sectionPadding}
               />
               <CtaSection
-                content={content.cta}
+                content={{
+                  title: content.cta?.title || "Ready to Get Started?",
+                  description: content.cta?.description || "Join us today and experience the difference.",
+                  buttonText: content.cta?.buttonText || "Get Started"
+                }}
                 className={template.structure.styles.spacing.sectionPadding}
               />
             </div>
