@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users } from "lucide-react";
 import { TargetAudience } from "@/types/adWizard";
@@ -12,6 +13,11 @@ const AudienceCard = ({ audience, onClick }: AudienceCardProps) => {
   const painPoints = audience.painPoints || [];
   const marketingChannels = audience.marketingChannels || [];
 
+  // Format demographics if it's an object
+  const formattedDemographics = typeof audience.demographics === 'object' 
+    ? `Age: ${audience.demographics.ageRange}, Gender: ${audience.demographics.gender}, Location: ${audience.demographics.location}, Income Level: ${audience.demographics.incomeLevel}`
+    : audience.demographics;
+
   return (
     <Card
       className="relative group cursor-pointer hover:shadow-lg transition-all duration-200 border-2 hover:border-facebook"
@@ -23,7 +29,7 @@ const AudienceCard = ({ audience, onClick }: AudienceCardProps) => {
           <Users className="w-5 h-5 text-facebook" />
           <CardTitle className="text-lg">{audience.name}</CardTitle>
         </div>
-        <CardDescription>{audience.demographics}</CardDescription>
+        <CardDescription>{formattedDemographics}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div>
