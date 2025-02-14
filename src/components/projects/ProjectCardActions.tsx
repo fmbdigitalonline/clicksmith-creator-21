@@ -52,11 +52,12 @@ const ProjectCardActions = ({ projectId, onStartAdWizard }: ProjectCardActionsPr
         .from('landing_pages')
         .insert({
           project_id: projectId,
+          user_id: (await supabase.auth.getUser()).data.user?.id,
           title: `${project.title} Landing Page`,
           content: generatedContent,
           image_placements: generatedContent.imagePlacements,
           styling: generatedContent.styling,
-          status: 'draft'
+          published: false
         })
         .select()
         .single();
