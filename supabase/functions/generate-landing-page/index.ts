@@ -178,7 +178,7 @@ IMPORTANT: Write comprehensive, detailed content that naturally integrates with 
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4', // Fixed model name
+        model: 'gpt-4o-mini',
         messages: [
           {
             role: 'system',
