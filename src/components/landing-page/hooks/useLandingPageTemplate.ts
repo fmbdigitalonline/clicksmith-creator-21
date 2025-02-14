@@ -2,6 +2,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { LandingPageTemplate } from "@/types/landingPage";
+import { Database } from "@/integrations/supabase/types";
+
+type LandingPageTemplateRow = Database["public"]["Tables"]["landing_page_templates"]["Row"];
 
 export const useLandingPageTemplate = (templateId?: string) => {
   return useQuery({
@@ -24,7 +27,15 @@ export const useLandingPageTemplate = (templateId?: string) => {
         throw error;
       }
 
-      return data as LandingPageTemplate;
+      // Type assertion to ensure the structure matches LandingPageTemplate
+      const template: LandingPageTemplate = {
+        id: data.id,
+        name: data.name,
+        description: data.description || "",
+        structure: data.structure as LandingPageTemplate["structure"]
+      };
+
+      return template;
     },
   });
 };
