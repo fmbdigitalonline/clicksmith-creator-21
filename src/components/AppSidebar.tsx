@@ -43,7 +43,12 @@ export function AppSidebar() {
           .eq('id', projectId)
           .single();
         
-        setHasGeneratedAds(project?.generated_ads && project.generated_ads.length > 0);
+        // Check if generated_ads exists and is an array with items
+        setHasGeneratedAds(
+          project?.generated_ads != null && 
+          Array.isArray(project.generated_ads) && 
+          project.generated_ads.length > 0
+        );
       }
     };
 
