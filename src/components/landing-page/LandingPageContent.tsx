@@ -144,7 +144,7 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
           </Button>
         </div>
         <TabsContent value="preview" className="mt-6">
-          {template && (
+          {template && content && (
             <div className="space-y-12">
               <HeroSection 
                 content={content.hero}
@@ -152,7 +152,10 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
                 className={template.structure.styles.spacing.sectionPadding}
               />
               <ValuePropositionSection
-                content={content.valueProposition}
+                content={{
+                  title: content.valueProposition?.title || "Why Choose Us?",
+                  cards: content.valueProposition?.cards || []
+                }}
                 className={template.structure.styles.spacing.sectionPadding}
               />
               <FeaturesSection
