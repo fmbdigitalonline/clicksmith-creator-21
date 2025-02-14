@@ -415,6 +415,7 @@ export type Database = {
           id: string
           image_placements: Json | null
           layout: Json | null
+          layout_style: Json | null
           metadata: Json | null
           project_id: string
           published: boolean | null
@@ -438,6 +439,7 @@ export type Database = {
           id?: string
           image_placements?: Json | null
           layout?: Json | null
+          layout_style?: Json | null
           metadata?: Json | null
           project_id: string
           published?: boolean | null
@@ -461,6 +463,7 @@ export type Database = {
           id?: string
           image_placements?: Json | null
           layout?: Json | null
+          layout_style?: Json | null
           metadata?: Json | null
           project_id?: string
           published?: boolean | null

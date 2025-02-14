@@ -57,6 +57,7 @@ const ProjectCardActions = ({ projectId, onStartAdWizard }: ProjectCardActionsPr
           content: generatedContent,
           image_placements: generatedContent.imagePlacements,
           styling: generatedContent.styling,
+          layout_style: generatedContent.layout,
           published: false
         })
         .select()
