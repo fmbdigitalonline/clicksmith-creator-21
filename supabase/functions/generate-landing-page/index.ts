@@ -57,7 +57,6 @@ serve(async (req) => {
       hasProjectImages: projectImages.length > 0
     });
 
-    // Check if DEEPSEEK_API_KEY is available
     const apiKey = Deno.env.get('DEEPSEEK_API_KEY');
     if (!apiKey) {
       console.error("DEEPSEEK_API_KEY is not set");
@@ -65,8 +64,11 @@ serve(async (req) => {
     }
 
     const openai = new OpenAI({
-      baseURL: 'https://api.deepseek.com/v1',
-      apiKey
+      apiKey,
+      baseURL: "https://api.deepseek.com/v1/chat",
+      defaultHeaders: {
+        "Content-Type": "application/json",
+      }
     });
 
     // Generate main content following AIDA framework
