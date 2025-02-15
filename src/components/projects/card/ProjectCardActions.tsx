@@ -50,9 +50,9 @@ const ProjectCardActions = ({
 
     try {
       // Get the project data first
-      const { data: projectData, error: projectError } = await supabase
+      const { data: project, error: projectError } = await supabase
         .from('projects')
-        .select('*')
+        .select('business_idea, target_audience, audience_analysis, title')
         .eq('id', projectId)
         .single();
 
@@ -69,10 +69,9 @@ const ProjectCardActions = ({
       const savedImages = adFeedback?.saved_images || [];
 
       console.log("Calling generate-landing-page function with data:", {
-        businessIdea: projectData.business_idea,
-        targetAudience: projectData.target_audience,
-        audienceAnalysis: projectData.audience_analysis,
-        marketingCampaign: projectData.marketing_campaign,
+        businessIdea: project.business_idea,
+        targetAudience: project.target_audience,
+        audienceAnalysis: project.audience_analysis,
         projectImages: savedImages
       });
 
@@ -80,10 +79,9 @@ const ProjectCardActions = ({
       const { data: generatedContent, error } = await supabase.functions
         .invoke('generate-landing-page', {
           body: {
-            businessIdea: projectData.business_idea,
-            targetAudience: projectData.target_audience,
-            audienceAnalysis: projectData.audience_analysis,
-            marketingCampaign: projectData.marketing_campaign,
+            businessIdea: project.business_idea,
+            targetAudience: project.target_audience,
+            audienceAnalysis: project.audience_analysis,
             projectImages: savedImages
           },
         });
@@ -96,12 +94,12 @@ const ProjectCardActions = ({
       if (!userData.user) throw new Error("No authenticated user found");
 
       // Save the generated content to the landing_pages table
-      const { data: updatedLandingPage, error: saveError } = await supabase
+      const { data: landingPage, error: saveError } = await supabase
         .from('landing_pages')
         .upsert({
           project_id: projectId,
           user_id: userData.user.id,
-          title: projectData.title || "Landing Page",
+          title: `${project.title} Landing Page`,
           content: generatedContent,
           image_placements: generatedContent.imagePlacements,
           layout_style: generatedContent.layout,
@@ -120,35 +118,26 @@ const ProjectCardActions = ({
             "contact_form",
             "newsletter"
           ],
-          published: false,
-          how_it_works: generatedContent.howItWorks,
-          market_analysis: generatedContent.marketAnalysis,
-          objections: generatedContent.objections,
-          faq: generatedContent.faq,
-          footer_content: generatedContent.footerContent
+          published: false
         })
         .select()
         .single();
 
       if (saveError) throw saveError;
 
-      // Invalidate the landing page query to trigger a refetch
-      await queryClient.invalidateQueries({
-        queryKey: ["landing-page", projectId]
-      });
-
+      // Show success message
       toast({
         title: "Success",
-        description: "Landing page content generated successfully!",
+        description: "Your landing page has been generated successfully!",
       });
 
       // Navigate to the landing page editor
       navigate(`/projects/${projectId}/landing-page`);
     } catch (error) {
-      console.error('Error generating landing page:', error);
+      console.error('Error creating landing page:', error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to generate landing page content",
+        description: error instanceof Error ? error.message : "Failed to create landing page",
         variant: "destructive",
       });
     }

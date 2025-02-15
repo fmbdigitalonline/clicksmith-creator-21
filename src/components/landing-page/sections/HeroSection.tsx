@@ -19,10 +19,7 @@ const HeroSection = ({ content, layout, className }: HeroSectionProps) => {
   console.log("Hero layout:", layout);
 
   return (
-    <section className={cn(
-      "relative py-16 md:py-24 border-b border-gray-100", // Added subtle border
-      className
-    )}>
+    <section className={cn("relative py-16 md:py-24", className)}>
       {/* Add background image when layout is centered */}
       {layout === "centered" && content.image && (
         <div className="absolute inset-0 z-0">
