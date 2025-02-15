@@ -112,6 +112,11 @@ export const generateWord = async (variant: any, imageUrl: string): Promise<Blob
                     width: 500,
                     height: 300,
                   },
+                  type: 'png',
+                  fallback: {
+                    width: 500,
+                    height: 300,
+                  }
                 }),
               ],
               spacing: {
