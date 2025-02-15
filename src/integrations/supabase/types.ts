@@ -412,11 +412,16 @@ export type Database = {
           conversion_goals: Json | null
           conversion_rate: number | null
           created_at: string
+          faq: Json | null
+          footer_content: Json | null
+          how_it_works: Json | null
           id: string
           image_placements: Json | null
           layout: Json | null
           layout_style: Json | null
+          market_analysis: Json | null
           metadata: Json | null
+          objections: Json | null
           project_id: string
           published: boolean | null
           section_order: Json | null
@@ -436,11 +441,16 @@ export type Database = {
           conversion_goals?: Json | null
           conversion_rate?: number | null
           created_at?: string
+          faq?: Json | null
+          footer_content?: Json | null
+          how_it_works?: Json | null
           id?: string
           image_placements?: Json | null
           layout?: Json | null
           layout_style?: Json | null
+          market_analysis?: Json | null
           metadata?: Json | null
+          objections?: Json | null
           project_id: string
           published?: boolean | null
           section_order?: Json | null
@@ -460,11 +470,16 @@ export type Database = {
           conversion_goals?: Json | null
           conversion_rate?: number | null
           created_at?: string
+          faq?: Json | null
+          footer_content?: Json | null
+          how_it_works?: Json | null
           id?: string
           image_placements?: Json | null
           layout?: Json | null
           layout_style?: Json | null
+          market_analysis?: Json | null
           metadata?: Json | null
+          objections?: Json | null
           project_id?: string
           published?: boolean | null
           section_order?: Json | null

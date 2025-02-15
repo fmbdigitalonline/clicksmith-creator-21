@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,6 +8,11 @@ import ValuePropositionSection from "./sections/ValuePropositionSection";
 import FeaturesSection from "./sections/FeaturesSection";
 import TestimonialsSection from "./sections/TestimonialsSection";
 import CtaSection from "./sections/CtaSection";
+import HowItWorksSection from "./sections/HowItWorksSection";
+import MarketAnalysisSection from "./sections/MarketAnalysisSection";
+import ObjectionsSection from "./sections/ObjectionsSection";
+import FaqSection from "./sections/FaqSection";
+import FooterSection from "./sections/FooterSection";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
@@ -174,6 +178,14 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
                 layout={currentLayout?.hero?.layout || template.structure.sections.hero.layout}
                 className={template.structure.styles.spacing.sectionPadding}
               />
+              <HowItWorksSection
+                content={currentContent.howItWorks}
+                className={template.structure.styles.spacing.sectionPadding}
+              />
+              <MarketAnalysisSection
+                content={currentContent.marketAnalysis}
+                className={template.structure.styles.spacing.sectionPadding}
+              />
               <ValuePropositionSection
                 content={{
                   title: currentContent.valueProposition?.title || "Why Choose Us?",
@@ -196,12 +208,24 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
                 }}
                 className={template.structure.styles.spacing.sectionPadding}
               />
+              <ObjectionsSection
+                content={currentContent.objections}
+                className={template.structure.styles.spacing.sectionPadding}
+              />
+              <FaqSection
+                content={currentContent.faq}
+                className={template.structure.styles.spacing.sectionPadding}
+              />
               <CtaSection
                 content={currentContent.cta || {
                   title: "Ready to Get Started?",
                   description: "Join us today and experience the difference.",
                   buttonText: "Get Started"
                 }}
+                className={template.structure.styles.spacing.sectionPadding}
+              />
+              <FooterSection
+                content={currentContent.footerContent}
                 className={template.structure.styles.spacing.sectionPadding}
               />
             </div>

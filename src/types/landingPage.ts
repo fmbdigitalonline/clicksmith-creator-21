@@ -58,50 +58,50 @@ export interface LandingPageContent {
     title: string;
     description: string;
     cta: string;
+    image?: string;
   };
-  valueProposition?: {
-    title: string;
-    cards: Array<{
-      icon: string;
+  howItWorks?: {
+    subheadline: string;
+    steps: Array<{
       title: string;
       description: string;
     }>;
+    valueReinforcement: string;
   };
-  features?: {
-    title: string;
-    items: Array<{
+  marketAnalysis?: {
+    context: string;
+    solution: string;
+    painPoints: Array<{
       title: string;
       description: string;
-      image?: string;
     }>;
-  };
-  proof?: {
-    testimonials?: Array<{
+    features: Array<{
+      title: string;
+      description: string;
+    }>;
+    socialProof: {
       quote: string;
       author: string;
-      role?: string;
-      image?: string;
-    }>;
-    statistics?: Array<{
-      value: string;
-      label: string;
-      icon?: string;
-    }>;
-    trustBadges?: string[];
+      title: string;
+    };
   };
-  pricing?: {
-    title: string;
-    plans: Array<{
-      name: string;
-      price: string;
-      features: string[];
-      cta: string;
-      highlighted?: boolean;
+  objections?: {
+    subheadline: string;
+    concerns: Array<{
+      question: string;
+      answer: string;
     }>;
   };
-  finalCta?: {
-    title: string;
-    subtitle: string;
-    buttonText: string;
+  faq?: {
+    subheadline: string;
+    questions: Array<{
+      question: string;
+      answer: string;
+    }>;
+  };
+  footerContent?: {
+    contact: string;
+    newsletter: string;
+    copyright: string;
   };
 }
