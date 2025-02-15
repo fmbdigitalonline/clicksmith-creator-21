@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { OpenAI } from "https://esm.sh/openai@4.20.1";
 import Replicate from "https://esm.sh/replicate@0.25.1";
@@ -63,10 +64,13 @@ serve(async (req) => {
       throw new Error("API key configuration is missing");
     }
 
+    // Updated Deepseek API configuration
     const openai = new OpenAI({
       apiKey,
-      baseURL: "https://api.deepseek.com/v1/chat",
+      baseURL: "https://api.deepseek.com/v1",
+      defaultQuery: { api_key: apiKey },
       defaultHeaders: {
+        "Authorization": `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       }
     });
