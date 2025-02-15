@@ -8,29 +8,23 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const cleanMarkdownJSON = (content: string): string => {
-  // Remove markdown code block syntax and any extra whitespace
-  return content
-    .replace(/```json\s*/g, '')  // Remove opening ```json
-    .replace(/```\s*$/g, '')     // Remove closing ```
-    .replace(/^```\s*/g, '')     // Remove any other ``` markers
-    .trim();                      // Remove extra whitespace
-};
-
-const parseAIResponse = (content: string): any => {
+const parseOpenAIResponse = (content: string): any => {
   try {
-    // First try parsing the raw content
+    // First attempt: direct JSON parse
     return JSON.parse(content);
   } catch (e) {
     try {
-      // If that fails, try cleaning markdown formatting and parse again
-      const cleanedContent = cleanMarkdownJSON(content);
-      console.log("Cleaned content:", cleanedContent);
+      // Second attempt: clean markdown and try again
+      const cleanedContent = content.replace(/```json\n?|\n?```/g, '').trim();
       return JSON.parse(cleanedContent);
     } catch (e2) {
       console.error('Failed to parse AI response:', content);
       console.error('Parse error:', e2);
-      throw new Error(`Failed to parse AI response: ${e2.message}`);
+      // Return a structured error message
+      return {
+        error: "Failed to parse AI response",
+        content: content
+      };
     }
   }
 };
@@ -44,57 +38,16 @@ const mapToTemplateStructure = (aidaContent: any, heroContent: any, heroImage: s
     throw new Error("Missing required content for template structure");
   }
 
-  // Ensure painPoints is properly structured
-  const painPoints = (aidaContent.marketAnalysis?.painPoints || []).map((point: any) => {
-    if (typeof point === 'string') {
-      return {
-        title: 'Pain Point',
-        description: point
-      };
-    }
-    return {
-      title: point.title || 'Pain Point',
-      description: point.description || point
-    };
-  });
-
-  // Ensure features is properly structured
-  const features = (aidaContent.marketAnalysis?.features || []).map((feature: any) => {
-    if (typeof feature === 'string') {
-      return {
-        title: 'Feature',
-        description: feature
-      };
-    }
-    return {
-      title: feature.title || 'Feature',
-      description: feature.description || feature
-    };
-  });
-
-  // Ensure social proof is properly structured
-  const socialProof = aidaContent.marketAnalysis?.socialProof ? {
-    quote: typeof aidaContent.marketAnalysis.socialProof === 'string' 
-      ? aidaContent.marketAnalysis.socialProof 
-      : aidaContent.marketAnalysis.socialProof.quote || '',
-    author: aidaContent.marketAnalysis.socialProof.author || 'Happy Customer',
-    title: aidaContent.marketAnalysis.socialProof.title || 'Customer'
-  } : null;
-
   return {
     hero: {
       title: heroContent.headline || "Welcome",
-      description: [
-        heroContent.subtitle?.interest || '',
-        heroContent.subtitle?.desire || '',
-        heroContent.subtitle?.action || ''
-      ].filter(Boolean).join(' '),
+      description: `${heroContent.subtitle?.interest || ''} ${heroContent.subtitle?.desire || ''} ${heroContent.subtitle?.action || ''}`.trim(),
       cta: heroContent.subtitle?.action || "Get Started",
       image: heroImage || "",
     },
     valueProposition: {
       title: "Why Choose Us?",
-      cards: painPoints.slice(0, 3).map((point: any, index: number) => ({
+      cards: (aidaContent.marketAnalysis?.painPoints || []).map((point: any, index: number) => ({
         icon: ["✨", "🎯", "💫"][index % 3],
         title: point.title || "Feature",
         description: point.description || "Description"
@@ -103,7 +56,7 @@ const mapToTemplateStructure = (aidaContent: any, heroContent: any, heroImage: s
     features: {
       title: "Key Features",
       description: aidaContent.marketAnalysis?.solution || "",
-      items: features.map((feature: any) => ({
+      items: (aidaContent.marketAnalysis?.features || []).map((feature: any, index: number) => ({
         title: feature.title || "Feature",
         description: feature.description || "Description"
       }))
@@ -114,18 +67,16 @@ const mapToTemplateStructure = (aidaContent: any, heroContent: any, heroImage: s
     },
     testimonials: {
       title: "What Our Clients Say",
-      items: socialProof ? [{
-        quote: socialProof.quote,
-        author: socialProof.author,
-        role: socialProof.title
-      }] : []
+      items: [{
+        quote: aidaContent.marketAnalysis?.socialProof?.quote || "Great service!",
+        author: aidaContent.marketAnalysis?.socialProof?.author || "Happy Customer",
+        role: aidaContent.marketAnalysis?.socialProof?.title || "Customer"
+      }]
     },
-    marketAnalysis: {
-      context: aidaContent.marketAnalysis?.context || "",
-      solution: aidaContent.marketAnalysis?.solution || "",
-      painPoints: painPoints,
-      features: features,
-      socialProof: socialProof
+    marketAnalysis: aidaContent.marketAnalysis || {
+      context: "",
+      solution: "",
+      marketTrends: []
     },
     objections: aidaContent.objections || {
       subheadline: "",
@@ -173,11 +124,15 @@ serve(async (req) => {
       audienceAnalysis
     });
 
-    // Initialize OpenAI client with base URL and API key
-    const deepseekApiKey = Deno.env.get('DEEPSEEK_API_KEY');
-    if (!deepseekApiKey) {
+    // Initialize OpenAI client
+    const openai = new OpenAI({
+      baseURL: 'https://api.deepseek.com/v1',
+      apiKey: Deno.env.get('DEEPSEEK_API_KEY')
+    });
+
+    if (!openai.apiKey) {
       return new Response(
-        JSON.stringify({ error: 'DEEPSEEK_API_KEY is not configured' }),
+        JSON.stringify({ error: 'OpenAI API key is not configured' }),
         { 
           status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -185,77 +140,57 @@ serve(async (req) => {
       );
     }
 
-    const openai = new OpenAI({
-      baseURL: 'https://api.deepseek.com/v1',
-      apiKey: deepseekApiKey
+    // Generate hero content
+    console.log("Generating hero content...");
+    const heroPrompt = `Write a compelling headline and subtitle for a landing page that promotes ${businessIdea.description || businessIdea.name} following the AIDA formula. Return as JSON with headline and subtitle sections.`;
+    console.log("Hero prompt:", heroPrompt);
+
+    const heroCompletion = await openai.chat.completions.create({
+      model: "deepseek-chat",
+      messages: [
+        {
+          role: "system",
+          content: "You are an expert copywriter specializing in landing page headlines. Create compelling content following the AIDA formula. Return only valid JSON."
+        },
+        {
+          role: "user",
+          content: heroPrompt
+        }
+      ],
+      response_format: { type: "json_object" },
+      temperature: 0.7
     });
 
-    // Generate hero content with a more structured prompt
-    console.log("Generating hero content...");
-    let heroContent;
-    try {
-      const heroCompletion = await openai.chat.completions.create({
-        model: "deepseek-chat",
-        messages: [
-          {
-            role: "system",
-            content: `You are an expert copywriter. Return a JSON object with this exact structure, no markdown:
-            {
-              "headline": "Main attention-grabbing headline",
-              "subtitle": {
-                "interest": "Interest-building text",
-                "desire": "Desire-building text",
-                "action": "Call to action text"
-              }
-            }`
-          },
-          {
-            role: "user",
-            content: `Create a compelling headline and subtitle for this business: ${businessIdea.description || businessIdea.name}`
-          }
-        ],
-        temperature: 0.7
-      });
-
-      const rawResponse = heroCompletion.choices[0].message.content;
-      console.log("Raw hero response:", rawResponse);
-      heroContent = parseAIResponse(rawResponse);
-      console.log("Parsed hero content:", heroContent);
-    } catch (error) {
-      console.error("Hero content generation error:", error);
-      throw new Error(`Hero content generation failed: ${error.message}`);
-    }
+    console.log("Hero content generated");
+    const heroContent = parseOpenAIResponse(heroCompletion.choices[0].message.content);
 
     // Generate AIDA content
     console.log("Generating AIDA content...");
-    let aidaContent;
-    try {
-      const completion = await openai.chat.completions.create({
-        model: "deepseek-chat",
-        messages: [
-          {
-            role: "system",
-            content: `You are a landing page content expert. Return a JSON object containing sections for howItWorks, marketAnalysis (with solution, features, and socialProof), objections, and FAQ. Do not use markdown formatting.`
-          },
-          {
-            role: "user",
-            content: `Generate landing page content for this business:
-              Business: ${JSON.stringify(businessIdea)}
-              Target Audience: ${JSON.stringify(targetAudience)}
-              Analysis: ${JSON.stringify(audienceAnalysis)}`
-          }
-        ],
-        temperature: 0.7
-      });
+    const aidaPrompt = `Generate landing page content for: ${JSON.stringify({
+      business: businessIdea,
+      audience: targetAudience,
+      analysis: audienceAnalysis
+    })}. Include howItWorks, marketAnalysis, objections, and FAQ sections.`;
+    console.log("AIDA prompt:", aidaPrompt);
 
-      const rawResponse = completion.choices[0].message.content;
-      console.log("Raw AIDA response:", rawResponse);
-      aidaContent = parseAIResponse(rawResponse);
-      console.log("Parsed AIDA content:", aidaContent);
-    } catch (error) {
-      console.error("AIDA content generation error:", error);
-      throw new Error(`AIDA content generation failed: ${error.message}`);
-    }
+    const completion = await openai.chat.completions.create({
+      model: "deepseek-chat",
+      messages: [
+        {
+          role: "system",
+          content: "You are a landing page content expert. Generate comprehensive content following the AIDA framework. Return only valid JSON."
+        },
+        {
+          role: "user",
+          content: aidaPrompt
+        }
+      ],
+      response_format: { type: "json_object" },
+      temperature: 0.7
+    });
+
+    console.log("AIDA content generated");
+    const aidaContent = parseOpenAIResponse(completion.choices[0].message.content);
 
     // Handle hero image
     let heroImage = projectImages[0];
@@ -266,7 +201,13 @@ serve(async (req) => {
       });
 
       if (!replicate.auth) {
-        throw new Error('REPLICATE_API_KEY is not configured');
+        return new Response(
+          JSON.stringify({ error: 'Replicate API key is not configured' }),
+          { 
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        );
       }
 
       const imagePrompt = `Professional photograph for a landing page promoting: ${businessIdea.description || businessIdea.name}. High resolution, commercial quality.`;
@@ -311,8 +252,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         error: error.message,
-        details: error.stack,
-        type: error.constructor.name
+        details: error.stack
       }),
       {
         status: 500,

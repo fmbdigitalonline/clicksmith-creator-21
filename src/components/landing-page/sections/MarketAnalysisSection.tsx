@@ -43,7 +43,7 @@ const MarketAnalysisSection = ({ content, className }: MarketAnalysisSectionProp
           )}
         </div>
 
-        {Array.isArray(content.painPoints) && content.painPoints.length > 0 && (
+        {content.painPoints && content.painPoints.length > 0 && (
           <div className="mb-12">
             <h3 className="text-xl font-semibold text-center mb-8">Deep Pain Points: Solving Your Biggest Challenges</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -57,7 +57,7 @@ const MarketAnalysisSection = ({ content, className }: MarketAnalysisSectionProp
           </div>
         )}
 
-        {Array.isArray(content.features) && content.features.length > 0 && (
+        {content.features && content.features.length > 0 && (
           <div className="mb-12">
             <h3 className="text-xl font-semibold text-center mb-8">Why Our Solution Works</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
