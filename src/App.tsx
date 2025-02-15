@@ -11,6 +11,7 @@ import Privacy from "@/pages/Privacy";
 import Projects from "@/pages/Projects";
 import Settings from "@/pages/Settings";
 import Pricing from "@/pages/Pricing";
+import Contact from "@/pages/Contact";
 import AdWizard from "@/components/AdWizard";
 import Dashboard from "@/pages/Dashboard";
 import { SavedAdsGallery } from "@/components/gallery/SavedAdsGallery";
@@ -31,6 +32,7 @@ function App() {
             <Route path="/terms" element={<Terms />} />
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/pricing" element={<Pricing />} />
+            <Route path="/contact" element={<Contact />} />
             <Route path="/" element={<Index />} />
 
             {/* Protected routes */}

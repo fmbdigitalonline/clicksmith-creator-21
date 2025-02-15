@@ -25,6 +25,15 @@ const LandingNav = () => {
                 Pricing
               </Link>
             </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              asChild
+            >
+              <Link to="/contact">
+                Contact
+              </Link>
+            </Button>
             {session ? (
               <div className="flex items-center gap-4">
                 <Button
