@@ -8,6 +8,24 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Helper function to clean and parse JSON from OpenAI response
+const parseOpenAIResponse = (content: string): any => {
+  try {
+    // First, try direct parsing
+    return JSON.parse(content);
+  } catch (e) {
+    // If that fails, try to clean the content
+    try {
+      // Remove markdown code blocks if present
+      const cleanedContent = content.replace(/```json\n?|\n?```/g, '');
+      return JSON.parse(cleanedContent.trim());
+    } catch (e2) {
+      console.error('Failed to parse OpenAI response:', content);
+      throw new Error('Failed to parse OpenAI response');
+    }
+  }
+};
+
 serve(async (req) => {
   // Handle CORS
   if (req.method === 'OPTIONS') {
@@ -55,16 +73,7 @@ serve(async (req) => {
       - Use phrases that nudge toward action.
       - Recommended word count: 4–6 words.
 
-      Business Information:
-      ${JSON.stringify(businessIdea)}
-
-      Target Audience:
-      ${JSON.stringify(targetAudience)}
-
-      Audience Analysis:
-      ${JSON.stringify(audienceAnalysis)}
-
-      Format the response as a JSON object with these fields:
+      Return ONLY a JSON object with no markdown formatting, following this exact structure:
       {
         "headline": "The attention-grabbing headline",
         "subtitle": {
@@ -80,7 +89,7 @@ serve(async (req) => {
       messages: [
         {
           role: "system",
-          content: "You are an expert copywriter specializing in landing page headlines that convert. You create compelling, AIDA-formula headlines that grab attention and drive action."
+          content: "You are an expert copywriter specializing in landing page headlines that convert. You must return only valid JSON with no markdown formatting."
         },
         {
           role: "user",
@@ -89,8 +98,8 @@ serve(async (req) => {
       ]
     });
 
-    console.log("Hero content generated:", heroCompletion.choices[0].message);
-    const heroContent = JSON.parse(heroCompletion.choices[0].message.content);
+    console.log("Hero content response:", heroCompletion.choices[0].message.content);
+    const heroContent = parseOpenAIResponse(heroCompletion.choices[0].message.content);
 
     // Now generate the rest of the landing page content
     console.log("Generating remaining landing page content...");
@@ -100,13 +109,42 @@ serve(async (req) => {
       Target Audience: ${JSON.stringify(targetAudience)}
       Audience Analysis: ${JSON.stringify(audienceAnalysis)}
 
-      Generate content for these sections:
-      1. Value proposition section with 3 key benefits
-      2. Features section with 3-4 main features
-      3. Social proof/testimonials section with 2-3 testimonials
-      4. Call to action section
-
-      Format the response as a JSON object with these sections.
+      Return ONLY a JSON object with no markdown formatting, containing these sections:
+      {
+        "valueProposition": {
+          "title": "Main value proposition title",
+          "cards": [
+            {
+              "title": "Benefit 1",
+              "description": "Benefit 1 description"
+            }
+          ]
+        },
+        "features": {
+          "title": "Features section title",
+          "items": [
+            {
+              "title": "Feature 1",
+              "description": "Feature 1 description"
+            }
+          ]
+        },
+        "testimonials": {
+          "title": "What Our Clients Say",
+          "items": [
+            {
+              "quote": "Client testimonial",
+              "author": "Client name",
+              "role": "Client role"
+            }
+          ]
+        },
+        "cta": {
+          "title": "Call to action title",
+          "description": "Call to action description",
+          "buttonText": "Button text"
+        }
+      }
     `;
 
     const completion = await openai.chat.completions.create({
@@ -114,7 +152,7 @@ serve(async (req) => {
       messages: [
         {
           role: "system",
-          content: "You are a landing page content expert. Create compelling, conversion-focused content."
+          content: "You are a landing page content expert. You must return only valid JSON with no markdown formatting."
         },
         {
           role: "user",
@@ -123,8 +161,8 @@ serve(async (req) => {
       ]
     });
 
-    console.log("Remaining content generated:", completion.choices[0].message);
-    const remainingContent = JSON.parse(completion.choices[0].message.content);
+    console.log("Remaining content response:", completion.choices[0].message.content);
+    const remainingContent = parseOpenAIResponse(completion.choices[0].message.content);
 
     // Combine hero content with remaining content
     const generatedContent = {
