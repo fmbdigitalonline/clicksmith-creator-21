@@ -145,107 +145,123 @@ serve(async (req) => {
     const heroPrompt = `Write a compelling headline and subtitle for a landing page that promotes ${businessIdea.description || businessIdea.name} following the AIDA formula. Return as JSON with headline and subtitle sections.`;
     console.log("Hero prompt:", heroPrompt);
 
-    const heroCompletion = await openai.chat.completions.create({
-      model: "deepseek-chat",
-      messages: [
-        {
-          role: "system",
-          content: "You are an expert copywriter specializing in landing page headlines. Create compelling content following the AIDA formula. Return only valid JSON."
-        },
-        {
-          role: "user",
-          content: heroPrompt
-        }
-      ],
-      response_format: { type: "json_object" },
-      temperature: 0.7
-    });
-
-    console.log("Hero content generated");
-    const heroContent = parseOpenAIResponse(heroCompletion.choices[0].message.content);
-
-    // Generate AIDA content
-    console.log("Generating AIDA content...");
-    const aidaPrompt = `Generate landing page content for: ${JSON.stringify({
-      business: businessIdea,
-      audience: targetAudience,
-      analysis: audienceAnalysis
-    })}. Include howItWorks, marketAnalysis, objections, and FAQ sections.`;
-    console.log("AIDA prompt:", aidaPrompt);
-
-    const completion = await openai.chat.completions.create({
-      model: "deepseek-chat",
-      messages: [
-        {
-          role: "system",
-          content: "You are a landing page content expert. Generate comprehensive content following the AIDA framework. Return only valid JSON."
-        },
-        {
-          role: "user",
-          content: aidaPrompt
-        }
-      ],
-      response_format: { type: "json_object" },
-      temperature: 0.7
-    });
-
-    console.log("AIDA content generated");
-    const aidaContent = parseOpenAIResponse(completion.choices[0].message.content);
-
-    // Handle hero image
-    let heroImage = projectImages[0];
-    if (!heroImage) {
-      console.log("Generating hero image...");
-      const replicate = new Replicate({
-        auth: Deno.env.get('REPLICATE_API_KEY'),
+    try {
+      const heroCompletion = await openai.chat.completions.create({
+        model: "deepseek-chat",
+        messages: [
+          {
+            role: "system",
+            content: "You are an expert copywriter specializing in landing page headlines. Create compelling content following the AIDA formula. Return only valid JSON."
+          },
+          {
+            role: "user",
+            content: heroPrompt
+          }
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.7
       });
 
-      if (!replicate.auth) {
-        return new Response(
-          JSON.stringify({ error: 'Replicate API key is not configured' }),
-          { 
-            status: 500,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      console.log("Hero response:", heroCompletion.choices[0].message.content);
+      const heroContent = parseOpenAIResponse(heroCompletion.choices[0].message.content);
+
+      // Generate AIDA content
+      console.log("Generating AIDA content...");
+      const aidaPrompt = `Generate landing page content for: ${JSON.stringify({
+        business: businessIdea,
+        audience: targetAudience,
+        analysis: audienceAnalysis
+      })}. Include howItWorks, marketAnalysis, objections, and FAQ sections.`;
+      console.log("AIDA prompt:", aidaPrompt);
+
+      const completion = await openai.chat.completions.create({
+        model: "deepseek-chat",
+        messages: [
+          {
+            role: "system",
+            content: "You are a landing page content expert. Generate comprehensive content following the AIDA framework. Return only valid JSON."
+          },
+          {
+            role: "user",
+            content: aidaPrompt
+          }
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.7
+      });
+
+      console.log("AIDA response:", completion.choices[0].message.content);
+      const aidaContent = parseOpenAIResponse(completion.choices[0].message.content);
+
+      // Handle hero image
+      let heroImage = projectImages[0];
+      if (!heroImage) {
+        console.log("Generating hero image...");
+        const replicate = new Replicate({
+          auth: Deno.env.get('REPLICATE_API_KEY'),
+        });
+
+        if (!replicate.auth) {
+          return new Response(
+            JSON.stringify({ error: 'Replicate API key is not configured' }),
+            { 
+              status: 500,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            }
+          );
+        }
+
+        const imagePrompt = `Professional photograph for a landing page promoting: ${businessIdea.description || businessIdea.name}. High resolution, commercial quality.`;
+        console.log("Image generation prompt:", imagePrompt);
+
+        const output = await replicate.run(
+          "black-forest-labs/flux-1.1-pro",
+          {
+            input: {
+              prompt: imagePrompt,
+              width: 1024,
+              height: 1024,
+              num_outputs: 1,
+              go_fast: true,
+              megapixels: "1",
+              aspect_ratio: "1:1",
+              output_format: "webp",
+              output_quality: 80,
+              num_inference_steps: 4
+            }
           }
         );
+
+        heroImage = Array.isArray(output) ? output[0] : output;
+        console.log("Hero image generated:", heroImage);
       }
 
-      const imagePrompt = `Professional photograph for a landing page promoting: ${businessIdea.description || businessIdea.name}. High resolution, commercial quality.`;
-      console.log("Image generation prompt:", imagePrompt);
+      // Map content to template
+      const generatedContent = mapToTemplateStructure(aidaContent, heroContent, heroImage);
+      console.log("Content mapping complete");
 
-      const output = await replicate.run(
-        "black-forest-labs/flux-1.1-pro",
+      return new Response(
+        JSON.stringify(generatedContent),
         {
-          input: {
-            prompt: imagePrompt,
-            width: 1024,
-            height: 1024,
-            num_outputs: 1,
-            go_fast: true,
-            megapixels: "1",
-            aspect_ratio: "1:1",
-            output_format: "webp",
-            output_quality: 80,
-            num_inference_steps: 4
-          }
-        }
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200
+        },
       );
 
-      heroImage = Array.isArray(output) ? output[0] : output;
-      console.log("Hero image generated:", heroImage);
+    } catch (aiError) {
+      console.error('AI Generation error:', aiError);
+      return new Response(
+        JSON.stringify({
+          error: 'AI Generation failed',
+          details: aiError.message,
+          response: aiError.response
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
     }
-
-    // Map content to template
-    const generatedContent = mapToTemplateStructure(aidaContent, heroContent, heroImage);
-    console.log("Content mapping complete");
-
-    return new Response(
-      JSON.stringify(generatedContent),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200
-      },
-    );
 
   } catch (error) {
     console.error('Error in generate-landing-page function:', error);
