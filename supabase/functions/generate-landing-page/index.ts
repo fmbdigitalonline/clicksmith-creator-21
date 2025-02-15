@@ -230,7 +230,7 @@ Return JSON with exact structure:
           auth: Deno.env.get('REPLICATE_API_KEY'),
         });
 
-        const imagePrompt = `Professional photograph for a landing page promoting: ${businessIdea.description}. High resolution, commercial quality.`;
+        const imagePrompt = `Professional photograph visualizing: "${heroContent.headline}". ${heroContent.subtitle}. High resolution, commercial quality, modern aesthetic, perfect for a landing page hero section.`;
         console.log("Image generation prompt:", imagePrompt);
 
         const output = await replicate.run(
