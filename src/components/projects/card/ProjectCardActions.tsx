@@ -10,6 +10,7 @@ import LoadingState from "@/components/landing-page/LoadingState";
 import {
   Dialog,
   DialogContent,
+  DialogClose,
 } from "@/components/ui/dialog";
 import { useState } from "react";
 
@@ -189,7 +190,7 @@ const ProjectCardActions = ({
       </CardFooter>
 
       <Dialog open={isGenerating} onOpenChange={setIsGenerating}>
-        <DialogContent className="sm:max-w-lg" showClose={false}>
+        <DialogContent className="sm:max-w-lg">
           <LoadingState />
         </DialogContent>
       </Dialog>
