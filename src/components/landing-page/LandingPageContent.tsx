@@ -30,11 +30,23 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
 
   const generateLandingPageContent = async () => {
     setIsGenerating(true);
-    try {
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) throw new Error("No authenticated user found");
+    // Show loading toast
+    toast({
+      title: "Creating landing page",
+      description: "Please wait while we generate your landing page...",
+    });
 
-      // First, get the saved ad image
+    try {
+      // Get the project data first
+      const { data: projectData, error: projectError } = await supabase
+        .from('projects')
+        .select('business_idea, target_audience, audience_analysis')
+        .eq('id', project.id)
+        .single();
+
+      if (projectError) throw projectError;
+
+      // Get any saved ad images
       const { data: adFeedback } = await supabase
         .from('ad_feedback')
         .select('saved_images')
@@ -42,37 +54,30 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
         .limit(1)
         .single();
 
-      const savedImageUrl = adFeedback?.saved_images?.[0];
+      const savedImages = adFeedback?.saved_images || [];
 
-      const { data, error } = await supabase.functions.invoke('generate-landing-page', {
-        body: {
-          businessIdea: project.business_idea,
-          targetAudience: project.target_audience,
-          audienceAnalysis: project.audience_analysis,
-          projectImages: [savedImageUrl].filter(Boolean)
-        },
-      });
+      // Call the edge function to generate landing page content
+      const { data: generatedContent, error } = await supabase.functions
+        .invoke('generate-landing-page', {
+          body: {
+            businessIdea: projectData.business_idea,
+            targetAudience: projectData.target_audience,
+            audienceAnalysis: projectData.audience_analysis,
+            projectImages: savedImages
+          },
+        });
 
       if (error) throw error;
 
-      // Add the saved image to the hero section
-      const contentWithImage = {
-        ...data,
-        hero: {
-          ...data.hero,
-          image: savedImageUrl
-        }
-      };
-
-      const { data: dbResponse, error: dbError } = await supabase
+      // Save the generated content to the landing_pages table
+      const { error: saveError } = await supabase
         .from('landing_pages')
         .upsert({
           project_id: project.id,
-          content: contentWithImage,
-          title: project.title || "Landing Page",
-          user_id: userData.user.id,
-          layout_style: data.layout,
-          image_placements: data.imagePlacements,
+          user_id: (await supabase.auth.getUser()).data.user?.id,
+          content: generatedContent,
+          image_placements: generatedContent.imagePlacements,
+          layout_style: generatedContent.layout,
           template_version: 2,
           section_order: [
             "hero",
@@ -88,11 +93,9 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
             "contact_form",
             "newsletter"
           ]
-        })
-        .select();
+        });
 
-      if (dbError) throw dbError;
-      if (!dbResponse?.[0]) throw new Error("No response from database");
+      if (saveError) throw saveError;
 
       // Invalidate the landing page query to trigger a refetch
       await queryClient.invalidateQueries({
@@ -102,13 +105,6 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
       toast({
         title: "Success",
         description: "Landing page content generated successfully!",
-      });
-
-      // Track section view
-      await supabase.rpc('track_section_view', {
-        p_landing_page_id: dbResponse[0].id,
-        p_section_name: 'hero',
-        p_view_time: 0
       });
 
     } catch (error) {
