@@ -408,8 +408,13 @@ serve(async (req) => {
         }
       );
 
+      // The output is already a URL string or array of URLs, no need to parse as JSON
       console.log("Replicate response:", output);
       const generatedImageUrl = Array.isArray(output) ? output[0] : output;
+      
+      if (!generatedImageUrl || typeof generatedImageUrl !== 'string') {
+        throw new Error('Failed to generate image: Invalid response from Replicate');
+      }
       
       // Save the generated image to Supabase Storage
       heroImage = await saveImageToStorage(generatedImageUrl);
