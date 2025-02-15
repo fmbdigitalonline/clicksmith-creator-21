@@ -109,7 +109,13 @@ serve(async (req) => {
     const { businessIdea, targetAudience, audienceAnalysis, projectImages = [] } = await req.json();
 
     if (!businessIdea) {
-      throw new Error('Business idea is required');
+      return new Response(
+        JSON.stringify({ error: 'Business idea is required' }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     console.log("Starting landing page generation with:", {
@@ -124,8 +130,21 @@ serve(async (req) => {
       apiKey: Deno.env.get('DEEPSEEK_API_KEY')
     });
 
+    if (!openai.apiKey) {
+      return new Response(
+        JSON.stringify({ error: 'OpenAI API key is not configured' }),
+        { 
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
     // Generate hero content
     console.log("Generating hero content...");
+    const heroPrompt = `Write a compelling headline and subtitle for a landing page that promotes ${businessIdea.description || businessIdea.name} following the AIDA formula. Return as JSON with headline and subtitle sections.`;
+    console.log("Hero prompt:", heroPrompt);
+
     const heroCompletion = await openai.chat.completions.create({
       model: "deepseek-chat",
       messages: [
@@ -135,7 +154,7 @@ serve(async (req) => {
         },
         {
           role: "user",
-          content: `Write a compelling headline and subtitle for a landing page that promotes ${businessIdea.description || businessIdea.name} following the AIDA formula. Return as JSON with headline and subtitle sections.`
+          content: heroPrompt
         }
       ],
       response_format: { type: "json_object" },
@@ -147,6 +166,13 @@ serve(async (req) => {
 
     // Generate AIDA content
     console.log("Generating AIDA content...");
+    const aidaPrompt = `Generate landing page content for: ${JSON.stringify({
+      business: businessIdea,
+      audience: targetAudience,
+      analysis: audienceAnalysis
+    })}. Include howItWorks, marketAnalysis, objections, and FAQ sections.`;
+    console.log("AIDA prompt:", aidaPrompt);
+
     const completion = await openai.chat.completions.create({
       model: "deepseek-chat",
       messages: [
@@ -156,11 +182,7 @@ serve(async (req) => {
         },
         {
           role: "user",
-          content: `Generate landing page content for: ${JSON.stringify({
-            business: businessIdea,
-            audience: targetAudience,
-            analysis: audienceAnalysis
-          })}. Include howItWorks, marketAnalysis, objections, and FAQ sections.`
+          content: aidaPrompt
         }
       ],
       response_format: { type: "json_object" },
@@ -178,7 +200,18 @@ serve(async (req) => {
         auth: Deno.env.get('REPLICATE_API_KEY'),
       });
 
+      if (!replicate.auth) {
+        return new Response(
+          JSON.stringify({ error: 'Replicate API key is not configured' }),
+          { 
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        );
+      }
+
       const imagePrompt = `Professional DSLR photograph for a landing page promoting: ${businessIdea.description || businessIdea.name}. 8k resolution, commercial quality.`;
+      console.log("Image generation prompt:", imagePrompt);
 
       const output = await replicate.run(
         "stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b",
@@ -206,6 +239,7 @@ serve(async (req) => {
       JSON.stringify(generatedContent),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200
       },
     );
 
