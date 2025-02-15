@@ -26,7 +26,7 @@ const MarketAnalysisSection = ({ content, className }: MarketAnalysisSectionProp
   if (!content) return null;
 
   return (
-    <section className={cn("py-16 bg-muted/50", className)}>
+    <section className={cn("py-16 bg-background border-t border-b border-gray-100", className)}>
       <div className="container mx-auto px-4">
         <div className="max-w-3xl mx-auto mb-12">
           <h2 className="text-3xl font-bold mb-6">Why You Need This Product</h2>
@@ -48,7 +48,7 @@ const MarketAnalysisSection = ({ content, className }: MarketAnalysisSectionProp
             <h3 className="text-xl font-semibold text-center mb-8">Deep Pain Points: Solving Your Biggest Challenges</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {content.painPoints.map((point, index) => (
-                <div key={index} className="bg-background p-6 rounded-lg shadow-sm">
+                <div key={index} className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
                   <h4 className="font-semibold mb-2">{point.title}</h4>
                   <p className="text-muted-foreground">{point.description}</p>
                 </div>
@@ -62,7 +62,7 @@ const MarketAnalysisSection = ({ content, className }: MarketAnalysisSectionProp
             <h3 className="text-xl font-semibold text-center mb-8">Why Our Solution Works</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {content.features.map((feature, index) => (
-                <div key={index} className="bg-background p-6 rounded-lg shadow-sm">
+                <div key={index} className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
                   <h4 className="font-semibold mb-2">{feature.title}</h4>
                   <p className="text-muted-foreground">{feature.description}</p>
                 </div>
@@ -73,7 +73,7 @@ const MarketAnalysisSection = ({ content, className }: MarketAnalysisSectionProp
 
         {content.socialProof && (
           <div className="max-w-2xl mx-auto text-center">
-            <div className="bg-background p-8 rounded-lg shadow-sm">
+            <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-100">
               <p className="text-lg italic mb-4">💬 "{content.socialProof.quote}"</p>
               <p className="font-semibold">{content.socialProof.author}</p>
               <p className="text-muted-foreground">{content.socialProof.title}</p>

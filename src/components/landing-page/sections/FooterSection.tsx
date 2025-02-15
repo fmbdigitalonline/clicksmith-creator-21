@@ -16,7 +16,7 @@ const FooterSection = ({ content, className }: FooterSectionProps) => {
   if (!content) return null;
 
   return (
-    <footer className={cn("py-16 bg-muted", className)}>
+    <footer className={cn("py-16 bg-background border-t border-gray-100", className)}>
       <div className="container mx-auto px-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12 mb-8">
           {content.contact && (
@@ -39,7 +39,7 @@ const FooterSection = ({ content, className }: FooterSectionProps) => {
         </div>
 
         {content.copyright && (
-          <div className="text-center text-muted-foreground text-sm border-t border-border pt-8">
+          <div className="text-center text-muted-foreground text-sm border-t border-gray-100 pt-8">
             {content.copyright}
           </div>
         )}

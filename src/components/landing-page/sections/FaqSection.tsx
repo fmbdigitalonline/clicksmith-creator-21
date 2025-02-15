@@ -22,7 +22,7 @@ const FaqSection = ({ content, className }: FaqSectionProps) => {
   if (!content) return null;
 
   return (
-    <section className={cn("py-16 bg-muted/50", className)}>
+    <section className={cn("py-16 bg-background border-t border-b border-gray-100", className)}>
       <div className="container mx-auto px-4">
         <h2 className="text-3xl font-bold text-center mb-4">FAQ</h2>
         {content.subheadline && (
