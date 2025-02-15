@@ -112,11 +112,7 @@ export const generateWord = async (variant: any, imageUrl: string): Promise<Blob
                     width: 500,
                     height: 300,
                   },
-                  type: 'png',
-                  fallback: {
-                    width: 500,
-                    height: 300,
-                  }
+                  type: 'png'
                 }),
               ],
               spacing: {
@@ -141,11 +137,7 @@ export const generateWord = async (variant: any, imageUrl: string): Promise<Blob
       }],
     });
 
-    return await Packer.toBuffer(doc).then(buffer => {
-      return new Blob([buffer], { 
-        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' 
-      });
-    });
+    return await Packer.toBlob(doc);
   } catch (error) {
     console.error('Error generating Word document:', error);
     throw error;
