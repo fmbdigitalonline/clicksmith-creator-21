@@ -264,15 +264,23 @@ const mapToTemplateStructure = (aidaContent: any, heroContent: any, heroImage: s
 };
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { businessIdea, targetAudience, audienceAnalysis, projectImages = [] } = await req.json();
+    const requestData = await req.json();
+    const { businessIdea, targetAudience, audienceAnalysis, projectImages = [] } = requestData;
 
     if (!businessIdea) {
-      throw new Error('Business idea is required');
+      return new Response(
+        JSON.stringify({ error: 'Business idea is required' }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     // Initialize DeepSeek client
@@ -295,7 +303,7 @@ serve(async (req) => {
           content: `Write a compelling headline and detailed subtitle combination for a landing page that promotes ${businessIdea.name || businessIdea.description || 'this business'} following the AIDA formula. Include multiple subtitle sections for Attention, Interest, Desire, and Action. Make it rich in detail and emotionally engaging.`
         }
       ],
-      max_tokens: 4000 // Increased from default
+      max_tokens: 4000
     });
 
     console.log("Hero content response:", heroCompletion.choices[0].message.content);
@@ -308,89 +316,8 @@ serve(async (req) => {
       Business: ${JSON.stringify(businessIdea)}
       Target Audience: ${JSON.stringify(targetAudience)}
       Analysis: ${JSON.stringify(audienceAnalysis)}
-
-      Generate a comprehensive, content-rich JSON object with these sections. Include extensive details, examples, and engaging content for each section:
-      {
-        "howItWorks": {
-          "subheadline": "Detailed explanation of how the product solves problems",
-          "steps": [
-            {
-              "title": "Step title",
-              "description": "Comprehensive step description with examples and benefits",
-              "benefits": ["Array of specific benefits"],
-              "features": ["Array of relevant features"],
-              "examples": ["Real-world application examples"]
-            }
-          ],
-          "valueReinforcement": "Detailed statement reinforcing value proposition with specific outcomes"
-        },
-        "marketAnalysis": {
-          "context": "In-depth market situation analysis with trends and opportunities",
-          "solution": "Comprehensive explanation of how the product solves market problems",
-          "marketTrends": ["Array of relevant market trends"],
-          "competitiveAdvantages": ["Array of unique selling points"],
-          "painPoints": [
-            {
-              "title": "Pain point title",
-              "description": "Detailed pain point description",
-              "impact": "How it affects the target audience",
-              "solution": "How your product addresses this specific pain point"
-            }
-          ],
-          "features": [
-            {
-              "title": "Feature title",
-              "description": "Comprehensive feature benefit description",
-              "technicalDetails": "Technical aspects if relevant",
-              "useCase": "Specific use case example",
-              "benefitExplanation": "Detailed explanation of the benefit"
-            }
-          ],
-          "socialProof": {
-            "quote": "Detailed customer testimonial",
-            "author": "Customer name",
-            "title": "Customer title",
-            "companySize": "Company size or relevant context",
-            "results": "Specific results or outcomes achieved",
-            "timeframe": "Timeline of results"
-          }
-        },
-        "objections": {
-          "subheadline": "Comprehensive trust building statement",
-          "concerns": [
-            {
-              "question": "Potential objection",
-              "answer": "Detailed, persuasive answer",
-              "evidence": ["Supporting evidence points"],
-              "examples": ["Real-world examples"],
-              "guarantees": ["Related guarantees or assurances"]
-            }
-          ]
-        },
-        "faq": {
-          "subheadline": "Comprehensive FAQ introduction",
-          "categories": ["Common concerns", "Technical details", "Implementation", "Support"],
-          "questions": [
-            {
-              "question": "Detailed question",
-              "answer": "Comprehensive answer",
-              "relatedInfo": ["Array of related information"],
-              "nextSteps": "Suggested next steps"
-            }
-          ]
-        },
-        "footerContent": {
-          "contact": "Detailed contact information",
-          "newsletter": "Compelling newsletter signup message with benefits",
-          "copyright": "Copyright text",
-          "additionalResources": ["Array of helpful resources"],
-          "support": {
-            "hours": "Support hours",
-            "channels": ["Available support channels"],
-            "response_time": "Expected response time"
-          }
-        }
-      }
+      
+      Generate a comprehensive JSON object with sections for howItWorks, marketAnalysis, objections, faq, and footerContent.
     `;
 
     const completion = await openai.chat.completions.create({
@@ -405,8 +332,8 @@ serve(async (req) => {
           content: aidaPrompt
         }
       ],
-      max_tokens: 8000, // Increased to maximum output tokens
-      temperature: 0.7 // Slightly increased for more creative responses
+      max_tokens: 8000,
+      temperature: 0.7
     });
 
     console.log("AIDA content response:", completion.choices[0].message.content);
@@ -454,17 +381,27 @@ serve(async (req) => {
     return new Response(
       JSON.stringify(generatedContent),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json' 
+        },
       },
     );
 
   } catch (error) {
     console.error('Error in generate-landing-page function:', error);
+    // Ensure we always return a properly formatted error response
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error instanceof Error ? error.message : 'An unexpected error occurred',
+        details: error instanceof Error ? error.stack : undefined
+      }),
       {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json' 
+        },
       },
     );
   }
