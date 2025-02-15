@@ -3,7 +3,7 @@ import { Auth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate, Link } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -12,6 +12,7 @@ import { BadgeCheck } from "lucide-react";
 const Login = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [view, setView] = useState<'sign_in' | 'sign_up'>('sign_in');
 
   useEffect(() => {
     // Check if user is already logged in
@@ -69,7 +70,7 @@ const Login = () => {
         
         <Auth
           supabaseClient={supabase}
-          view="sign_in"
+          view={view}
           appearance={{
             theme: ThemeSupa,
             style: {
@@ -90,8 +91,21 @@ const Login = () => {
           providers={[]}
           magicLink={false}
           showLinks={true}
+          onViewChange={newView => {
+            // @ts-ignore - the type definition is incorrect, newView is actually a valid view string
+            setView(newView);
+          }}
           localization={{
             variables: {
+              sign_in: {
+                email_label: 'Email address',
+                password_label: 'Your password (minimum 6 characters)',
+                email_input_placeholder: 'Your email address',
+                password_input_placeholder: 'Password (minimum 6 characters)',
+                button_label: 'Sign in',
+                loading_button_label: 'Signing in ...',
+                link_text: "Don't have an account? Sign up and get 12 free credits"
+              },
               sign_up: {
                 email_label: 'Email address',
                 password_label: 'Create a Password (minimum 6 characters)',
@@ -101,15 +115,6 @@ const Login = () => {
                 loading_button_label: 'Creating account ...',
                 link_text: "Already have an account? Sign in",
                 confirmation_text: 'Check your email for the confirmation link'
-              },
-              sign_in: {
-                email_label: 'Email address',
-                password_label: 'Your password (minimum 6 characters)',
-                email_input_placeholder: 'Your email address',
-                password_input_placeholder: 'Password (minimum 6 characters)',
-                button_label: 'Sign in',
-                loading_button_label: 'Signing in ...',
-                link_text: "Don't have an account? Sign up and get 12 free credits"
               }
             }
           }}
