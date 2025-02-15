@@ -210,19 +210,23 @@ serve(async (req) => {
         );
       }
 
-      const imagePrompt = `Professional DSLR photograph for a landing page promoting: ${businessIdea.description || businessIdea.name}. 8k resolution, commercial quality.`;
+      const imagePrompt = `Professional photograph for a landing page promoting: ${businessIdea.description || businessIdea.name}. High resolution, commercial quality.`;
       console.log("Image generation prompt:", imagePrompt);
 
       const output = await replicate.run(
-        "stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b",
+        "black-forest-labs/flux-1.1-pro",
         {
           input: {
             prompt: imagePrompt,
             width: 1024,
             height: 1024,
             num_outputs: 1,
-            guidance_scale: 7.5,
-            negative_prompt: "cartoon, illustration, painting, drawing, art, digital art, anime, manga, low quality, blurry"
+            go_fast: true,
+            megapixels: "1",
+            aspect_ratio: "1:1",
+            output_format: "webp",
+            output_quality: 80,
+            num_inference_steps: 4
           }
         }
       );
