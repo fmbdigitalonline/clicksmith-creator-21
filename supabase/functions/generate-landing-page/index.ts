@@ -221,14 +221,16 @@ serve(async (req) => {
       throw new Error('Business idea is required');
     }
 
+    // Initialize DeepSeek client
     const openai = new OpenAI({
-      apiKey: Deno.env.get('OPENAI_API_KEY'),
+      baseURL: 'https://api.deepseek.com/v1',
+      apiKey: Deno.env.get('DEEPSEEK_API_KEY')
     });
 
     // Generate hero content
     console.log("Generating hero content with AIDA formula...");
     const heroCompletion = await openai.chat.completions.create({
-      model: "gpt-4",
+      model: "deepseek-chat",
       messages: [
         {
           role: "system",
@@ -312,7 +314,7 @@ serve(async (req) => {
     `;
 
     const completion = await openai.chat.completions.create({
-      model: "gpt-4",
+      model: "deepseek-chat",
       messages: [
         {
           role: "system",
