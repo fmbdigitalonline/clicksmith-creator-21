@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { OpenAI } from "https://esm.sh/openai@4.20.1";
 import Replicate from "https://esm.sh/replicate@0.25.1";
@@ -14,10 +13,15 @@ serve(async (req) => {
   }
 
   try {
+    console.log("Request received, method:", req.method);
+    
     // Safely parse the request body
     let body;
     try {
-      body = await req.json();
+      const text = await req.text();
+      console.log("Raw request body:", text);
+      body = JSON.parse(text);
+      console.log("Parsed request body:", body);
     } catch (error) {
       console.error("Error parsing request body:", error);
       return new Response(
@@ -35,6 +39,7 @@ serve(async (req) => {
     const { businessIdea, targetAudience, audienceAnalysis, marketingCampaign, projectImages = [] } = body;
 
     if (!businessIdea) {
+      console.error("Missing business idea in request");
       return new Response(
         JSON.stringify({ error: 'Business idea is required' }),
         { 
@@ -48,12 +53,20 @@ serve(async (req) => {
       businessIdea,
       targetAudience,
       audienceAnalysis,
-      marketingCampaign
+      marketingCampaign,
+      hasProjectImages: projectImages.length > 0
     });
+
+    // Check if DEEPSEEK_API_KEY is available
+    const apiKey = Deno.env.get('DEEPSEEK_API_KEY');
+    if (!apiKey) {
+      console.error("DEEPSEEK_API_KEY is not set");
+      throw new Error("API key configuration is missing");
+    }
 
     const openai = new OpenAI({
       baseURL: 'https://api.deepseek.com/v1',
-      apiKey: Deno.env.get('DEEPSEEK_API_KEY')
+      apiKey
     });
 
     // Generate main content following AIDA framework
@@ -136,10 +149,21 @@ Follow these rules:
         temperature: 0.7
       });
 
+      console.log("Raw OpenAI response:", completion);
+      
+      if (!completion.choices?.[0]?.message?.content) {
+        throw new Error("Invalid response format from OpenAI");
+      }
+
       aidaContent = JSON.parse(completion.choices[0].message.content);
       console.log("Generated AIDA content:", aidaContent);
     } catch (error) {
       console.error("Error generating AIDA content:", error);
+      console.error("Error details:", {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      });
       throw new Error("Failed to generate landing page content: " + error.message);
     }
 
@@ -301,9 +325,9 @@ Return JSON with exact structure:
       }
     };
 
-    console.log("Final generated content:", generatedContent);
+    console.log("Successfully generated content, preparing response");
 
-    return new Response(
+    const response = new Response(
       JSON.stringify(generatedContent),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -311,12 +335,17 @@ Return JSON with exact structure:
       }
     );
 
+    console.log("Sending response:", response.status);
+    return response;
+
   } catch (error) {
     console.error('Error in generate-landing-page function:', error);
+    console.error('Error stack:', error.stack);
     return new Response(
       JSON.stringify({
         error: error.message,
-        details: error.stack
+        details: error.stack,
+        type: error.constructor.name
       }),
       {
         status: 500,
