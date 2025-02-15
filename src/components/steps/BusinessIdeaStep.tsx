@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -33,10 +34,13 @@ const BusinessIdeaStep = ({
       .filter(sentence => sentence.length > 0)
       .join('. ');
 
-    onNext({
+    // Call onNext before clearing the description
+    const businessIdea = {
       description,
       valueProposition,
-    });
+    };
+    
+    onNext(businessIdea);
   };
 
   return (
