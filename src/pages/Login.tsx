@@ -91,24 +91,24 @@ const Login = () => {
           showLinks={true}
           localization={{
             variables: {
+              sign_in: {
+                email_label: 'Email address',
+                password_label: 'Your password',
+                email_input_placeholder: 'Your email address',
+                password_input_placeholder: 'Password (minimum 6 characters)',
+                button_label: 'Sign in',
+                loading_button_label: 'Signing in ...',
+                link_text: "Don't have an account? Sign up and get 12 free credits"
+              },
               sign_up: {
                 email_label: 'Email address',
-                password_label: 'Create a Password (minimum 6 characters)',
+                password_label: 'Create a Password',
                 email_input_placeholder: 'Your email address',
                 password_input_placeholder: 'Password (minimum 6 characters)',
                 button_label: 'Sign up and get 12 free credits',
                 loading_button_label: 'Creating account ...',
                 link_text: "Already have an account? Sign in",
                 confirmation_text: 'Check your email for the confirmation link'
-              },
-              sign_in: {
-                email_label: 'Email address',
-                password_label: 'Your password (minimum 6 characters)',
-                email_input_placeholder: 'Your email address',
-                password_input_placeholder: 'Password (minimum 6 characters)',
-                button_label: 'Sign in',
-                loading_button_label: 'Signing in ...',
-                link_text: "Don't have an account? Sign up and get 12 free credits"
               }
             }
           }}
