@@ -317,38 +317,39 @@ serve(async (req) => {
       );
     }
 
-    // Initialize DeepSeek client
-    const openai = new OpenAI({
-      baseURL: 'https://api.deepseek.com/v1',
-      apiKey: Deno.env.get('DEEPSEEK_API_KEY')
+    // Use Replicate with Flux model for hero content
+    console.log("Generating hero content with Flux model...");
+    const replicate = new Replicate({
+      auth: Deno.env.get('REPLICATE_API_KEY'),
     });
 
-    // Generate hero content with increased max_tokens
-    console.log("Generating hero content with AIDA formula...");
     const businessDescription = typeof businessIdea === 'string' 
       ? businessIdea 
       : businessIdea.name || businessIdea.description || 'this business';
 
-    const heroCompletion = await openai.chat.completions.create({
-      model: "deepseek-chat",
-      messages: [
-        {
-          role: "system",
-          content: "You are an expert copywriter specializing in landing page headlines that convert. Create highly detailed, compelling content that resonates with the target audience. Return a JSON object with 'headline' and 'subtitle' fields."
-        },
-        {
-          role: "user",
-          content: `Write a compelling headline and detailed subtitle combination for a landing page that promotes ${businessDescription}. Format your response as a JSON object with two fields: 'headline' and 'subtitle'.`
-        }
-      ],
-      max_tokens: 4000,
-      temperature: 0.7
-    });
+    const heroPrompt = `Write a compelling headline and detailed subtitle combination for a landing page that promotes ${businessDescription}. Format your response as a JSON object with two fields: 'headline' and 'subtitle'.`;
 
-    const heroResponseText = heroCompletion.choices[0].message.content;
-    console.log("Raw hero content response:", heroResponseText);
-    const heroContent = parseOpenAIResponse(heroResponseText);
+    const heroOutput = await replicate.run(
+      "black-forest-labs/flux-1.1-pro",
+      {
+        input: {
+          prompt: heroPrompt,
+          system_prompt: "You are an expert copywriter specializing in landing page headlines that convert. Create highly detailed, compelling content that resonates with the target audience. Always return a valid JSON object.",
+          max_tokens: 1000,
+          temperature: 0.7
+        }
+      }
+    );
+
+    console.log("Raw hero content response:", heroOutput);
+    const heroContent = parseOpenAIResponse(heroOutput);
     console.log("Parsed hero content:", heroContent);
+
+    // Initialize DeepSeek client for the remaining content
+    const openai = new OpenAI({
+      baseURL: 'https://api.deepseek.com/v1',
+      apiKey: Deno.env.get('DEEPSEEK_API_KEY')
+    });
 
     // Generate the remaining AIDA template content
     console.log("Generating remaining landing page content...");
@@ -387,10 +388,6 @@ serve(async (req) => {
     if (!heroImage) {
       console.log("No project images found, generating hero image with Replicate...");
       
-      const replicate = new Replicate({
-        auth: Deno.env.get('REPLICATE_API_KEY'),
-      });
-
       const imagePrompt = `Ultra realistic commercial photograph for a landing page with this headline: "${heroContent.headline}". Professional DSLR quality, 8k resolution, crystal clear, highly detailed commercial photography that captures the essence of: ${businessDescription}`;
 
       console.log("Generating image with prompt:", imagePrompt);
