@@ -230,7 +230,18 @@ Return JSON with exact structure:
           auth: Deno.env.get('REPLICATE_API_KEY'),
         });
 
-        const imagePrompt = `Professional photograph visualizing: "${heroContent.headline}". ${heroContent.subtitle}. High resolution, commercial quality, modern aesthetic, perfect for a landing page hero section.`;
+        // Add random seed and style variations
+        const styles = [
+          "modern corporate photography",
+          "creative business lifestyle",
+          "professional studio setting",
+          "contemporary workplace scene",
+          "minimalist business concept"
+        ];
+        const randomStyle = styles[Math.floor(Math.random() * styles.length)];
+        const randomSeed = Math.floor(Math.random() * 1000000);
+
+        const imagePrompt = `Professional photograph visualizing: "${heroContent.headline}". ${heroContent.subtitle}. Style: ${randomStyle}. High resolution, commercial quality, modern aesthetic, perfect for a landing page hero section.`;
         console.log("Image generation prompt:", imagePrompt);
 
         const output = await replicate.run(
@@ -241,6 +252,7 @@ Return JSON with exact structure:
               width: 1024,
               height: 1024,
               num_outputs: 1,
+              seed: randomSeed,
               go_fast: true,
               megapixels: "1",
               aspect_ratio: "1:1",
