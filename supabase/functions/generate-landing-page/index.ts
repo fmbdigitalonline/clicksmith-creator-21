@@ -1,7 +1,7 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { OpenAI } from "https://esm.sh/openai@4.20.1";
 import Replicate from "https://esm.sh/replicate@0.25.1";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -95,6 +95,50 @@ const generateSectionLayout = (sectionType: string, content: any) => {
       };
     default:
       return baseLayout;
+  }
+};
+
+const saveImageToStorage = async (imageUrl: string): Promise<string> => {
+  try {
+    // Create Supabase client
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
+    // Fetch the image
+    const response = await fetch(imageUrl);
+    if (!response.ok) throw new Error('Failed to fetch image');
+    
+    const imageBuffer = await response.arrayBuffer();
+    const fileName = `hero_${new Date().getTime()}.webp`;
+
+    // Upload to Supabase Storage
+    const { data: uploadData, error: uploadError } = await supabase
+      .storage
+      .from('landing_page_images')
+      .upload(fileName, imageBuffer, {
+        contentType: 'image/webp',
+        cacheControl: '3600',
+        upsert: false
+      });
+
+    if (uploadError) {
+      console.error('Error uploading to storage:', uploadError);
+      throw uploadError;
+    }
+
+    // Get the public URL
+    const { data: { publicUrl } } = supabase
+      .storage
+      .from('landing_page_images')
+      .getPublicUrl(fileName);
+
+    console.log('Image saved to storage:', publicUrl);
+    return publicUrl;
+  } catch (error) {
+    console.error('Error saving image to storage:', error);
+    throw error;
   }
 };
 
@@ -231,7 +275,7 @@ serve(async (req) => {
       throw new Error('Business idea is required');
     }
 
-    // Initialize DeepSeek client with increased token limits
+    // Initialize DeepSeek client
     const openai = new OpenAI({
       baseURL: 'https://api.deepseek.com/v1',
       apiKey: Deno.env.get('DEEPSEEK_API_KEY')
@@ -397,10 +441,12 @@ serve(async (req) => {
       );
 
       console.log("Replicate response:", output);
-      heroImage = Array.isArray(output) ? output[0] : output;
+      const generatedImageUrl = Array.isArray(output) ? output[0] : output;
+      
+      // Save the generated image to Supabase Storage
+      heroImage = await saveImageToStorage(generatedImageUrl);
+      console.log("Saved hero image URL:", heroImage);
     }
-
-    console.log("Final hero image URL:", heroImage);
 
     // Map the generated content to match the template structure
     const generatedContent = mapToTemplateStructure(aidaContent, heroContent, heroImage);
