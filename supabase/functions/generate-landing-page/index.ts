@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { OpenAI } from "https://esm.sh/openai@4.20.1";
 import Replicate from "https://esm.sh/replicate@0.25.1";
@@ -22,7 +21,7 @@ const parseOpenAIResponse = (content: string): any => {
   }
 };
 
-// Map AIDA content to template structure
+// Map AIDA content to template structure with card-based layout
 const mapToTemplateStructure = (aidaContent: any, heroContent: any, heroImage: string) => {
   return {
     hero: {
@@ -30,6 +29,44 @@ const mapToTemplateStructure = (aidaContent: any, heroContent: any, heroImage: s
       description: `${heroContent.subtitle.interest} ${heroContent.subtitle.desire} ${heroContent.subtitle.action}`,
       cta: heroContent.subtitle.action,
       image: heroImage
+    },
+    layout: {
+      backgroundColor: "#FFFFFF",
+      useCards: true,
+      sections: {
+        hero: {
+          type: "hero",
+          layout: "split"
+        },
+        valueProposition: {
+          type: "cards",
+          cardsPerRow: 3
+        },
+        features: {
+          type: "cards",
+          cardsPerRow: 3
+        },
+        testimonials: {
+          type: "cards",
+          cardsPerRow: 1
+        },
+        howItWorks: {
+          type: "cards",
+          cardsPerRow: 3
+        },
+        marketAnalysis: {
+          type: "cards",
+          cardsPerRow: 2
+        },
+        objections: {
+          type: "cards",
+          cardsPerRow: 2
+        },
+        faq: {
+          type: "cards",
+          cardsPerRow: 2
+        }
+      }
     },
     valueProposition: {
       title: "Why Choose Us?",
