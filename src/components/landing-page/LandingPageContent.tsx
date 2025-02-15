@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -40,7 +41,7 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
       // Get the project data first
       const { data: projectData, error: projectError } = await supabase
         .from('projects')
-        .select('business_idea, target_audience, audience_analysis')
+        .select('business_idea, target_audience, audience_analysis, title')
         .eq('id', project.id)
         .single();
 
@@ -69,12 +70,17 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
 
       if (error) throw error;
 
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) throw new Error("No authenticated user found");
+
       // Save the generated content to the landing_pages table
       const { error: saveError } = await supabase
         .from('landing_pages')
         .upsert({
+          id: landingPage?.id, // Include existing ID if updating
+          title: projectData.title || "Landing Page", // Add required title field
           project_id: project.id,
-          user_id: (await supabase.auth.getUser()).data.user?.id,
+          user_id: userData.user.id,
           content: generatedContent,
           image_placements: generatedContent.imagePlacements,
           layout_style: generatedContent.layout,
