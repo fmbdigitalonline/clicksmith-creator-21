@@ -15,9 +15,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import EditProjectDialog from "./EditProjectDialog";
 import ProjectCardHeader from "./card/ProjectCardHeader";
 import ProjectCardActions from "./card/ProjectCardActions";
+import ProjectProgressDetails from "./ProjectProgressDetails";
 
 interface Project {
   id: string;
@@ -43,6 +45,7 @@ interface ProjectCardProps {
 const ProjectCard = ({ project, onUpdate, onStartAdWizard }: ProjectCardProps) => {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -79,7 +82,7 @@ const ProjectCard = ({ project, onUpdate, onStartAdWizard }: ProjectCardProps) =
 
   return (
     <>
-      <Card>
+      <Card className="cursor-pointer transition-all hover:shadow-md" onClick={() => setShowDetails(true)}>
         <ProjectCardHeader 
           title={project.title} 
           validationProgress={getValidationProgress()} 
@@ -109,6 +112,19 @@ const ProjectCard = ({ project, onUpdate, onStartAdWizard }: ProjectCardProps) =
           hasAudienceAnalysis={!!project.audience_analysis}
         />
       </Card>
+
+      <Dialog open={showDetails} onOpenChange={setShowDetails}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <div className="space-y-4">
+            <h2 className="text-2xl font-bold tracking-tight">{project.title}</h2>
+            <ProjectProgressDetails
+              businessIdea={project.business_idea}
+              targetAudience={project.target_audience}
+              audienceAnalysis={project.audience_analysis}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
         <AlertDialogContent>
