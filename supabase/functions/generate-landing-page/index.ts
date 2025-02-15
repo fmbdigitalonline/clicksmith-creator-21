@@ -2,6 +2,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 import { Configuration, OpenAIApi } from "https://esm.sh/openai@3.3.0";
+import Replicate from "https://esm.sh/replicate@0.25.1";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -56,24 +57,37 @@ serve(async (req) => {
 
     const generatedContent = JSON.parse(completion.data.choices[0].message.content);
 
-    // If no project images were provided, generate a hero image
+    // If no project images were provided, generate a hero image using Replicate
     if (projectImages.length === 0) {
-      console.log("No project images found, generating hero image...");
-      const imagePrompt = `
-        Create a professional and modern hero image for this business:
-        ${JSON.stringify(businessIdea)}
-        Style: Modern, professional, high-quality marketing image
-        Make it suitable for a hero section of a landing page.
-      `;
-
-      const imageCompletion = await openai.createImage({
-        prompt: imagePrompt,
-        n: 1,
-        size: "1024x1024",
-        response_format: "url",
+      console.log("No project images found, generating hero image with Replicate...");
+      
+      const replicate = new Replicate({
+        auth: Deno.env.get('REPLICATE_API_KEY'),
       });
 
-      generatedContent.hero.image = imageCompletion.data.data[0].url;
+      const imagePrompt = `Ultra realistic commercial photograph, professional DSLR quality, 8k resolution, crystal clear, highly detailed commercial photography for this business: ${JSON.stringify(businessIdea)}`;
+
+      console.log("Generating image with prompt:", imagePrompt);
+      
+      const output = await replicate.run(
+        "stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b",
+        {
+          input: {
+            prompt: imagePrompt,
+            width: 1024,
+            height: 1024,
+            num_outputs: 1,
+            guidance_scale: 7.5,
+            num_inference_steps: 50,
+            negative_prompt: "cartoon, illustration, painting, drawing, art, digital art, anime, manga, low quality, blurry, watermark, text, logo"
+          }
+        }
+      );
+
+      console.log("Replicate response:", output);
+      
+      // Replicate returns an array of URLs, we take the first one
+      generatedContent.hero.image = Array.isArray(output) ? output[0] : output;
     } else {
       // Use the first saved project image
       generatedContent.hero.image = projectImages[0];
