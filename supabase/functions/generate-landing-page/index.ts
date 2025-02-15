@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { OpenAI } from "https://esm.sh/openai@4.20.1";
 import Replicate from "https://esm.sh/replicate@0.25.1";
@@ -7,7 +8,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Helper function to clean and parse JSON from OpenAI response
 const parseOpenAIResponse = (content: string): any => {
   try {
     return JSON.parse(content);
@@ -20,6 +20,52 @@ const parseOpenAIResponse = (content: string): any => {
       throw new Error('Failed to parse OpenAI response');
     }
   }
+};
+
+// Map AIDA content to template structure
+const mapToTemplateStructure = (aidaContent: any, heroContent: any, heroImage: string) => {
+  return {
+    hero: {
+      title: heroContent.headline,
+      description: `${heroContent.subtitle.interest} ${heroContent.subtitle.desire} ${heroContent.subtitle.action}`,
+      cta: heroContent.subtitle.action,
+      image: heroImage
+    },
+    valueProposition: {
+      title: "Why Choose Us?",
+      cards: aidaContent.marketAnalysis.painPoints.map((point: any) => ({
+        icon: "✨",
+        title: point.title,
+        description: point.description
+      }))
+    },
+    features: {
+      title: "Key Features",
+      description: aidaContent.marketAnalysis.solution,
+      items: aidaContent.marketAnalysis.features.map((feature: any) => ({
+        title: feature.title,
+        description: feature.description
+      }))
+    },
+    testimonials: {
+      title: "What Our Clients Say",
+      items: [{
+        quote: aidaContent.marketAnalysis.socialProof.quote,
+        author: aidaContent.marketAnalysis.socialProof.author,
+        role: aidaContent.marketAnalysis.socialProof.title
+      }]
+    },
+    howItWorks: aidaContent.howItWorks,
+    marketAnalysis: aidaContent.marketAnalysis,
+    objections: aidaContent.objections,
+    faq: aidaContent.faq,
+    cta: {
+      title: "Ready to Get Started?",
+      description: aidaContent.howItWorks.valueReinforcement,
+      buttonText: "Get Started Now"
+    },
+    footerContent: aidaContent.footerContent
+  };
 };
 
 serve(async (req) => {
@@ -38,7 +84,7 @@ serve(async (req) => {
       apiKey: Deno.env.get('OPENAI_API_KEY'),
     });
 
-    // Generate hero content (keep existing hero generation)
+    // Generate hero content
     console.log("Generating hero content with AIDA formula...");
     const heroCompletion = await openai.chat.completions.create({
       model: "gpt-4",
@@ -141,7 +187,7 @@ serve(async (req) => {
     console.log("AIDA content response:", completion.choices[0].message.content);
     const aidaContent = parseOpenAIResponse(completion.choices[0].message.content);
 
-    // If no project images were provided, generate a hero image using Replicate
+    // Handle hero image
     let heroImage = projectImages[0];
     if (!heroImage) {
       console.log("No project images found, generating hero image with Replicate...");
@@ -173,16 +219,8 @@ serve(async (req) => {
       heroImage = Array.isArray(output) ? output[0] : output;
     }
 
-    // Combine all content sections
-    const generatedContent = {
-      hero: {
-        title: heroContent.headline,
-        description: `${heroContent.subtitle.interest} ${heroContent.subtitle.desire} ${heroContent.subtitle.action}`,
-        cta: heroContent.subtitle.action,
-        image: heroImage
-      },
-      ...aidaContent
-    };
+    // Map the generated content to match the template structure
+    const generatedContent = mapToTemplateStructure(aidaContent, heroContent, heroImage);
 
     return new Response(
       JSON.stringify(generatedContent),
