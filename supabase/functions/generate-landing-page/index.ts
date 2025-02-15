@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 import { Configuration, OpenAIApi } from "https://esm.sh/openai@3.3.0";
@@ -138,7 +137,8 @@ serve(async (req) => {
         auth: Deno.env.get('REPLICATE_API_KEY'),
       });
 
-      const imagePrompt = `Ultra realistic commercial photograph, professional DSLR quality, 8k resolution, crystal clear, highly detailed commercial photography for this business: ${JSON.stringify(businessIdea)}`;
+      // Use the generated headline and subtitle to create a more focused image prompt
+      const imagePrompt = `Ultra realistic commercial photograph for a landing page with this headline: "${heroContent.headline}". The image should visualize: "${heroContent.subtitle.interest} ${heroContent.subtitle.desire}". Professional DSLR quality, 8k resolution, crystal clear, highly detailed commercial photography that captures the essence of: ${JSON.stringify(businessIdea)}`;
 
       console.log("Generating image with prompt:", imagePrompt);
       
