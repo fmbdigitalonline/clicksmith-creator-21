@@ -231,94 +231,120 @@ serve(async (req) => {
       throw new Error('Business idea is required');
     }
 
-    // Initialize DeepSeek client
+    // Initialize DeepSeek client with increased token limits
     const openai = new OpenAI({
       baseURL: 'https://api.deepseek.com/v1',
       apiKey: Deno.env.get('DEEPSEEK_API_KEY')
     });
 
-    // Generate hero content
+    // Generate hero content with increased max_tokens
     console.log("Generating hero content with AIDA formula...");
     const heroCompletion = await openai.chat.completions.create({
       model: "deepseek-chat",
       messages: [
         {
           role: "system",
-          content: "You are an expert copywriter specializing in landing page headlines that convert. You must return only valid JSON with no markdown formatting."
+          content: "You are an expert copywriter specializing in landing page headlines that convert. Create highly detailed, compelling content that resonates with the target audience. You must return only valid JSON with no markdown formatting."
         },
         {
           role: "user",
-          content: `Write a compelling headline and subtitle combination for a landing page that promotes ${businessIdea.name || businessIdea.description || 'this business'} following the AIDA formula.`
+          content: `Write a compelling headline and detailed subtitle combination for a landing page that promotes ${businessIdea.name || businessIdea.description || 'this business'} following the AIDA formula. Include multiple subtitle sections for Attention, Interest, Desire, and Action. Make it rich in detail and emotionally engaging.`
         }
-      ]
+      ],
+      max_tokens: 4000 // Increased from default
     });
 
     console.log("Hero content response:", heroCompletion.choices[0].message.content);
     const heroContent = parseOpenAIResponse(heroCompletion.choices[0].message.content);
 
-    // Generate the remaining AIDA template content
+    // Generate the remaining AIDA template content with increased detail
     console.log("Generating remaining landing page content...");
     const aidaPrompt = `
-      Create a complete landing page content following the AIDA framework for:
+      Create an extensive, highly detailed landing page content following the AIDA framework for:
       Business: ${JSON.stringify(businessIdea)}
       Target Audience: ${JSON.stringify(targetAudience)}
       Analysis: ${JSON.stringify(audienceAnalysis)}
 
-      Return a JSON object with these sections:
+      Generate a comprehensive, content-rich JSON object with these sections. Include extensive details, examples, and engaging content for each section:
       {
         "howItWorks": {
-          "subheadline": "String explaining how the product solves problems",
+          "subheadline": "Detailed explanation of how the product solves problems",
           "steps": [
             {
               "title": "Step title",
-              "description": "Step description"
+              "description": "Comprehensive step description with examples and benefits",
+              "benefits": ["Array of specific benefits"],
+              "features": ["Array of relevant features"],
+              "examples": ["Real-world application examples"]
             }
           ],
-          "valueReinforcement": "Statement reinforcing value proposition"
+          "valueReinforcement": "Detailed statement reinforcing value proposition with specific outcomes"
         },
         "marketAnalysis": {
-          "context": "Market situation analysis",
-          "solution": "How the product solves market problems",
+          "context": "In-depth market situation analysis with trends and opportunities",
+          "solution": "Comprehensive explanation of how the product solves market problems",
+          "marketTrends": ["Array of relevant market trends"],
+          "competitiveAdvantages": ["Array of unique selling points"],
           "painPoints": [
             {
               "title": "Pain point title",
-              "description": "Pain point description"
+              "description": "Detailed pain point description",
+              "impact": "How it affects the target audience",
+              "solution": "How your product addresses this specific pain point"
             }
           ],
           "features": [
             {
               "title": "Feature title",
-              "description": "Feature benefit"
+              "description": "Comprehensive feature benefit description",
+              "technicalDetails": "Technical aspects if relevant",
+              "useCase": "Specific use case example",
+              "benefitExplanation": "Detailed explanation of the benefit"
             }
           ],
           "socialProof": {
-            "quote": "Customer testimonial",
+            "quote": "Detailed customer testimonial",
             "author": "Customer name",
-            "title": "Customer title"
+            "title": "Customer title",
+            "companySize": "Company size or relevant context",
+            "results": "Specific results or outcomes achieved",
+            "timeframe": "Timeline of results"
           }
         },
         "objections": {
-          "subheadline": "Trust building statement",
+          "subheadline": "Comprehensive trust building statement",
           "concerns": [
             {
               "question": "Potential objection",
-              "answer": "Reassuring answer"
+              "answer": "Detailed, persuasive answer",
+              "evidence": ["Supporting evidence points"],
+              "examples": ["Real-world examples"],
+              "guarantees": ["Related guarantees or assurances"]
             }
           ]
         },
         "faq": {
-          "subheadline": "Helpful FAQ introduction",
+          "subheadline": "Comprehensive FAQ introduction",
+          "categories": ["Common concerns", "Technical details", "Implementation", "Support"],
           "questions": [
             {
-              "question": "Common question",
-              "answer": "Clear answer"
+              "question": "Detailed question",
+              "answer": "Comprehensive answer",
+              "relatedInfo": ["Array of related information"],
+              "nextSteps": "Suggested next steps"
             }
           ]
         },
         "footerContent": {
-          "contact": "Contact information",
-          "newsletter": "Newsletter signup message",
-          "copyright": "Copyright text"
+          "contact": "Detailed contact information",
+          "newsletter": "Compelling newsletter signup message with benefits",
+          "copyright": "Copyright text",
+          "additionalResources": ["Array of helpful resources"],
+          "support": {
+            "hours": "Support hours",
+            "channels": ["Available support channels"],
+            "response_time": "Expected response time"
+          }
         }
       }
     `;
@@ -328,13 +354,15 @@ serve(async (req) => {
       messages: [
         {
           role: "system",
-          content: "You are a landing page content expert. Generate comprehensive, persuasive content following the AIDA framework."
+          content: "You are a landing page content expert. Generate comprehensive, persuasive content following the AIDA framework. Focus on creating detailed, engaging content that thoroughly explains the value proposition and addresses all potential customer concerns."
         },
         {
           role: "user",
           content: aidaPrompt
         }
-      ]
+      ],
+      max_tokens: 8000, // Increased to maximum output tokens
+      temperature: 0.7 // Slightly increased for more creative responses
     });
 
     console.log("AIDA content response:", completion.choices[0].message.content);
