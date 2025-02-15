@@ -127,50 +127,61 @@ const Index = () => {
       <LandingNav />
       {/* Hero Section */}
       <section className="relative pt-32 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-primary/5 to-background">
-        <div className="max-w-5xl mx-auto text-center">
-          <div className="flex justify-center mb-6">
-            <Target className="h-12 w-12 text-primary animate-pulse" />
-          </div>
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-8">
-            Know If Your{' '}
-            <span className="text-primary">
-              <TextCycler
-                items={['Idea', 'Product', 'Service', 'Course', 'Marketing Concept']}
-                interval={2000}
-                className="inline-block"
+        <div className="max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div className="text-center lg:text-left">
+              <div className="flex justify-center lg:justify-start mb-6">
+                <Target className="h-12 w-12 text-primary animate-pulse" />
+              </div>
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-8">
+                Know If Your{' '}
+                <span className="text-primary">
+                  <TextCycler
+                    items={['Idea', 'Product', 'Service', 'Course', 'Marketing Concept']}
+                    interval={2000}
+                    className="inline-block"
+                  />
+                </span>{' '}
+                Will Succeed Before You Invest
+              </h1>
+              <p className="text-xl text-muted-foreground mb-12 max-w-3xl">
+                Turn your vision into reality with AI-powered market validation that analyzes, tests, and optimizes your business concept. Get comprehensive insights and actionable data in minutes, not months. Start validating your ideas today with zero risk.
+              </p>
+              <div className="flex flex-col sm:flex-row items-center lg:items-start gap-8 mb-12">
+                <div className="flex items-center gap-2 text-xl text-muted-foreground">
+                  <CheckCircle className="h-6 w-6 text-primary" />
+                  <span>AI-Powered Analysis</span>
+                </div>
+                <div className="flex items-center gap-2 text-xl text-muted-foreground">
+                  <CheckCircle className="h-6 w-6 text-primary" />
+                  <span>Multi-Platform Support</span>
+                </div>
+                <div className="flex items-center gap-2 text-xl text-muted-foreground">
+                  <CheckCircle className="h-6 w-6 text-primary" />
+                  <span>Real-Time Results</span>
+                </div>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+                <Button size="lg" asChild>
+                  <Link to="/login">
+                    Start Now for Free
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </Link>
+                </Button>
+                <Button size="lg" variant="outline" asChild>
+                  <Link to="/pricing">
+                    View Pricing
+                  </Link>
+                </Button>
+              </div>
+            </div>
+            <div className="relative rounded-lg overflow-hidden shadow-xl">
+              <img
+                src="/lovable-uploads/f8e07bf5-8804-4da4-b270-0ec6c5b8559c.png"
+                alt="Platform dashboard preview"
+                className="w-full h-auto"
               />
-            </span>{' '}
-            Will Succeed Before You Invest
-          </h1>
-          <p className="text-xl text-muted-foreground mb-12 max-w-3xl mx-auto">
-            Turn your vision into reality with AI-powered market validation that analyzes, tests, and optimizes your business concept. Get comprehensive insights and actionable data in minutes, not months. Start validating your ideas today with zero risk.
-          </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-8 mb-12">
-            <div className="flex items-center gap-2 text-xl text-muted-foreground">
-              <CheckCircle className="h-6 w-6 text-primary" />
-              <span>AI-Powered Analysis</span>
             </div>
-            <div className="flex items-center gap-2 text-xl text-muted-foreground">
-              <CheckCircle className="h-6 w-6 text-primary" />
-              <span>Multi-Platform Support</span>
-            </div>
-            <div className="flex items-center gap-2 text-xl text-muted-foreground">
-              <CheckCircle className="h-6 w-6 text-primary" />
-              <span>Real-Time Results</span>
-            </div>
-          </div>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" asChild>
-              <Link to="/login">
-                Start Now for Free
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Link>
-            </Button>
-            <Button size="lg" variant="outline" asChild>
-              <Link to="/pricing">
-                View Pricing
-              </Link>
-            </Button>
           </div>
         </div>
       </section>
