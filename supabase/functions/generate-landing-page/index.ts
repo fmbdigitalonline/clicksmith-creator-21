@@ -245,25 +245,26 @@ Return JSON with exact structure:
         console.log("Image generation prompt:", imagePrompt);
 
         const output = await replicate.run(
-          "black-forest-labs/flux-1.1-pro",
+          "stability-ai/sdxl:2b017d9b67edd2ee1401238df49d75da53c523f36e363881e057f5dc3ed3c5b2",
           {
             input: {
               prompt: imagePrompt,
               width: 1024,
-              height: 1024,
+              height: 768,
               num_outputs: 1,
+              scheduler: "K_EULER",
+              num_inference_steps: 50,
+              guidance_scale: 7.5,
+              prompt_strength: 0.8,
+              refine: "expert_ensemble_refiner",
+              high_noise_frac: 0.8,
               seed: randomSeed,
-              go_fast: true,
-              megapixels: "1",
-              aspect_ratio: "1:1",
-              output_format: "webp",
-              output_quality: 80,
-              num_inference_steps: 4
             }
           }
         );
 
         heroImage = Array.isArray(output) ? output[0] : output;
+        console.log("Generated hero image URL:", heroImage);
       } catch (error) {
         console.error("Error generating hero image:", error);
         heroImage = null;
