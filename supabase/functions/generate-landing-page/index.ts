@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { OpenAI } from "https://esm.sh/openai@4.20.1";
 import Replicate from "https://esm.sh/replicate@0.25.1";
@@ -21,8 +22,85 @@ const parseOpenAIResponse = (content: string): any => {
   }
 };
 
-// Map AIDA content to template structure with card-based layout
+// Dynamically generate section layout based on content
+const generateSectionLayout = (sectionType: string, content: any) => {
+  const baseLayout = {
+    type: "cards",
+    backgroundColor: "#FFFFFF",
+    cardsPerRow: 3
+  };
+
+  switch (sectionType) {
+    case "hero":
+      return {
+        type: "hero",
+        layout: "split", // or "centered" based on content
+        backgroundColor: "#FFFFFF"
+      };
+    case "valueProposition":
+      return {
+        ...baseLayout,
+        cardsPerRow: content?.cards?.length || 3
+      };
+    case "features":
+      return {
+        ...baseLayout,
+        cardsPerRow: Math.min(content?.items?.length || 3, 3)
+      };
+    case "testimonials":
+      return {
+        ...baseLayout,
+        cardsPerRow: 1 // Single testimonial for better focus
+      };
+    case "howItWorks":
+      return {
+        ...baseLayout,
+        cardsPerRow: content?.steps?.length || 4
+      };
+    case "marketAnalysis":
+      return {
+        ...baseLayout,
+        cardsPerRow: 2 // Better for detailed content
+      };
+    case "objections":
+      return {
+        ...baseLayout,
+        cardsPerRow: Math.min(content?.concerns?.length || 2, 2)
+      };
+    case "faq":
+      return {
+        ...baseLayout,
+        cardsPerRow: 2
+      };
+    default:
+      return baseLayout;
+  }
+};
+
+// Map AIDA content to template structure with dynamic layout
 const mapToTemplateStructure = (aidaContent: any, heroContent: any, heroImage: string) => {
+  // Create dynamic layout configuration
+  const layoutConfig = {
+    backgroundColor: "#FFFFFF",
+    useCards: true,
+    sections: {
+      hero: generateSectionLayout("hero", heroContent),
+      valueProposition: generateSectionLayout("valueProposition", {
+        cards: aidaContent.marketAnalysis.painPoints
+      }),
+      features: generateSectionLayout("features", {
+        items: aidaContent.marketAnalysis.features
+      }),
+      testimonials: generateSectionLayout("testimonials", {
+        items: [aidaContent.marketAnalysis.socialProof]
+      }),
+      howItWorks: generateSectionLayout("howItWorks", aidaContent.howItWorks),
+      marketAnalysis: generateSectionLayout("marketAnalysis", aidaContent.marketAnalysis),
+      objections: generateSectionLayout("objections", aidaContent.objections),
+      faq: generateSectionLayout("faq", aidaContent.faq)
+    }
+  };
+
   return {
     hero: {
       title: heroContent.headline,
@@ -30,44 +108,7 @@ const mapToTemplateStructure = (aidaContent: any, heroContent: any, heroImage: s
       cta: heroContent.subtitle.action,
       image: heroImage
     },
-    layout: {
-      backgroundColor: "#FFFFFF",
-      useCards: true,
-      sections: {
-        hero: {
-          type: "hero",
-          layout: "split"
-        },
-        valueProposition: {
-          type: "cards",
-          cardsPerRow: 3
-        },
-        features: {
-          type: "cards",
-          cardsPerRow: 3
-        },
-        testimonials: {
-          type: "cards",
-          cardsPerRow: 1
-        },
-        howItWorks: {
-          type: "cards",
-          cardsPerRow: 3
-        },
-        marketAnalysis: {
-          type: "cards",
-          cardsPerRow: 2
-        },
-        objections: {
-          type: "cards",
-          cardsPerRow: 2
-        },
-        faq: {
-          type: "cards",
-          cardsPerRow: 2
-        }
-      }
-    },
+    layout: layoutConfig,
     valueProposition: {
       title: "Why Choose Us?",
       cards: aidaContent.marketAnalysis.painPoints.map((point: any) => ({
