@@ -132,14 +132,15 @@ const Index = () => {
             <Target className="h-12 w-12 text-primary animate-pulse" />
           </div>
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-8">
-            Transform Business Ideas Into Validated Success Stories{' '}
+            Know If Your{' '}
             <span className="text-primary">
               <TextCycler
-                items={['Instantly', 'Efficiently', 'Confidently', 'Affordably', 'Easily']}
+                items={['Idea', 'Product', 'Service', 'Course', 'Marketing Concept']}
                 interval={2000}
                 className="inline-block"
               />
-            </span>
+            </span>{' '}
+            Will Succeed Before You Invest
           </h1>
           <p className="text-xl text-muted-foreground mb-12 max-w-3xl mx-auto">
             Turn your vision into reality with AI-powered market validation that analyzes, tests, and optimizes your business concept. Get comprehensive insights and actionable data in minutes, not months. Start validating your ideas today with zero risk.
