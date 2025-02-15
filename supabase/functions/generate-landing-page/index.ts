@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { OpenAI } from "https://esm.sh/openai@4.20.1";
 import Replicate from "https://esm.sh/replicate@0.25.1";
@@ -221,54 +220,52 @@ Return JSON with exact structure:
       };
     }
 
-    // Handle hero image with error handling
-    let heroImage = projectImages[0];
-    if (!heroImage) {
-      try {
-        console.log("Generating hero image...");
-        const replicate = new Replicate({
-          auth: Deno.env.get('REPLICATE_API_KEY'),
-        });
+    // Handle hero image generation - removed the projectImages[0] check to force new generation
+    let heroImage;
+    try {
+      console.log("Generating hero image...");
+      const replicate = new Replicate({
+        auth: Deno.env.get('REPLICATE_API_KEY'),
+      });
 
-        // Add random seed and style variations
-        const styles = [
-          "modern corporate photography",
-          "creative business lifestyle",
-          "professional studio setting",
-          "contemporary workplace scene",
-          "minimalist business concept"
-        ];
-        const randomStyle = styles[Math.floor(Math.random() * styles.length)];
-        const randomSeed = Math.floor(Math.random() * 1000000);
+      // Add random seed and style variations
+      const styles = [
+        "modern corporate photography",
+        "creative business lifestyle",
+        "professional studio setting",
+        "contemporary workplace scene",
+        "minimalist business concept"
+      ];
+      const randomStyle = styles[Math.floor(Math.random() * styles.length)];
+      const randomSeed = Math.floor(Math.random() * 1000000);
 
-        const imagePrompt = `Professional photograph visualizing: "${heroContent.headline}". ${heroContent.subtitle}. Style: ${randomStyle}. High resolution, commercial quality, modern aesthetic, perfect for a landing page hero section.`;
-        console.log("Image generation prompt:", imagePrompt);
+      const imagePrompt = `Professional photograph visualizing: "${heroContent.headline}". ${heroContent.subtitle}. Style: ${randomStyle}. High resolution, commercial quality, modern aesthetic, perfect for a landing page hero section.`;
+      console.log("Image generation prompt:", imagePrompt);
 
-        const output = await replicate.run(
-          "stability-ai/sdxl:2b017d9b67edd2ee1401238df49d75da53c523f36e363881e057f5dc3ed3c5b2",
-          {
-            input: {
-              prompt: imagePrompt,
-              width: 1024,
-              height: 768,
-              num_outputs: 1,
-              scheduler: "K_EULER",
-              num_inference_steps: 50,
-              guidance_scale: 7.5,
-              prompt_strength: 0.8,
-              refine: "expert_ensemble_refiner",
-              high_noise_frac: 0.8,
-              seed: randomSeed,
-            }
+      const output = await replicate.run(
+        "black-forest-labs/flux-1.1-pro",
+        {
+          input: {
+            prompt: imagePrompt,
+            width: 1024,
+            height: 1024,
+            num_outputs: 1,
+            seed: randomSeed,
+            go_fast: true,
+            megapixels: "1",
+            aspect_ratio: "1:1",
+            output_format: "webp",
+            output_quality: 80,
+            num_inference_steps: 4
           }
-        );
+        }
+      );
 
-        heroImage = Array.isArray(output) ? output[0] : output;
-        console.log("Generated hero image URL:", heroImage);
-      } catch (error) {
-        console.error("Error generating hero image:", error);
-        heroImage = null;
-      }
+      heroImage = Array.isArray(output) ? output[0] : output;
+      console.log("Generated hero image URL:", heroImage);
+    } catch (error) {
+      console.error("Error generating hero image:", error);
+      heroImage = null;
     }
 
     // Combine all content with safe defaults
