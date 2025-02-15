@@ -289,6 +289,41 @@ export type Database = {
         }
         Relationships: []
       }
+      generated_content: {
+        Row: {
+          content: Json
+          created_at: string
+          headline: string
+          id: string
+          project_id: string | null
+          subtitle: string
+        }
+        Insert: {
+          content: Json
+          created_at?: string
+          headline: string
+          id?: string
+          project_id?: string | null
+          subtitle: string
+        }
+        Update: {
+          content?: Json
+          created_at?: string
+          headline?: string
+          id?: string
+          project_id?: string | null
+          subtitle?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "generated_content_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       landing_page_section_analytics: {
         Row: {
           click_through_rate: number | null
