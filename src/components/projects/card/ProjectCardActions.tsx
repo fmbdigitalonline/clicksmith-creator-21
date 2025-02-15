@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Edit2, Trash2, PlayCircle, Layout } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ProjectCardActionsProps {
   projectId: string;
@@ -29,7 +30,7 @@ const ProjectCardActions = ({
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const handleCreateLandingPage = () => {
+  const handleCreateLandingPage = async () => {
     if (!hasBusinessIdea || !hasTargetAudience || !hasAudienceAnalysis) {
       toast({
         title: "Missing information",
@@ -39,7 +40,93 @@ const ProjectCardActions = ({
       return;
     }
     
-    navigate(`/projects/${projectId}/landing-page`);
+    // Show loading toast
+    toast({
+      title: "Creating landing page",
+      description: "Please wait while we generate your landing page...",
+    });
+
+    try {
+      // Get the project data first
+      const { data: project, error: projectError } = await supabase
+        .from('projects')
+        .select('business_idea, target_audience, audience_analysis, title')
+        .eq('id', projectId)
+        .single();
+
+      if (projectError) throw projectError;
+
+      // Get any saved ad images
+      const { data: adFeedback } = await supabase
+        .from('ad_feedback')
+        .select('saved_images')
+        .eq('project_id', projectId)
+        .limit(1)
+        .single();
+
+      const savedImages = adFeedback?.saved_images || [];
+
+      // Call the edge function to generate landing page content
+      const { data: generatedContent, error } = await supabase.functions
+        .invoke('generate-landing-page', {
+          body: {
+            businessIdea: project.business_idea,
+            targetAudience: project.target_audience,
+            audienceAnalysis: project.audience_analysis,
+            projectImages: savedImages
+          },
+        });
+
+      if (error) throw error;
+
+      // Save the generated content to the landing_pages table
+      const { data: landingPage, error: saveError } = await supabase
+        .from('landing_pages')
+        .insert({
+          project_id: projectId,
+          user_id: (await supabase.auth.getUser()).data.user?.id,
+          title: `${project.title} Landing Page`,
+          content: generatedContent,
+          image_placements: generatedContent.imagePlacements,
+          layout_style: generatedContent.layout,
+          template_version: 2,
+          section_order: [
+            "hero",
+            "value_proposition",
+            "features",
+            "proof",
+            "pricing",
+            "finalCta",
+            "footer"
+          ],
+          conversion_goals: [
+            "sign_up",
+            "contact_form",
+            "newsletter"
+          ],
+          published: false
+        })
+        .select()
+        .single();
+
+      if (saveError) throw saveError;
+
+      // Show success message
+      toast({
+        title: "Success",
+        description: "Your landing page has been generated successfully!",
+      });
+
+      // Navigate to the landing page editor
+      navigate(`/projects/${projectId}/landing-page`);
+    } catch (error) {
+      console.error('Error creating landing page:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to create landing page",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
