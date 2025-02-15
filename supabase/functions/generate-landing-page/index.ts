@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { OpenAI } from "https://esm.sh/openai@4.20.1";
 import Replicate from "https://esm.sh/replicate@0.25.1";
@@ -92,13 +93,13 @@ serve(async (req) => {
       return response.json();
     }
 
-    // Generate main content following AIDA framework
-    const contentPrompt = `Create a landing page content for ${businessIdea.description || businessIdea.name}. 
+    // Generate main content following AIDA framework with comprehensive details
+    const contentPrompt = `Create a comprehensive, high-converting landing page content for ${businessIdea.description || businessIdea.name}. 
     
 Input Data:
 ${JSON.stringify({ businessIdea, targetAudience, audienceAnalysis }, null, 2)}
 
-Generate a JSON object with these exact sections:
+Generate a detailed JSON object with these exact sections, focusing on persuasive marketing copy and clear value propositions:
 
 {
   "howItWorks": {
@@ -147,10 +148,13 @@ Generate a JSON object with these exact sections:
 
 Follow these rules:
 1. Make content compelling and focused on benefits
-2. Use professional tone
-3. Focus on solving pain points
-4. Include specific features and benefits
-5. Make all content relevant to the business idea and target audience`;
+2. Use professional, persuasive tone
+3. Address specific pain points from the audience analysis
+4. Include detailed features and their benefits
+5. Make all content relevant to the business idea and target audience
+6. Create testimonials that reflect real use cases
+7. Address common objections thoroughly
+8. Include comprehensive FAQ section`;
 
     console.log("Generating content with prompt:", contentPrompt);
 
@@ -159,7 +163,7 @@ Follow these rules:
       const completion = await createDeepSeekCompletion([
         {
           role: "system",
-          content: "You are an expert landing page copywriter. Create compelling content following the AIDA framework. Return only valid JSON matching the exact structure specified."
+          content: "You are an expert landing page copywriter specializing in high-converting content. Create compelling content following the AIDA framework and modern marketing best practices. Return only valid JSON matching the exact structure specified."
         },
         {
           role: "user",
@@ -197,12 +201,14 @@ Return JSON with exact structure:
 {
   "headline": string,
   "subtitle": string
-}`;
+}
+
+Make it highly persuasive and focused on the main value proposition.`;
 
       const heroCompletion = await createDeepSeekCompletion([
         {
           role: "system",
-          content: "You are an expert copywriter. Return only valid JSON with the exact structure specified."
+          content: "You are an expert copywriter specializing in hero sections that convert. Return only valid JSON with the exact structure specified."
         },
         {
           role: "user",
@@ -270,7 +276,7 @@ Return JSON with exact structure:
       heroImage = null;
     }
 
-    // Combine all content with safe defaults
+    // Combine all content
     const generatedContent = {
       hero: {
         title: heroContent?.headline || "Transform Your Business",
@@ -278,67 +284,7 @@ Return JSON with exact structure:
         cta: "Get Started Now",
         image: heroImage
       },
-      howItWorks: aidaContent?.howItWorks || {
-        subheadline: "How It Works",
-        steps: [
-          {
-            title: "Share Your Vision",
-            description: "Tell us about your business idea"
-          },
-          {
-            title: "Get Professional Analysis",
-            description: "Receive expert insights and guidance"
-          },
-          {
-            title: "Implement Solutions",
-            description: "Put your plan into action"
-          }
-        ],
-        valueReinforcement: "Transform your business ideas into reality"
-      },
-      marketAnalysis: aidaContent?.marketAnalysis || {
-        context: "The market is evolving",
-        solution: "We provide innovative solutions",
-        painPoints: [],
-        features: []
-      },
-      valueProposition: {
-        title: "Why Choose Us?",
-        cards: aidaContent?.valueProposition?.cards || [
-          {
-            icon: "✨",
-            title: "Professional Quality",
-            description: "Expert solutions that deliver results"
-          },
-          {
-            icon: "🎯",
-            title: "Time-Saving",
-            description: "Quick implementation of proven strategies"
-          },
-          {
-            icon: "💫",
-            title: "Dedicated Support",
-            description: "Get help when you need it"
-          }
-        ]
-      },
-      features: aidaContent?.features || {
-        title: "Key Features",
-        description: "Everything you need to succeed",
-        items: []
-      },
-      testimonials: {
-        title: "What Our Clients Say",
-        items: aidaContent?.testimonials?.items || []
-      },
-      objections: {
-        subheadline: "Common Questions Answered",
-        concerns: aidaContent?.objections?.concerns || []
-      },
-      faq: {
-        subheadline: "Frequently Asked Questions",
-        questions: aidaContent?.faq?.questions || []
-      },
+      ...aidaContent,
       cta: {
         title: "Ready to Get Started?",
         description: "Join us today and transform your business.",

@@ -82,7 +82,8 @@ const ProjectCardActions = ({
             businessIdea: project.business_idea,
             targetAudience: project.target_audience,
             audienceAnalysis: project.audience_analysis,
-            projectImages: savedImages
+            projectImages: savedImages,
+            generateComprehensive: true // New flag to indicate we want comprehensive content
           },
         });
 
