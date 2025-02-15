@@ -16,7 +16,10 @@ const FooterSection = ({ content, className }: FooterSectionProps) => {
   if (!content) return null;
 
   return (
-    <footer className={cn("py-16 bg-background border-t border-gray-100", className)}>
+    <footer className={cn(
+      "py-16 bg-background border-t border-gray-100", // Added subtle border
+      className
+    )}>
       <div className="container mx-auto px-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12 mb-8">
           {content.contact && (
