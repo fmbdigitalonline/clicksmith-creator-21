@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { ArrowRight, CheckCircle, MessageCircle, BadgeCheck, Target, ArrowRight as ArrowRightIcon, Lightbulb, PieChart, DollarSign, Users, BarChart, Rocket, Globe } from "lucide-react";
@@ -132,18 +133,17 @@ const Index = () => {
             <Target className="h-12 w-12 text-primary animate-pulse" />
           </div>
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-8">
-            Know If Your{' '}
+            Transform Business Ideas Into Validated Success Stories{' '}
             <span className="text-primary">
               <TextCycler
-                items={['Idea', 'Product', 'Service', 'Marketing', 'Course']}
+                items={['Instantly', 'Efficiently', 'Confidently', 'Affordably', 'Easily']}
                 interval={2000}
                 className="inline-block"
               />
-            </span>{' '}
-            Will Succeed Before You Invest
+            </span>
           </h1>
           <p className="text-xl text-muted-foreground mb-12 max-w-3xl mx-auto">
-            Our AI Generates Your Ideal Customer Profile and Tailored Ads in Minutes—So You Can Test What Works Before Committing Resources.
+            Turn your vision into reality with AI-powered market validation that analyzes, tests, and optimizes your business concept. Get comprehensive insights and actionable data in minutes, not months. Start validating your ideas today with zero risk.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-8 mb-12">
             <div className="flex items-center gap-2 text-xl text-muted-foreground">
