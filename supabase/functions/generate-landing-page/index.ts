@@ -220,7 +220,7 @@ Return JSON with exact structure:
       };
     }
 
-    // Handle hero image generation - removed the projectImages[0] check to force new generation
+    // Handle hero image generation with emphasis on realism
     let heroImage;
     try {
       console.log("Generating hero image...");
@@ -228,18 +228,19 @@ Return JSON with exact structure:
         auth: Deno.env.get('REPLICATE_API_KEY'),
       });
 
-      // Add random seed and style variations
+      // Add random seed and realistic style variations
       const styles = [
-        "modern corporate photography",
-        "creative business lifestyle",
-        "professional studio setting",
-        "contemporary workplace scene",
-        "minimalist business concept"
+        "professional DSLR photography",
+        "natural studio lighting",
+        "real commercial photography",
+        "professional corporate photo",
+        "high-end business photography"
       ];
       const randomStyle = styles[Math.floor(Math.random() * styles.length)];
       const randomSeed = Math.floor(Math.random() * 1000000);
 
-      const imagePrompt = `Professional photograph visualizing: "${heroContent.headline}". ${heroContent.subtitle}. Style: ${randomStyle}. High resolution, commercial quality, modern aesthetic, perfect for a landing page hero section.`;
+      const imagePrompt = `Create a strictly photorealistic commercial photograph. The image must be indistinguishable from a professional DSLR camera shot, with absolutely no artistic or illustrated elements. ${heroContent.headline}. ${heroContent.subtitle}. Style: ${randomStyle}. Critical requirements: crystal clear focus, natural lighting, realistic shadows, professional studio quality, commercial photography standards.`;
+      
       console.log("Image generation prompt:", imagePrompt);
 
       const output = await replicate.run(
@@ -247,6 +248,7 @@ Return JSON with exact structure:
         {
           input: {
             prompt: imagePrompt,
+            negative_prompt: "cartoon, illustration, painting, drawing, art, digital art, anime, manga, low quality, blurry, watermark, text, logo, artificial, AI-generated, unrealistic, distorted, deformed",
             width: 1024,
             height: 1024,
             num_outputs: 1,
@@ -255,7 +257,7 @@ Return JSON with exact structure:
             megapixels: "1",
             aspect_ratio: "1:1",
             output_format: "webp",
-            output_quality: 80,
+            output_quality: 90,
             num_inference_steps: 4
           }
         }
