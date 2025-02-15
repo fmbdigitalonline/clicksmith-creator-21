@@ -8,151 +8,13 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Ensure we get valid string values from any data
-const ensureString = (value: any): string => {
-  if (typeof value === 'string') return value;
-  if (value === null || value === undefined) return '';
-  return String(value);
-};
-
-// Ensure array items are properly formatted
-const ensureArrayItems = <T>(items: any[] | undefined, defaultValue: T[]): T[] => {
-  if (!Array.isArray(items)) return defaultValue;
-  return items;
-};
-
-const parseOpenAIResponse = (content: string): any => {
-  try {
-    // First attempt: direct JSON parse
-    return JSON.parse(content);
-  } catch (e) {
-    try {
-      // Second attempt: clean markdown and try again
-      const cleanedContent = content.replace(/```json\n?|\n?```/g, '').trim();
-      return JSON.parse(cleanedContent);
-    } catch (e2) {
-      console.error('Failed to parse AI response:', content);
-      console.error('Parse error:', e2);
-      return {
-        error: "Failed to parse AI response",
-        content: content
-      };
-    }
-  }
-};
-
-// Map AIDA content to template structure with dynamic layout and proper type conversion
-const mapToTemplateStructure = (aidaContent: any, heroContent: any, heroImage: string) => {
-  console.log("Mapping content to template structure");
-  
-  if (!aidaContent || !heroContent) {
-    console.error("Missing required content:", { aidaContent, heroContent });
-    throw new Error("Missing required content for template structure");
-  }
-
-  // Ensure proper typing for pain points
-  const painPoints = ensureArrayItems(aidaContent.marketAnalysis?.painPoints, [])
-    .map((point: any) => ({
-      title: ensureString(point.title),
-      description: ensureString(point.description)
-    }));
-
-  // Ensure proper typing for features
-  const features = ensureArrayItems(aidaContent.marketAnalysis?.features, [])
-    .map((feature: any) => ({
-      title: ensureString(feature.title),
-      description: ensureString(feature.description)
-    }));
-
-  return {
-    hero: {
-      title: ensureString(heroContent.headline),
-      description: ensureString([
-        heroContent.subtitle?.interest,
-        heroContent.subtitle?.desire,
-        heroContent.subtitle?.action
-      ].filter(Boolean).join(' ')),
-      cta: ensureString(heroContent.subtitle?.action || "Get Started"),
-      image: ensureString(heroImage),
-    },
-    valueProposition: {
-      title: "Why Choose Us?",
-      cards: painPoints.map((point, index) => ({
-        icon: ["✨", "🎯", "💫"][index % 3],
-        title: ensureString(point.title),
-        description: ensureString(point.description)
-      }))
-    },
-    features: {
-      title: "Key Features",
-      description: ensureString(aidaContent.marketAnalysis?.solution),
-      items: features.map(feature => ({
-        title: ensureString(feature.title),
-        description: ensureString(feature.description)
-      }))
-    },
-    howItWorks: {
-      subheadline: "How it works",
-      steps: ensureArrayItems(aidaContent.howItWorks?.steps, []).map((step: any) => ({
-        title: ensureString(step.title),
-        description: ensureString(step.description)
-      })),
-      valueReinforcement: ensureString(aidaContent.howItWorks?.valueReinforcement)
-    },
-    testimonials: {
-      title: "What Our Clients Say",
-      items: [{
-        quote: ensureString(aidaContent.marketAnalysis?.socialProof?.quote),
-        author: ensureString(aidaContent.marketAnalysis?.socialProof?.author),
-        role: ensureString(aidaContent.marketAnalysis?.socialProof?.title)
-      }]
-    },
-    marketAnalysis: {
-      context: ensureString(aidaContent.marketAnalysis?.context),
-      solution: ensureString(aidaContent.marketAnalysis?.solution),
-      painPoints: painPoints,
-      features: features,
-      socialProof: {
-        quote: ensureString(aidaContent.marketAnalysis?.socialProof?.quote),
-        author: ensureString(aidaContent.marketAnalysis?.socialProof?.author),
-        title: ensureString(aidaContent.marketAnalysis?.socialProof?.title)
-      }
-    },
-    objections: {
-      subheadline: ensureString(aidaContent.objections?.subheadline),
-      concerns: ensureArrayItems(aidaContent.objections?.concerns, []).map((concern: any) => ({
-        question: ensureString(concern.question),
-        answer: ensureString(concern.answer)
-      }))
-    },
-    faq: {
-      subheadline: ensureString(aidaContent.faq?.subheadline),
-      questions: ensureArrayItems(aidaContent.faq?.questions, []).map((q: any) => ({
-        question: ensureString(q.question),
-        answer: ensureString(q.answer)
-      }))
-    },
-    cta: {
-      title: "Ready to Get Started?",
-      description: ensureString(aidaContent.howItWorks?.valueReinforcement || "Join us today!"),
-      buttonText: "Get Started Now"
-    },
-    footerContent: {
-      contact: ensureString(aidaContent.footerContent?.contact),
-      newsletter: ensureString(aidaContent.footerContent?.newsletter),
-      copyright: ensureString(aidaContent.footerContent?.copyright)
-    }
-  };
-};
-
 serve(async (req) => {
-  // Handle CORS
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { businessIdea, targetAudience, audienceAnalysis, projectImages = [] } = await req.json();
+    const { businessIdea, targetAudience, audienceAnalysis, marketingCampaign, projectImages = [] } = await req.json();
 
     if (!businessIdea) {
       return new Response(
@@ -167,36 +29,129 @@ serve(async (req) => {
     console.log("Starting landing page generation with:", {
       businessIdea,
       targetAudience,
-      audienceAnalysis
+      audienceAnalysis,
+      marketingCampaign
     });
 
-    // Initialize OpenAI client
     const openai = new OpenAI({
       baseURL: 'https://api.deepseek.com/v1',
       apiKey: Deno.env.get('DEEPSEEK_API_KEY')
     });
 
-    if (!openai.apiKey) {
-      return new Response(
-        JSON.stringify({ error: 'OpenAI API key is not configured' }),
-        { 
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
-    }
+    // Generate main content following AIDA framework
+    const contentPrompt = `Create a landing page content for ${businessIdea.description || businessIdea.name} following this structure:
 
-    // Generate hero content
-    console.log("Generating hero content...");
-    const heroPrompt = `Write a compelling headline and subtitle for a landing page that promotes ${businessIdea.description || businessIdea.name} following the AIDA formula. Return as JSON with headline and subtitle sections.`;
-    console.log("Hero prompt:", heroPrompt);
+Business Context:
+${JSON.stringify({ businessIdea, targetAudience, audienceAnalysis, marketingCampaign }, null, 2)}
+
+Generate content following the AIDA framework (Attention, Interest, Desire, Action) with these sections:
+
+1. Hero Section (Attention):
+- Compelling headline addressing pain points
+- Emotional subtitle highlighting benefits
+- Clear value proposition
+- Strong call-to-action
+
+2. How It Works Section (Interest):
+- Clear step-by-step process
+- Value reinforcement
+- Technical highlights
+- Benefits at each step
+
+3. Market Analysis (Interest/Desire):
+- Industry context
+- Current market situation
+- Solution positioning
+- Key benefits
+
+4. Value Proposition:
+- Main benefits
+- Unique selling points
+- Competitive advantages
+
+5. Features Section:
+- Key features
+- Technical capabilities
+- Integration possibilities
+- User benefits
+
+6. Testimonials:
+- Customer success stories
+- Result metrics
+- User experiences
+
+7. Objections Section:
+- Common concerns
+- Clear answers
+- Trust building elements
+
+8. FAQ Section:
+- Frequent questions
+- Detailed answers
+- Technical clarifications
+
+9. Final CTA:
+- Urgency elements
+- Clear next steps
+- Value reinforcement
+
+10. Footer:
+- Contact information
+- Newsletter signup
+- Copyright information
+
+Return a JSON object with these exact sections structured appropriately.`;
+
+    console.log("Generating content with prompt:", contentPrompt);
+
+    const completion = await openai.chat.completions.create({
+      model: "deepseek-chat",
+      messages: [
+        {
+          role: "system",
+          content: "You are an expert landing page copywriter. Create compelling content following the AIDA framework. Return only valid JSON."
+        },
+        {
+          role: "user",
+          content: contentPrompt
+        }
+      ],
+      response_format: { type: "json_object" },
+      temperature: 0.7
+    });
+
+    const aidaContent = JSON.parse(completion.choices[0].message.content);
+
+    // Generate hero section separately for better attention-grabbing content
+    const heroPrompt = `Create a compelling hero section for this landing page:
+
+Business: ${businessIdea.description}
+Target Audience: ${JSON.stringify(targetAudience)}
+Value Proposition: ${businessIdea.valueProposition}
+
+Create an attention-grabbing hero section that:
+1. Has a powerful headline (8-12 words)
+2. Includes an emotional subtitle
+3. Addresses key pain points
+4. Highlights primary benefits
+5. Has a compelling call-to-action
+
+Return as JSON with these fields:
+{
+  "headline": "string",
+  "subtitle": {
+    "interest": "string",
+    "desire": "string",
+    "action": "string"
+  }
+}`;
 
     const heroCompletion = await openai.chat.completions.create({
       model: "deepseek-chat",
       messages: [
         {
           role: "system",
-          content: "You are an expert copywriter specializing in landing page headlines. Create compelling content following the AIDA formula. Return only valid JSON."
+          content: "You are an expert copywriter specializing in attention-grabbing headlines. Return only valid JSON."
         },
         {
           role: "user",
@@ -207,36 +162,7 @@ serve(async (req) => {
       temperature: 0.7
     });
 
-    console.log("Hero content generated");
-    const heroContent = parseOpenAIResponse(heroCompletion.choices[0].message.content);
-
-    // Generate AIDA content
-    console.log("Generating AIDA content...");
-    const aidaPrompt = `Generate landing page content for: ${JSON.stringify({
-      business: businessIdea,
-      audience: targetAudience,
-      analysis: audienceAnalysis
-    })}. Include howItWorks, marketAnalysis, objections, and FAQ sections.`;
-    console.log("AIDA prompt:", aidaPrompt);
-
-    const completion = await openai.chat.completions.create({
-      model: "deepseek-chat",
-      messages: [
-        {
-          role: "system",
-          content: "You are a landing page content expert. Generate comprehensive content following the AIDA framework. Return only valid JSON."
-        },
-        {
-          role: "user",
-          content: aidaPrompt
-        }
-      ],
-      response_format: { type: "json_object" },
-      temperature: 0.7
-    });
-
-    console.log("AIDA content generated");
-    const aidaContent = parseOpenAIResponse(completion.choices[0].message.content);
+    const heroContent = JSON.parse(heroCompletion.choices[0].message.content);
 
     // Handle hero image
     let heroImage = projectImages[0];
@@ -246,17 +172,7 @@ serve(async (req) => {
         auth: Deno.env.get('REPLICATE_API_KEY'),
       });
 
-      if (!replicate.auth) {
-        return new Response(
-          JSON.stringify({ error: 'Replicate API key is not configured' }),
-          { 
-            status: 500,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          }
-        );
-      }
-
-      const imagePrompt = `Professional photograph for a landing page promoting: ${businessIdea.description || businessIdea.name}. High resolution, commercial quality.`;
+      const imagePrompt = `Professional photograph for a landing page promoting: ${businessIdea.description}. High resolution, commercial quality.`;
       console.log("Image generation prompt:", imagePrompt);
 
       const output = await replicate.run(
@@ -278,12 +194,76 @@ serve(async (req) => {
       );
 
       heroImage = Array.isArray(output) ? output[0] : output;
-      console.log("Hero image generated:", heroImage);
     }
 
-    // Map content to template
-    const generatedContent = mapToTemplateStructure(aidaContent, heroContent, heroImage);
-    console.log("Content mapping complete");
+    // Combine all content
+    const generatedContent = {
+      hero: {
+        title: heroContent.headline,
+        description: [
+          heroContent.subtitle.interest,
+          heroContent.subtitle.desire,
+          heroContent.subtitle.action
+        ].filter(Boolean).join(' '),
+        cta: "Get Started Now",
+        image: heroImage
+      },
+      howItWorks: {
+        subheadline: "How it works",
+        steps: aidaContent.howItWorks?.steps || [],
+        valueReinforcement: aidaContent.howItWorks?.valueReinforcement || ""
+      },
+      marketAnalysis: {
+        context: aidaContent.marketAnalysis?.context || "",
+        solution: aidaContent.marketAnalysis?.solution || "",
+        painPoints: aidaContent.marketAnalysis?.painPoints || [],
+        features: aidaContent.marketAnalysis?.features || [],
+        socialProof: aidaContent.marketAnalysis?.socialProof || {}
+      },
+      valueProposition: {
+        title: "Why Choose Us?",
+        cards: (aidaContent.marketAnalysis?.painPoints || []).map((point: any, index: number) => ({
+          icon: ["✨", "🎯", "💫"][index % 3],
+          title: point.title,
+          description: point.description
+        }))
+      },
+      features: {
+        title: "Key Features",
+        description: aidaContent.marketAnalysis?.solution || "",
+        items: aidaContent.marketAnalysis?.features || []
+      },
+      testimonials: {
+        title: "What Our Clients Say",
+        items: [aidaContent.marketAnalysis?.socialProof || {
+          quote: "This solution has transformed how we operate. Highly recommended!",
+          author: "John Smith",
+          role: "Business Owner"
+        }]
+      },
+      objections: aidaContent.objections || {
+        subheadline: "Common Concerns Addressed",
+        concerns: []
+      },
+      faq: aidaContent.faq || {
+        subheadline: "Frequently Asked Questions",
+        questions: []
+      },
+      cta: {
+        title: "Ready to Get Started?",
+        description: aidaContent.howItWorks?.valueReinforcement || "Join us today and experience the difference.",
+        buttonText: "Get Started Now"
+      },
+      footerContent: aidaContent.footerContent || {
+        contact: "Contact us for support",
+        newsletter: "Subscribe to our newsletter",
+        copyright: `© ${new Date().getFullYear()} All rights reserved.`
+      },
+      layout: {
+        style: "modern",
+        colorScheme: "light"
+      }
+    };
 
     return new Response(
       JSON.stringify(generatedContent),
