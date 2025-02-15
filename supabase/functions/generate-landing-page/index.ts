@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { OpenAI } from "https://esm.sh/openai@4.20.1";
 import Replicate from "https://esm.sh/replicate@0.25.1";
@@ -8,23 +7,29 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const parseOpenAIResponse = (content: string): any => {
+const cleanMarkdownJSON = (content: string): string => {
+  // Remove markdown code block syntax and any extra whitespace
+  return content
+    .replace(/```json\s*/g, '')  // Remove opening ```json
+    .replace(/```\s*$/g, '')     // Remove closing ```
+    .replace(/^```\s*/g, '')     // Remove any other ``` markers
+    .trim();                      // Remove extra whitespace
+};
+
+const parseAIResponse = (content: string): any => {
   try {
-    // First attempt: direct JSON parse
+    // First try parsing the raw content
     return JSON.parse(content);
   } catch (e) {
     try {
-      // Second attempt: clean markdown and try again
-      const cleanedContent = content.replace(/```json\n?|\n?```/g, '').trim();
+      // If that fails, try cleaning markdown formatting and parse again
+      const cleanedContent = cleanMarkdownJSON(content);
+      console.log("Cleaned content:", cleanedContent);
       return JSON.parse(cleanedContent);
     } catch (e2) {
       console.error('Failed to parse AI response:', content);
       console.error('Parse error:', e2);
-      // Return a structured error message
-      return {
-        error: "Failed to parse AI response",
-        content: content
-      };
+      throw new Error(`Failed to parse AI response: ${e2.message}`);
     }
   }
 };
@@ -143,14 +148,6 @@ serve(async (req) => {
 
     // Generate hero content with a more structured prompt
     console.log("Generating hero content...");
-    const heroPrompt = {
-      business: businessIdea.description || businessIdea.name,
-      format: "JSON with headline and subtitle sections",
-      framework: "AIDA (Attention, Interest, Desire, Action)",
-      requirements: "Create a compelling headline and subtitle"
-    };
-    console.log("Hero prompt:", JSON.stringify(heroPrompt));
-
     let heroContent;
     try {
       const heroCompletion = await openai.chat.completions.create({
@@ -158,7 +155,7 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `You are an expert copywriter. Return only valid JSON with this structure:
+            content: `You are an expert copywriter. Return a JSON object with this exact structure, no markdown:
             {
               "headline": "Main attention-grabbing headline",
               "subtitle": {
@@ -170,28 +167,23 @@ serve(async (req) => {
           },
           {
             role: "user",
-            content: JSON.stringify(heroPrompt)
+            content: `Create a compelling headline and subtitle for this business: ${businessIdea.description || businessIdea.name}`
           }
         ],
         temperature: 0.7
       });
 
-      console.log("Raw hero response:", heroCompletion.choices[0].message.content);
-      heroContent = JSON.parse(heroCompletion.choices[0].message.content);
+      const rawResponse = heroCompletion.choices[0].message.content;
+      console.log("Raw hero response:", rawResponse);
+      heroContent = parseAIResponse(rawResponse);
+      console.log("Parsed hero content:", heroContent);
     } catch (error) {
       console.error("Hero content generation error:", error);
       throw new Error(`Hero content generation failed: ${error.message}`);
     }
 
-    // Generate AIDA content with a more structured prompt
+    // Generate AIDA content
     console.log("Generating AIDA content...");
-    const aidaPrompt = {
-      business: businessIdea,
-      audience: targetAudience,
-      analysis: audienceAnalysis,
-      sections: ["howItWorks", "marketAnalysis", "objections", "FAQ"]
-    };
-
     let aidaContent;
     try {
       const completion = await openai.chat.completions.create({
@@ -199,18 +191,23 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `You are a landing page content expert. Return a valid JSON object containing sections for howItWorks, marketAnalysis (with solution, features, and socialProof), objections, and FAQ.`
+            content: `You are a landing page content expert. Return a JSON object containing sections for howItWorks, marketAnalysis (with solution, features, and socialProof), objections, and FAQ. Do not use markdown formatting.`
           },
           {
             role: "user",
-            content: JSON.stringify(aidaPrompt)
+            content: `Generate landing page content for this business:
+              Business: ${JSON.stringify(businessIdea)}
+              Target Audience: ${JSON.stringify(targetAudience)}
+              Analysis: ${JSON.stringify(audienceAnalysis)}`
           }
         ],
         temperature: 0.7
       });
 
-      console.log("Raw AIDA response:", completion.choices[0].message.content);
-      aidaContent = JSON.parse(completion.choices[0].message.content);
+      const rawResponse = completion.choices[0].message.content;
+      console.log("Raw AIDA response:", rawResponse);
+      aidaContent = parseAIResponse(rawResponse);
+      console.log("Parsed AIDA content:", aidaContent);
     } catch (error) {
       console.error("AIDA content generation error:", error);
       throw new Error(`AIDA content generation failed: ${error.message}`);
