@@ -21,21 +21,22 @@ interface LandingPageContentProps {
 const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) => {
   const [activeView, setActiveView] = useState<"edit" | "preview">("preview");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [currentContent, setCurrentContent] = useState(landingPage?.content || generateInitialContent(project));
+  const [currentLayoutStyle, setCurrentLayoutStyle] = useState(landingPage?.layout_style);
+  
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
   // Fetch the default template
   const { data: template, isLoading: isTemplateLoading } = useLandingPageTemplate();
   
-  // Use landingPage.content or generate initial content
-  const content = landingPage?.content || generateInitialContent(project);
-  
   // Get the current layout from landingPage or template default
-  const currentLayout = landingPage?.layout_style || (template?.structure?.sections || {});
+  const currentLayout = currentLayoutStyle || (template?.structure?.sections || {});
 
   const generateLandingPageContent = async () => {
     setIsGenerating(true);
-    // Show loading toast
+    console.log("Starting generation of new layout");
+    
     toast({
       title: "Creating landing page",
       description: "Please wait while we generate your landing page...",
@@ -61,6 +62,13 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
 
       const savedImages = adFeedback?.saved_images || [];
 
+      console.log("Calling generate-landing-page function with data:", {
+        businessIdea: projectData.business_idea,
+        targetAudience: projectData.target_audience,
+        audienceAnalysis: projectData.audience_analysis,
+        projectImages: savedImages
+      });
+
       // Call the edge function to generate landing page content
       const { data: generatedContent, error } = await supabase.functions
         .invoke('generate-landing-page', {
@@ -73,6 +81,8 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
         });
 
       if (error) throw error;
+      
+      console.log("Generated content:", generatedContent);
 
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error("No authenticated user found");
@@ -108,6 +118,12 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
         .single();
 
       if (saveError) throw saveError;
+      
+      console.log("Updated landing page:", updatedLandingPage);
+
+      // Update local state with new content
+      setCurrentContent(generatedContent);
+      setCurrentLayoutStyle(generatedContent.layout);
 
       // Invalidate the landing page query to trigger a refetch
       await queryClient.invalidateQueries({
@@ -151,37 +167,37 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
           </Button>
         </div>
         <TabsContent value="preview" className="mt-6">
-          {template && content && (
+          {template && currentContent && (
             <div className="space-y-12">
               <HeroSection 
-                content={content.hero}
+                content={currentContent.hero}
                 layout={currentLayout?.hero?.layout || template.structure.sections.hero.layout}
                 className={template.structure.styles.spacing.sectionPadding}
               />
               <ValuePropositionSection
                 content={{
-                  title: content.valueProposition?.title || "Why Choose Us?",
-                  cards: content.valueProposition?.cards || []
+                  title: currentContent.valueProposition?.title || "Why Choose Us?",
+                  cards: currentContent.valueProposition?.cards || []
                 }}
                 className={template.structure.styles.spacing.sectionPadding}
               />
               <FeaturesSection
                 content={{
-                  title: content.features?.title || "Key Features",
-                  description: content.features?.description,
-                  items: content.features?.items || []
+                  title: currentContent.features?.title || "Key Features",
+                  description: currentContent.features?.description,
+                  items: currentContent.features?.items || []
                 }}
                 className={template.structure.styles.spacing.sectionPadding}
               />
               <TestimonialsSection
                 content={{
-                  title: content.testimonials?.title || "What Our Clients Say",
-                  items: content.testimonials?.items || []
+                  title: currentContent.testimonials?.title || "What Our Clients Say",
+                  items: currentContent.testimonials?.items || []
                 }}
                 className={template.structure.styles.spacing.sectionPadding}
               />
               <CtaSection
-                content={content.cta || {
+                content={currentContent.cta || {
                   title: "Ready to Get Started?",
                   description: "Join us today and experience the difference.",
                   buttonText: "Get Started"
@@ -194,7 +210,7 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
         <TabsContent value="edit" className="mt-6">
           <Card className="p-4">
             <pre className="whitespace-pre-wrap">
-              {JSON.stringify(content, null, 2)}
+              {JSON.stringify(currentContent, null, 2)}
             </pre>
           </Card>
         </TabsContent>
