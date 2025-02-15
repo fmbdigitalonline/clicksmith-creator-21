@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { OpenAI } from "https://esm.sh/openai@4.20.1";
 import Replicate from "https://esm.sh/replicate@0.25.1";
@@ -15,8 +16,8 @@ const parseOpenAIResponse = (content: string): any => {
       const cleanedContent = content.replace(/```json\n?|\n?```/g, '');
       return JSON.parse(cleanedContent.trim());
     } catch (e2) {
-      console.error('Failed to parse OpenAI response:', content);
-      throw new Error('Failed to parse OpenAI response');
+      console.error('Failed to parse AI response:', content);
+      throw new Error('Failed to parse AI response');
     }
   }
 };
@@ -99,6 +100,8 @@ const generateSectionLayout = (sectionType: string, content: any) => {
 
 // Map AIDA content to template structure with dynamic layout
 const mapToTemplateStructure = (aidaContent: any, heroContent: any, heroImage: string) => {
+  console.log("Mapping content to template structure with heroImage:", heroImage);
+  
   // Create dynamic layout configuration
   const layoutConfig = {
     backgroundColor: "#FFFFFF",
@@ -115,7 +118,12 @@ const mapToTemplateStructure = (aidaContent: any, heroContent: any, heroImage: s
       }
     },
     sections: {
-      hero: generateSectionLayout("hero", heroContent),
+      hero: {
+        type: "hero",
+        layout: "split",
+        backgroundColor: "#FFFFFF",
+        borderBottom: "border-b border-gray-100"
+      },
       valueProposition: generateSectionLayout("valueProposition", {
         cards: aidaContent.marketAnalysis.painPoints
       }),
@@ -132,11 +140,11 @@ const mapToTemplateStructure = (aidaContent: any, heroContent: any, heroImage: s
     }
   };
 
-  return {
+  const mappedContent = {
     hero: {
       title: heroContent.headline,
-      description: `${heroContent.subtitle.interest} ${heroContent.subtitle.desire} ${heroContent.subtitle.action}`,
-      cta: heroContent.subtitle.action,
+      description: `${heroContent.subtitle?.interest || ''} ${heroContent.subtitle?.desire || ''} ${heroContent.subtitle?.action || ''}`,
+      cta: heroContent.subtitle?.action || "Get Started",
       image: heroImage,
       style: {
         background: "#FFFFFF",
@@ -155,7 +163,6 @@ const mapToTemplateStructure = (aidaContent: any, heroContent: any, heroImage: s
     features: {
       title: "Key Features",
       description: aidaContent.marketAnalysis.solution,
-      illustration: "https://images.unsplash.com/photo-1581090464777-f3220bbe1b8b",
       items: aidaContent.marketAnalysis.features.map((feature: any, index: number) => ({
         icon: layoutConfig.sections.features.icons[index],
         title: feature.title,
@@ -207,6 +214,9 @@ const mapToTemplateStructure = (aidaContent: any, heroContent: any, heroImage: s
       }
     }
   };
+
+  console.log("Final hero section mapping:", mappedContent.hero);
+  return mappedContent;
 };
 
 serve(async (req) => {
@@ -361,6 +371,8 @@ serve(async (req) => {
       console.log("Replicate response:", output);
       heroImage = Array.isArray(output) ? output[0] : output;
     }
+
+    console.log("Final hero image URL:", heroImage);
 
     // Map the generated content to match the template structure
     const generatedContent = mapToTemplateStructure(aidaContent, heroContent, heroImage);
