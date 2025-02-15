@@ -323,6 +323,11 @@ serve(async (req) => {
       apiKey: Deno.env.get('DEEPSEEK_API_KEY')
     });
 
+    // Extract business description from businessIdea
+    const businessDescription = typeof businessIdea === 'string' 
+      ? businessIdea 
+      : businessIdea.description || 'this business';
+
     // Generate hero content with DeepSeek following AIDA structure
     console.log("Generating hero content with DeepSeek...");
     const heroPrompt = `
