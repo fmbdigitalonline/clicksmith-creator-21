@@ -1,5 +1,5 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 import { Configuration, OpenAIApi } from "https://esm.sh/openai@3.3.0";
 import Replicate from "https://esm.sh/replicate@0.25.1";
 
@@ -17,10 +17,11 @@ serve(async (req) => {
   try {
     const { businessIdea, targetAudience, audienceAnalysis, projectImages = [] } = await req.json();
 
-    // Initialize OpenAI
-    const openai = new OpenAIApi(new Configuration({
+    // Initialize OpenAI properly
+    const configuration = new Configuration({
       apiKey: Deno.env.get('OPENAI_API_KEY'),
-    }));
+    });
+    const openai = new OpenAIApi(configuration);
 
     // First, generate the hero section content using AIDA formula
     console.log("Generating hero content with AIDA formula...");
