@@ -26,15 +26,26 @@ const LandingNav = () => {
               </Link>
             </Button>
             {session ? (
-              <Button
-                variant="default"
-                size="sm"
-                asChild
-              >
-                <Link to="/dashboard">
-                  Dashboard
-                </Link>
-              </Button>
+              <div className="flex items-center gap-4">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  asChild
+                >
+                  <Link to="/dashboard">
+                    Dashboard
+                  </Link>
+                </Button>
+                <Button
+                  variant="default"
+                  size="sm"
+                  asChild
+                >
+                  <Link to="/projects">
+                    My Projects
+                  </Link>
+                </Button>
+              </div>
             ) : (
               <Button
                 variant="default"
