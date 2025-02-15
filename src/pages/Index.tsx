@@ -147,30 +147,11 @@ const Index = () => {
               <p className="text-xl text-muted-foreground mb-12 max-w-3xl">
                 Turn your vision into reality with AI-powered market validation that analyzes, tests, and optimizes your business concept. Get comprehensive insights and actionable data in minutes, not months. Start validating your ideas today with zero risk.
               </p>
-              <div className="flex flex-col sm:flex-row items-center lg:items-start gap-8 mb-12">
-                <div className="flex items-center gap-2 text-xl text-muted-foreground">
-                  <CheckCircle className="h-6 w-6 text-primary" />
-                  <span>AI-Powered Analysis</span>
-                </div>
-                <div className="flex items-center gap-2 text-xl text-muted-foreground">
-                  <CheckCircle className="h-6 w-6 text-primary" />
-                  <span>Multi-Platform Support</span>
-                </div>
-                <div className="flex items-center gap-2 text-xl text-muted-foreground">
-                  <CheckCircle className="h-6 w-6 text-primary" />
-                  <span>Real-Time Results</span>
-                </div>
-              </div>
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
                 <Button size="lg" asChild>
                   <Link to="/login">
                     Start Now for Free
                     <ArrowRight className="ml-2 h-5 w-5" />
-                  </Link>
-                </Button>
-                <Button size="lg" variant="outline" asChild>
-                  <Link to="/pricing">
-                    View Pricing
                   </Link>
                 </Button>
               </div>
