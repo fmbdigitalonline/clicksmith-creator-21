@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { OpenAI } from "https://esm.sh/openai@4.20.1";
 import Replicate from "https://esm.sh/replicate@0.25.1";
@@ -22,55 +21,76 @@ const parseOpenAIResponse = (content: string): any => {
   }
 };
 
-// Dynamically generate section layout based on content
 const generateSectionLayout = (sectionType: string, content: any) => {
   const baseLayout = {
     type: "cards",
     backgroundColor: "#FFFFFF",
-    cardsPerRow: 3
+    borderTop: "border-t border-gray-100",
+    borderBottom: "border-b border-gray-100",
+    cardsPerRow: 3,
+    cardStyle: {
+      background: "#FFFFFF",
+      shadow: "shadow-sm",
+      border: "border border-gray-100",
+      rounded: "rounded-lg",
+      padding: "p-6"
+    }
   };
 
   switch (sectionType) {
     case "hero":
       return {
         type: "hero",
-        layout: "split", // or "centered" based on content
-        backgroundColor: "#FFFFFF"
+        layout: "split",
+        backgroundColor: "#FFFFFF",
+        borderBottom: "border-b border-gray-100"
       };
     case "valueProposition":
       return {
         ...baseLayout,
-        cardsPerRow: content?.cards?.length || 3
+        cardsPerRow: content?.cards?.length || 3,
+        icons: ["✨", "🎯", "💫"] // Default icons if none provided
       };
     case "features":
       return {
         ...baseLayout,
-        cardsPerRow: Math.min(content?.items?.length || 3, 3)
+        cardsPerRow: Math.min(content?.items?.length || 3, 3),
+        icons: ["⚡️", "🔍", "🎨"] // Default icons for features
       };
     case "testimonials":
       return {
         ...baseLayout,
-        cardsPerRow: 1 // Single testimonial for better focus
+        cardsPerRow: 1,
+        style: {
+          ...baseLayout.cardStyle,
+          background: "#FFFFFF",
+          quoteMark: "text-gray-200 text-6xl"
+        }
       };
     case "howItWorks":
       return {
         ...baseLayout,
-        cardsPerRow: content?.steps?.length || 4
+        cardsPerRow: content?.steps?.length || 4,
+        icons: ["1️⃣", "2️⃣", "3️⃣", "4️⃣"],
+        dividerStyle: "border-t-2 border-dashed border-gray-100"
       };
     case "marketAnalysis":
       return {
         ...baseLayout,
-        cardsPerRow: 2 // Better for detailed content
+        cardsPerRow: 2,
+        illustration: "https://images.unsplash.com/photo-1487058792275-0ad4aaf24ca7"
       };
     case "objections":
       return {
         ...baseLayout,
-        cardsPerRow: Math.min(content?.concerns?.length || 2, 2)
+        cardsPerRow: Math.min(content?.concerns?.length || 2, 2),
+        icons: ["🤔", "💭"]
       };
     case "faq":
       return {
         ...baseLayout,
-        cardsPerRow: 2
+        cardsPerRow: 2,
+        dividerStyle: "border-t border-gray-100"
       };
     default:
       return baseLayout;
@@ -83,6 +103,17 @@ const mapToTemplateStructure = (aidaContent: any, heroContent: any, heroImage: s
   const layoutConfig = {
     backgroundColor: "#FFFFFF",
     useCards: true,
+    globalStyles: {
+      background: "#FFFFFF",
+      dividers: "border-gray-100",
+      card: {
+        background: "#FFFFFF",
+        shadow: "shadow-sm",
+        border: "border border-gray-100",
+        rounded: "rounded-lg",
+        padding: "p-6"
+      }
+    },
     sections: {
       hero: generateSectionLayout("hero", heroContent),
       valueProposition: generateSectionLayout("valueProposition", {
@@ -106,13 +137,17 @@ const mapToTemplateStructure = (aidaContent: any, heroContent: any, heroImage: s
       title: heroContent.headline,
       description: `${heroContent.subtitle.interest} ${heroContent.subtitle.desire} ${heroContent.subtitle.action}`,
       cta: heroContent.subtitle.action,
-      image: heroImage
+      image: heroImage,
+      style: {
+        background: "#FFFFFF",
+        border: "border-b border-gray-100"
+      }
     },
     layout: layoutConfig,
     valueProposition: {
       title: "Why Choose Us?",
-      cards: aidaContent.marketAnalysis.painPoints.map((point: any) => ({
-        icon: "✨",
+      cards: aidaContent.marketAnalysis.painPoints.map((point: any, index: number) => ({
+        icon: layoutConfig.sections.valueProposition.icons[index],
         title: point.title,
         description: point.description
       }))
@@ -120,7 +155,9 @@ const mapToTemplateStructure = (aidaContent: any, heroContent: any, heroImage: s
     features: {
       title: "Key Features",
       description: aidaContent.marketAnalysis.solution,
-      items: aidaContent.marketAnalysis.features.map((feature: any) => ({
+      illustration: "https://images.unsplash.com/photo-1581090464777-f3220bbe1b8b",
+      items: aidaContent.marketAnalysis.features.map((feature: any, index: number) => ({
+        icon: layoutConfig.sections.features.icons[index],
         title: feature.title,
         description: feature.description
       }))
@@ -130,19 +167,45 @@ const mapToTemplateStructure = (aidaContent: any, heroContent: any, heroImage: s
       items: [{
         quote: aidaContent.marketAnalysis.socialProof.quote,
         author: aidaContent.marketAnalysis.socialProof.author,
-        role: aidaContent.marketAnalysis.socialProof.title
+        role: aidaContent.marketAnalysis.socialProof.title,
+        avatar: "https://images.unsplash.com/photo-1485827404703-89b55fcc595e"
       }]
     },
-    howItWorks: aidaContent.howItWorks,
-    marketAnalysis: aidaContent.marketAnalysis,
-    objections: aidaContent.objections,
+    howItWorks: {
+      ...aidaContent.howItWorks,
+      steps: aidaContent.howItWorks.steps.map((step: any, index: number) => ({
+        ...step,
+        icon: layoutConfig.sections.howItWorks.icons[index]
+      }))
+    },
+    marketAnalysis: {
+      ...aidaContent.marketAnalysis,
+      illustration: layoutConfig.sections.marketAnalysis.illustration
+    },
+    objections: {
+      ...aidaContent.objections,
+      concerns: aidaContent.objections.concerns.map((concern: any, index: number) => ({
+        ...concern,
+        icon: layoutConfig.sections.objections.icons[index]
+      }))
+    },
     faq: aidaContent.faq,
     cta: {
       title: "Ready to Get Started?",
       description: aidaContent.howItWorks.valueReinforcement,
-      buttonText: "Get Started Now"
+      buttonText: "Get Started Now",
+      style: {
+        background: "#FFFFFF",
+        border: "border-t border-gray-100"
+      }
     },
-    footerContent: aidaContent.footerContent
+    footerContent: {
+      ...aidaContent.footerContent,
+      style: {
+        background: "#FFFFFF",
+        border: "border-t border-gray-100"
+      }
+    }
   };
 };
 
