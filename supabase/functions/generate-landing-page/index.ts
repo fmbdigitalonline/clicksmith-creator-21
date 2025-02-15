@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { OpenAI } from "https://esm.sh/openai@4.20.1";
 import Replicate from "https://esm.sh/replicate@0.25.1";
@@ -11,12 +10,9 @@ const corsHeaders = {
 // Helper function to clean and parse JSON from OpenAI response
 const parseOpenAIResponse = (content: string): any => {
   try {
-    // First, try direct parsing
     return JSON.parse(content);
   } catch (e) {
-    // If that fails, try to clean the content
     try {
-      // Remove markdown code blocks if present
       const cleanedContent = content.replace(/```json\n?|\n?```/g, '');
       return JSON.parse(cleanedContent.trim());
     } catch (e2) {
@@ -27,7 +23,6 @@ const parseOpenAIResponse = (content: string): any => {
 };
 
 serve(async (req) => {
-  // Handle CORS
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -35,57 +30,18 @@ serve(async (req) => {
   try {
     const { businessIdea, targetAudience, audienceAnalysis, projectImages = [] } = await req.json();
 
-    // Validate required inputs
     if (!businessIdea) {
       throw new Error('Business idea is required');
     }
 
-    // Initialize OpenAI with the new SDK version
     const openai = new OpenAI({
       apiKey: Deno.env.get('OPENAI_API_KEY'),
     });
 
-    // First, generate the hero section content using AIDA formula
+    // Generate hero content (keep existing hero generation)
     console.log("Generating hero content with AIDA formula...");
-    const heroPrompt = `
-      Write a compelling headline and subtitle combination for a landing page that promotes ${businessIdea.name || businessIdea.description || 'this business'}. The content should follow the AIDA formula (Attention, Interest, Desire, Action) and adhere to the following guidelines:
-
-      Attention (Headline):
-      - Grab the reader's attention immediately by addressing a key pain point, desire, or aspiration.
-      - Keep it concise (8–12 words).
-      - Use emotional hooks (e.g., fear of failure, excitement about success, curiosity).
-      - Highlight the primary benefit or outcome of using the product.
-
-      Interest (Subtitle - First Sentence):
-      - Build interest by explaining why the product is relevant to the reader.
-      - Mention the versatility of the product if applicable.
-      - Use simple, conversational language to make the value proposition clear.
-      - Recommended word count: 8–12 words.
-
-      Desire (Subtitle - Second Sentence):
-      - Create desire by highlighting the unique features or benefits of the product.
-      - Focus on what makes the product stand out.
-      - Use persuasive language to make the reader envision the positive outcomes.
-      - Recommended word count: 8–12 words.
-
-      Action (Call-to-Action Implication):
-      - End with a subtle call-to-action that encourages the next step.
-      - Use phrases that nudge toward action.
-      - Recommended word count: 4–6 words.
-
-      Return ONLY a JSON object with no markdown formatting, following this exact structure:
-      {
-        "headline": "The attention-grabbing headline",
-        "subtitle": {
-          "interest": "The first sentence building interest",
-          "desire": "The second sentence creating desire",
-          "action": "The call-to-action phrase"
-        }
-      }
-    `;
-
     const heroCompletion = await openai.chat.completions.create({
-      model: "gpt-4o-mini-2024-07-18",
+      model: "gpt-4",
       messages: [
         {
           role: "system",
@@ -93,7 +49,7 @@ serve(async (req) => {
         },
         {
           role: "user",
-          content: heroPrompt
+          content: `Write a compelling headline and subtitle combination for a landing page that promotes ${businessIdea.name || businessIdea.description || 'this business'} following the AIDA formula.`
         }
       ]
     });
@@ -101,89 +57,100 @@ serve(async (req) => {
     console.log("Hero content response:", heroCompletion.choices[0].message.content);
     const heroContent = parseOpenAIResponse(heroCompletion.choices[0].message.content);
 
-    // Now generate the rest of the landing page content
+    // Generate the remaining AIDA template content
     console.log("Generating remaining landing page content...");
-    const contentPrompt = `
-      Create compelling landing page content based on this business information:
-      Business Idea: ${JSON.stringify(businessIdea)}
+    const aidaPrompt = `
+      Create a complete landing page content following the AIDA framework for:
+      Business: ${JSON.stringify(businessIdea)}
       Target Audience: ${JSON.stringify(targetAudience)}
-      Audience Analysis: ${JSON.stringify(audienceAnalysis)}
+      Analysis: ${JSON.stringify(audienceAnalysis)}
 
-      Return ONLY a JSON object with no markdown formatting, containing these sections:
+      Return a JSON object with these sections:
       {
-        "valueProposition": {
-          "title": "Main value proposition title",
-          "cards": [
+        "howItWorks": {
+          "subheadline": "String explaining how the product solves problems",
+          "steps": [
             {
-              "title": "Benefit 1",
-              "description": "Benefit 1 description"
+              "title": "Step title",
+              "description": "Step description"
+            }
+          ],
+          "valueReinforcement": "Statement reinforcing value proposition"
+        },
+        "marketAnalysis": {
+          "context": "Market situation analysis",
+          "solution": "How the product solves market problems",
+          "painPoints": [
+            {
+              "title": "Pain point title",
+              "description": "Pain point description"
+            }
+          ],
+          "features": [
+            {
+              "title": "Feature title",
+              "description": "Feature benefit"
+            }
+          ],
+          "socialProof": {
+            "quote": "Customer testimonial",
+            "author": "Customer name",
+            "title": "Customer title"
+          }
+        },
+        "objections": {
+          "subheadline": "Trust building statement",
+          "concerns": [
+            {
+              "question": "Potential objection",
+              "answer": "Reassuring answer"
             }
           ]
         },
-        "features": {
-          "title": "Features section title",
-          "items": [
+        "faq": {
+          "subheadline": "Helpful FAQ introduction",
+          "questions": [
             {
-              "title": "Feature 1",
-              "description": "Feature 1 description"
+              "question": "Common question",
+              "answer": "Clear answer"
             }
           ]
         },
-        "testimonials": {
-          "title": "What Our Clients Say",
-          "items": [
-            {
-              "quote": "Client testimonial",
-              "author": "Client name",
-              "role": "Client role"
-            }
-          ]
-        },
-        "cta": {
-          "title": "Call to action title",
-          "description": "Call to action description",
-          "buttonText": "Button text"
+        "footerContent": {
+          "contact": "Contact information",
+          "newsletter": "Newsletter signup message",
+          "copyright": "Copyright text"
         }
       }
     `;
 
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini-2024-07-18",
+      model: "gpt-4",
       messages: [
         {
           role: "system",
-          content: "You are a landing page content expert. You must return only valid JSON with no markdown formatting."
+          content: "You are a landing page content expert. Generate comprehensive, persuasive content following the AIDA framework."
         },
         {
           role: "user",
-          content: contentPrompt
+          content: aidaPrompt
         }
       ]
     });
 
-    console.log("Remaining content response:", completion.choices[0].message.content);
-    const remainingContent = parseOpenAIResponse(completion.choices[0].message.content);
-
-    // Combine hero content with remaining content
-    const generatedContent = {
-      hero: {
-        title: heroContent.headline,
-        description: `${heroContent.subtitle.interest} ${heroContent.subtitle.desire} ${heroContent.subtitle.action}`,
-        cta: heroContent.subtitle.action
-      },
-      ...remainingContent
-    };
+    console.log("AIDA content response:", completion.choices[0].message.content);
+    const aidaContent = parseOpenAIResponse(completion.choices[0].message.content);
 
     // If no project images were provided, generate a hero image using Replicate
-    if (projectImages.length === 0) {
+    let heroImage = projectImages[0];
+    if (!heroImage) {
       console.log("No project images found, generating hero image with Replicate...");
       
       const replicate = new Replicate({
         auth: Deno.env.get('REPLICATE_API_KEY'),
       });
 
-      // Use the generated headline and subtitle to create a more focused image prompt
-      const imagePrompt = `Ultra realistic commercial photograph for a landing page with this headline: "${heroContent.headline}". The image should visualize: "${heroContent.subtitle.interest} ${heroContent.subtitle.desire}". Professional DSLR quality, 8k resolution, crystal clear, highly detailed commercial photography that captures the essence of: ${JSON.stringify(businessIdea)}`;
+      const imagePrompt = `Ultra realistic commercial photograph for a landing page with this headline: "${heroContent.headline}". Professional DSLR quality, 8k resolution, crystal clear, highly detailed commercial photography that captures the essence of: ${JSON.stringify(businessIdea)}`;
 
       console.log("Generating image with prompt:", imagePrompt);
       
@@ -203,32 +170,22 @@ serve(async (req) => {
       );
 
       console.log("Replicate response:", output);
-      
-      // Replicate returns an array of URLs, we take the first one
-      generatedContent.hero.image = Array.isArray(output) ? output[0] : output;
-    } else {
-      // Use the first saved project image
-      generatedContent.hero.image = projectImages[0];
+      heroImage = Array.isArray(output) ? output[0] : output;
     }
 
-    // Add layout and styling information
-    const layout = {
-      hero: "centered",
-      features: "grid",
-      testimonials: "carousel",
-    };
-
-    const imagePlacements = {
-      hero: "background",
-      features: "side",
+    // Combine all content sections
+    const generatedContent = {
+      hero: {
+        title: heroContent.headline,
+        description: `${heroContent.subtitle.interest} ${heroContent.subtitle.desire} ${heroContent.subtitle.action}`,
+        cta: heroContent.subtitle.action,
+        image: heroImage
+      },
+      ...aidaContent
     };
 
     return new Response(
-      JSON.stringify({
-        ...generatedContent,
-        layout,
-        imagePlacements,
-      }),
+      JSON.stringify(generatedContent),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       },
