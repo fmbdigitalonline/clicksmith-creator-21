@@ -5,6 +5,7 @@ import { Edit2, Trash2, PlayCircle, Layout } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface ProjectCardActionsProps {
   projectId: string;
@@ -29,6 +30,7 @@ const ProjectCardActions = ({
 }: ProjectCardActionsProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const handleCreateLandingPage = async () => {
     if (!hasBusinessIdea || !hasTargetAudience || !hasAudienceAnalysis) {
@@ -66,6 +68,13 @@ const ProjectCardActions = ({
 
       const savedImages = adFeedback?.saved_images || [];
 
+      console.log("Calling generate-landing-page function with data:", {
+        businessIdea: project.business_idea,
+        targetAudience: project.target_audience,
+        audienceAnalysis: project.audience_analysis,
+        projectImages: savedImages
+      });
+
       // Call the edge function to generate landing page content
       const { data: generatedContent, error } = await supabase.functions
         .invoke('generate-landing-page', {
@@ -78,13 +87,18 @@ const ProjectCardActions = ({
         });
 
       if (error) throw error;
+      
+      console.log("Generated content:", generatedContent);
+
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) throw new Error("No authenticated user found");
 
       // Save the generated content to the landing_pages table
       const { data: landingPage, error: saveError } = await supabase
         .from('landing_pages')
-        .insert({
+        .upsert({
           project_id: projectId,
-          user_id: (await supabase.auth.getUser()).data.user?.id,
+          user_id: userData.user.id,
           title: `${project.title} Landing Page`,
           content: generatedContent,
           image_placements: generatedContent.imagePlacements,
