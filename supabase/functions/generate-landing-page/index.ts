@@ -8,6 +8,19 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Ensure we get valid string values from any data
+const ensureString = (value: any): string => {
+  if (typeof value === 'string') return value;
+  if (value === null || value === undefined) return '';
+  return String(value);
+};
+
+// Ensure array items are properly formatted
+const ensureArrayItems = <T>(items: any[] | undefined, defaultValue: T[]): T[] => {
+  if (!Array.isArray(items)) return defaultValue;
+  return items;
+};
+
 const parseOpenAIResponse = (content: string): any => {
   try {
     // First attempt: direct JSON parse
@@ -20,7 +33,6 @@ const parseOpenAIResponse = (content: string): any => {
     } catch (e2) {
       console.error('Failed to parse AI response:', content);
       console.error('Parse error:', e2);
-      // Return a structured error message
       return {
         error: "Failed to parse AI response",
         content: content
@@ -29,7 +41,7 @@ const parseOpenAIResponse = (content: string): any => {
   }
 };
 
-// Map AIDA content to template structure with dynamic layout
+// Map AIDA content to template structure with dynamic layout and proper type conversion
 const mapToTemplateStructure = (aidaContent: any, heroContent: any, heroImage: string) => {
   console.log("Mapping content to template structure");
   
@@ -38,63 +50,97 @@ const mapToTemplateStructure = (aidaContent: any, heroContent: any, heroImage: s
     throw new Error("Missing required content for template structure");
   }
 
+  // Ensure proper typing for pain points
+  const painPoints = ensureArrayItems(aidaContent.marketAnalysis?.painPoints, [])
+    .map((point: any) => ({
+      title: ensureString(point.title),
+      description: ensureString(point.description)
+    }));
+
+  // Ensure proper typing for features
+  const features = ensureArrayItems(aidaContent.marketAnalysis?.features, [])
+    .map((feature: any) => ({
+      title: ensureString(feature.title),
+      description: ensureString(feature.description)
+    }));
+
   return {
     hero: {
-      title: heroContent.headline || "Welcome",
-      description: `${heroContent.subtitle?.interest || ''} ${heroContent.subtitle?.desire || ''} ${heroContent.subtitle?.action || ''}`.trim(),
-      cta: heroContent.subtitle?.action || "Get Started",
-      image: heroImage || "",
+      title: ensureString(heroContent.headline),
+      description: ensureString([
+        heroContent.subtitle?.interest,
+        heroContent.subtitle?.desire,
+        heroContent.subtitle?.action
+      ].filter(Boolean).join(' ')),
+      cta: ensureString(heroContent.subtitle?.action || "Get Started"),
+      image: ensureString(heroImage),
     },
     valueProposition: {
       title: "Why Choose Us?",
-      cards: (aidaContent.marketAnalysis?.painPoints || []).map((point: any, index: number) => ({
+      cards: painPoints.map((point, index) => ({
         icon: ["✨", "🎯", "💫"][index % 3],
-        title: point.title || "Feature",
-        description: point.description || "Description"
+        title: ensureString(point.title),
+        description: ensureString(point.description)
       }))
     },
     features: {
       title: "Key Features",
-      description: aidaContent.marketAnalysis?.solution || "",
-      items: (aidaContent.marketAnalysis?.features || []).map((feature: any, index: number) => ({
-        title: feature.title || "Feature",
-        description: feature.description || "Description"
+      description: ensureString(aidaContent.marketAnalysis?.solution),
+      items: features.map(feature => ({
+        title: ensureString(feature.title),
+        description: ensureString(feature.description)
       }))
     },
-    howItWorks: aidaContent.howItWorks || {
+    howItWorks: {
       subheadline: "How it works",
-      steps: []
+      steps: ensureArrayItems(aidaContent.howItWorks?.steps, []).map((step: any) => ({
+        title: ensureString(step.title),
+        description: ensureString(step.description)
+      })),
+      valueReinforcement: ensureString(aidaContent.howItWorks?.valueReinforcement)
     },
     testimonials: {
       title: "What Our Clients Say",
       items: [{
-        quote: aidaContent.marketAnalysis?.socialProof?.quote || "Great service!",
-        author: aidaContent.marketAnalysis?.socialProof?.author || "Happy Customer",
-        role: aidaContent.marketAnalysis?.socialProof?.title || "Customer"
+        quote: ensureString(aidaContent.marketAnalysis?.socialProof?.quote),
+        author: ensureString(aidaContent.marketAnalysis?.socialProof?.author),
+        role: ensureString(aidaContent.marketAnalysis?.socialProof?.title)
       }]
     },
-    marketAnalysis: aidaContent.marketAnalysis || {
-      context: "",
-      solution: "",
-      marketTrends: []
+    marketAnalysis: {
+      context: ensureString(aidaContent.marketAnalysis?.context),
+      solution: ensureString(aidaContent.marketAnalysis?.solution),
+      painPoints: painPoints,
+      features: features,
+      socialProof: {
+        quote: ensureString(aidaContent.marketAnalysis?.socialProof?.quote),
+        author: ensureString(aidaContent.marketAnalysis?.socialProof?.author),
+        title: ensureString(aidaContent.marketAnalysis?.socialProof?.title)
+      }
     },
-    objections: aidaContent.objections || {
-      subheadline: "",
-      concerns: []
+    objections: {
+      subheadline: ensureString(aidaContent.objections?.subheadline),
+      concerns: ensureArrayItems(aidaContent.objections?.concerns, []).map((concern: any) => ({
+        question: ensureString(concern.question),
+        answer: ensureString(concern.answer)
+      }))
     },
-    faq: aidaContent.faq || {
-      subheadline: "",
-      questions: []
+    faq: {
+      subheadline: ensureString(aidaContent.faq?.subheadline),
+      questions: ensureArrayItems(aidaContent.faq?.questions, []).map((q: any) => ({
+        question: ensureString(q.question),
+        answer: ensureString(q.answer)
+      }))
     },
     cta: {
       title: "Ready to Get Started?",
-      description: aidaContent.howItWorks?.valueReinforcement || "Join us today!",
+      description: ensureString(aidaContent.howItWorks?.valueReinforcement || "Join us today!"),
       buttonText: "Get Started Now"
     },
-    footerContent: aidaContent.footerContent || {
-      contact: "",
-      newsletter: "",
-      copyright: ""
+    footerContent: {
+      contact: ensureString(aidaContent.footerContent?.contact),
+      newsletter: ensureString(aidaContent.footerContent?.newsletter),
+      copyright: ensureString(aidaContent.footerContent?.copyright)
     }
   };
 };
