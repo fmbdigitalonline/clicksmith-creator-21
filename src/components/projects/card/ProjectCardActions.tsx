@@ -75,7 +75,7 @@ const ProjectCardActions = ({
         .eq('project_id', projectId)
         .maybeSingle();
 
-      // Call the edge function to generate high-quality landing page content
+      // Call the edge function to generate landing page content
       const { data: generatedContent, error } = await supabase.functions
         .invoke('generate-landing-page', {
           body: {
@@ -83,7 +83,7 @@ const ProjectCardActions = ({
             targetAudience: project.target_audience,
             audienceAnalysis: project.audience_analysis,
             projectImages: savedImages,
-            isNewLayout: true // This flag will ensure we get the same high-quality content as "Generate New Layout"
+            isNewLayout: true // Signal for enhanced content generation
           },
         });
 
