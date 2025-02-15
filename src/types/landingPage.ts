@@ -60,30 +60,6 @@ export interface LandingPageContent {
     cta: string;
     image?: string;
   };
-  valueProposition?: {
-    title: string;
-    cards: Array<{
-      icon: string;
-      title: string;
-      description: string;
-    }>;
-  };
-  features?: {
-    title: string;
-    description?: string;
-    items: Array<{
-      title: string;
-      description: string;
-    }>;
-  };
-  testimonials?: {
-    title: string;
-    items: Array<{
-      quote: string;
-      author: string;
-      role: string;
-    }>;
-  };
   howItWorks?: {
     subheadline: string;
     steps: Array<{
@@ -122,11 +98,6 @@ export interface LandingPageContent {
       question: string;
       answer: string;
     }>;
-  };
-  cta?: {
-    title: string;
-    description: string;
-    buttonText: string;
   };
   footerContent?: {
     contact: string;

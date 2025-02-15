@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -187,24 +186,28 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
                 content={currentContent.marketAnalysis}
                 className={template.structure.styles.spacing.sectionPadding}
               />
-              {currentContent.valueProposition && (
-                <ValuePropositionSection
-                  content={currentContent.valueProposition}
-                  className={template.structure.styles.spacing.sectionPadding}
-                />
-              )}
-              {currentContent.features && (
-                <FeaturesSection
-                  content={currentContent.features}
-                  className={template.structure.styles.spacing.sectionPadding}
-                />
-              )}
-              {currentContent.testimonials && (
-                <TestimonialsSection
-                  content={currentContent.testimonials}
-                  className={template.structure.styles.spacing.sectionPadding}
-                />
-              )}
+              <ValuePropositionSection
+                content={{
+                  title: currentContent.valueProposition?.title || "Why Choose Us?",
+                  cards: currentContent.valueProposition?.cards || []
+                }}
+                className={template.structure.styles.spacing.sectionPadding}
+              />
+              <FeaturesSection
+                content={{
+                  title: currentContent.features?.title || "Key Features",
+                  description: currentContent.features?.description,
+                  items: currentContent.features?.items || []
+                }}
+                className={template.structure.styles.spacing.sectionPadding}
+              />
+              <TestimonialsSection
+                content={{
+                  title: currentContent.testimonials?.title || "What Our Clients Say",
+                  items: currentContent.testimonials?.items || []
+                }}
+                className={template.structure.styles.spacing.sectionPadding}
+              />
               <ObjectionsSection
                 content={currentContent.objections}
                 className={template.structure.styles.spacing.sectionPadding}
@@ -214,7 +217,11 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
                 className={template.structure.styles.spacing.sectionPadding}
               />
               <CtaSection
-                content={currentContent.cta}
+                content={currentContent.cta || {
+                  title: "Ready to Get Started?",
+                  description: "Join us today and experience the difference.",
+                  buttonText: "Get Started"
+                }}
                 className={template.structure.styles.spacing.sectionPadding}
               />
               <FooterSection
@@ -237,70 +244,82 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
 };
 
 const generateInitialContent = (project: any) => {
-  // Default content structure matching the AIDA framework
+  // Ensure we have the required objects, even if empty
+  const businessIdea = project?.business_idea || {};
+  const audienceAnalysis = project?.audience_analysis || {};
+
+  // Default card data
+  const defaultCards = [
+    {
+      icon: "✨",
+      title: "Quality Product",
+      description: "Experience superior quality in every aspect"
+    },
+    {
+      icon: "🎯",
+      title: "Expert Service",
+      description: "Professional support when you need it"
+    },
+    {
+      icon: "💫",
+      title: "Great Value",
+      description: "Competitive pricing for premium offerings"
+    }
+  ];
+
+  // Default features
+  const defaultFeatures = [
+    {
+      title: "Easy to Use",
+      description: "Intuitive design for the best user experience"
+    },
+    {
+      title: "Reliable Service",
+      description: "Consistent performance you can count on"
+    },
+    {
+      title: "Fast Support",
+      description: "Quick assistance whenever you need help"
+    }
+  ];
+
   return {
     hero: {
-      title: project?.business_idea?.valueProposition || "Welcome",
-      description: project?.business_idea?.description || "Discover our solution",
-      cta: "Get Started",
+      title: businessIdea?.valueProposition || project.title || "Welcome to Our Platform",
+      description: businessIdea?.description || "Discover the best solution for your needs",
+      cta: "Get Started Now",
     },
-    howItWorks: {
-      subheadline: "Simple steps to success",
-      steps: [
-        {
-          title: "Step 1",
-          description: "Get started with our solution"
-        },
-        {
-          title: "Step 2",
-          description: "Experience the benefits"
-        }
-      ],
-      valueReinforcement: "Join us today and transform your business"
+    valueProposition: {
+      title: "Why Choose Us?",
+      cards: Array.isArray(audienceAnalysis?.benefits) 
+        ? audienceAnalysis.benefits.map((benefit: string) => ({
+            icon: "✨",
+            title: benefit.split(':')[0] || benefit,
+            description: benefit.split(':')[1] || benefit,
+          }))
+        : defaultCards,
     },
-    marketAnalysis: {
-      context: "Understanding your needs",
-      solution: "Our comprehensive solution",
-      painPoints: [
-        {
-          title: "Challenge",
-          description: "Common industry challenge"
-        }
-      ],
-      features: [
-        {
-          title: "Feature",
-          description: "Key benefit"
-        }
-      ],
-      socialProof: {
-        quote: "Great solution!",
-        author: "John Doe",
-        title: "Business Owner"
-      }
+    features: {
+      title: "Key Features",
+      items: Array.isArray(audienceAnalysis?.keyFeatures)
+        ? audienceAnalysis.keyFeatures.map((feature: string) => ({
+            title: feature.split(':')[0] || feature,
+            description: feature.split(':')[1] || feature,
+          }))
+        : defaultFeatures,
     },
-    objections: {
-      subheadline: "Common concerns addressed",
-      concerns: [
-        {
-          question: "Is this right for me?",
-          answer: "Yes, here's why..."
-        }
-      ]
+    testimonials: {
+      title: "What Our Clients Say",
+      items: [{
+        quote: "This solution has transformed how we operate. Highly recommended!",
+        author: "John Smith",
+        role: "Business Owner"
+      }],
     },
-    faq: {
-      subheadline: "Frequently Asked Questions",
-      questions: [
-        {
-          question: "How does it work?",
-          answer: "It's simple..."
-        }
-      ]
-    },
-    footerContent: {
-      contact: "Contact us at support@example.com",
-      newsletter: "Stay updated with our latest news",
-      copyright: "© 2024 All rights reserved"
+    cta: {
+      title: "Ready to Get Started?",
+      description: "Join thousands of satisfied customers and transform your business today.",
+      buttonText: "Start Now",
     }
   };
 };
