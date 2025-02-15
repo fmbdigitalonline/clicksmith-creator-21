@@ -317,39 +317,70 @@ serve(async (req) => {
       );
     }
 
-    // Use Replicate with Flux model for hero content
-    console.log("Generating hero content with Flux model...");
-    const replicate = new Replicate({
-      auth: Deno.env.get('REPLICATE_API_KEY'),
-    });
-
-    const businessDescription = typeof businessIdea === 'string' 
-      ? businessIdea 
-      : businessIdea.name || businessIdea.description || 'this business';
-
-    const heroPrompt = `Write a compelling headline and detailed subtitle combination for a landing page that promotes ${businessDescription}. Format your response as a JSON object with two fields: 'headline' and 'subtitle'.`;
-
-    const heroOutput = await replicate.run(
-      "black-forest-labs/flux-1.1-pro",
-      {
-        input: {
-          prompt: heroPrompt,
-          system_prompt: "You are an expert copywriter specializing in landing page headlines that convert. Create highly detailed, compelling content that resonates with the target audience. Always return a valid JSON object.",
-          max_tokens: 1000,
-          temperature: 0.7
-        }
-      }
-    );
-
-    console.log("Raw hero content response:", heroOutput);
-    const heroContent = parseOpenAIResponse(heroOutput);
-    console.log("Parsed hero content:", heroContent);
-
-    // Initialize DeepSeek client for the remaining content
+    // Initialize DeepSeek client first since we'll use it for the hero content
     const openai = new OpenAI({
       baseURL: 'https://api.deepseek.com/v1',
       apiKey: Deno.env.get('DEEPSEEK_API_KEY')
     });
+
+    // Generate hero content with DeepSeek following AIDA structure
+    console.log("Generating hero content with DeepSeek...");
+    const heroPrompt = `
+      Write a compelling headline and subtitle combination for a landing page that promotes ${businessDescription}. The content should follow the AIDA formula (Attention, Interest, Desire, Action) and adhere to the following guidelines:
+
+      Attention (Headline):
+      - Grab the reader's attention immediately by addressing a key pain point, desire, or aspiration.
+      - Keep it concise (8–12 words).
+      - Use emotional hooks (e.g., fear of failure, excitement about success, curiosity).
+      - Highlight the primary benefit or outcome of using the product.
+
+      Interest (Subtitle - First Sentence):
+      - Build interest by explaining why the product is relevant to the reader.
+      - Mention the versatility of the product if applicable.
+      - Use simple, conversational language to make the value proposition clear.
+      - Recommended word count: 8–12 words.
+
+      Desire (Subtitle - Second Sentence):
+      - Create desire by highlighting the unique features or benefits.
+      - Focus on what makes the product stand out.
+      - Use persuasive language to make the reader envision positive outcomes.
+      - Recommended word count: 8–12 words.
+
+      Action (Call-to-Action Implication):
+      - End with a subtle call-to-action that encourages taking the next step.
+      - Recommended word count: 4–6 words.
+
+      Target Audience: ${JSON.stringify(targetAudience)}
+
+      Format your response as a JSON object with this structure:
+      {
+        "headline": "Your attention-grabbing headline here",
+        "subtitle": {
+          "interest": "Your interest-building first sentence here",
+          "desire": "Your desire-creating second sentence here",
+          "action": "Your call-to-action here"
+        }
+      }
+    `;
+
+    const heroCompletion = await openai.chat.completions.create({
+      model: "deepseek-chat",
+      messages: [
+        {
+          role: "system",
+          content: "You are an expert copywriter specializing in landing page headlines that convert. Create highly detailed, compelling content that follows the AIDA framework and resonates with the target audience. Always return valid JSON."
+        },
+        {
+          role: "user",
+          content: heroPrompt
+        }
+      ],
+      max_tokens: 1000,
+      temperature: 0.7
+    });
+
+    const heroContent = parseOpenAIResponse(heroCompletion.choices[0].message.content);
+    console.log("Parsed hero content:", heroContent);
 
     // Generate the remaining AIDA template content
     console.log("Generating remaining landing page content...");
