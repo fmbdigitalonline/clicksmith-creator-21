@@ -23,20 +23,83 @@ serve(async (req) => {
       apiKey: Deno.env.get('OPENAI_API_KEY'),
     }));
 
-    // Generate landing page content using GPT
-    console.log("Generating landing page content...");
+    // First, generate the hero section content using AIDA formula
+    console.log("Generating hero content with AIDA formula...");
+    const heroPrompt = `
+      Write a compelling headline and subtitle combination for a landing page that promotes ${businessIdea.name || businessIdea.description || 'this business'}. The content should follow the AIDA formula (Attention, Interest, Desire, Action) and adhere to the following guidelines:
+
+      Attention (Headline):
+      - Grab the reader's attention immediately by addressing a key pain point, desire, or aspiration.
+      - Keep it concise (8–12 words).
+      - Use emotional hooks (e.g., fear of failure, excitement about success, curiosity).
+      - Highlight the primary benefit or outcome of using the product.
+
+      Interest (Subtitle - First Sentence):
+      - Build interest by explaining why the product is relevant to the reader.
+      - Mention the versatility of the product if applicable.
+      - Use simple, conversational language to make the value proposition clear.
+      - Recommended word count: 8–12 words.
+
+      Desire (Subtitle - Second Sentence):
+      - Create desire by highlighting the unique features or benefits of the product.
+      - Focus on what makes the product stand out.
+      - Use persuasive language to make the reader envision the positive outcomes.
+      - Recommended word count: 8–12 words.
+
+      Action (Call-to-Action Implication):
+      - End with a subtle call-to-action that encourages the next step.
+      - Use phrases that nudge toward action.
+      - Recommended word count: 4–6 words.
+
+      Business Information:
+      ${JSON.stringify(businessIdea)}
+
+      Target Audience:
+      ${JSON.stringify(targetAudience)}
+
+      Audience Analysis:
+      ${JSON.stringify(audienceAnalysis)}
+
+      Format the response as a JSON object with these fields:
+      {
+        "headline": "The attention-grabbing headline",
+        "subtitle": {
+          "interest": "The first sentence building interest",
+          "desire": "The second sentence creating desire",
+          "action": "The call-to-action phrase"
+        }
+      }
+    `;
+
+    const heroCompletion = await openai.createChatCompletion({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content: "You are an expert copywriter specializing in landing page headlines that convert. You create compelling, AIDA-formula headlines that grab attention and drive action."
+        },
+        {
+          role: "user",
+          content: heroPrompt
+        }
+      ]
+    });
+
+    const heroContent = JSON.parse(heroCompletion.data.choices[0].message.content);
+
+    // Now generate the rest of the landing page content
+    console.log("Generating remaining landing page content...");
     const contentPrompt = `
-      Create a compelling landing page content based on this business information:
+      Create compelling landing page content based on this business information:
       Business Idea: ${JSON.stringify(businessIdea)}
       Target Audience: ${JSON.stringify(targetAudience)}
       Audience Analysis: ${JSON.stringify(audienceAnalysis)}
 
       Generate content for these sections:
-      1. Hero section with headline and subheadline
-      2. Value proposition section with 3 key benefits
-      3. Features section with 3-4 main features
-      4. Social proof/testimonials section with 2-3 testimonials
-      5. Call to action section
+      1. Value proposition section with 3 key benefits
+      2. Features section with 3-4 main features
+      3. Social proof/testimonials section with 2-3 testimonials
+      4. Call to action section
 
       Format the response as a JSON object with these sections.
     `;
@@ -55,7 +118,17 @@ serve(async (req) => {
       ]
     });
 
-    const generatedContent = JSON.parse(completion.data.choices[0].message.content);
+    const remainingContent = JSON.parse(completion.data.choices[0].message.content);
+
+    // Combine hero content with remaining content
+    const generatedContent = {
+      hero: {
+        title: heroContent.headline,
+        description: `${heroContent.subtitle.interest} ${heroContent.subtitle.desire} ${heroContent.subtitle.action}`,
+        cta: heroContent.subtitle.action
+      },
+      ...remainingContent
+    };
 
     // If no project images were provided, generate a hero image using Replicate
     if (projectImages.length === 0) {
