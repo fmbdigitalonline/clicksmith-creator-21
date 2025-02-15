@@ -34,11 +34,11 @@ const HeroSection = ({ content, layout, className }: HeroSectionProps) => {
           layout === "split" ? "md:grid-cols-2" : "text-center"
         )}>
           {layout === "split" && content.image && (
-            <div className="relative order-2 md:order-1">
+            <div className="relative order-2 md:order-1 h-[400px]">
               <img 
                 src={content.image}
                 alt="Hero visual"
-                className="rounded-lg w-full h-full object-cover aspect-[4/3] shadow-lg"
+                className="w-full h-full object-cover rounded-lg shadow-lg"
               />
             </div>
           )}
