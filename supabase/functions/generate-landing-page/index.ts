@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { OpenAI } from "https://esm.sh/openai@4.20.1";
 import Replicate from "https://esm.sh/replicate@0.25.1";
@@ -43,16 +44,57 @@ const mapToTemplateStructure = (aidaContent: any, heroContent: any, heroImage: s
     throw new Error("Missing required content for template structure");
   }
 
+  // Ensure painPoints is properly structured
+  const painPoints = (aidaContent.marketAnalysis?.painPoints || []).map((point: any) => {
+    if (typeof point === 'string') {
+      return {
+        title: 'Pain Point',
+        description: point
+      };
+    }
+    return {
+      title: point.title || 'Pain Point',
+      description: point.description || point
+    };
+  });
+
+  // Ensure features is properly structured
+  const features = (aidaContent.marketAnalysis?.features || []).map((feature: any) => {
+    if (typeof feature === 'string') {
+      return {
+        title: 'Feature',
+        description: feature
+      };
+    }
+    return {
+      title: feature.title || 'Feature',
+      description: feature.description || feature
+    };
+  });
+
+  // Ensure social proof is properly structured
+  const socialProof = aidaContent.marketAnalysis?.socialProof ? {
+    quote: typeof aidaContent.marketAnalysis.socialProof === 'string' 
+      ? aidaContent.marketAnalysis.socialProof 
+      : aidaContent.marketAnalysis.socialProof.quote || '',
+    author: aidaContent.marketAnalysis.socialProof.author || 'Happy Customer',
+    title: aidaContent.marketAnalysis.socialProof.title || 'Customer'
+  } : null;
+
   return {
     hero: {
       title: heroContent.headline || "Welcome",
-      description: `${heroContent.subtitle?.interest || ''} ${heroContent.subtitle?.desire || ''} ${heroContent.subtitle?.action || ''}`.trim(),
+      description: [
+        heroContent.subtitle?.interest || '',
+        heroContent.subtitle?.desire || '',
+        heroContent.subtitle?.action || ''
+      ].filter(Boolean).join(' '),
       cta: heroContent.subtitle?.action || "Get Started",
       image: heroImage || "",
     },
     valueProposition: {
       title: "Why Choose Us?",
-      cards: (aidaContent.marketAnalysis?.painPoints || []).map((point: any, index: number) => ({
+      cards: painPoints.slice(0, 3).map((point: any, index: number) => ({
         icon: ["✨", "🎯", "💫"][index % 3],
         title: point.title || "Feature",
         description: point.description || "Description"
@@ -61,7 +103,7 @@ const mapToTemplateStructure = (aidaContent: any, heroContent: any, heroImage: s
     features: {
       title: "Key Features",
       description: aidaContent.marketAnalysis?.solution || "",
-      items: (aidaContent.marketAnalysis?.features || []).map((feature: any, index: number) => ({
+      items: features.map((feature: any) => ({
         title: feature.title || "Feature",
         description: feature.description || "Description"
       }))
@@ -72,16 +114,18 @@ const mapToTemplateStructure = (aidaContent: any, heroContent: any, heroImage: s
     },
     testimonials: {
       title: "What Our Clients Say",
-      items: [{
-        quote: aidaContent.marketAnalysis?.socialProof?.quote || "Great service!",
-        author: aidaContent.marketAnalysis?.socialProof?.author || "Happy Customer",
-        role: aidaContent.marketAnalysis?.socialProof?.title || "Customer"
-      }]
+      items: socialProof ? [{
+        quote: socialProof.quote,
+        author: socialProof.author,
+        role: socialProof.title
+      }] : []
     },
-    marketAnalysis: aidaContent.marketAnalysis || {
-      context: "",
-      solution: "",
-      marketTrends: []
+    marketAnalysis: {
+      context: aidaContent.marketAnalysis?.context || "",
+      solution: aidaContent.marketAnalysis?.solution || "",
+      painPoints: painPoints,
+      features: features,
+      socialProof: socialProof
     },
     objections: aidaContent.objections || {
       subheadline: "",
