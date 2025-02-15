@@ -386,23 +386,24 @@ serve(async (req) => {
     // Handle hero image
     let heroImage = projectImages[0];
     if (!heroImage) {
-      console.log("No project images found, generating hero image with Replicate...");
+      console.log("No project images found, generating hero image with Flux...");
       
       const imagePrompt = `Ultra realistic commercial photograph for a landing page with this headline: "${heroContent.headline}". Professional DSLR quality, 8k resolution, crystal clear, highly detailed commercial photography that captures the essence of: ${businessDescription}`;
 
       console.log("Generating image with prompt:", imagePrompt);
       
       const output = await replicate.run(
-        "stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b",
+        "black-forest-labs/flux-1.1-pro",
         {
           input: {
             prompt: imagePrompt,
+            negative_prompt: "cartoon, illustration, painting, drawing, art, digital art, anime, manga, low quality, blurry, watermark, text, logo",
             width: 1024,
             height: 1024,
-            num_outputs: 1,
+            num_inference_steps: 40,
             guidance_scale: 7.5,
-            num_inference_steps: 50,
-            negative_prompt: "cartoon, illustration, painting, drawing, art, digital art, anime, manga, low quality, blurry, watermark, text, logo"
+            scheduler: "K_EULER",
+            num_outputs: 1
           }
         }
       );
