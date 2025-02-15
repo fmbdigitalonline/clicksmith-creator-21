@@ -68,27 +68,26 @@ const ProjectCardActions = ({
 
       const savedImages = adFeedback?.saved_images || [];
 
-      console.log("Calling generate-landing-page function with data:", {
-        businessIdea: project.business_idea,
-        targetAudience: project.target_audience,
-        audienceAnalysis: project.audience_analysis,
-        projectImages: savedImages
-      });
+      // Get existing landing page data
+      const { data: existingLandingPage } = await supabase
+        .from('landing_pages')
+        .select('id')
+        .eq('project_id', projectId)
+        .maybeSingle();
 
-      // Call the edge function to generate landing page content
+      // Call the edge function to generate high-quality landing page content
       const { data: generatedContent, error } = await supabase.functions
         .invoke('generate-landing-page', {
           body: {
             businessIdea: project.business_idea,
             targetAudience: project.target_audience,
             audienceAnalysis: project.audience_analysis,
-            projectImages: savedImages
+            projectImages: savedImages,
+            isNewLayout: true // This flag will ensure we get the same high-quality content as "Generate New Layout"
           },
         });
 
       if (error) throw error;
-      
-      console.log("Generated content:", generatedContent);
 
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error("No authenticated user found");
@@ -97,6 +96,7 @@ const ProjectCardActions = ({
       const { data: landingPage, error: saveError } = await supabase
         .from('landing_pages')
         .upsert({
+          ...(existingLandingPage?.id ? { id: existingLandingPage.id } : {}),
           project_id: projectId,
           user_id: userData.user.id,
           title: `${project.title} Landing Page`,
