@@ -20,6 +20,35 @@ export const AdFeedbackControls = ({ adId, projectId, onFeedbackSubmit }: AdFeed
   const [showFeedbackInput, setShowFeedbackInput] = useState(false);
   const { toast } = useToast();
 
+  const saveFeedbackToDatabase = async (rating: number, feedbackText: string | null) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      throw new Error('User must be authenticated');
+    }
+
+    const feedbackData = {
+      user_id: user.id,
+      project_id: projectId,
+      ad_id: adId,
+      rating: rating,
+      feedback: feedbackText
+    };
+
+    const { error: updateError } = await supabase
+      .from('ad_feedback')
+      .update(feedbackData)
+      .eq('user_id', user.id)
+      .eq('ad_id', adId);
+
+    if (updateError) {
+      const { error: insertError } = await supabase
+        .from('ad_feedback')
+        .insert(feedbackData);
+
+      if (insertError) throw insertError;
+    }
+  };
+
   const handleFeedback = async (newRating: number) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -39,32 +68,10 @@ export const AdFeedbackControls = ({ adId, projectId, onFeedbackSubmit }: AdFeed
         return;
       }
 
+      // For likes, save immediately
       setIsSaving(true);
-      const feedbackData = {
-        user_id: user.id,
-        project_id: projectId,
-        ad_id: adId,
-        rating: newRating,
-        feedback: feedback || null
-      };
-
-      const { error: updateError } = await supabase
-        .from('ad_feedback')
-        .update(feedbackData)
-        .eq('user_id', user.id)
-        .eq('ad_id', adId);
-
-      if (updateError) {
-        const { error: insertError } = await supabase
-          .from('ad_feedback')
-          .insert(feedbackData);
-
-        if (insertError) throw insertError;
-      }
-
+      await saveFeedbackToDatabase(newRating, null);
       setRating(newRating);
-      setShowFeedbackInput(false);
-      setFeedback("");
       onFeedbackSubmit?.();
 
       toast({
@@ -85,7 +92,28 @@ export const AdFeedbackControls = ({ adId, projectId, onFeedbackSubmit }: AdFeed
 
   const handleFeedbackSubmit = async () => {
     if (rating === null) return;
-    await handleFeedback(rating);
+    
+    try {
+      setIsSaving(true);
+      await saveFeedbackToDatabase(rating, feedback);
+      setShowFeedbackInput(false);
+      setFeedback("");
+      onFeedbackSubmit?.();
+
+      toast({
+        title: "Feedback saved",
+        description: "Thank you for your detailed feedback!",
+      });
+    } catch (error) {
+      console.error('Error saving feedback:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save feedback. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
