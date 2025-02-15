@@ -1,24 +1,29 @@
-import { Document, Packer, Paragraph, TextRun } from 'docx';
+
+import { Document, Packer, Paragraph, TextRun, ImageRun } from 'docx';
 import jsPDF from 'jspdf';
 
 export const generatePDF = async (variant: any, imageUrl: string): Promise<Blob> => {
   try {
     const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.width;
+    const margin = 20;
+    const contentWidth = pageWidth - (2 * margin);
     
     // Add headline
     doc.setFontSize(16);
-    doc.text(variant.headline, 20, 20);
+    doc.setFont(undefined, 'bold');
+    const headlineLines = doc.splitTextToSize(variant.headline, contentWidth);
+    doc.text(headlineLines, margin, margin);
     
-    // Add description
+    let currentY = margin + (headlineLines.length * 10);
+    
+    // Add description (primary text)
     doc.setFontSize(12);
-    const splitText = doc.splitTextToSize(variant.description, 170);
-    doc.text(splitText, 20, 40);
+    doc.setFont(undefined, 'normal');
+    const descriptionLines = doc.splitTextToSize(variant.description, contentWidth);
+    doc.text(descriptionLines, margin, currentY + 10);
     
-    // Add call to action if exists
-    if (variant.callToAction) {
-      doc.setFontSize(14);
-      doc.text(variant.callToAction, 20, doc.internal.pageSize.height - 30);
-    }
+    currentY += (descriptionLines.length * 8) + 20;
     
     // Add image
     if (imageUrl) {
@@ -29,12 +34,22 @@ export const generatePDF = async (variant: any, imageUrl: string): Promise<Blob>
         img.src = imageUrl;
       });
       
-      const imgWidth = 170;
-      const imgHeight = (img.height * imgWidth) / img.width;
-      doc.addImage(img, 'JPEG', 20, 80, imgWidth, imgHeight);
+      // Calculate image dimensions to fit within content width while maintaining aspect ratio
+      const imgAspectRatio = img.width / img.height;
+      const imgWidth = contentWidth;
+      const imgHeight = imgWidth / imgAspectRatio;
+      
+      doc.addImage(img, 'JPEG', margin, currentY, imgWidth, imgHeight);
+      currentY += imgHeight + 10;
     }
     
-    // Return blob instead of saving
+    // Add call to action if exists
+    if (variant.callToAction) {
+      doc.setFontSize(14);
+      doc.setFont(undefined, 'bold');
+      doc.text(variant.callToAction, margin, currentY + 10);
+    }
+    
     return doc.output('blob');
   } catch (error) {
     console.error('Error generating PDF:', error);
@@ -44,10 +59,23 @@ export const generatePDF = async (variant: any, imageUrl: string): Promise<Blob>
 
 export const generateWord = async (variant: any, imageUrl: string): Promise<Blob> => {
   try {
+    // First, fetch and convert the image to base64
+    let imageBase64: string | undefined;
+    if (imageUrl) {
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      imageBase64 = await new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.readAsDataURL(blob);
+      });
+    }
+
     const doc = new Document({
       sections: [{
         properties: {},
         children: [
+          // Headline
           new Paragraph({
             children: [
               new TextRun({
@@ -56,7 +84,12 @@ export const generateWord = async (variant: any, imageUrl: string): Promise<Blob
                 size: 32,
               }),
             ],
+            spacing: {
+              after: 400,
+            },
           }),
+          
+          // Primary Text
           new Paragraph({
             children: [
               new TextRun({
@@ -64,21 +97,45 @@ export const generateWord = async (variant: any, imageUrl: string): Promise<Blob
                 size: 24,
               }),
             ],
+            spacing: {
+              after: 400,
+            },
           }),
-          new Paragraph({
-            children: [
-              new TextRun({
-                text: variant.callToAction || '',
-                bold: true,
-                size: 28,
-              }),
-            ],
-          }),
+          
+          // Image
+          ...(imageBase64 ? [
+            new Paragraph({
+              children: [
+                new ImageRun({
+                  data: imageBase64.split(',')[1],
+                  transformation: {
+                    width: 500,
+                    height: 300,
+                  },
+                }),
+              ],
+              spacing: {
+                after: 400,
+              },
+            }),
+          ] : []),
+          
+          // Call to Action
+          ...(variant.callToAction ? [
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: variant.callToAction,
+                  bold: true,
+                  size: 28,
+                }),
+              ],
+            }),
+          ] : []),
         ],
       }],
     });
 
-    // Return blob instead of handling download
     return await Packer.toBuffer(doc).then(buffer => {
       return new Blob([buffer], { 
         type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' 
