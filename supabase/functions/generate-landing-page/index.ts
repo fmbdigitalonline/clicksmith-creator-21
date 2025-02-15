@@ -10,14 +10,19 @@ const corsHeaders = {
 
 const parseOpenAIResponse = (content: string): any => {
   try {
+    // First try parsing as is
     return JSON.parse(content);
   } catch (e) {
     try {
+      // Try cleaning the content if direct parsing fails
       const cleanedContent = content.replace(/```json\n?|\n?```/g, '');
-      return JSON.parse(cleanedContent.trim());
+      const trimmedContent = cleanedContent.trim();
+      console.log('Attempting to parse cleaned content:', trimmedContent);
+      return JSON.parse(trimmedContent);
     } catch (e2) {
-      console.error('Failed to parse AI response:', content);
-      throw new Error('Failed to parse AI response');
+      console.error('Failed to parse AI response. Content:', content);
+      console.error('Parse error:', e2);
+      throw new Error(`Failed to parse AI response: ${e2.message}`);
     }
   }
 };
@@ -270,13 +275,42 @@ serve(async (req) => {
   }
 
   try {
-    const requestData = await req.json();
+    console.log('Request headers:', req.headers);
+    const contentType = req.headers.get('content-type');
+    console.log('Content-Type:', contentType);
+
+    // Read request body as text first
+    const bodyText = await req.text();
+    console.log('Raw request body:', bodyText);
+
+    let requestData;
+    try {
+      requestData = JSON.parse(bodyText);
+    } catch (parseError) {
+      console.error('Failed to parse request body:', parseError);
+      return new Response(
+        JSON.stringify({
+          error: 'Invalid JSON in request body',
+          details: parseError.message,
+          receivedBody: bodyText
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    console.log('Parsed request data:', requestData);
     const { businessIdea, targetAudience, audienceAnalysis, projectImages = [] } = requestData;
 
     if (!businessIdea) {
       return new Response(
-        JSON.stringify({ error: 'Business idea is required' }),
-        { 
+        JSON.stringify({
+          error: 'Business idea is required',
+          receivedData: requestData
+        }),
+        {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
@@ -291,33 +325,40 @@ serve(async (req) => {
 
     // Generate hero content with increased max_tokens
     console.log("Generating hero content with AIDA formula...");
+    const businessDescription = typeof businessIdea === 'string' 
+      ? businessIdea 
+      : businessIdea.name || businessIdea.description || 'this business';
+
     const heroCompletion = await openai.chat.completions.create({
       model: "deepseek-chat",
       messages: [
         {
           role: "system",
-          content: "You are an expert copywriter specializing in landing page headlines that convert. Create highly detailed, compelling content that resonates with the target audience. You must return only valid JSON with no markdown formatting."
+          content: "You are an expert copywriter specializing in landing page headlines that convert. Create highly detailed, compelling content that resonates with the target audience. Return a JSON object with 'headline' and 'subtitle' fields."
         },
         {
           role: "user",
-          content: `Write a compelling headline and detailed subtitle combination for a landing page that promotes ${businessIdea.name || businessIdea.description || 'this business'} following the AIDA formula. Include multiple subtitle sections for Attention, Interest, Desire, and Action. Make it rich in detail and emotionally engaging.`
+          content: `Write a compelling headline and detailed subtitle combination for a landing page that promotes ${businessDescription}. Format your response as a JSON object with two fields: 'headline' and 'subtitle'.`
         }
       ],
-      max_tokens: 4000
+      max_tokens: 4000,
+      temperature: 0.7
     });
 
-    console.log("Hero content response:", heroCompletion.choices[0].message.content);
-    const heroContent = parseOpenAIResponse(heroCompletion.choices[0].message.content);
+    const heroResponseText = heroCompletion.choices[0].message.content;
+    console.log("Raw hero content response:", heroResponseText);
+    const heroContent = parseOpenAIResponse(heroResponseText);
+    console.log("Parsed hero content:", heroContent);
 
-    // Generate the remaining AIDA template content with increased detail
+    // Generate the remaining AIDA template content
     console.log("Generating remaining landing page content...");
     const aidaPrompt = `
-      Create an extensive, highly detailed landing page content following the AIDA framework for:
-      Business: ${JSON.stringify(businessIdea)}
+      Create a landing page content following the AIDA framework for:
+      Business: ${JSON.stringify(businessDescription)}
       Target Audience: ${JSON.stringify(targetAudience)}
       Analysis: ${JSON.stringify(audienceAnalysis)}
       
-      Generate a comprehensive JSON object with sections for howItWorks, marketAnalysis, objections, faq, and footerContent.
+      Return a JSON object with these sections: howItWorks, marketAnalysis, objections, faq, and footerContent.
     `;
 
     const completion = await openai.chat.completions.create({
@@ -325,7 +366,7 @@ serve(async (req) => {
       messages: [
         {
           role: "system",
-          content: "You are a landing page content expert. Generate comprehensive, persuasive content following the AIDA framework. Focus on creating detailed, engaging content that thoroughly explains the value proposition and addresses all potential customer concerns."
+          content: "You are a landing page content expert. Generate structured JSON content following the AIDA framework. Always return valid JSON."
         },
         {
           role: "user",
@@ -336,8 +377,10 @@ serve(async (req) => {
       temperature: 0.7
     });
 
-    console.log("AIDA content response:", completion.choices[0].message.content);
-    const aidaContent = parseOpenAIResponse(completion.choices[0].message.content);
+    const aidaResponseText = completion.choices[0].message.content;
+    console.log("Raw AIDA content response:", aidaResponseText);
+    const aidaContent = parseOpenAIResponse(aidaResponseText);
+    console.log("Parsed AIDA content:", aidaContent);
 
     // Handle hero image
     let heroImage = projectImages[0];
@@ -348,7 +391,7 @@ serve(async (req) => {
         auth: Deno.env.get('REPLICATE_API_KEY'),
       });
 
-      const imagePrompt = `Ultra realistic commercial photograph for a landing page with this headline: "${heroContent.headline}". Professional DSLR quality, 8k resolution, crystal clear, highly detailed commercial photography that captures the essence of: ${JSON.stringify(businessIdea)}`;
+      const imagePrompt = `Ultra realistic commercial photograph for a landing page with this headline: "${heroContent.headline}". Professional DSLR quality, 8k resolution, crystal clear, highly detailed commercial photography that captures the essence of: ${businessDescription}`;
 
       console.log("Generating image with prompt:", imagePrompt);
       
@@ -377,6 +420,7 @@ serve(async (req) => {
 
     // Map the generated content to match the template structure
     const generatedContent = mapToTemplateStructure(aidaContent, heroContent, heroImage);
+    console.log("Final generated content:", generatedContent);
 
     return new Response(
       JSON.stringify(generatedContent),
@@ -390,11 +434,11 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error in generate-landing-page function:', error);
-    // Ensure we always return a properly formatted error response
     return new Response(
       JSON.stringify({ 
         error: error instanceof Error ? error.message : 'An unexpected error occurred',
-        details: error instanceof Error ? error.stack : undefined
+        details: error instanceof Error ? error.stack : undefined,
+        type: error.constructor.name
       }),
       {
         status: 500,
