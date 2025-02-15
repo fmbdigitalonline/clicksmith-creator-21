@@ -1,6 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { Configuration, OpenAIApi } from "https://esm.sh/openai@3.3.0";
+import { OpenAI } from "https://esm.sh/openai@4.20.1";
 import Replicate from "https://esm.sh/replicate@0.25.1";
 
 const corsHeaders = {
@@ -17,11 +17,15 @@ serve(async (req) => {
   try {
     const { businessIdea, targetAudience, audienceAnalysis, projectImages = [] } = await req.json();
 
-    // Initialize OpenAI properly
-    const configuration = new Configuration({
+    // Validate required inputs
+    if (!businessIdea) {
+      throw new Error('Business idea is required');
+    }
+
+    // Initialize OpenAI with the new SDK version
+    const openai = new OpenAI({
       apiKey: Deno.env.get('OPENAI_API_KEY'),
     });
-    const openai = new OpenAIApi(configuration);
 
     // First, generate the hero section content using AIDA formula
     console.log("Generating hero content with AIDA formula...");
@@ -71,7 +75,7 @@ serve(async (req) => {
       }
     `;
 
-    const heroCompletion = await openai.createChatCompletion({
+    const heroCompletion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         {
@@ -85,7 +89,8 @@ serve(async (req) => {
       ]
     });
 
-    const heroContent = JSON.parse(heroCompletion.data.choices[0].message.content);
+    console.log("Hero content generated:", heroCompletion.choices[0].message);
+    const heroContent = JSON.parse(heroCompletion.choices[0].message.content);
 
     // Now generate the rest of the landing page content
     console.log("Generating remaining landing page content...");
@@ -104,7 +109,7 @@ serve(async (req) => {
       Format the response as a JSON object with these sections.
     `;
 
-    const completion = await openai.createChatCompletion({
+    const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         {
@@ -118,7 +123,8 @@ serve(async (req) => {
       ]
     });
 
-    const remainingContent = JSON.parse(completion.data.choices[0].message.content);
+    console.log("Remaining content generated:", completion.choices[0].message);
+    const remainingContent = JSON.parse(completion.choices[0].message.content);
 
     // Combine hero content with remaining content
     const generatedContent = {
