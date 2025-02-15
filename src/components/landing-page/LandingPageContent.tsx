@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,8 +16,6 @@ import FooterSection from "./sections/FooterSection";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
-import LoadingState from "./LoadingState";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 interface LandingPageContentProps {
   project: any;
@@ -242,12 +239,6 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
           </Card>
         </TabsContent>
       </Tabs>
-
-      <Dialog open={isGenerating} onOpenChange={setIsGenerating}>
-        <DialogContent className="sm:max-w-lg">
-          <LoadingState />
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };

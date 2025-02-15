@@ -1,7 +1,7 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { OpenAI } from "https://esm.sh/openai@4.20.1";
 import Replicate from "https://esm.sh/replicate@0.25.1";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -10,19 +10,14 @@ const corsHeaders = {
 
 const parseOpenAIResponse = (content: string): any => {
   try {
-    // First try parsing as is
     return JSON.parse(content);
   } catch (e) {
     try {
-      // Try cleaning the content if direct parsing fails
       const cleanedContent = content.replace(/```json\n?|\n?```/g, '');
-      const trimmedContent = cleanedContent.trim();
-      console.log('Attempting to parse cleaned content:', trimmedContent);
-      return JSON.parse(trimmedContent);
+      return JSON.parse(cleanedContent.trim());
     } catch (e2) {
-      console.error('Failed to parse AI response. Content:', content);
-      console.error('Parse error:', e2);
-      throw new Error(`Failed to parse AI response: ${e2.message}`);
+      console.error('Failed to parse AI response:', content);
+      throw new Error('Failed to parse AI response');
     }
   }
 };
@@ -100,50 +95,6 @@ const generateSectionLayout = (sectionType: string, content: any) => {
       };
     default:
       return baseLayout;
-  }
-};
-
-const saveImageToStorage = async (imageUrl: string): Promise<string> => {
-  try {
-    // Create Supabase client
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
-
-    // Fetch the image
-    const response = await fetch(imageUrl);
-    if (!response.ok) throw new Error('Failed to fetch image');
-    
-    const imageBuffer = await response.arrayBuffer();
-    const fileName = `hero_${new Date().getTime()}.webp`;
-
-    // Upload to Supabase Storage
-    const { data: uploadData, error: uploadError } = await supabase
-      .storage
-      .from('landing_page_images')
-      .upload(fileName, imageBuffer, {
-        contentType: 'image/webp',
-        cacheControl: '3600',
-        upsert: false
-      });
-
-    if (uploadError) {
-      console.error('Error uploading to storage:', uploadError);
-      throw uploadError;
-    }
-
-    // Get the public URL
-    const { data: { publicUrl } } = supabase
-      .storage
-      .from('landing_page_images')
-      .getPublicUrl(fileName);
-
-    console.log('Image saved to storage:', publicUrl);
-    return publicUrl;
-  } catch (error) {
-    console.error('Error saving image to storage:', error);
-    throw error;
   }
 };
 
@@ -269,133 +220,133 @@ const mapToTemplateStructure = (aidaContent: any, heroContent: any, heroImage: s
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    console.log('Request headers:', req.headers);
-    const contentType = req.headers.get('content-type');
-    console.log('Content-Type:', contentType);
-
-    // Read request body as text first
-    const bodyText = await req.text();
-    console.log('Raw request body:', bodyText);
-
-    let requestData;
-    try {
-      requestData = JSON.parse(bodyText);
-    } catch (parseError) {
-      console.error('Failed to parse request body:', parseError);
-      return new Response(
-        JSON.stringify({
-          error: 'Invalid JSON in request body',
-          details: parseError.message,
-          receivedBody: bodyText
-        }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
-    }
-
-    console.log('Parsed request data:', requestData);
-    const { businessIdea, targetAudience, audienceAnalysis, projectImages = [] } = requestData;
+    const { businessIdea, targetAudience, audienceAnalysis, projectImages = [] } = await req.json();
 
     if (!businessIdea) {
-      return new Response(
-        JSON.stringify({
-          error: 'Business idea is required',
-          receivedData: requestData
-        }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
+      throw new Error('Business idea is required');
     }
 
-    // Initialize DeepSeek client first since we'll use it for the hero content
+    // Initialize DeepSeek client with increased token limits
     const openai = new OpenAI({
       baseURL: 'https://api.deepseek.com/v1',
       apiKey: Deno.env.get('DEEPSEEK_API_KEY')
     });
 
-    // Extract business description from businessIdea
-    const businessDescription = typeof businessIdea === 'string' 
-      ? businessIdea 
-      : businessIdea.description || 'this business';
-
-    // Generate hero content with DeepSeek following AIDA structure
-    console.log("Generating hero content with DeepSeek...");
-    const heroPrompt = `
-      Write a compelling headline and subtitle combination for a landing page that promotes ${businessDescription}. The content should follow the AIDA formula (Attention, Interest, Desire, Action) and adhere to the following guidelines:
-
-      Attention (Headline):
-      - Grab the reader's attention immediately by addressing a key pain point, desire, or aspiration.
-      - Keep it concise (8–12 words).
-      - Use emotional hooks (e.g., fear of failure, excitement about success, curiosity).
-      - Highlight the primary benefit or outcome of using the product.
-
-      Interest (Subtitle - First Sentence):
-      - Build interest by explaining why the product is relevant to the reader.
-      - Mention the versatility of the product if applicable.
-      - Use simple, conversational language to make the value proposition clear.
-      - Recommended word count: 8–12 words.
-
-      Desire (Subtitle - Second Sentence):
-      - Create desire by highlighting the unique features or benefits.
-      - Focus on what makes the product stand out.
-      - Use persuasive language to make the reader envision positive outcomes.
-      - Recommended word count: 8–12 words.
-
-      Action (Call-to-Action Implication):
-      - End with a subtle call-to-action that encourages taking the next step.
-      - Recommended word count: 4–6 words.
-
-      Target Audience: ${JSON.stringify(targetAudience)}
-
-      Format your response as a JSON object with this structure:
-      {
-        "headline": "Your attention-grabbing headline here",
-        "subtitle": {
-          "interest": "Your interest-building first sentence here",
-          "desire": "Your desire-creating second sentence here",
-          "action": "Your call-to-action here"
-        }
-      }
-    `;
-
+    // Generate hero content with increased max_tokens
+    console.log("Generating hero content with AIDA formula...");
     const heroCompletion = await openai.chat.completions.create({
       model: "deepseek-chat",
       messages: [
         {
           role: "system",
-          content: "You are an expert copywriter specializing in landing page headlines that convert. Create highly detailed, compelling content that follows the AIDA framework and resonates with the target audience. Always return valid JSON."
+          content: "You are an expert copywriter specializing in landing page headlines that convert. Create highly detailed, compelling content that resonates with the target audience. You must return only valid JSON with no markdown formatting."
         },
         {
           role: "user",
-          content: heroPrompt
+          content: `Write a compelling headline and detailed subtitle combination for a landing page that promotes ${businessIdea.name || businessIdea.description || 'this business'} following the AIDA formula. Include multiple subtitle sections for Attention, Interest, Desire, and Action. Make it rich in detail and emotionally engaging.`
         }
       ],
-      max_tokens: 1000,
-      temperature: 0.7
+      max_tokens: 4000 // Increased from default
     });
 
+    console.log("Hero content response:", heroCompletion.choices[0].message.content);
     const heroContent = parseOpenAIResponse(heroCompletion.choices[0].message.content);
-    console.log("Parsed hero content:", heroContent);
 
-    // Generate the remaining AIDA template content
+    // Generate the remaining AIDA template content with increased detail
     console.log("Generating remaining landing page content...");
     const aidaPrompt = `
-      Create a landing page content following the AIDA framework for:
-      Business: ${JSON.stringify(businessDescription)}
+      Create an extensive, highly detailed landing page content following the AIDA framework for:
+      Business: ${JSON.stringify(businessIdea)}
       Target Audience: ${JSON.stringify(targetAudience)}
       Analysis: ${JSON.stringify(audienceAnalysis)}
-      
-      Return a JSON object with these sections: howItWorks, marketAnalysis, objections, faq, and footerContent.
+
+      Generate a comprehensive, content-rich JSON object with these sections. Include extensive details, examples, and engaging content for each section:
+      {
+        "howItWorks": {
+          "subheadline": "Detailed explanation of how the product solves problems",
+          "steps": [
+            {
+              "title": "Step title",
+              "description": "Comprehensive step description with examples and benefits",
+              "benefits": ["Array of specific benefits"],
+              "features": ["Array of relevant features"],
+              "examples": ["Real-world application examples"]
+            }
+          ],
+          "valueReinforcement": "Detailed statement reinforcing value proposition with specific outcomes"
+        },
+        "marketAnalysis": {
+          "context": "In-depth market situation analysis with trends and opportunities",
+          "solution": "Comprehensive explanation of how the product solves market problems",
+          "marketTrends": ["Array of relevant market trends"],
+          "competitiveAdvantages": ["Array of unique selling points"],
+          "painPoints": [
+            {
+              "title": "Pain point title",
+              "description": "Detailed pain point description",
+              "impact": "How it affects the target audience",
+              "solution": "How your product addresses this specific pain point"
+            }
+          ],
+          "features": [
+            {
+              "title": "Feature title",
+              "description": "Comprehensive feature benefit description",
+              "technicalDetails": "Technical aspects if relevant",
+              "useCase": "Specific use case example",
+              "benefitExplanation": "Detailed explanation of the benefit"
+            }
+          ],
+          "socialProof": {
+            "quote": "Detailed customer testimonial",
+            "author": "Customer name",
+            "title": "Customer title",
+            "companySize": "Company size or relevant context",
+            "results": "Specific results or outcomes achieved",
+            "timeframe": "Timeline of results"
+          }
+        },
+        "objections": {
+          "subheadline": "Comprehensive trust building statement",
+          "concerns": [
+            {
+              "question": "Potential objection",
+              "answer": "Detailed, persuasive answer",
+              "evidence": ["Supporting evidence points"],
+              "examples": ["Real-world examples"],
+              "guarantees": ["Related guarantees or assurances"]
+            }
+          ]
+        },
+        "faq": {
+          "subheadline": "Comprehensive FAQ introduction",
+          "categories": ["Common concerns", "Technical details", "Implementation", "Support"],
+          "questions": [
+            {
+              "question": "Detailed question",
+              "answer": "Comprehensive answer",
+              "relatedInfo": ["Array of related information"],
+              "nextSteps": "Suggested next steps"
+            }
+          ]
+        },
+        "footerContent": {
+          "contact": "Detailed contact information",
+          "newsletter": "Compelling newsletter signup message with benefits",
+          "copyright": "Copyright text",
+          "additionalResources": ["Array of helpful resources"],
+          "support": {
+            "hours": "Support hours",
+            "channels": ["Available support channels"],
+            "response_time": "Expected response time"
+          }
+        }
+      }
     `;
 
     const completion = await openai.chat.completions.create({
@@ -403,88 +354,71 @@ serve(async (req) => {
       messages: [
         {
           role: "system",
-          content: "You are a landing page content expert. Generate structured JSON content following the AIDA framework. Always return valid JSON."
+          content: "You are a landing page content expert. Generate comprehensive, persuasive content following the AIDA framework. Focus on creating detailed, engaging content that thoroughly explains the value proposition and addresses all potential customer concerns."
         },
         {
           role: "user",
           content: aidaPrompt
         }
       ],
-      max_tokens: 8000,
-      temperature: 0.7
+      max_tokens: 8000, // Increased to maximum output tokens
+      temperature: 0.7 // Slightly increased for more creative responses
     });
 
-    const aidaResponseText = completion.choices[0].message.content;
-    console.log("Raw AIDA content response:", aidaResponseText);
-    const aidaContent = parseOpenAIResponse(aidaResponseText);
-    console.log("Parsed AIDA content:", aidaContent);
+    console.log("AIDA content response:", completion.choices[0].message.content);
+    const aidaContent = parseOpenAIResponse(completion.choices[0].message.content);
 
     // Handle hero image
     let heroImage = projectImages[0];
     if (!heroImage) {
-      console.log("No project images found, generating hero image with Flux...");
+      console.log("No project images found, generating hero image with Replicate...");
       
-      const imagePrompt = `Ultra realistic commercial photograph for a landing page with this headline: "${heroContent.headline}". Professional DSLR quality, 8k resolution, crystal clear, highly detailed commercial photography that captures the essence of: ${businessDescription}`;
+      const replicate = new Replicate({
+        auth: Deno.env.get('REPLICATE_API_KEY'),
+      });
+
+      const imagePrompt = `Ultra realistic commercial photograph for a landing page with this headline: "${heroContent.headline}". Professional DSLR quality, 8k resolution, crystal clear, highly detailed commercial photography that captures the essence of: ${JSON.stringify(businessIdea)}`;
 
       console.log("Generating image with prompt:", imagePrompt);
       
       const output = await replicate.run(
-        "black-forest-labs/flux-1.1-pro",
+        "stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b",
         {
           input: {
             prompt: imagePrompt,
-            negative_prompt: "cartoon, illustration, painting, drawing, art, digital art, anime, manga, low quality, blurry, watermark, text, logo",
             width: 1024,
             height: 1024,
-            num_inference_steps: 40,
+            num_outputs: 1,
             guidance_scale: 7.5,
-            scheduler: "K_EULER",
-            num_outputs: 1
+            num_inference_steps: 50,
+            negative_prompt: "cartoon, illustration, painting, drawing, art, digital art, anime, manga, low quality, blurry, watermark, text, logo"
           }
         }
       );
 
-      // The output is already a URL string or array of URLs, no need to parse as JSON
       console.log("Replicate response:", output);
-      const generatedImageUrl = Array.isArray(output) ? output[0] : output;
-      
-      if (!generatedImageUrl || typeof generatedImageUrl !== 'string') {
-        throw new Error('Failed to generate image: Invalid response from Replicate');
-      }
-      
-      // Save the generated image to Supabase Storage
-      heroImage = await saveImageToStorage(generatedImageUrl);
-      console.log("Saved hero image URL:", heroImage);
+      heroImage = Array.isArray(output) ? output[0] : output;
     }
+
+    console.log("Final hero image URL:", heroImage);
 
     // Map the generated content to match the template structure
     const generatedContent = mapToTemplateStructure(aidaContent, heroContent, heroImage);
-    console.log("Final generated content:", generatedContent);
 
     return new Response(
       JSON.stringify(generatedContent),
       {
-        headers: { 
-          ...corsHeaders, 
-          'Content-Type': 'application/json' 
-        },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       },
     );
 
   } catch (error) {
     console.error('Error in generate-landing-page function:', error);
     return new Response(
-      JSON.stringify({ 
-        error: error instanceof Error ? error.message : 'An unexpected error occurred',
-        details: error instanceof Error ? error.stack : undefined,
-        type: error.constructor.name
-      }),
+      JSON.stringify({ error: error.message }),
       {
         status: 500,
-        headers: { 
-          ...corsHeaders, 
-          'Content-Type': 'application/json' 
-        },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       },
     );
   }

@@ -6,13 +6,6 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
-import LoadingState from "@/components/landing-page/LoadingState";
-import {
-  Dialog,
-  DialogContent,
-  DialogClose,
-} from "@/components/ui/dialog";
-import { useState } from "react";
 
 interface ProjectCardActionsProps {
   projectId: string;
@@ -38,7 +31,6 @@ const ProjectCardActions = ({
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [isGenerating, setIsGenerating] = useState(false);
 
   const handleCreateLandingPage = async () => {
     if (!hasBusinessIdea || !hasTargetAudience || !hasAudienceAnalysis) {
@@ -50,7 +42,11 @@ const ProjectCardActions = ({
       return;
     }
     
-    setIsGenerating(true);
+    // Show loading toast
+    toast({
+      title: "Creating landing page",
+      description: "Please wait while we generate your landing page...",
+    });
 
     try {
       // Get the project data first
@@ -144,57 +140,46 @@ const ProjectCardActions = ({
         description: error instanceof Error ? error.message : "Failed to create landing page",
         variant: "destructive",
       });
-    } finally {
-      setIsGenerating(false);
     }
   };
 
   return (
-    <>
-      <CardFooter className="flex flex-wrap gap-1.5 justify-end p-3">
-        <Button
-          variant="outline"
-          size="icon"
-          className="h-7 w-7"
-          onClick={onEdit}
-        >
-          <Edit2 className="h-3.5 w-3.5" />
-        </Button>
-        <Button
-          variant="outline"
-          size="icon"
-          className="h-7 w-7"
-          onClick={onDelete}
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          className="h-7 text-xs"
-          onClick={handleCreateLandingPage}
-          disabled={isGenerating}
-        >
-          <Layout className="h-3.5 w-3.5 mr-1.5" />
-          {isGenerating ? "Generating..." : "Landing Page"}
-        </Button>
-        <Button
-          variant="default"
-          size="sm"
-          className="h-7 text-xs"
-          onClick={onStartAdWizard}
-        >
-          <PlayCircle className="h-3.5 w-3.5 mr-1.5" />
-          {hasCampaign ? "View Ads" : "Create Ads"}
-        </Button>
-      </CardFooter>
-
-      <Dialog open={isGenerating} onOpenChange={setIsGenerating}>
-        <DialogContent className="sm:max-w-lg">
-          <LoadingState />
-        </DialogContent>
-      </Dialog>
-    </>
+    <CardFooter className="flex flex-wrap gap-1.5 justify-end p-3">
+      <Button
+        variant="outline"
+        size="icon"
+        className="h-7 w-7"
+        onClick={onEdit}
+      >
+        <Edit2 className="h-3.5 w-3.5" />
+      </Button>
+      <Button
+        variant="outline"
+        size="icon"
+        className="h-7 w-7"
+        onClick={onDelete}
+      >
+        <Trash2 className="h-3.5 w-3.5" />
+      </Button>
+      <Button
+        variant="outline"
+        size="sm"
+        className="h-7 text-xs"
+        onClick={handleCreateLandingPage}
+      >
+        <Layout className="h-3.5 w-3.5 mr-1.5" />
+        Landing Page
+      </Button>
+      <Button
+        variant="default"
+        size="sm"
+        className="h-7 text-xs"
+        onClick={onStartAdWizard}
+      >
+        <PlayCircle className="h-3.5 w-3.5 mr-1.5" />
+        {hasCampaign ? "View Ads" : "Create Ads"}
+      </Button>
+    </CardFooter>
   );
 };
 
