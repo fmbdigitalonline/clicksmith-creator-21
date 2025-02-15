@@ -197,10 +197,10 @@ const Index = () => {
       <section className="py-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-6xl mx-auto">
           <h2 className="text-3xl font-bold text-center mb-4">
-            See the Platform in Action
+            Find Your Ideal Customer
           </h2>
           <p className="text-center text-muted-foreground mb-12 max-w-3xl mx-auto">
-            Our intuitive interface makes it easy to validate your business idea and create high-converting ads
+            Discover the audience that's actively seeking the value your product delivers-and is ready to invest in it.
           </p>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div className="space-y-6">
