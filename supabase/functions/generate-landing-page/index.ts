@@ -39,68 +39,52 @@ serve(async (req) => {
     });
 
     // Generate main content following AIDA framework
-    const contentPrompt = `Create a landing page content for ${businessIdea.description || businessIdea.name} following this structure:
+    const contentPrompt = `Create a landing page content for ${businessIdea.description || businessIdea.name} that promotes: ${JSON.stringify(businessIdea)}. 
+    
+Target Audience Information:
+${JSON.stringify(targetAudience)}
 
-Business Context:
-${JSON.stringify({ businessIdea, targetAudience, audienceAnalysis, marketingCampaign }, null, 2)}
+Audience Analysis:
+${JSON.stringify(audienceAnalysis)}
 
-Generate content following the AIDA framework (Attention, Interest, Desire, Action) with these sections:
+Follow the AIDA framework to generate a complete landing page with these sections:
 
-1. Hero Section (Attention):
-- Compelling headline addressing pain points
-- Emotional subtitle highlighting benefits
-- Clear value proposition
-- Strong call-to-action
+1. How It Works:
+- Create 4 clear steps that explain the process
+- Each step should have a title and detailed description
+- Include value reinforcement after steps
 
-2. How It Works Section (Interest):
-- Clear step-by-step process
-- Value reinforcement
-- Technical highlights
-- Benefits at each step
+2. Market Analysis:
+- Analyze the current market situation
+- Identify key pain points and solutions
+- List 3-4 unique features with benefits
 
-3. Market Analysis (Interest/Desire):
-- Industry context
-- Current market situation
-- Solution positioning
-- Key benefits
+3. Value Proposition:
+- Create 3 compelling cards with icons
+- Each card should highlight a key benefit
+- Focus on solving main pain points
 
-4. Value Proposition:
-- Main benefits
-- Unique selling points
-- Competitive advantages
+4. Features:
+- List 4-5 key features
+- Each feature should have a title and detailed description
+- Focus on technical capabilities and benefits
 
-5. Features Section:
-- Key features
-- Technical capabilities
-- Integration possibilities
-- User benefits
+5. Testimonials:
+- Create 2-3 realistic testimonials
+- Include specific results and benefits
+- Vary the types of users/roles
 
-6. Testimonials:
-- Customer success stories
-- Result metrics
-- User experiences
+6. Objections:
+- Address 3-4 common concerns
+- Provide clear, convincing answers
+- Build trust through responses
 
-7. Objections Section:
-- Common concerns
-- Clear answers
-- Trust building elements
+7. FAQ:
+- Create 4-5 relevant questions and answers
+- Cover technical and practical aspects
+- Address common user concerns
 
-8. FAQ Section:
-- Frequent questions
-- Detailed answers
-- Technical clarifications
-
-9. Final CTA:
-- Urgency elements
-- Clear next steps
-- Value reinforcement
-
-10. Footer:
-- Contact information
-- Newsletter signup
-- Copyright information
-
-Return a JSON object with these exact sections structured appropriately.`;
+Return a JSON object with these sections structured appropriately.`;
 
     console.log("Generating content with prompt:", contentPrompt);
 
@@ -109,7 +93,7 @@ Return a JSON object with these exact sections structured appropriately.`;
       messages: [
         {
           role: "system",
-          content: "You are an expert landing page copywriter. Create compelling content following the AIDA framework. Return only valid JSON."
+          content: "You are an expert landing page copywriter. Create compelling content following the AIDA framework. Return only valid JSON with properly populated arrays and objects for each section."
         },
         {
           role: "user",
@@ -121,37 +105,29 @@ Return a JSON object with these exact sections structured appropriately.`;
     });
 
     const aidaContent = JSON.parse(completion.choices[0].message.content);
+    console.log("Generated AIDA content:", aidaContent);
 
     // Generate hero section separately for better attention-grabbing content
-    const heroPrompt = `Create a compelling hero section for this landing page:
-
-Business: ${businessIdea.description}
+    const heroPrompt = `Create a compelling hero section for this business:
+Product/Service: ${businessIdea.description}
 Target Audience: ${JSON.stringify(targetAudience)}
 Value Proposition: ${businessIdea.valueProposition}
+Pain Points: ${JSON.stringify(audienceAnalysis?.deepPainPoints || [])}
 
 Create an attention-grabbing hero section that:
-1. Has a powerful headline (8-12 words)
-2. Includes an emotional subtitle
-3. Addresses key pain points
-4. Highlights primary benefits
-5. Has a compelling call-to-action
+1. Has a powerful headline (8-12 words) that addresses the main pain point
+2. Includes an emotional subtitle that shows the transformation
+3. Highlights the key benefit that sets this solution apart
+4. Has a compelling call-to-action
 
-Return as JSON with these fields:
-{
-  "headline": "string",
-  "subtitle": {
-    "interest": "string",
-    "desire": "string",
-    "action": "string"
-  }
-}`;
+Focus on the transformation from pain point to solution.`;
 
     const heroCompletion = await openai.chat.completions.create({
       model: "deepseek-chat",
       messages: [
         {
           role: "system",
-          content: "You are an expert copywriter specializing in attention-grabbing headlines. Return only valid JSON."
+          content: "You are an expert copywriter specializing in attention-grabbing headlines. Return only valid JSON with headline and subtitle text."
         },
         {
           role: "user",
@@ -163,6 +139,7 @@ Return as JSON with these fields:
     });
 
     const heroContent = JSON.parse(heroCompletion.choices[0].message.content);
+    console.log("Generated hero content:", heroContent);
 
     // Handle hero image
     let heroImage = projectImages[0];
@@ -199,71 +176,132 @@ Return as JSON with these fields:
     // Combine all content
     const generatedContent = {
       hero: {
-        title: heroContent.headline,
-        description: [
-          heroContent.subtitle.interest,
-          heroContent.subtitle.desire,
-          heroContent.subtitle.action
-        ].filter(Boolean).join(' '),
+        title: heroContent.headline || "Transform Your Business Idea into Reality",
+        description: heroContent.subtitle || "Get the professional business plan you need to secure funding and launch your startup successfully.",
         cta: "Get Started Now",
         image: heroImage
       },
       howItWorks: {
-        subheadline: "How it works",
-        steps: aidaContent.howItWorks?.steps || [],
-        valueReinforcement: aidaContent.howItWorks?.valueReinforcement || ""
+        subheadline: "How It Works",
+        steps: aidaContent.howItWorks?.steps || [
+          {
+            title: "Share Your Vision",
+            description: "Tell us about your business idea and goals"
+          },
+          {
+            title: "AI-Powered Analysis",
+            description: "Our system analyzes your input and market data"
+          },
+          {
+            title: "Generate Your Plan",
+            description: "Receive a comprehensive business plan"
+          },
+          {
+            title: "Ready for Funding",
+            description: "Present your professional plan to investors"
+          }
+        ],
+        valueReinforcement: aidaContent.howItWorks?.valueReinforcement || "Transform your idea into a fundable business plan in minutes"
       },
       marketAnalysis: {
-        context: aidaContent.marketAnalysis?.context || "",
-        solution: aidaContent.marketAnalysis?.solution || "",
-        painPoints: aidaContent.marketAnalysis?.painPoints || [],
-        features: aidaContent.marketAnalysis?.features || [],
-        socialProof: aidaContent.marketAnalysis?.socialProof || {}
+        context: aidaContent.marketAnalysis?.context || "The business planning landscape is evolving",
+        solution: aidaContent.marketAnalysis?.solution || "Our platform bridges the gap between ideas and funding",
+        painPoints: aidaContent.marketAnalysis?.painPoints || audienceAnalysis?.deepPainPoints?.map((point: string) => ({
+          title: point,
+          description: `We help solve ${point} through our innovative approach`
+        })) || [],
+        features: aidaContent.marketAnalysis?.features || []
       },
       valueProposition: {
         title: "Why Choose Us?",
-        cards: (aidaContent.marketAnalysis?.painPoints || []).map((point: any, index: number) => ({
-          icon: ["✨", "🎯", "💫"][index % 3],
-          title: point.title,
-          description: point.description
-        }))
+        cards: aidaContent.valueProposition?.cards || [
+          {
+            icon: "✨",
+            title: "Professional Quality",
+            description: "Bank-ready business plans that get results"
+          },
+          {
+            icon: "🎯",
+            title: "Time-Saving",
+            description: "Complete your plan in minutes, not weeks"
+          },
+          {
+            icon: "💫",
+            title: "Funding-Focused",
+            description: "Designed to help you secure investments"
+          }
+        ]
       },
       features: {
         title: "Key Features",
-        description: aidaContent.marketAnalysis?.solution || "",
-        items: aidaContent.marketAnalysis?.features || []
+        description: aidaContent.features?.description || "Everything you need to create a professional business plan",
+        items: aidaContent.features?.items || [
+          {
+            title: "AI-Powered Analysis",
+            description: "Advanced algorithms analyze your business potential"
+          },
+          {
+            title: "Financial Projections",
+            description: "Accurate financial forecasts and metrics"
+          },
+          {
+            title: "Market Research",
+            description: "Comprehensive industry and competitor analysis"
+          }
+        ]
       },
       testimonials: {
         title: "What Our Clients Say",
-        items: [aidaContent.marketAnalysis?.socialProof || {
-          quote: "This solution has transformed how we operate. Highly recommended!",
-          author: "John Smith",
-          role: "Business Owner"
-        }]
+        items: aidaContent.testimonials?.items || [
+          {
+            quote: "This platform helped me secure my startup funding in record time.",
+            author: "Sarah Johnson",
+            role: "Tech Entrepreneur"
+          },
+          {
+            quote: "The quality of the business plan exceeded my expectations.",
+            author: "Michael Chen",
+            role: "Small Business Owner"
+          }
+        ]
       },
-      objections: aidaContent.objections || {
-        subheadline: "Common Concerns Addressed",
-        concerns: []
+      objections: {
+        subheadline: "Common Questions Answered",
+        concerns: aidaContent.objections?.concerns || audienceAnalysis?.potentialObjections?.map((objection: string) => ({
+          question: objection,
+          answer: `We understand your concern about ${objection.toLowerCase()}. Our platform is specifically designed to address this by providing professional, customizable solutions.`
+        })) || []
       },
-      faq: aidaContent.faq || {
+      faq: {
         subheadline: "Frequently Asked Questions",
-        questions: []
+        questions: aidaContent.faq?.questions || [
+          {
+            question: "How long does it take to create a business plan?",
+            answer: "Most users complete their business plan within 30 minutes."
+          },
+          {
+            question: "Is the plan customizable?",
+            answer: "Yes, you can customize every aspect of your business plan."
+          },
+          {
+            question: "What makes your platform different?",
+            answer: "Our AI-powered platform combines speed with professional quality."
+          }
+        ]
       },
       cta: {
-        title: "Ready to Get Started?",
-        description: aidaContent.howItWorks?.valueReinforcement || "Join us today and experience the difference.",
-        buttonText: "Get Started Now"
+        title: "Ready to Transform Your Business Idea?",
+        description: "Join thousands of successful entrepreneurs who've secured funding with our platform.",
+        buttonText: "Start Your Business Plan Now"
       },
-      footerContent: aidaContent.footerContent || {
+      footerContent: {
         contact: "Contact us for support",
-        newsletter: "Subscribe to our newsletter",
+        newsletter: "Subscribe to our newsletter for business planning tips",
         copyright: `© ${new Date().getFullYear()} All rights reserved.`
-      },
-      layout: {
-        style: "modern",
-        colorScheme: "light"
       }
     };
+
+    console.log("Final generated content:", generatedContent);
 
     return new Response(
       JSON.stringify(generatedContent),
