@@ -1,4 +1,3 @@
-
 import { BusinessIdea, TargetAudience, AdHook } from "@/types/adWizard";
 import { TabsContent } from "@/components/ui/tabs";
 import LoadingState from "./complete/LoadingState";
@@ -10,7 +9,6 @@ import { useAdGeneration } from "./gallery/useAdGeneration";
 import AdGenerationControls from "./gallery/AdGenerationControls";
 import { useEffect, useState } from "react";
 import { AdSizeSelector, AD_FORMATS } from "./gallery/components/AdSizeSelector";
-import { useNavigate, useBeforeUnload } from "react-router-dom";
 
 interface AdGalleryStepProps {
   businessIdea: BusinessIdea;
@@ -32,11 +30,13 @@ const AdGalleryStep = ({
   videoAdsEnabled = false,
 }: AdGalleryStepProps) => {
   const [selectedFormat, setSelectedFormat] = useState(AD_FORMATS[0]);
-  const [showNavigationDialog, setShowNavigationDialog] = useState(false);
-  const navigate = useNavigate();
   const {
     platform,
+    showPlatformChangeDialog,
     handlePlatformChange,
+    confirmPlatformChange,
+    cancelPlatformChange,
+    setShowPlatformChangeDialog
   } = usePlatformSwitch();
 
   const {
@@ -52,22 +52,22 @@ const AdGalleryStep = ({
     }
   }, [videoAdsEnabled]);
 
-  // Add navigation interception
-  useEffect(() => {
-    const handleBeforeNavigate = (e: BeforeUnloadEvent) => {
-      if (adVariants.length > 0) {
-        e.preventDefault();
-        e.returnValue = '';
-      }
-    };
-
-    window.addEventListener('beforeunload', handleBeforeNavigate);
-    return () => window.removeEventListener('beforeunload', handleBeforeNavigate);
-  }, [adVariants]);
-
   const onPlatformChange = (newPlatform: "facebook" | "google" | "linkedin" | "tiktok") => {
-    const platform = handlePlatformChange(newPlatform);
-    generateAds(platform);
+    handlePlatformChange(newPlatform, adVariants.length > 0);
+  };
+
+  const onConfirmPlatformChange = () => {
+    const newPlatform = confirmPlatformChange();
+    generateAds(newPlatform);
+  };
+
+  const onCancelPlatformChange = () => {
+    const currentPlatform = cancelPlatformChange();
+    // Force update the PlatformTabs to stay on the current platform
+    const tabsElement = document.querySelector(`[data-state="active"][value="${currentPlatform}"]`);
+    if (tabsElement) {
+      (tabsElement as HTMLElement).click();
+    }
   };
 
   const handleFormatChange = (format: typeof AD_FORMATS[0]) => {
@@ -117,15 +117,10 @@ const AdGalleryStep = ({
       )}
 
       <PlatformChangeDialog
-        open={showNavigationDialog}
-        onOpenChange={setShowNavigationDialog}
-        onConfirm={() => {
-          setShowNavigationDialog(false);
-          navigate('/');
-        }}
-        onCancel={() => {
-          setShowNavigationDialog(false);
-        }}
+        open={showPlatformChangeDialog}
+        onOpenChange={setShowPlatformChangeDialog}
+        onConfirm={onConfirmPlatformChange}
+        onCancel={onCancelPlatformChange}
       />
     </div>
   );
