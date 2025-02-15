@@ -50,9 +50,9 @@ const ProjectCardActions = ({
 
     try {
       // Get the project data first
-      const { data: project, error: projectError } = await supabase
+      const { data: projectData, error: projectError } = await supabase
         .from('projects')
-        .select('business_idea, target_audience, audience_analysis, title')
+        .select('*')
         .eq('id', projectId)
         .single();
 
@@ -68,38 +68,40 @@ const ProjectCardActions = ({
 
       const savedImages = adFeedback?.saved_images || [];
 
-      // Get existing landing page data
-      const { data: existingLandingPage } = await supabase
-        .from('landing_pages')
-        .select('id')
-        .eq('project_id', projectId)
-        .maybeSingle();
+      console.log("Calling generate-landing-page function with data:", {
+        businessIdea: projectData.business_idea,
+        targetAudience: projectData.target_audience,
+        audienceAnalysis: projectData.audience_analysis,
+        marketingCampaign: projectData.marketing_campaign,
+        projectImages: savedImages
+      });
 
       // Call the edge function to generate landing page content
       const { data: generatedContent, error } = await supabase.functions
         .invoke('generate-landing-page', {
           body: {
-            businessIdea: project.business_idea,
-            targetAudience: project.target_audience,
-            audienceAnalysis: project.audience_analysis,
-            projectImages: savedImages,
-            isNewLayout: true // Signal for enhanced content generation
+            businessIdea: projectData.business_idea,
+            targetAudience: projectData.target_audience,
+            audienceAnalysis: projectData.audience_analysis,
+            marketingCampaign: projectData.marketing_campaign,
+            projectImages: savedImages
           },
         });
 
       if (error) throw error;
+      
+      console.log("Generated content:", generatedContent);
 
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error("No authenticated user found");
 
       // Save the generated content to the landing_pages table
-      const { data: landingPage, error: saveError } = await supabase
+      const { data: updatedLandingPage, error: saveError } = await supabase
         .from('landing_pages')
         .upsert({
-          ...(existingLandingPage?.id ? { id: existingLandingPage.id } : {}),
           project_id: projectId,
           user_id: userData.user.id,
-          title: `${project.title} Landing Page`,
+          title: projectData.title || "Landing Page",
           content: generatedContent,
           image_placements: generatedContent.imagePlacements,
           layout_style: generatedContent.layout,
@@ -118,26 +120,35 @@ const ProjectCardActions = ({
             "contact_form",
             "newsletter"
           ],
-          published: false
+          published: false,
+          how_it_works: generatedContent.howItWorks,
+          market_analysis: generatedContent.marketAnalysis,
+          objections: generatedContent.objections,
+          faq: generatedContent.faq,
+          footer_content: generatedContent.footerContent
         })
         .select()
         .single();
 
       if (saveError) throw saveError;
 
-      // Show success message
+      // Invalidate the landing page query to trigger a refetch
+      await queryClient.invalidateQueries({
+        queryKey: ["landing-page", projectId]
+      });
+
       toast({
         title: "Success",
-        description: "Your landing page has been generated successfully!",
+        description: "Landing page content generated successfully!",
       });
 
       // Navigate to the landing page editor
       navigate(`/projects/${projectId}/landing-page`);
     } catch (error) {
-      console.error('Error creating landing page:', error);
+      console.error('Error generating landing page:', error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to create landing page",
+        description: error instanceof Error ? error.message : "Failed to generate landing page content",
         variant: "destructive",
       });
     }
