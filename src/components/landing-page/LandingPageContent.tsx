@@ -27,7 +27,11 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
   // Fetch the default template
   const { data: template, isLoading: isTemplateLoading } = useLandingPageTemplate();
   
+  // Use landingPage.content or generate initial content
   const content = landingPage?.content || generateInitialContent(project);
+  
+  // Get the current layout from landingPage or template default
+  const currentLayout = landingPage?.layout_style || (template?.structure?.sections || {});
 
   const generateLandingPageContent = async () => {
     setIsGenerating(true);
@@ -74,7 +78,7 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
       if (!userData.user) throw new Error("No authenticated user found");
 
       // Save the generated content to the landing_pages table
-      const { error: saveError } = await supabase
+      const { data: updatedLandingPage, error: saveError } = await supabase
         .from('landing_pages')
         .upsert({
           id: landingPage?.id, // Include existing ID if updating
@@ -99,7 +103,9 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
             "contact_form",
             "newsletter"
           ]
-        });
+        })
+        .select()
+        .single();
 
       if (saveError) throw saveError;
 
@@ -149,7 +155,7 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
             <div className="space-y-12">
               <HeroSection 
                 content={content.hero}
-                layout={template.structure.sections.hero.layout}
+                layout={currentLayout?.hero?.layout || template.structure.sections.hero.layout}
                 className={template.structure.styles.spacing.sectionPadding}
               />
               <ValuePropositionSection
