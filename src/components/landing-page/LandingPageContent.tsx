@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -47,10 +48,10 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
     });
 
     try {
-      // Get the project data first
+      // Use all available project data
       const { data: projectData, error: projectError } = await supabase
         .from('projects')
-        .select('business_idea, target_audience, audience_analysis, title')
+        .select('*')
         .eq('id', project.id)
         .single();
 
@@ -70,6 +71,7 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
         businessIdea: projectData.business_idea,
         targetAudience: projectData.target_audience,
         audienceAnalysis: projectData.audience_analysis,
+        marketingCampaign: projectData.marketing_campaign,
         projectImages: savedImages
       });
 
@@ -80,6 +82,7 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
             businessIdea: projectData.business_idea,
             targetAudience: projectData.target_audience,
             audienceAnalysis: projectData.audience_analysis,
+            marketingCampaign: projectData.marketing_campaign,
             projectImages: savedImages
           },
         });
@@ -95,8 +98,8 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
       const { data: updatedLandingPage, error: saveError } = await supabase
         .from('landing_pages')
         .upsert({
-          id: landingPage?.id, // Include existing ID if updating
-          title: projectData.title || "Landing Page", // Add required title field
+          id: landingPage?.id,
+          title: projectData.title || "Landing Page",
           project_id: project.id,
           user_id: userData.user.id,
           content: generatedContent,
