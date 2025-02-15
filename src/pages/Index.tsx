@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { ArrowRight, CheckCircle, MessageCircle, BadgeCheck, Target, ArrowRight as ArrowRightIcon, Lightbulb, PieChart, DollarSign, Users, BarChart } from "lucide-react";
+import { ArrowRight, CheckCircle, MessageCircle, BadgeCheck, Target, ArrowRight as ArrowRightIcon, Lightbulb, PieChart, DollarSign, Users, BarChart, Rocket, Globe } from "lucide-react";
 import { TextCycler } from "@/components/TextCycler";
 import LandingNav from "@/components/LandingNav";
 
@@ -266,6 +266,42 @@ const Index = () => {
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Landing Page Generator Section */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div className="space-y-6">
+              <h2 className="text-3xl font-bold mb-4">
+                Generate Landing Pages with One Click
+              </h2>
+              <div className="space-y-4">
+                <div className="flex items-start gap-3">
+                  <Rocket className="h-6 w-6 text-primary flex-shrink-0 mt-1" />
+                  <div>
+                    <h3 className="font-semibold mb-1">Instant Page Generation</h3>
+                    <p className="text-muted-foreground">Create professional landing pages in seconds with AI-powered content and design.</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Globe className="h-6 w-6 text-primary flex-shrink-0 mt-1" />
+                  <div>
+                    <h3 className="font-semibold mb-1">Conversion Optimized</h3>
+                    <p className="text-muted-foreground">Every page is built with proven conversion principles and best practices.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="relative rounded-lg overflow-hidden shadow-xl">
+              <img
+                src="/lovable-uploads/a05c52ef-e7a9-4c52-963d-41069902f12f.png"
+                alt="Landing Page Generator Interface showing template options"
+                className="w-full h-auto"
+              />
             </div>
           </div>
         </div>
