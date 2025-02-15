@@ -64,16 +64,34 @@ serve(async (req) => {
       throw new Error("API key configuration is missing");
     }
 
-    // Updated Deepseek API configuration
-    const openai = new OpenAI({
-      apiKey,
-      baseURL: "https://api.deepseek.com/v1",
-      defaultQuery: { api_key: apiKey },
-      defaultHeaders: {
-        "Authorization": `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
+    // Direct fetch to DeepSeek API for better control
+    async function createDeepSeekCompletion(messages) {
+      const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'deepseek-chat',
+          messages,
+          response_format: { type: "json_object" },
+          temperature: 0.7,
+        }),
+      });
+
+      if (!response.ok) {
+        const text = await response.text();
+        console.error('DeepSeek API Error:', {
+          status: response.status,
+          statusText: response.statusText,
+          body: text
+        });
+        throw new Error(`DeepSeek API error: ${response.status} ${response.statusText} - ${text}`);
       }
-    });
+
+      return response.json();
+    }
 
     // Generate main content following AIDA framework
     const contentPrompt = `Create a landing page content for ${businessIdea.description || businessIdea.name}. 
@@ -139,26 +157,21 @@ Follow these rules:
 
     let aidaContent;
     try {
-      const completion = await openai.chat.completions.create({
-        model: "deepseek-chat",
-        messages: [
-          {
-            role: "system",
-            content: "You are an expert landing page copywriter. Create compelling content following the AIDA framework. Return only valid JSON matching the exact structure specified."
-          },
-          {
-            role: "user",
-            content: contentPrompt
-          }
-        ],
-        response_format: { type: "json_object" },
-        temperature: 0.7
-      });
+      const completion = await createDeepSeekCompletion([
+        {
+          role: "system",
+          content: "You are an expert landing page copywriter. Create compelling content following the AIDA framework. Return only valid JSON matching the exact structure specified."
+        },
+        {
+          role: "user",
+          content: contentPrompt
+        }
+      ]);
 
-      console.log("Raw OpenAI response:", completion);
+      console.log("Raw DeepSeek response:", completion);
       
       if (!completion.choices?.[0]?.message?.content) {
-        throw new Error("Invalid response format from OpenAI");
+        throw new Error("Invalid response format from DeepSeek");
       }
 
       aidaContent = JSON.parse(completion.choices[0].message.content);
@@ -187,21 +200,16 @@ Return JSON with exact structure:
   "subtitle": string
 }`;
 
-      const heroCompletion = await openai.chat.completions.create({
-        model: "deepseek-chat",
-        messages: [
-          {
-            role: "system",
-            content: "You are an expert copywriter. Return only valid JSON with the exact structure specified."
-          },
-          {
-            role: "user",
-            content: heroPrompt
-          }
-        ],
-        response_format: { type: "json_object" },
-        temperature: 0.7
-      });
+      const heroCompletion = await createDeepSeekCompletion([
+        {
+          role: "system",
+          content: "You are an expert copywriter. Return only valid JSON with the exact structure specified."
+        },
+        {
+          role: "user",
+          content: heroPrompt
+        }
+      ]);
 
       heroContent = JSON.parse(heroCompletion.choices[0].message.content);
       console.log("Generated hero content:", heroContent);
