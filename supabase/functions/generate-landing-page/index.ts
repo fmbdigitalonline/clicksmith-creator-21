@@ -129,7 +129,7 @@ serve(async (req) => {
     Input Data:
     ${JSON.stringify({ businessIdea, targetAudience, audienceAnalysis }, null, 2)}
     
-    Generate a JSON object with these exact sections while maintaining the specified mood and visual style:
+    Generate a JSON object matching our landing page component structure exactly:
     
     {
       "hero": {
@@ -138,8 +138,12 @@ serve(async (req) => {
         "cta": string
       },
       "howItWorks": {
+        "subheadline": string,
         "steps": [
-          { "title": string, "description": string }
+          {
+            "title": string,
+            "description": string
+          }
         ],
         "valueReinforcement": string
       },
@@ -147,47 +151,97 @@ serve(async (req) => {
         "context": string,
         "solution": string,
         "painPoints": [
-          { "title": string, "description": string }
+          {
+            "title": string,
+            "description": string
+          }
         ],
         "features": [
-          { "title": string, "description": string }
-        ]
+          {
+            "title": string,
+            "description": string
+          }
+        ],
+        "socialProof": {
+          "quote": string,
+          "author": string,
+          "title": string
+        }
       },
       "valueProposition": {
         "title": string,
         "cards": [
-          { "title": string, "description": string }
+          {
+            "title": string,
+            "description": string,
+            "icon": string
+          }
         ]
       },
       "features": {
+        "title": string,
         "description": string,
         "items": [
-          { "title": string, "description": string }
+          {
+            "title": string,
+            "description": string,
+            "icon": string
+          }
         ]
       },
       "testimonials": {
+        "title": string,
         "items": [
-          { "quote": string, "author": string, "role": string }
+          {
+            "quote": string,
+            "author": string,
+            "role": string
+          }
         ]
       },
       "objections": {
         "subheadline": string,
         "concerns": [
-          { "question": string, "answer": string }
+          {
+            "question": string,
+            "answer": string
+          }
+        ]
+      },
+      "faq": {
+        "subheadline": string,
+        "questions": [
+          {
+            "question": string,
+            "answer": string
+          }
         ]
       },
       "cta": {
         "title": string,
         "description": string,
         "buttonText": string
+      },
+      "footerContent": {
+        "contact": string,
+        "newsletter": string,
+        "copyright": string
       }
     }
     
+    Make sure to:
+    1. Use persuasive, engaging copy that resonates with the target audience
+    2. Keep the content consistent with the theme and mood
+    3. Address key pain points and value propositions
+    4. Use natural, conversational language
+    5. Ensure all steps and features are relevant to the business
+    6. Create realistic but compelling testimonials and social proof
+    
     IMPORTANT: Return ONLY valid JSON with these exact fields and nothing else. No markdown, no backticks.`;
 
-    let aidaContent;
+    let landingContent;
     try {
-      aidaContent = await fetch('https://api.deepseek.com/v1/chat/completions', {
+      landingContent = await fetch('https://api.deepseek.com/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${apiKey}`,
@@ -198,7 +252,7 @@ serve(async (req) => {
           messages: [
             {
               role: "system",
-              content: "You are an expert landing page copywriter. Create compelling content following the AIDA framework while maintaining the specified mood and visual style."
+              content: "You are an expert landing page copywriter specializing in creating compelling, conversion-focused content that matches exact component structures."
             },
             {
               role: "user",
@@ -211,9 +265,9 @@ serve(async (req) => {
       }).then(res => res.json())
       .then(data => JSON.parse(data.choices[0].message.content));
       
-      console.log("Generated AIDA content:", aidaContent);
+      console.log("Generated landing content:", landingContent);
     } catch (error) {
-      console.error("Error generating AIDA content:", error);
+      console.error("Error generating landing content:", error);
       throw new Error("Failed to generate landing page content: " + error.message);
     }
 
@@ -225,7 +279,7 @@ serve(async (req) => {
         auth: Deno.env.get('REPLICATE_API_KEY'),
       });
 
-      const imagePrompt = `Create a strictly photorealistic commercial photograph that reflects this mood: ${theme.mood}. The image must be indistinguishable from a professional DSLR camera shot, with absolutely no artistic or illustrated elements. ${aidaContent.hero.title}. ${aidaContent.hero.description}. Style: ${theme.visualStyle}. Critical requirements: crystal clear focus, natural lighting, realistic shadows, professional studio quality, commercial photography standards.`;
+      const imagePrompt = `Create a strictly photorealistic commercial photograph that reflects this mood: ${theme.mood}. The image must be indistinguishable from a professional DSLR camera shot, with absolutely no artistic or illustrated elements. ${landingContent.hero.title}. ${landingContent.hero.description}. Style: ${theme.visualStyle}. Critical requirements: crystal clear focus, natural lighting, realistic shadows, professional studio quality, commercial photography standards.`;
       
       console.log("Image generation prompt:", imagePrompt);
 
@@ -258,9 +312,9 @@ serve(async (req) => {
 
     // Combine all content with theme
     const generatedContent = {
-      ...aidaContent,
+      ...landingContent,
       hero: {
-        ...aidaContent.hero,
+        ...landingContent.hero,
         image: heroImage
       },
       theme,
