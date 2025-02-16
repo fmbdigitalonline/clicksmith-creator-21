@@ -14,7 +14,7 @@ interface SavedAd {
   rating: number;
   feedback: string;
   created_at: string;
-  imageUrl?: string;
+  imageurl?: string;
   platform?: string;
   size?: {
     width: number;
@@ -31,7 +31,7 @@ interface AdFeedbackRow {
   rating: number;
   feedback: string;
   created_at: string;
-  imageUrl?: string;
+  imageurl?: string;
   platform?: string;
   size?: Json;
 }
@@ -102,7 +102,7 @@ export const SavedAdsGallery = () => {
           id={ad.id}
           primaryText={ad.primary_text}
           headline={ad.headline}
-          imageUrl={ad.imageUrl || ad.saved_images[0]}
+          imageUrl={ad.imageurl || ad.saved_images[0]}
           onFeedbackSubmit={fetchSavedAds}
         />
       ))}
