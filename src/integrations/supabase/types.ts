@@ -18,6 +18,7 @@ export type Database = {
           headline: string | null
           id: string
           imageurl: string | null
+          imageUrl: string | null
           platform: string | null
           primary_text: string | null
           project_data: Json | null
@@ -36,6 +37,7 @@ export type Database = {
           headline?: string | null
           id?: string
           imageurl?: string | null
+          imageUrl?: string | null
           platform?: string | null
           primary_text?: string | null
           project_data?: Json | null
@@ -54,6 +56,7 @@ export type Database = {
           headline?: string | null
           id?: string
           imageurl?: string | null
+          imageUrl?: string | null
           platform?: string | null
           primary_text?: string | null
           project_data?: Json | null

@@ -15,7 +15,8 @@ interface SavedAd {
   rating: number;
   feedback: string;
   created_at: string;
-  imageurl?: string;  // Note: lowercase to match database column
+  imageurl?: string;  // Keep lowercase for database compatibility
+  imageUrl?: string;  // Add camelCase version
   platform?: string;
   size?: {
     width: number;
@@ -32,7 +33,8 @@ interface AdFeedbackRow {
   rating: number;
   feedback: string;
   created_at: string;
-  imageurl?: string;  // Note: lowercase to match database column
+  imageurl?: string;  // Keep lowercase for database compatibility
+  imageUrl?: string;  // Add camelCase version
   platform?: string;
   size?: Json;
 }
@@ -52,7 +54,7 @@ export const SavedAdsGallery = () => {
 
       const { data, error } = await supabase
         .from('ad_feedback')
-        .select('id, saved_images, headline, primary_text, rating, feedback, created_at, imageurl, platform, size')
+        .select('id, saved_images, headline, primary_text, rating, feedback, created_at, imageurl, imageUrl, platform, size')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
@@ -109,7 +111,7 @@ export const SavedAdsGallery = () => {
           id={ad.id}
           primaryText={ad.primary_text}
           headline={ad.headline}
-          imageUrl={ad.imageurl || ad.saved_images[0]}
+          imageUrl={ad.imageUrl || ad.imageurl || ad.saved_images[0]}
           onFeedbackSubmit={fetchSavedAds}
         />
       ))}
