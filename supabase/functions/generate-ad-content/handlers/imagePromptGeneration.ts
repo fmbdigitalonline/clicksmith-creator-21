@@ -17,8 +17,7 @@ const safeJSONParse = (str: string) => {
 
 const AD_FORMATS = [
   { width: 1200, height: 628, label: "Landscape (1.91:1)" },
-  { width: 1080, height: 1080, label: "Square (1:1)" },
-  { width: 1080, height: 1920, label: "Story (9:16)" }
+  { width: 1080, height: 1080, label: "Square (1:1)" }
 ];
 
 export async function generateImagePrompts(
@@ -29,6 +28,12 @@ export async function generateImagePrompts(
   const audiencePainPoints = targetAudience.painPoints || [];
   const deepPainPoints = targetAudience.audienceAnalysis?.deepPainPoints || [];
   const allPainPoints = [...new Set([...audiencePainPoints, ...deepPainPoints])];
+
+  console.log('Starting image generation process with:', {
+    businessName: businessIdea.description,
+    audienceSize: allPainPoints.length,
+    campaignPresent: !!campaign
+  });
 
   const prompt = `Generate creative image prompt for marketing visual based on this business and target audience:
 
@@ -64,12 +69,7 @@ Return ONLY a valid JSON array with exactly 3 items in this format:
 ]`;
 
   try {
-    console.log('Generating image prompts with:', { 
-      businessIdea, 
-      targetAudience, 
-      campaign,
-      combinedPainPoints: allPainPoints 
-    });
+    console.log('Requesting prompts from OpenAI...');
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -94,42 +94,60 @@ Return ONLY a valid JSON array with exactly 3 items in this format:
     }
 
     const data = await response.json();
-    console.log('OpenAI response:', data);
+    console.log('OpenAI response received:', {
+      status: response.status,
+      promptCount: data.choices?.[0]?.message?.content ? 'present' : 'missing'
+    });
 
     if (!data.choices?.[0]?.message?.content) {
       throw new Error('Invalid response format from OpenAI');
     }
 
     const generatedPrompts = safeJSONParse(data.choices[0].message.content);
-    console.log('Generated prompts:', generatedPrompts);
+    console.log('Successfully parsed prompts:', {
+      count: generatedPrompts.length,
+      prompts: generatedPrompts.map((p: any) => p.prompt.substring(0, 50) + '...')
+    });
 
     if (!Array.isArray(generatedPrompts) || generatedPrompts.length !== 3) {
       throw new Error('Invalid prompts format: Expected array with exactly 3 items');
     }
 
     // Generate three different high-quality master images
-    console.log('Generating master images...');
-    const masterImagePromises = generatedPrompts.map(promptData => 
-      generateWithReplicate(promptData.prompt, {
+    console.log('Starting master images generation...');
+    const masterImagePromises = generatedPrompts.map((promptData, index) => {
+      console.log(`Generating image ${index + 1}/3 with prompt: ${promptData.prompt.substring(0, 50)}...`);
+      return generateWithReplicate(promptData.prompt, {
         width: 1200,
         height: 1200,
-      })
-    );
+      });
+    });
 
     const masterImageUrls = await Promise.all(masterImagePromises);
+    console.log('Master images generated successfully:', {
+      count: masterImageUrls.length,
+      urls: masterImageUrls.map(url => url.split('/').pop())
+    });
 
     // Create array of images with different sizes for each master image
-    const images = masterImageUrls.flatMap((imageUrl, index) => 
-      AD_FORMATS.map((format) => ({
+    const images = masterImageUrls.flatMap((imageUrl, index) => {
+      console.log(`Creating format variations for image ${index + 1}...`);
+      return AD_FORMATS.map((format) => ({
         url: imageUrl,
         prompt: generatedPrompts[index].prompt,
         width: format.width,
         height: format.height,
-        label: format.label
-      }))
-    );
+        label: format.label,
+        imageSet: index + 1 // Add this to help track which image set this belongs to
+      }));
+    });
 
-    console.log('Successfully generated images:', images);
+    console.log('Successfully generated all image variations:', {
+      totalVariations: images.length,
+      uniqueImages: new Set(images.map(img => img.url)).size,
+      formatTypes: AD_FORMATS.map(f => f.label)
+    });
+
     return { images };
 
   } catch (error) {
