@@ -83,9 +83,7 @@ serve(async (req) => {
       "visualStyle": string (describe the visual style approach)
     }
     
-    Consider the business type, target audience preferences, and overall brand personality. Be creative but ensure the theme is professional and appropriate for the business context.
-    
-    IMPORTANT: Return ONLY valid JSON matching this exact structure. No markdown, no explanation.`;
+    Consider the business type, target audience preferences, and overall brand personality. Be creative but ensure the theme is professional and appropriate for the business context.`;
 
     console.log("Generating theme with prompt:", themePrompt);
 
@@ -123,19 +121,21 @@ serve(async (req) => {
     console.log("Generated theme:", theme);
 
     // Now generate the content with the theme in mind
-    const contentPrompt = `Create a landing page content for ${businessIdea.description || businessIdea.name} that reflects this visual theme and mood:
-    ${JSON.stringify(theme, null, 2)}
+    const contentPrompt = `Create a comprehensive, professional landing page content for this business:
     
-    Input Data:
+    Business Information:
     ${JSON.stringify({ businessIdea, targetAudience, audienceAnalysis }, null, 2)}
     
-    Generate a JSON object matching our landing page component structure exactly:
+    Theme/Style Guide:
+    ${JSON.stringify(theme, null, 2)}
+    
+    Generate content for EVERY section of a professional landing page. Return a complete JSON object with these EXACT sections:
     
     {
       "hero": {
-        "title": string,
-        "description": string,
-        "cta": string
+        "title": string (compelling headline),
+        "description": string (engaging subheadline),
+        "cta": string (primary call-to-action)
       },
       "howItWorks": {
         "subheadline": string,
@@ -144,24 +144,24 @@ serve(async (req) => {
             "title": string,
             "description": string
           }
-        ],
+        ] (exactly 3-4 clear steps),
         "valueReinforcement": string
       },
       "marketAnalysis": {
-        "context": string,
-        "solution": string,
+        "context": string (market overview),
+        "solution": string (your solution),
         "painPoints": [
           {
             "title": string,
             "description": string
           }
-        ],
+        ] (3-4 key pain points),
         "features": [
           {
             "title": string,
             "description": string
           }
-        ],
+        ] (3-4 key features),
         "socialProof": {
           "quote": string,
           "author": string,
@@ -174,9 +174,9 @@ serve(async (req) => {
           {
             "title": string,
             "description": string,
-            "icon": string
+            "icon": string (emoji)
           }
-        ]
+        ] (3-4 unique value props)
       },
       "features": {
         "title": string,
@@ -185,9 +185,9 @@ serve(async (req) => {
           {
             "title": string,
             "description": string,
-            "icon": string
+            "icon": string (emoji)
           }
-        ]
+        ] (4-6 key features)
       },
       "testimonials": {
         "title": string,
@@ -197,7 +197,7 @@ serve(async (req) => {
             "author": string,
             "role": string
           }
-        ]
+        ] (2-3 testimonials)
       },
       "objections": {
         "subheadline": string,
@@ -206,7 +206,7 @@ serve(async (req) => {
             "question": string,
             "answer": string
           }
-        ]
+        ] (3-4 common objections)
       },
       "faq": {
         "subheadline": string,
@@ -215,7 +215,7 @@ serve(async (req) => {
             "question": string,
             "answer": string
           }
-        ]
+        ] (4-6 common questions)
       },
       "cta": {
         "title": string,
@@ -229,15 +229,16 @@ serve(async (req) => {
       }
     }
     
-    Make sure to:
-    1. Use persuasive, engaging copy that resonates with the target audience
-    2. Keep the content consistent with the theme and mood
-    3. Address key pain points and value propositions
-    4. Use natural, conversational language
-    5. Ensure all steps and features are relevant to the business
-    6. Create realistic but compelling testimonials and social proof
+    Guidelines:
+    1. Make content highly specific to the business and target audience
+    2. Use persuasive, benefit-focused language
+    3. Keep tone consistent with theme mood
+    4. Include social proof and credibility elements
+    5. Address key pain points and objections
+    6. Maintain professional, polished language
+    7. Ensure clear value proposition throughout
     
-    IMPORTANT: Return ONLY valid JSON with these exact fields and nothing else. No markdown, no backticks.`;
+    Return ONLY valid JSON matching this exact structure. No markdown, no explanation.`;
 
     let landingContent;
     try {
