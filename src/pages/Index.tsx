@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { ArrowRight, CheckCircle, MessageCircle, BadgeCheck, Target, ArrowRight as ArrowRightIcon, Lightbulb, PieChart, DollarSign, Users, BarChart, Rocket, Globe } from "lucide-react";
@@ -148,7 +149,7 @@ const Index = () => {
                 Turn your vision into reality with AI-powered market validation that analyzes, tests, and optimizes your business concept. Get comprehensive insights and actionable data in minutes, not months. Start validating your ideas today with zero risk.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-                <Button size="lg" asChild>
+                <Button size="lg" className="rounded-none" asChild>
                   <Link to="/login">
                     Start Now for Free
                     <ArrowRight className="ml-2 h-5 w-5" />
@@ -156,7 +157,7 @@ const Index = () => {
                 </Button>
               </div>
             </div>
-            <div className="relative rounded-lg overflow-hidden shadow-xl">
+            <div className="relative overflow-hidden shadow-xl">
               <img
                 src="/lovable-uploads/7d22e5cf-12ef-4501-a1b9-3903165b75d6.png"
                 alt="Person overlooking a digital landscape from mountain top"
@@ -171,7 +172,7 @@ const Index = () => {
       <section className="py-16 px-4 sm:px-6 lg:px-8 bg-accent/5">
         <div className="max-w-5xl mx-auto text-center">
           <h2 className="text-3xl font-bold mb-8">See How It Works</h2>
-          <div className="aspect-video bg-black/5 rounded-lg overflow-hidden mb-8">
+          <div className="aspect-video bg-black/5 overflow-hidden mb-8">
             <iframe 
               className="w-full h-full"
               src="https://www.youtube.com/embed/placeholder"
@@ -197,7 +198,7 @@ const Index = () => {
           </p>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div className="space-y-6">
-              <div className="bg-accent/5 p-6 rounded-lg">
+              <div className="bg-accent/5 p-6">
                 <h3 className="font-semibold text-xl mb-4 flex items-center gap-2">
                   <Target className="h-6 w-6 text-primary" />
                   ICP Generation Dashboard
@@ -206,7 +207,7 @@ const Index = () => {
                   Get detailed insights about your ideal customer profile, including demographics, behaviors, and preferences.
                 </p>
               </div>
-              <div className="bg-accent/5 p-6 rounded-lg">
+              <div className="bg-accent/5 p-6">
                 <h3 className="font-semibold text-xl mb-4 flex items-center gap-2">
                   <BarChart className="h-6 w-6 text-primary" />
                   Deep Audience Analysis
@@ -216,7 +217,7 @@ const Index = () => {
                 </p>
               </div>
             </div>
-            <div className="relative rounded-lg overflow-hidden shadow-xl">
+            <div className="relative overflow-hidden shadow-xl">
               <img
                 src="/lovable-uploads/a05c52ef-e7a9-4c52-963d-41069902f12f.png"
                 alt="ICP Generation Dashboard showing audience personas"
@@ -231,7 +232,7 @@ const Index = () => {
       <section className="py-16 px-4 sm:px-6 lg:px-8 bg-accent/5">
         <div className="max-w-6xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div className="relative rounded-lg overflow-hidden shadow-xl order-2 lg:order-1">
+            <div className="relative overflow-hidden shadow-xl order-2 lg:order-1">
               <img
                 src="/lovable-uploads/0dfd5554-ef5c-4b3f-bd7d-d72195f31b6e.png"
                 alt="Ad Creation Interface showing Facebook ad examples"
@@ -288,7 +289,7 @@ const Index = () => {
                 </div>
               </div>
             </div>
-            <div className="relative rounded-lg overflow-hidden shadow-xl">
+            <div className="relative overflow-hidden shadow-xl">
               <img
                 src="/lovable-uploads/1bd7e22a-2b37-4b31-a4c1-86bcf2109049.png"
                 alt="Landing Page Generator Interface showing business plan generation"
@@ -313,9 +314,9 @@ const Index = () => {
                     <ArrowRight className="h-8 w-8 text-primary/30" />
                   </div>
                 )}
-                <div className="bg-accent/5 rounded-lg p-8 h-full">
+                <div className="bg-accent/5 p-8 h-full">
                   <div className="flex items-start gap-4">
-                    <div className="flex-shrink-0 w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xl">
+                    <div className="flex-shrink-0 w-12 h-12 bg-primary/10 text-primary flex items-center justify-center font-bold text-xl">
                       {index + 1}
                     </div>
                     <div>
@@ -345,7 +346,7 @@ const Index = () => {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {features.map((feature, index) => (
-              <div key={feature.title} className="group bg-background rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow">
+              <div key={feature.title} className="group bg-background shadow-sm overflow-hidden hover:shadow-md transition-shadow">
                 <div className="aspect-video bg-primary/5 flex items-center justify-center p-8">
                   <feature.icon className="h-16 w-16 text-primary group-hover:scale-110 transition-transform" />
                 </div>
@@ -370,8 +371,8 @@ const Index = () => {
           </p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {painPoints.map((point) => (
-              <div key={point.title} className="bg-accent/5 rounded-lg p-6 flex flex-col items-center text-center">
-                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-6">
+              <div key={point.title} className="bg-accent/5 p-6 flex flex-col items-center text-center">
+                <div className="w-16 h-16 bg-primary/10 flex items-center justify-center mb-6">
                   <point.icon className="h-8 w-8 text-primary" />
                 </div>
                 <h3 className="font-semibold text-xl mb-4">{point.title}</h3>
@@ -390,9 +391,9 @@ const Index = () => {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {testimonials.map((testimonial) => (
-              <div key={testimonial.author} className="bg-background rounded-lg shadow-sm p-6 relative">
+              <div key={testimonial.author} className="bg-background shadow-sm p-6 relative">
                 <div className="absolute -top-4 left-6">
-                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                  <div className="w-8 h-8 bg-primary/10 flex items-center justify-center">
                     <MessageCircle className="h-4 w-4 text-primary" />
                   </div>
                 </div>
@@ -400,7 +401,7 @@ const Index = () => {
                   "{testimonial.quote}"
                 </blockquote>
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                  <div className="w-12 h-12 bg-primary/10 flex items-center justify-center">
                     <BadgeCheck className="h-6 w-6 text-primary" />
                   </div>
                   <div>
@@ -425,8 +426,8 @@ const Index = () => {
           </p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {concerns.map((concern, index) => (
-              <div key={concern.title} className="bg-accent/5 rounded-lg p-6">
-                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+              <div key={concern.title} className="bg-accent/5 p-6">
+                <div className="w-12 h-12 bg-primary/10 flex items-center justify-center mb-4">
                   <CheckCircle className="h-6 w-6 text-primary" />
                 </div>
                 <h3 className="font-semibold text-xl mb-4">{concern.title}</h3>
@@ -445,9 +446,9 @@ const Index = () => {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {faq.map((item) => (
-              <div key={item.question} className="bg-background rounded-lg shadow-sm p-6">
+              <div key={item.question} className="bg-background shadow-sm p-6">
                 <div className="flex items-start gap-4">
-                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <div className="w-8 h-8 bg-primary/10 flex items-center justify-center flex-shrink-0">
                     <MessageCircle className="h-4 w-4 text-primary" />
                   </div>
                   <div>
@@ -481,7 +482,7 @@ const Index = () => {
               <span className="text-muted-foreground">Instant Access</span>
             </div>
           </div>
-          <Button size="lg" asChild>
+          <Button size="lg" className="rounded-none" asChild>
             <Link to="/login">
               Start Now for Free
               <ArrowRight className="ml-2 h-5 w-5" />
@@ -527,3 +528,4 @@ const Index = () => {
 };
 
 export default Index;
+
