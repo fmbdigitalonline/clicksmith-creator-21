@@ -9,6 +9,7 @@ import {
   Home,
   BookmarkIcon,
   Layout,
+  HelpCircle,
 } from "lucide-react";
 import {
   Sidebar,
@@ -21,7 +22,6 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { Button } from "./ui/button";
-import { useState } from "react";
 
 export function AppSidebar() {
   const location = useLocation();
@@ -48,6 +48,11 @@ export function AppSidebar() {
       title: "Saved Ads",
       icon: BookmarkIcon,
       url: "/saved-ads",
+    },
+    {
+      title: "Help",
+      icon: HelpCircle,
+      url: "/contact",
     },
     {
       title: "Settings",
