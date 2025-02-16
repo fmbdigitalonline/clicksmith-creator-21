@@ -18,6 +18,7 @@ import { SavedAdsGallery } from "@/components/gallery/SavedAdsGallery";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Index from "@/pages/Index";
 import LandingPage from "@/pages/LandingPage";
+import LandingPages from "@/pages/LandingPages";
 
 const queryClient = new QueryClient();
 
@@ -62,6 +63,16 @@ function App() {
                 <ProtectedRoute>
                   <AppLayout>
                     <LandingPage />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/landing-pages"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <LandingPages />
                   </AppLayout>
                 </ProtectedRoute>
               }
