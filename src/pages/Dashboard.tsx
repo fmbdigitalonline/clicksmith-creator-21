@@ -253,9 +253,11 @@ const Dashboard = () => {
                 <MessageSquare className="h-4 w-4 mr-2" />
                 Share Your Feedback
               </Button>
-              <Button variant="link" className="w-full justify-start" href="https://trustpilot.com" target="_blank">
-                <Star className="h-4 w-4 mr-2" />
-                Rate Us on Trustpilot
+              <Button asChild variant="link" className="w-full justify-start">
+                <a href="https://trustpilot.com" target="_blank" rel="noopener noreferrer">
+                  <Star className="h-4 w-4 mr-2" />
+                  Rate Us on Trustpilot
+                </a>
               </Button>
             </CardContent>
           </Card>
