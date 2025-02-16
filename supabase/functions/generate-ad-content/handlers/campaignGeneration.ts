@@ -13,34 +13,14 @@ ${JSON.stringify(targetAudience, null, 2)}
 Create a complete marketing campaign with 6 unique ad versions, each with their own copy and headline but maintaining consistent messaging:
 
 Ad Copy Guidelines:
-Create 6 distinctly different versions while maintaining the core message. Each version must have its own matching headline that reflects its specific approach:
-
-1. "Story version":
-   - Ad Copy: Longer, narrative-focused using pain point one
-   - Headline: Focus on the transformation or journey (max 6 words)
-
-2. "Emotional appeal":
-   - Ad Copy: Personal, emotionally resonant using pain point two
-   - Headline: Emphasize emotional benefit or relief (max 6 words)
-
-3. "AIDA format":
-   - Ad Copy: Attention, Interest, Desire, Action structure using pain point three
-   - Headline: Focus on immediate value or urgency (max 6 words)
-
-4. "Problem-Solution":
-   - Ad Copy: Highlight a specific problem and your solution
-   - Headline: Present the solution benefit (max 6 words)
-
-5. "Benefits-focused":
-   - Ad Copy: Emphasize key benefits and results
-   - Headline: Highlight primary tangible benefit (max 6 words)
-
-6. "Social proof angle":
-   - Ad Copy: Imply or reference customer success
-   - Headline: Focus on proven results/outcomes (max 6 words)
-
-General Guidelines for All Versions:
-- Each version must feel distinctly unique
+- Create 6 distinctly different versions while maintaining the core message:
+  1. "Story version": Longer, narrative-focused using pain point one
+  2. "Emotional appeal": Personal, emotionally resonant using pain point two
+  3. "AIDA format": Attention, Interest, Desire, Action structure using pain point three
+  4. "Problem-Solution": Highlight a specific problem and your solution
+  5. "Benefits-focused": Emphasize key benefits and results
+  6. "Social proof angle": Imply or reference customer success
+- Each version should feel unique while targeting the same audience
 - Must grab attention in first sentence
 - Never use specific names
 - Always address the reader directly using "you" and "your"
@@ -48,15 +28,23 @@ General Guidelines for All Versions:
 - Highlight the product's benefits and positive experiences
 - Keep similar length but vary structure and approach
 
+Headline Guidelines:
+- Create 6 unique headlines (one for each ad version)
+- Maximum 6 words each
+- Each should highlight a different benefit or angle
+- Focus on results and transformation
+- Based on market awareness level
+- Keep the core value proposition consistent
+
 Return ONLY a valid JSON object with these fields:
 {
   "adCopies": [
     {
       "type": "story|emotional|aida|problem-solution|benefits|social-proof",
-      "content": "string",
-      "headline": "string"
+      "content": "string"
     }
-  ]
+  ],
+  "headlines": ["string", "string", "string", "string", "string", "string"]
 }`;
 
   try {
@@ -77,7 +65,7 @@ Return ONLY a valid JSON object with these fields:
         messages: [
           {
             role: 'system',
-            content: 'You are an expert marketing copywriter specializing in creating diverse but cohesive ad campaigns. Create distinctly different versions while maintaining the core message and brand voice. Each ad version must have its own unique theme and matching headline.'
+            content: 'You are an expert marketing copywriter specializing in creating diverse but cohesive ad campaigns. Create distinctly different versions while maintaining the core message and brand voice.'
           },
           { role: 'user', content: prompt }
         ],
@@ -102,14 +90,7 @@ Return ONLY a valid JSON object with these fields:
     const content = data.choices[0].message.content;
     console.log('Content before parsing:', content);
 
-    const rawCampaign = JSON.parse(content);
-    
-    // Transform the response to match the expected format
-    const campaign = {
-      adCopies: rawCampaign.adCopies,
-      headlines: rawCampaign.adCopies.map((ad: any) => ad.headline)
-    };
-    
+    const campaign = JSON.parse(content);
     console.log('Parsed campaign:', campaign);
 
     return { campaign };
