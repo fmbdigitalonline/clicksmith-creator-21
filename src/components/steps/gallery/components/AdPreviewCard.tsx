@@ -11,9 +11,7 @@ import AdDetails from "./AdDetails";
 import DownloadControls from "./DownloadControls";
 import { AdFeedbackControls } from "./AdFeedbackControls";
 import { convertToFormat } from "@/utils/imageUtils";
-import { Pencil, ImagePlus, Check, X } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { Json } from "@/integrations/supabase/types";
+import { Pencil, Image, Check, X } from "lucide-react";
 
 interface AdPreviewCardProps {
   variant: {
@@ -38,14 +36,6 @@ interface AdPreviewCardProps {
   selectedFormat?: { width: number; height: number; label: string };
 }
 
-type GeneratedAdJson = {
-  id: string;
-  headline: string;
-  description: string;
-  imageUrl?: string;
-  [key: string]: Json | undefined;
-};
-
 const AdPreviewCard = ({ 
   variant, 
   adVariants = [],
@@ -56,7 +46,7 @@ const AdPreviewCard = ({
   const [downloadFormat, setDownloadFormat] = useState<"jpg" | "png" | "pdf" | "docx">("jpg");
   const [isSaving, setSaving] = useState(false);
   const [isEditingText, setIsEditingText] = useState(false);
-  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+  const [isSelectingImage, setIsSelectingImage] = useState(false);
   const [editedHeadline, setEditedHeadline] = useState(variant.headline);
   const [editedDescription, setEditedDescription] = useState(variant.description);
   const { toast } = useToast();
@@ -72,42 +62,8 @@ const AdPreviewCard = ({
     return null;
   };
 
-  const handleSaveTextEdits = async () => {
+  const handleSaveTextEdits = () => {
     setIsEditingText(false);
-    variant.headline = editedHeadline;
-    variant.description = editedDescription;
-
-    if (projectId && projectId !== 'new') {
-      try {
-        const { data: project } = await supabase
-          .from('projects')
-          .select('generated_ads')
-          .eq('id', projectId)
-          .single();
-
-        if (project?.generated_ads && Array.isArray(project.generated_ads)) {
-          const generatedAds = project.generated_ads as GeneratedAdJson[];
-          const updatedAds = generatedAds.map((ad) => {
-            if (ad.id === variant.id) {
-              return {
-                ...ad,
-                headline: editedHeadline,
-                description: editedDescription
-              };
-            }
-            return ad;
-          }) as Json[];
-
-          await supabase
-            .from('projects')
-            .update({ generated_ads: updatedAds })
-            .eq('id', projectId);
-        }
-      } catch (error) {
-        console.error('Error updating ad:', error);
-      }
-    }
-
     toast({
       title: "Changes saved",
       description: "Your ad text has been updated.",
@@ -120,67 +76,12 @@ const AdPreviewCard = ({
     setEditedDescription(variant.description);
   };
 
-  const handleGenerateNewImage = async () => {
-    setIsGeneratingImage(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('generate-ad-content', {
-        body: {
-          type: 'images',
-          platform: variant.platform,
-          description: editedDescription,
-          headline: editedHeadline,
-          format: selectedFormat || variant.size
-        }
-      });
-
-      if (error) throw error;
-
-      if (data?.images?.[0]?.url) {
-        variant.imageUrl = data.images[0].url;
-        
-        // Update project if we have a project ID
-        if (projectId && projectId !== 'new') {
-          const { data: project } = await supabase
-            .from('projects')
-            .select('generated_ads')
-            .eq('id', projectId)
-            .single();
-
-          if (project?.generated_ads && Array.isArray(project.generated_ads)) {
-            const generatedAds = project.generated_ads as GeneratedAdJson[];
-            const updatedAds = generatedAds.map((ad) => {
-              if (ad.id === variant.id) {
-                return {
-                  ...ad,
-                  imageUrl: data.images[0].url
-                };
-              }
-              return ad;
-            }) as Json[];
-
-            await supabase
-              .from('projects')
-              .update({ generated_ads: updatedAds })
-              .eq('id', projectId);
-          }
-        }
-
-        toast({
-          title: "New image generated",
-          description: "Your ad image has been updated with a new concept.",
-        });
-      }
-    } catch (error) {
-      console.error('Error generating new image:', error);
-      toast({
-        title: "Error generating image",
-        description: "Failed to generate a new image. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsGeneratingImage(false);
-    }
-  };
+  // Get unique images from all variants
+  const uniqueImages = Array.from(new Set(
+    adVariants
+      .map(v => v.imageUrl || v.image?.url)
+      .filter(Boolean)
+  ));
 
   return (
     <Card className="overflow-hidden">
@@ -243,13 +144,39 @@ const AdPreviewCard = ({
               variant="secondary"
               size="sm"
               className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-              onClick={handleGenerateNewImage}
-              disabled={isGeneratingImage}
+              onClick={() => setIsSelectingImage(!isSelectingImage)}
             >
-              <ImagePlus className="h-4 w-4 mr-1" /> 
-              {isGeneratingImage ? "Generating..." : "Generate New Image"}
+              <Image className="h-4 w-4 mr-1" /> Change Image
             </Button>
           </div>
+
+          {/* Image Selection Dropdown */}
+          {isSelectingImage && uniqueImages.length > 0 && (
+            <div className="absolute top-2 right-2 bg-white rounded-lg shadow-lg p-2 z-10">
+              <div className="grid grid-cols-2 gap-2">
+                {uniqueImages.map((imageUrl, idx) => (
+                  <button
+                    key={idx}
+                    className="w-20 h-20 rounded overflow-hidden border-2 hover:border-primary transition-colors"
+                    onClick={() => {
+                      variant.imageUrl = imageUrl;
+                      setIsSelectingImage(false);
+                      toast({
+                        title: "Image updated",
+                        description: "Your ad image has been changed.",
+                      });
+                    }}
+                  >
+                    <img
+                      src={imageUrl}
+                      alt={`Option ${idx + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Headline Section */}
@@ -261,7 +188,6 @@ const AdPreviewCard = ({
             <Input
               value={editedHeadline}
               onChange={(e) => setEditedHeadline(e.target.value)}
-              className="font-semibold text-facebook"
             />
           ) : (
             <h3 className="text-lg font-semibold text-facebook">
