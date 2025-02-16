@@ -1,3 +1,4 @@
+
 import { useAdWizardState } from "@/hooks/useAdWizardState";
 import IdeaStep from "./steps/BusinessIdeaStep";
 import AudienceStep from "./steps/AudienceStep";
@@ -135,7 +136,7 @@ const AdWizard = () => {
       </div>
 
       <div className="flex items-center justify-end mb-6 space-x-2">
-        <span className="text-sm text-gray-600">Image Ads</span>
+        <span className="text-sm text-gray-600 font-bold">Image Ads</span>
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
