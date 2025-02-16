@@ -2,8 +2,16 @@
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Save } from "lucide-react";
+import { ArrowLeft, Globe, Save, Settings } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import LandingPageSettings from "./LandingPageSettings";
 
 interface LandingPageHeaderProps {
   project: any;
@@ -53,7 +61,7 @@ const LandingPageHeader = ({ project, landingPage }: LandingPageHeaderProps) => 
         .from("landing_pages")
         .insert({
           project_id: project.id,
-          user_id: user.id, // Add the user_id field
+          user_id: user.id,
           title: project.title,
           content,
           slug: generateSlug(project.title),
@@ -75,6 +83,14 @@ const LandingPageHeader = ({ project, landingPage }: LandingPageHeaderProps) => 
     }
   };
 
+  const visitPage = () => {
+    if (landingPage?.domain) {
+      window.open(`https://${landingPage.domain}`, '_blank');
+    } else {
+      window.open(`/preview/${landingPage.id}`, '_blank');
+    }
+  };
+
   return (
     <div className="flex items-center justify-between mb-8">
       <div className="flex items-center gap-4">
@@ -87,10 +103,48 @@ const LandingPageHeader = ({ project, landingPage }: LandingPageHeaderProps) => 
         </Button>
         <h1 className="text-2xl font-bold">{project.title} - Landing Page</h1>
       </div>
-      <Button onClick={handleSave} className="gap-2">
-        <Save className="h-4 w-4" />
-        Save Landing Page
-      </Button>
+      <div className="flex items-center gap-2">
+        {landingPage?.published && (
+          <Button 
+            variant="outline" 
+            onClick={visitPage}
+            className="gap-2"
+          >
+            <Globe className="h-4 w-4" />
+            Visit Page
+          </Button>
+        )}
+        
+        <Sheet>
+          <SheetTrigger asChild>
+            <Button variant="outline" className="gap-2">
+              <Settings className="h-4 w-4" />
+              Settings
+            </Button>
+          </SheetTrigger>
+          <SheetContent>
+            <SheetHeader>
+              <SheetTitle>Landing Page Settings</SheetTitle>
+            </SheetHeader>
+            {landingPage && (
+              <LandingPageSettings
+                landingPageId={landingPage.id}
+                initialData={{
+                  published: landingPage.published,
+                  seo_title: landingPage.seo_title,
+                  seo_description: landingPage.seo_description,
+                  domain: landingPage.domain,
+                }}
+              />
+            )}
+          </SheetContent>
+        </Sheet>
+
+        <Button onClick={handleSave} className="gap-2">
+          <Save className="h-4 w-4" />
+          Save Landing Page
+        </Button>
+      </div>
     </div>
   );
 };
