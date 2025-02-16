@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -23,6 +22,34 @@ interface LandingPageContentProps {
   landingPage: any;
 }
 
+// Map section keys to their corresponding components
+const sectionComponents = {
+  hero: HeroSection,
+  value_proposition: ValuePropositionSection,
+  features: FeaturesSection,
+  testimonials: TestimonialsSection,
+  cta: CtaSection,
+  how_it_works: HowItWorksSection,
+  market_analysis: MarketAnalysisSection,
+  objections: ObjectionsSection,
+  faq: FaqSection,
+  footer: FooterSection,
+} as const;
+
+// Default section order if none is provided
+const defaultSectionOrder = [
+  "hero",
+  "how_it_works",
+  "market_analysis",
+  "value_proposition",
+  "features",
+  "testimonials",
+  "objections",
+  "faq",
+  "cta",
+  "footer"
+];
+
 const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) => {
   const [activeView, setActiveView] = useState<"edit" | "preview">("preview");
   const [isGenerating, setIsGenerating] = useState(false);
@@ -37,6 +64,42 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
   
   // Get the current layout from landingPage or template default
   const currentLayout = currentLayoutStyle || (template?.structure?.sections || {});
+
+  // Use the section order from the landing page, falling back to the default order
+  const sectionOrder = landingPage?.section_order || defaultSectionOrder;
+
+  const renderSection = (sectionKey: string) => {
+    // Map the section key to the actual content and component
+    const sectionContentMap: Record<string, any> = {
+      hero: { content: currentContent.hero, layout: currentLayout?.hero?.layout || template?.structure.sections.hero.layout },
+      value_proposition: { content: { title: currentContent.valueProposition?.title, cards: currentContent.valueProposition?.cards } },
+      features: { content: { title: currentContent.features?.title, description: currentContent.features?.description, items: currentContent.features?.items } },
+      testimonials: { content: { title: currentContent.testimonials?.title, items: currentContent.testimonials?.items } },
+      cta: { content: currentContent.cta },
+      how_it_works: { content: landingPage?.how_it_works || currentContent.howItWorks },
+      market_analysis: { content: landingPage?.market_analysis || currentContent.marketAnalysis },
+      objections: { content: landingPage?.objections || currentContent.objections },
+      faq: { content: landingPage?.faq || currentContent.faq },
+      footer: { content: landingPage?.footer_content || currentContent.footerContent }
+    };
+
+    // Get the component for this section
+    const SectionComponent = sectionComponents[sectionKey as keyof typeof sectionComponents];
+    if (!SectionComponent) return null;
+
+    // Get the content for this section
+    const sectionProps = sectionContentMap[sectionKey];
+    if (!sectionProps) return null;
+
+    // Add common props like className
+    return (
+      <SectionComponent
+        key={sectionKey}
+        {...sectionProps}
+        className={template?.structure.styles.spacing.sectionPadding}
+      />
+    );
+  };
 
   const generateLandingPageContent = async () => {
     setIsGenerating(true);
@@ -182,61 +245,7 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
         <TabsContent value="preview" className="mt-6">
           {template && currentContent && (
             <div className="space-y-12">
-              <HeroSection 
-                content={currentContent.hero}
-                layout={currentLayout?.hero?.layout || template.structure.sections.hero.layout}
-                className={template.structure.styles.spacing.sectionPadding}
-              />
-              <HowItWorksSection
-                content={landingPage?.how_it_works || currentContent.howItWorks}
-                className={template.structure.styles.spacing.sectionPadding}
-              />
-              <MarketAnalysisSection
-                content={landingPage?.market_analysis || currentContent.marketAnalysis}
-                className={template.structure.styles.spacing.sectionPadding}
-              />
-              <ValuePropositionSection
-                content={{
-                  title: currentContent.valueProposition?.title || "Why Choose Us?",
-                  cards: currentContent.valueProposition?.cards || []
-                }}
-                className={template.structure.styles.spacing.sectionPadding}
-              />
-              <FeaturesSection
-                content={{
-                  title: currentContent.features?.title || "Key Features",
-                  description: currentContent.features?.description,
-                  items: currentContent.features?.items || []
-                }}
-                className={template.structure.styles.spacing.sectionPadding}
-              />
-              <TestimonialsSection
-                content={{
-                  title: currentContent.testimonials?.title || "What Our Clients Say",
-                  items: currentContent.testimonials?.items || []
-                }}
-                className={template.structure.styles.spacing.sectionPadding}
-              />
-              <ObjectionsSection
-                content={landingPage?.objections || currentContent.objections}
-                className={template.structure.styles.spacing.sectionPadding}
-              />
-              <FaqSection
-                content={landingPage?.faq || currentContent.faq}
-                className={template.structure.styles.spacing.sectionPadding}
-              />
-              <CtaSection
-                content={currentContent.cta || {
-                  title: "Ready to Get Started?",
-                  description: "Join us today and experience the difference.",
-                  buttonText: "Get Started"
-                }}
-                className={template.structure.styles.spacing.sectionPadding}
-              />
-              <FooterSection
-                content={landingPage?.footer_content || currentContent.footerContent}
-                className={template.structure.styles.spacing.sectionPadding}
-              />
+              {sectionOrder.map((sectionKey) => renderSection(sectionKey))}
             </div>
           )}
         </TabsContent>
