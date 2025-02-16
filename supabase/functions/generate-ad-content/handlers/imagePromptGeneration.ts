@@ -101,30 +101,25 @@ Return ONLY a valid JSON array with exactly 1 item in this format:
       throw new Error('Invalid prompts format: Expected non-empty array');
     }
 
-    // Generate images for each format
-    const imagePromises = AD_FORMATS.map(async (format) => {
-      if (!generatedPrompts[0].prompt || typeof generatedPrompts[0].prompt !== 'string') {
-        throw new Error('Invalid prompt format: Expected string prompt');
-      }
-
-      const imageUrl = await generateWithReplicate(generatedPrompts[0].prompt, {
-        width: format.width,
-        height: format.height
-      });
-
-      return {
-        url: imageUrl,
-        prompt: generatedPrompts[0].prompt,
-        width: format.width,
-        height: format.height,
-        label: format.label
-      };
+    // Generate one high-quality image in the largest format
+    console.log('Generating master image...');
+    const masterImageUrl = await generateWithReplicate(generatedPrompts[0].prompt, {
+      width: 1200,
+      height: 1200,
     });
 
-    const images = await Promise.all(imagePromises);
+    // Create array of images with different sizes but same URL
+    const images = AD_FORMATS.map((format) => ({
+      url: masterImageUrl,
+      prompt: generatedPrompts[0].prompt,
+      width: format.width,
+      height: format.height,
+      label: format.label
+    }));
+
     console.log('Successfully generated images:', images);
-    
     return { images };
+
   } catch (error) {
     console.error('Error in image prompt generation:', error);
     throw error;
