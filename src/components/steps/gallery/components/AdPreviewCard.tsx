@@ -10,8 +10,9 @@ import MediaPreview from "./MediaPreview";
 import AdDetails from "./AdDetails";
 import DownloadControls from "./DownloadControls";
 import { AdFeedbackControls } from "./AdFeedbackControls";
-import { convertToFormat } from "@/utils/imageUtils";
+import { convertImage } from "@/utils/imageUtils";
 import { Pencil, Image, Check, X } from "lucide-react";
+import { useAdPersistence } from "@/hooks/gallery/useAdPersistence";
 
 interface AdPreviewCardProps {
   variant: {
@@ -44,13 +45,14 @@ const AdPreviewCard = ({
   selectedFormat 
 }: AdPreviewCardProps) => {
   const [downloadFormat, setDownloadFormat] = useState<"jpg" | "png" | "pdf" | "docx">("jpg");
-  const [isSaving, setSaving] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [isEditingText, setIsEditingText] = useState(false);
   const [isSelectingImage, setIsSelectingImage] = useState(false);
   const [editedHeadline, setEditedHeadline] = useState(variant.headline);
   const [editedDescription, setEditedDescription] = useState(variant.description);
   const { toast } = useToast();
   const { projectId } = useParams();
+  const { saveGeneratedAds } = useAdPersistence(projectId);
 
   const getImageUrl = () => {
     if (variant.image?.url) {
@@ -74,6 +76,70 @@ const AdPreviewCard = ({
     setIsEditingText(false);
     setEditedHeadline(variant.headline);
     setEditedDescription(variant.description);
+  };
+
+  const handleDownload = async () => {
+    const imageUrl = getImageUrl();
+    if (!imageUrl) {
+      toast({
+        title: "Error",
+        description: "No image URL available for download",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const blob = await convertImage(imageUrl, downloadFormat, variant);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${variant.platform}-ad-${selectedFormat?.width || variant.size.width}x${selectedFormat?.height || variant.size.height}.${downloadFormat}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: "Success!",
+        description: `Your ${variant.size.label} ${isVideo ? 'video' : 'ad'} has been downloaded as ${downloadFormat.toUpperCase()}.`,
+      });
+    } catch (error) {
+      console.error('Error downloading:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to download file.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      await saveGeneratedAds([
+        {
+          ...variant,
+          headline: editedHeadline,
+          description: editedDescription,
+          savedAt: new Date().toISOString()
+        }
+      ]);
+
+      toast({
+        title: "Success!",
+        description: "Your ad has been saved successfully.",
+      });
+    } catch (error) {
+      console.error('Error saving ad:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to save ad.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   // Get unique images from all variants
@@ -200,8 +266,8 @@ const AdPreviewCard = ({
           <DownloadControls
             downloadFormat={downloadFormat}
             onFormatChange={(value) => setDownloadFormat(value as "jpg" | "png" | "pdf" | "docx")}
-            onSave={() => {}}
-            onDownload={() => {}}
+            onSave={handleSave}
+            onDownload={handleDownload}
             isSaving={isSaving}
           />
 
