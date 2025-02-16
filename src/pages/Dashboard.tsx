@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Lightbulb, FolderOpen, Eye, Pencil, Bell, BookOpen, MessageSquare, HelpCircle, Star, Info, AlertOctagon, ArrowRight, Globe, BookmarkCheck } from "lucide-react";
@@ -36,43 +35,58 @@ const Dashboard = () => {
   const { data: recentProjects } = useQuery({
     queryKey: ["recent-projects"],
     queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("No user found");
+
       const { data, error } = await supabase
         .from("projects")
         .select("*")
+        .eq("user_id", user.id)
         .order("updated_at", { ascending: false })
         .limit(3);
 
       if (error) throw error;
       return data;
     },
+    enabled: !!userData?.user,
   });
 
   const { data: recentLandingPages } = useQuery({
     queryKey: ["recent-landing-pages"],
     queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("No user found");
+
       const { data, error } = await supabase
         .from("landing_pages")
         .select("*")
+        .eq("user_id", user.id)
         .order("updated_at", { ascending: false })
         .limit(3);
 
       if (error) throw error;
       return data;
     },
+    enabled: !!userData?.user,
   });
 
   const { data: recentSavedAds } = useQuery({
     queryKey: ["recent-saved-ads"],
     queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("No user found");
+
       const { data, error } = await supabase
         .from("ad_feedback")
         .select("*")
+        .eq("user_id", user.id)
         .order("created_at", { ascending: false })
         .limit(3);
 
       if (error) throw error;
       return data;
     },
+    enabled: !!userData?.user,
   });
 
   useEffect(() => {
