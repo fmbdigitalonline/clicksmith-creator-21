@@ -119,7 +119,13 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
             "sign_up",
             "contact_form",
             "newsletter"
-          ]
+          ],
+          how_it_works: generatedContent.howItWorks,
+          market_analysis: generatedContent.marketAnalysis,
+          objections: generatedContent.objections,
+          faq: generatedContent.faq,
+          footer_content: generatedContent.footerContent,
+          styling: generatedContent.theme
         })
         .select()
         .single();
@@ -182,11 +188,11 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
                 className={template.structure.styles.spacing.sectionPadding}
               />
               <HowItWorksSection
-                content={currentContent.howItWorks}
+                content={landingPage?.how_it_works || currentContent.howItWorks}
                 className={template.structure.styles.spacing.sectionPadding}
               />
               <MarketAnalysisSection
-                content={currentContent.marketAnalysis}
+                content={landingPage?.market_analysis || currentContent.marketAnalysis}
                 className={template.structure.styles.spacing.sectionPadding}
               />
               <ValuePropositionSection
@@ -212,11 +218,11 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
                 className={template.structure.styles.spacing.sectionPadding}
               />
               <ObjectionsSection
-                content={currentContent.objections}
+                content={landingPage?.objections || currentContent.objections}
                 className={template.structure.styles.spacing.sectionPadding}
               />
               <FaqSection
-                content={currentContent.faq}
+                content={landingPage?.faq || currentContent.faq}
                 className={template.structure.styles.spacing.sectionPadding}
               />
               <CtaSection
@@ -228,7 +234,7 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
                 className={template.structure.styles.spacing.sectionPadding}
               />
               <FooterSection
-                content={currentContent.footerContent}
+                content={landingPage?.footer_content || currentContent.footerContent}
                 className={template.structure.styles.spacing.sectionPadding}
               />
             </div>
