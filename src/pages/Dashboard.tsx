@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Lightbulb, FolderOpen, Eye, Pencil, Bell, BookOpen, MessageSquare, HelpCircle, Star, Info, AlertOctagon } from "lucide-react";
@@ -186,6 +187,31 @@ const Dashboard = () => {
           </div>
         </div>
 
+        {/* Quick Actions with Enhanced Visual Design */}
+        <div className="grid gap-4 md:grid-cols-3 mb-8">
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer bg-gradient-to-br from-primary/5 to-primary/10" onClick={() => navigate("/ad-wizard/new")}>
+            <CardHeader>
+              <Lightbulb className="h-8 w-8 mb-2 text-primary" />
+              <CardTitle>Continue Ad Wizard</CardTitle>
+              <CardDescription>Resume your business idea validation journey</CardDescription>
+            </CardHeader>
+          </Card>
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer bg-gradient-to-br from-blue-500/5 to-blue-500/10" onClick={() => navigate("/gallery")}>
+            <CardHeader>
+              <FolderOpen className="h-8 w-8 mb-2 text-blue-500" />
+              <CardTitle>View Saved Ads</CardTitle>
+              <CardDescription>Access all your previously generated ads</CardDescription>
+            </CardHeader>
+          </Card>
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer bg-gradient-to-br from-green-500/5 to-green-500/10" onClick={() => navigate("/projects")}>
+            <CardHeader>
+              <Plus className="h-8 w-8 mb-2 text-green-500" />
+              <CardTitle>Create New Project</CardTitle>
+              <CardDescription>Start a new business idea validation project</CardDescription>
+            </CardHeader>
+          </Card>
+        </div>
+
         {/* Message Board */}
         <div className="mb-8">
           <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
@@ -218,31 +244,6 @@ const Dashboard = () => {
               </Card>
             ))}
           </div>
-        </div>
-
-        {/* Quick Actions with Enhanced Visual Design */}
-        <div className="grid gap-4 md:grid-cols-3 mb-8">
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer bg-gradient-to-br from-primary/5 to-primary/10" onClick={() => navigate("/ad-wizard/new")}>
-            <CardHeader>
-              <Lightbulb className="h-8 w-8 mb-2 text-primary" />
-              <CardTitle>Continue Ad Wizard</CardTitle>
-              <CardDescription>Resume your business idea validation journey</CardDescription>
-            </CardHeader>
-          </Card>
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer bg-gradient-to-br from-blue-500/5 to-blue-500/10" onClick={() => navigate("/gallery")}>
-            <CardHeader>
-              <FolderOpen className="h-8 w-8 mb-2 text-blue-500" />
-              <CardTitle>View Saved Ads</CardTitle>
-              <CardDescription>Access all your previously generated ads</CardDescription>
-            </CardHeader>
-          </Card>
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer bg-gradient-to-br from-green-500/5 to-green-500/10" onClick={() => navigate("/projects")}>
-            <CardHeader>
-              <Plus className="h-8 w-8 mb-2 text-green-500" />
-              <CardTitle>Create New Project</CardTitle>
-              <CardDescription>Start a new business idea validation project</CardDescription>
-            </CardHeader>
-          </Card>
         </div>
 
         {/* Stats Cards with Enhanced Visual Design */}
