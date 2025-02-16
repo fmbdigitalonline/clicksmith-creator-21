@@ -15,7 +15,7 @@ interface SavedAd {
   rating: number;
   feedback: string;
   created_at: string;
-  imageurl?: string;
+  imageurl?: string;  // Note: lowercase to match database column
   platform?: string;
   size?: {
     width: number;
@@ -32,7 +32,7 @@ interface AdFeedbackRow {
   rating: number;
   feedback: string;
   created_at: string;
-  imageurl?: string;
+  imageurl?: string;  // Note: lowercase to match database column
   platform?: string;
   size?: Json;
 }
