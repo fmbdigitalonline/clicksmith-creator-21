@@ -20,7 +20,7 @@ const FeaturesSection = ({ content, className }: FeaturesSectionProps) => {
   const description = content?.description;
 
   return (
-    <section className={cn("py-16 bg-background border border-gray-100 rounded-lg", className)}>
+    <section className={cn("py-16 bg-background border-t border-b border-gray-100", className)}>
       <div className="container mx-auto px-4">
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold mb-4">{title}</h2>
