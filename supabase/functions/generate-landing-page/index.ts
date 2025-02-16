@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { OpenAI } from "https://esm.sh/openai@4.20.1";
 import Replicate from "https://esm.sh/replicate@0.25.1";
@@ -311,7 +310,7 @@ serve(async (req) => {
       heroImage = null;
     }
 
-    // Combine all content with theme
+    // Combine all content with theme and additional metadata
     const generatedContent = {
       ...landingContent,
       hero: {
@@ -320,10 +319,63 @@ serve(async (req) => {
       },
       theme,
       layout: "centered",
-      imagePlacements: projectImages.map((url: string, index: number) => ({
+      section_order: [
+        "hero",
+        "value_proposition",
+        "how_it_works",
+        "market_analysis",
+        "features",
+        "testimonials",
+        "objections",
+        "faq",
+        "cta",
+        "footer"
+      ],
+      conversion_goals: [
+        "sign_up",
+        "contact_form",
+        "newsletter",
+        "demo_request",
+        "download"
+      ],
+      image_placements: projectImages.map((url: string, index: number) => ({
         url,
         section: ["features", "valueProposition", "proof"][index % 3]
-      }))
+      })),
+      styling: {
+        ...theme,
+        layout_preferences: {
+          contentWidth: "max-w-6xl",
+          spacing: {
+            sectionPadding: "py-16 md:py-24",
+            elementSpacing: "space-y-8",
+            contentGap: "gap-8"
+          },
+          responsive: {
+            breakpoints: {
+              sm: "640px",
+              md: "768px",
+              lg: "1024px",
+              xl: "1280px"
+            }
+          }
+        },
+        components: {
+          buttons: {
+            primary: "bg-primary-600 hover:bg-primary-700",
+            secondary: "bg-secondary-500 hover:bg-secondary-600"
+          },
+          cards: {
+            default: "bg-white shadow-md rounded-lg p-6",
+            featured: "bg-primary-50 shadow-lg rounded-lg p-8"
+          }
+        },
+        animations: {
+          transition: "transition-all duration-300",
+          hover: "transform hover:scale-105",
+          fade: "animate-fade-in"
+        }
+      }
     };
 
     console.log("Final generated content:", generatedContent);
