@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { BusinessIdea } from "@/types/adWizard";
 import { useToast } from "@/components/ui/use-toast";
-import { Wand2, Lightbulb, ArrowRight } from "lucide-react";
+import { Wand2, Lightbulb, ArrowRight, Loader2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 
 const BusinessIdeaStep = ({
@@ -13,9 +13,12 @@ const BusinessIdeaStep = ({
   onNext: (idea: BusinessIdea) => void;
 }) => {
   const [description, setDescription] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    if (isSubmitting) return; // Prevent double submission
+    
     if (description.length < 10) {
       toast({
         title: "Description too short",
@@ -25,22 +28,34 @@ const BusinessIdeaStep = ({
       return;
     }
 
-    // Format the value proposition to be more ad-friendly
-    // Remove any "Enhanced version of:" prefix and focus on the core message
-    const valueProposition = description
-      .replace(/^Enhanced version of:\s*/i, '')
-      .split('.')
-      .map(sentence => sentence.trim())
-      .filter(sentence => sentence.length > 0)
-      .join('. ');
+    setIsSubmitting(true);
 
-    // Call onNext before clearing the description
-    const businessIdea = {
-      description,
-      valueProposition,
-    };
-    
-    onNext(businessIdea);
+    try {
+      // Format the value proposition to be more ad-friendly
+      // Remove any "Enhanced version of:" prefix and focus on the core message
+      const valueProposition = description
+        .replace(/^Enhanced version of:\s*/i, '')
+        .split('.')
+        .map(sentence => sentence.trim())
+        .filter(sentence => sentence.length > 0)
+        .join('. ');
+
+      const businessIdea = {
+        description,
+        valueProposition,
+      };
+      
+      await Promise.resolve(onNext(businessIdea)); // Ensure async handling
+    } catch (error) {
+      console.error('Error submitting business idea:', error);
+      toast({
+        title: "Error",
+        description: "Failed to process your business idea. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -50,9 +65,19 @@ const BusinessIdeaStep = ({
           onClick={handleSubmit}
           className="bg-facebook hover:bg-facebook/90 text-white w-full md:w-auto"
           size="lg"
+          disabled={isSubmitting}
         >
-          Analyze My Idea
-          <ArrowRight className="ml-2 h-5 w-5" />
+          {isSubmitting ? (
+            <>
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+              Processing...
+            </>
+          ) : (
+            <>
+              Analyze My Idea
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </>
+          )}
         </Button>
       </div>
 
@@ -69,6 +94,7 @@ const BusinessIdeaStep = ({
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           className="min-h-[150px] text-base"
+          disabled={isSubmitting}
         />
       </div>
 
