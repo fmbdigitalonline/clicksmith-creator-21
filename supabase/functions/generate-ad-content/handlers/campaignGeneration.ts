@@ -10,36 +10,41 @@ ${JSON.stringify(businessIdea, null, 2)}
 Target Audience:
 ${JSON.stringify(targetAudience, null, 2)}
 
-Create a complete marketing campaign with:
-1. 3 Ad copies (different versions)
-2. 3 Headlines (6 words max)
+Create a complete marketing campaign with 6 unique ad versions, each with their own copy and headline but maintaining consistent messaging:
 
 Ad Copy Guidelines:
-- Create 10 different versions and rotate:
-  1. "Longer story": Longer, storytelling-based use pain point one from audience analysis
-  2. "personal emotional story  ": personal emotional story use pain point two from audience analysis
-  3. "AIDA version": Middle-length with bullet points use pain point three from audience analysis
-- Should be addressing about audience analysis painpoints
-- Some ad copies must also address the benefits of the products based on the positive experience the product provides
-- Must attract attention in first sentence
-- Each version should be different
-- Never use names and always talk directly to the reader, use words like you
+- Create 6 distinctly different versions while maintaining the core message:
+  1. "Story version": Longer, narrative-focused using pain point one
+  2. "Emotional appeal": Personal, emotionally resonant using pain point two
+  3. "AIDA format": Attention, Interest, Desire, Action structure using pain point three
+  4. "Problem-Solution": Highlight a specific problem and your solution
+  5. "Benefits-focused": Emphasize key benefits and results
+  6. "Social proof angle": Imply or reference customer success
+- Each version should feel unique while targeting the same audience
+- Must grab attention in first sentence
+- Never use specific names
+- Always address the reader directly using "you" and "your"
+- Use the audience pain points from the analysis
+- Highlight the product's benefits and positive experiences
+- Keep similar length but vary structure and approach
 
 Headline Guidelines:
-- Maximum 6 words
-- Straight to the point
-- Highlight the result of using this product, the benefitial experience, or goal that is going te be achieved when using this product
-- Based on market awareness/sophistication
+- Create 6 unique headlines (one for each ad version)
+- Maximum 6 words each
+- Each should highlight a different benefit or angle
+- Focus on results and transformation
+- Based on market awareness level
+- Keep the core value proposition consistent
 
 Return ONLY a valid JSON object with these fields:
 {
   "adCopies": [
     {
-      "type": "story|short|aida",
+      "type": "story|emotional|aida|problem-solution|benefits|social-proof",
       "content": "string"
     }
   ],
-  "headlines": ["string", "string", "string"]
+  "headlines": ["string", "string", "string", "string", "string", "string"]
 }`;
 
   try {
@@ -60,7 +65,7 @@ Return ONLY a valid JSON object with these fields:
         messages: [
           {
             role: 'system',
-            content: 'You are an expert marketing copywriter. Always respond with raw JSON only, no markdown.'
+            content: 'You are an expert marketing copywriter specializing in creating diverse but cohesive ad campaigns. Create distinctly different versions while maintaining the core message and brand voice.'
           },
           { role: 'user', content: prompt }
         ],
