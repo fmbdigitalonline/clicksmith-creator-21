@@ -37,6 +37,14 @@ interface AdPreviewCardProps {
   selectedFormat?: { width: number; height: number; label: string };
 }
 
+interface GeneratedAd {
+  id: string;
+  headline: string;
+  description: string;
+  imageUrl?: string;
+  // ... add other properties as needed
+}
+
 const AdPreviewCard = ({ 
   variant, 
   adVariants = [],
@@ -76,8 +84,8 @@ const AdPreviewCard = ({
           .eq('id', projectId)
           .single();
 
-        if (project?.generated_ads) {
-          const updatedAds = project.generated_ads.map((ad: any) => {
+        if (project?.generated_ads && Array.isArray(project.generated_ads)) {
+          const updatedAds = (project.generated_ads as GeneratedAd[]).map((ad) => {
             if (ad.id === variant.id) {
               return {
                 ...ad,
@@ -136,8 +144,8 @@ const AdPreviewCard = ({
             .eq('id', projectId)
             .single();
 
-          if (project?.generated_ads) {
-            const updatedAds = project.generated_ads.map((ad: any) => {
+          if (project?.generated_ads && Array.isArray(project.generated_ads)) {
+            const updatedAds = (project.generated_ads as GeneratedAd[]).map((ad) => {
               if (ad.id === variant.id) {
                 return {
                   ...ad,
