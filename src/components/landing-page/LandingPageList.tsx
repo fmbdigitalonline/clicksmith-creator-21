@@ -99,7 +99,7 @@ export default function LandingPageList() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => navigate(`/projects/${page.project_id}/landing-page/${page.id}`)}
+                onClick={() => navigate(`/projects/${page.project_id}/landing-page`)}
               >
                 <Pencil className="h-4 w-4 mr-2" />
                 Edit
