@@ -102,7 +102,7 @@ export const saveAd = async (params: SaveAdParams): Promise<SaveAdResult> => {
       };
     }
 
-    // Create base feedback data
+    // Create base feedback data with the correct column name 'imageurl'
     const baseFeedbackData = {
       id: uuidv4(),
       user_id: user.id,
@@ -111,6 +111,13 @@ export const saveAd = async (params: SaveAdParams): Promise<SaveAdResult> => {
       saved_images: [image.url],
       primary_text: primaryText || hook.text || null,
       headline: headline || hook.description || null,
+      imageurl: image.url, // Changed from imageUrl to imageurl
+      platform: "facebook", // Added default platform
+      size: {
+        width: 1200,
+        height: 628,
+        label: "Landscape (1.91:1)"
+      },
       created_at: new Date().toISOString()
     };
 
