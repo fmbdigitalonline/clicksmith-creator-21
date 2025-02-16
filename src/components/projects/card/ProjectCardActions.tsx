@@ -54,7 +54,7 @@ const ProjectCardActions = ({
         .from('projects')
         .select('business_idea, target_audience, audience_analysis, title')
         .eq('id', projectId)
-        .maybeSingle();
+        .single();
 
       if (projectError) throw projectError;
       if (!project) throw new Error('Project not found');
@@ -64,9 +64,8 @@ const ProjectCardActions = ({
         .from('ad_feedback')
         .select('saved_images')
         .eq('project_id', projectId)
-        .limit(1)
         .maybeSingle();
-
+      
       const savedImages = adFeedback?.saved_images || [];
 
       console.log("Calling generate-landing-page function with data:", {
