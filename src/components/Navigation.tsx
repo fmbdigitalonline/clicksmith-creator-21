@@ -2,7 +2,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Settings, CreditCard, PlusCircle } from "lucide-react";
+import { Settings, CreditCard, PlusCircle, Layout } from "lucide-react";
 import { CreditDisplay } from "./CreditDisplay";
 
 const Navigation = () => {
@@ -39,6 +39,20 @@ const Navigation = () => {
             >
               <PlusCircle className="h-4 w-4" />
               <span>Start</span>
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              asChild
+              className={cn(
+                "gap-2",
+                isActive("/landing-pages") && "bg-accent"
+              )}
+            >
+              <Link to="/landing-pages">
+                <Layout className="h-4 w-4" />
+                <span>Landing Pages</span>
+              </Link>
             </Button>
             <Button
               variant="ghost"
