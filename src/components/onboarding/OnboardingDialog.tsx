@@ -1,3 +1,4 @@
+
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -168,7 +169,7 @@ export function OnboardingDialog() {
             title: "Welcome aboard! 🎉",
             description: "You're all set to start creating amazing ads!"
           });
-          navigate("/");
+          // Removed navigation to "/" - dialog will just close and user will stay on dashboard
         }
       }
     } catch (error) {
