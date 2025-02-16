@@ -102,7 +102,8 @@ export const saveAd = async (params: SaveAdParams): Promise<SaveAdResult> => {
       };
     }
 
-    const feedbackData = {
+    // Create base feedback data
+    const baseFeedbackData = {
       id: uuidv4(),
       user_id: user.id,
       rating: parseInt(rating, 10),
@@ -112,6 +113,11 @@ export const saveAd = async (params: SaveAdParams): Promise<SaveAdResult> => {
       headline: headline || hook.description || null,
       created_at: new Date().toISOString()
     };
+
+    // Add project_id if valid
+    const feedbackData = validProjectId 
+      ? { ...baseFeedbackData, project_id: validProjectId }
+      : baseFeedbackData;
 
     const { error: feedbackError } = await supabase
       .from('ad_feedback')
