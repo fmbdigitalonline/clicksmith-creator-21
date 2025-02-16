@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useParams } from "react-router-dom";
@@ -117,14 +116,29 @@ const AdPreviewCard = ({
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      await saveGeneratedAds([
-        {
-          ...variant,
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error('User must be logged in to save ad');
+      }
+
+      const { error } = await supabase
+        .from('ad_feedback')
+        .insert({
+          user_id: user.id,
+          project_id: projectId,
+          saved_images: [getImageUrl()],
+          primary_text: editedDescription,
           headline: editedHeadline,
-          description: editedDescription,
-          savedAt: new Date().toISOString()
-        }
-      ]);
+          imageUrl: getImageUrl(),
+          platform: variant.platform,
+          size: selectedFormat || variant.size,
+          feedback: 'saved',
+          rating: 5, // Default positive rating for saved ads
+          created_at: new Date().toISOString()
+        });
+
+      if (error) throw error;
 
       toast({
         title: "Success!",

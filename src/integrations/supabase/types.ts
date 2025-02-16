@@ -13,42 +13,54 @@ export type Database = {
         Row: {
           ad_id: string | null
           created_at: string
+          created_by: string | null
           feedback: string | null
           headline: string | null
           id: string
+          imageurl: string | null
+          platform: string | null
           primary_text: string | null
           project_data: Json | null
           project_id: string | null
           rating: number | null
           saved_images: Json | null
+          size: Json | null
           updated_at: string
           user_id: string | null
         }
         Insert: {
           ad_id?: string | null
           created_at?: string
+          created_by?: string | null
           feedback?: string | null
           headline?: string | null
           id?: string
+          imageurl?: string | null
+          platform?: string | null
           primary_text?: string | null
           project_data?: Json | null
           project_id?: string | null
           rating?: number | null
           saved_images?: Json | null
+          size?: Json | null
           updated_at?: string
           user_id?: string | null
         }
         Update: {
           ad_id?: string | null
           created_at?: string
+          created_by?: string | null
           feedback?: string | null
           headline?: string | null
           id?: string
+          imageurl?: string | null
+          platform?: string | null
           primary_text?: string | null
           project_data?: Json | null
           project_id?: string | null
           rating?: number | null
           saved_images?: Json | null
+          size?: Json | null
           updated_at?: string
           user_id?: string | null
         }

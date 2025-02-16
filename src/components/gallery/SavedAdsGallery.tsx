@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,6 +14,13 @@ interface SavedAd {
   rating: number;
   feedback: string;
   created_at: string;
+  imageUrl?: string;
+  platform?: string;
+  size?: {
+    width: number;
+    height: number;
+    label: string;
+  };
 }
 
 interface AdFeedbackRow {
@@ -23,6 +31,9 @@ interface AdFeedbackRow {
   rating: number;
   feedback: string;
   created_at: string;
+  imageUrl?: string;
+  platform?: string;
+  size?: Json;
 }
 
 export const SavedAdsGallery = () => {
@@ -42,7 +53,6 @@ export const SavedAdsGallery = () => {
         .from('ad_feedback')
         .select('*')
         .eq('user_id', user.id)
-        .not('saved_images', 'is', null)
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -55,7 +65,8 @@ export const SavedAdsGallery = () => {
           ? (ad.saved_images as string[])
           : typeof ad.saved_images === 'string'
             ? [ad.saved_images as string]
-            : []
+            : [],
+        size: ad.size as { width: number; height: number; label: string }
       }));
 
       setSavedAds(convertedAds);
@@ -91,7 +102,7 @@ export const SavedAdsGallery = () => {
           id={ad.id}
           primaryText={ad.primary_text}
           headline={ad.headline}
-          imageUrl={ad.saved_images[0]}
+          imageUrl={ad.imageUrl || ad.saved_images[0]}
           onFeedbackSubmit={fetchSavedAds}
         />
       ))}
