@@ -52,7 +52,7 @@ export const SavedAdsGallery = () => {
 
         const { data, error } = await supabase
           .from('ad_feedback')
-          .select('*')
+          .select('id, headline, primary_text, rating, feedback, created_at, imageurl, platform, size')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false });
 
