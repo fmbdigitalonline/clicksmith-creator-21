@@ -12,27 +12,32 @@ const steps = [
   {
     id: "profile",
     title: "Welcome to Ad Wizard! 👋",
-    description: "Let's start by getting to know you and your business better.",
+    description: "Let's get to know you better and personalize your experience.",
+  },
+  {
+    id: "user-type",
+    title: "How will you use Ad Wizard?",
+    description: "Help us tailor our features to your needs.",
   },
   {
     id: "ai-features",
-    title: "AI-Powered Ad Creation",
-    description: "Discover how our AI helps you create compelling ads.",
+    title: "AI-Powered Content Creation",
+    description: "Discover how our AI helps you create compelling ads and landing pages.",
   },
   {
-    id: "ad-formats",
-    title: "Multiple Ad Formats",
-    description: "Create ads optimized for different placements and objectives.",
+    id: "content-formats",
+    title: "Multiple Content Formats",
+    description: "Create ads and landing pages optimized for your goals.",
   },
   {
     id: "audience",
     title: "Understanding Your Audience",
-    description: "Learn how we help you reach the right people.",
+    description: "Learn how we help you reach and engage the right people.",
   },
   {
     id: "getting-started",
-    title: "Ready to Create Your First Ad?",
-    description: "Let's start with your first campaign!",
+    title: "Ready to Get Started?",
+    description: "Let's begin creating your first campaign!",
   },
 ];
 
@@ -42,6 +47,7 @@ export function OnboardingDialog() {
   const [fullName, setFullName] = useState("");
   const [industry, setIndustry] = useState("");
   const [businessSize, setBusinessSize] = useState("");
+  const [userType, setUserType] = useState("consumer");
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -77,7 +83,11 @@ export function OnboardingDialog() {
               // Create onboarding record
               await supabase
                 .from("onboarding")
-                .insert([{ user_id: user.id, steps_completed: [] }]);
+                .insert([{ 
+                  user_id: user.id, 
+                  steps_completed: [],
+                  user_type: 'consumer' 
+                }]);
             } else if (!onboarding.completed) {
               setOpen(true);
             }
@@ -107,9 +117,14 @@ export function OnboardingDialog() {
       if (!user) return;
 
       if (currentStep === 0 && fullName) {
+        // Update profile with user information
         const { error: profileError } = await supabase
           .from("profiles")
-          .update({ full_name: fullName })
+          .update({ 
+            full_name: fullName,
+            is_business_owner: userType === 'business_owner',
+            can_create_landing_pages: true // Enable for all users
+          })
           .eq("id", user.id);
 
         if (profileError) {
@@ -147,7 +162,8 @@ export function OnboardingDialog() {
           .from("onboarding")
           .update({
             steps_completed: stepsCompleted,
-            completed: currentStep === steps.length - 1
+            completed: currentStep === steps.length - 1,
+            user_type: userType
           })
           .eq("user_id", user.id);
 
@@ -167,9 +183,8 @@ export function OnboardingDialog() {
           setOpen(false);
           toast({
             title: "Welcome aboard! 🎉",
-            description: "You're all set to start creating amazing ads!"
+            description: "You're all set to start creating amazing content!"
           });
-          // Removed navigation to "/" - dialog will just close and user will stay on dashboard
         }
       }
     } catch (error) {
@@ -200,6 +215,8 @@ export function OnboardingDialog() {
             setIndustry={setIndustry}
             businessSize={businessSize}
             setBusinessSize={setBusinessSize}
+            userType={userType}
+            setUserType={setUserType}
           />
           <div className="flex justify-between items-center mt-6">
             <div className="flex space-x-1">
@@ -214,7 +231,7 @@ export function OnboardingDialog() {
             </div>
             <Button
               onClick={handleStepComplete}
-              disabled={currentStep === 0 && (!fullName || !industry || !businessSize)}
+              disabled={currentStep === 0 && (!fullName || !userType)}
               className="bg-facebook hover:bg-facebook/90"
             >
               {currentStep === steps.length - 1 ? "Get Started" : "Continue"}

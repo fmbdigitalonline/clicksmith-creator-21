@@ -684,6 +684,7 @@ export type Database = {
           steps_completed: Json | null
           updated_at: string
           user_id: string
+          user_type: string | null
         }
         Insert: {
           completed?: boolean | null
@@ -692,6 +693,7 @@ export type Database = {
           steps_completed?: Json | null
           updated_at?: string
           user_id: string
+          user_type?: string | null
         }
         Update: {
           completed?: boolean | null
@@ -700,6 +702,7 @@ export type Database = {
           steps_completed?: Json | null
           updated_at?: string
           user_id?: string
+          user_type?: string | null
         }
         Relationships: []
       }
@@ -787,30 +790,36 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          can_create_landing_pages: boolean | null
           created_at: string
           full_name: string | null
           id: string
           is_active: boolean | null
+          is_business_owner: boolean | null
           payment_status: string | null
           updated_at: string
           username: string | null
         }
         Insert: {
           avatar_url?: string | null
+          can_create_landing_pages?: boolean | null
           created_at?: string
           full_name?: string | null
           id: string
           is_active?: boolean | null
+          is_business_owner?: boolean | null
           payment_status?: string | null
           updated_at?: string
           username?: string | null
         }
         Update: {
           avatar_url?: string | null
+          can_create_landing_pages?: boolean | null
           created_at?: string
           full_name?: string | null
           id?: string
           is_active?: boolean | null
+          is_business_owner?: boolean | null
           payment_status?: string | null
           updated_at?: string
           username?: string | null

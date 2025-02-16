@@ -1,6 +1,8 @@
+
 import { ProfileStep } from "./steps/ProfileStep";
+import { UserTypeStep } from "./steps/UserTypeStep";
 import { AiFeaturesStep } from "./steps/AiFeaturesStep";
-import { AdFormatsStep } from "./steps/AdFormatsStep";
+import { ContentFormatsStep } from "./steps/ContentFormatsStep";
 import { AudienceStep } from "./steps/AudienceStep";
 import { GettingStartedStep } from "./steps/GettingStartedStep";
 
@@ -12,6 +14,8 @@ interface OnboardingStepContentProps {
   setIndustry: (value: string) => void;
   businessSize: string;
   setBusinessSize: (value: string) => void;
+  userType: string;
+  setUserType: (value: string) => void;
 }
 
 export function OnboardingStepContent({
@@ -22,6 +26,8 @@ export function OnboardingStepContent({
   setIndustry,
   businessSize,
   setBusinessSize,
+  userType,
+  setUserType,
 }: OnboardingStepContentProps) {
   switch (currentStep) {
     case 0:
@@ -29,20 +35,27 @@ export function OnboardingStepContent({
         <ProfileStep
           fullName={fullName}
           setFullName={setFullName}
+        />
+      );
+    case 1:
+      return (
+        <UserTypeStep
+          userType={userType}
+          setUserType={setUserType}
           industry={industry}
           setIndustry={setIndustry}
           businessSize={businessSize}
           setBusinessSize={setBusinessSize}
         />
       );
-    case 1:
-      return <AiFeaturesStep />;
     case 2:
-      return <AdFormatsStep />;
+      return <AiFeaturesStep userType={userType} />;
     case 3:
-      return <AudienceStep />;
+      return <ContentFormatsStep userType={userType} />;
     case 4:
-      return <GettingStartedStep />;
+      return <AudienceStep userType={userType} />;
+    case 5:
+      return <GettingStartedStep userType={userType} />;
     default:
       return null;
   }
