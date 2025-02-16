@@ -1,9 +1,17 @@
+
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export const AD_FORMATS = [
   { width: 1200, height: 628, label: "Landscape (1.91:1)" },
   { width: 1080, height: 1080, label: "Square (1:1)" },
-  { width: 1080, height: 1920, label: "Story (9:16)" }
+  { width: 1080, height: 1920, label: "Story (9:16)" },
+  { width: 1200, height: 900, label: "Portrait (4:3)" },
+  { width: 1080, height: 1350, label: "Portrait (4:5)" },
+  { width: 1200, height: 444, label: "Billboard (2.7:1)" },
+  { width: 1200, height: 1200, label: "Large Square (1:1)" },
+  { width: 1080, height: 566, label: "Cinematic (16:9)" },
+  { width: 1080, height: 608, label: "Pinterest (16:9)" },
+  { width: 1200, height: 420, label: "LinkedIn Banner (2.85:1)" }
 ];
 
 interface AdSizeSelectorProps {
