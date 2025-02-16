@@ -28,7 +28,7 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
     const sectionContentMap: SectionContentMap = {
       hero: { 
         content: currentContent.hero, 
-        layout: currentLayout?.hero?.layout || 'centered' // Provide default layout
+        layout: currentLayout?.hero?.layout || 'centered'
       },
       value_proposition: { 
         content: { title: currentContent.valueProposition?.title, cards: currentContent.valueProposition?.cards },
@@ -85,7 +85,6 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
 
   const generateLandingPageContent = async () => {
     setIsGenerating(true);
-    console.log("Starting generation of new layout");
     
     toast({
       title: "Creating landing page",
@@ -101,22 +100,15 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
 
       if (projectError) throw projectError;
 
+      // Use maybeSingle() instead of single() to handle cases with no results
       const { data: adFeedback } = await supabase
         .from('ad_feedback')
         .select('saved_images')
         .eq('project_id', project.id)
-        .limit(1)
-        .single();
+        .maybeSingle();
 
+      // Handle case where there are no saved images
       const savedImages = adFeedback?.saved_images || [];
-
-      console.log("Calling generate-landing-page function with data:", {
-        businessIdea: projectData.business_idea,
-        targetAudience: projectData.target_audience,
-        audienceAnalysis: projectData.audience_analysis,
-        marketingCampaign: projectData.marketing_campaign,
-        projectImages: savedImages
-      });
 
       const { data: generatedContent, error } = await supabase.functions
         .invoke('generate-landing-page', {
@@ -124,14 +116,11 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
             businessIdea: projectData.business_idea,
             targetAudience: projectData.target_audience,
             audienceAnalysis: projectData.audience_analysis,
-            marketingCampaign: projectData.marketing_campaign,
             projectImages: savedImages
           },
         });
 
       if (error) throw error;
-      
-      console.log("Generated content:", generatedContent);
 
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error("No authenticated user found");
@@ -140,9 +129,9 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
         .from('landing_pages')
         .upsert({
           id: landingPage?.id,
-          title: projectData.title || "Landing Page",
           project_id: project.id,
           user_id: userData.user.id,
+          title: projectData.title || "Landing Page",
           content: generatedContent,
           image_placements: generatedContent.imagePlacements,
           layout_style: generatedContent.layout,
@@ -150,10 +139,13 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
           section_order: [
             "hero",
             "value_proposition",
+            "how_it_works",
+            "market_analysis",
             "features",
-            "proof",
-            "pricing",
-            "finalCta",
+            "testimonials",
+            "objections",
+            "faq",
+            "cta",
             "footer"
           ],
           conversion_goals: [
@@ -172,8 +164,6 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
         .single();
 
       if (saveError) throw saveError;
-      
-      console.log("Updated landing page:", updatedLandingPage);
 
       setCurrentContent(generatedContent);
       setCurrentLayoutStyle(generatedContent.layout);
