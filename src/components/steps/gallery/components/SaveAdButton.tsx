@@ -52,18 +52,18 @@ export const SaveAdButton = ({
         user_id: user.id,
         rating: parseInt(rating, 10),
         feedback,
-        saved_images: [image.url],
         primary_text: primaryText || hook.text || null,
         headline: headline || hook.description || null,
-        imageurl: image.url, // Added this field to match the schema
-        platform: 'facebook', // Added default platform
+        imageurl: image.url,
+        platform: 'facebook',
         size: {
           width: 1200,
           height: 628,
           label: "Landscape (1.91:1)"
-        },
-        created_at: new Date().toISOString()
+        }
       };
+
+      console.log('Saving feedback data:', feedbackData);
 
       const { error: feedbackError } = await supabase
         .from('ad_feedback')

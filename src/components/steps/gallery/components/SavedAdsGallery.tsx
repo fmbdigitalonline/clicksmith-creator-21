@@ -8,7 +8,6 @@ import { Json } from "@/integrations/supabase/types";
 
 interface SavedAd {
   id: string;
-  saved_images: string[];
   headline?: string;
   primary_text?: string;
   rating: number;
@@ -25,7 +24,6 @@ interface SavedAd {
 
 interface AdFeedbackRow {
   id: string;
-  saved_images: Json;
   headline?: string;
   primary_text?: string;
   rating: number;
@@ -50,6 +48,8 @@ export const SavedAdsGallery = () => {
           return;
         }
 
+        console.log('Fetching saved ads for user:', user.id);
+
         const { data, error } = await supabase
           .from('ad_feedback')
           .select('*')
@@ -60,14 +60,11 @@ export const SavedAdsGallery = () => {
           throw error;
         }
 
+        console.log('Retrieved ads:', data);
+
         // Convert the data to match SavedAd interface
         const convertedAds: SavedAd[] = (data as AdFeedbackRow[]).map(ad => ({
           ...ad,
-          saved_images: Array.isArray(ad.saved_images) 
-            ? (ad.saved_images as string[])
-            : typeof ad.saved_images === 'string'
-              ? [ad.saved_images as string]
-              : [],
           size: ad.size as { width: number; height: number; label: string }
         }));
 
@@ -116,10 +113,10 @@ export const SavedAdsGallery = () => {
           )}
           
           {/* Image Section */}
-          {(ad.imageurl || (ad.saved_images && ad.saved_images[0])) && (
+          {ad.imageurl && (
             <div className="aspect-video relative">
               <img
-                src={ad.imageurl || ad.saved_images[0]}
+                src={ad.imageurl}
                 alt="Ad creative"
                 className="object-cover w-full h-full"
               />
