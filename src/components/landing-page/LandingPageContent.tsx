@@ -276,19 +276,25 @@ const generateInitialContent = (project: any) => {
     }
   ];
 
-  // Default features
+  // Default features with images
   const defaultFeatures = [
     {
       title: "Easy to Use",
-      description: "Intuitive design for the best user experience"
+      description: "Intuitive design for the best user experience",
+      image: "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d",
+      icon: "🎯"
     },
     {
       title: "Reliable Service",
-      description: "Consistent performance you can count on"
+      description: "Consistent performance you can count on",
+      image: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158",
+      icon: "🎯"
     },
     {
       title: "Fast Support",
-      description: "Quick assistance whenever you need help"
+      description: "Quick assistance whenever you need help",
+      image: "https://images.unsplash.com/photo-1461749280684-dccba630e2f6",
+      icon: "🎯"
     }
   ];
 
@@ -331,9 +337,10 @@ const generateInitialContent = (project: any) => {
         }
       ],
       features: Array.isArray(audienceAnalysis?.keyFeatures)
-        ? audienceAnalysis.keyFeatures.map((feature: string) => ({
+        ? audienceAnalysis.keyFeatures.map((feature: string, index: number) => ({
             title: feature.split(':')[0] || feature,
             description: feature.split(':')[1] || feature,
+            image: defaultFeatures[index % defaultFeatures.length].image
           }))
         : defaultFeatures,
       socialProof: {
@@ -356,12 +363,13 @@ const generateInitialContent = (project: any) => {
       title: "Key Features",
       description: "Discover what makes us different",
       items: Array.isArray(audienceAnalysis?.keyFeatures)
-        ? audienceAnalysis.keyFeatures.map((feature: string) => ({
+        ? audienceAnalysis.keyFeatures.map((feature: string, index: number) => ({
             title: feature.split(':')[0] || feature,
             description: feature.split(':')[1] || feature,
-            icon: "🎯"
+            icon: "🎯",
+            image: defaultFeatures[index % defaultFeatures.length].image
           }))
-        : defaultFeatures.map(feature => ({ ...feature, icon: "🎯" })),
+        : defaultFeatures,
     },
     testimonials: {
       title: "What Our Clients Say",
