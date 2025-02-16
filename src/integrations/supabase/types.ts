@@ -69,59 +69,6 @@ export type Database = {
           },
         ]
       }
-      ad_image_regenerations: {
-        Row: {
-          created_at: string
-          dimensions: Json
-          error_message: string | null
-          id: string
-          metadata: Json | null
-          new_image_url: string | null
-          original_image_url: string
-          project_id: string | null
-          prompt: string
-          status: Database["public"]["Enums"]["image_generation_status"] | null
-          updated_at: string
-          user_id: string | null
-        }
-        Insert: {
-          created_at?: string
-          dimensions?: Json
-          error_message?: string | null
-          id?: string
-          metadata?: Json | null
-          new_image_url?: string | null
-          original_image_url: string
-          project_id?: string | null
-          prompt: string
-          status?: Database["public"]["Enums"]["image_generation_status"] | null
-          updated_at?: string
-          user_id?: string | null
-        }
-        Update: {
-          created_at?: string
-          dimensions?: Json
-          error_message?: string | null
-          id?: string
-          metadata?: Json | null
-          new_image_url?: string | null
-          original_image_url?: string
-          project_id?: string | null
-          prompt?: string
-          status?: Database["public"]["Enums"]["image_generation_status"] | null
-          updated_at?: string
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ad_image_regenerations_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       ad_image_variants: {
         Row: {
           created_at: string
@@ -1151,7 +1098,6 @@ export type Database = {
     Enums: {
       backup_type: "auto" | "manual"
       credit_operation_type: "credit_add" | "credit_deduct" | "credit_refund"
-      image_generation_status: "pending" | "completed" | "failed"
     }
     CompositeTypes: {
       [_ in never]: never

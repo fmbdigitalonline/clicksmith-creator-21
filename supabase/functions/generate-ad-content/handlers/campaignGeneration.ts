@@ -48,7 +48,7 @@ General Guidelines for All Versions:
 - Highlight the product's benefits and positive experiences
 - Keep similar length but vary structure and approach
 
-Return ONLY a valid JSON object with these exact fields and nothing else (no markdown, no backticks):
+Return ONLY a valid JSON object with these fields:
 {
   "adCopies": [
     {
@@ -77,7 +77,7 @@ Return ONLY a valid JSON object with these exact fields and nothing else (no mar
         messages: [
           {
             role: 'system',
-            content: 'You are an expert marketing copywriter. You must return ONLY valid JSON with no markdown formatting or backticks.'
+            content: 'You are an expert marketing copywriter specializing in creating diverse but cohesive ad campaigns. Create distinctly different versions while maintaining the core message and brand voice. Each ad version must have its own unique theme and matching headline.'
           },
           { role: 'user', content: prompt }
         ],
@@ -99,16 +99,10 @@ Return ONLY a valid JSON object with these exact fields and nothing else (no mar
       throw new Error('Invalid response format from OpenAI');
     }
 
-    const content = data.choices[0].message.content.trim();
+    const content = data.choices[0].message.content;
     console.log('Content before parsing:', content);
 
-    // Clean the content string to ensure it's valid JSON
-    const cleanContent = content
-      .replace(/```json\s*/g, '')  // Remove ```json
-      .replace(/```\s*$/g, '')     // Remove closing ```
-      .trim();
-
-    const rawCampaign = JSON.parse(cleanContent);
+    const rawCampaign = JSON.parse(content);
     
     // Transform the response to match the expected format
     const campaign = {
@@ -121,6 +115,6 @@ Return ONLY a valid JSON object with these exact fields and nothing else (no mar
     return { campaign };
   } catch (error) {
     console.error('Error in generateCampaign:', error);
-    throw new Error(`Failed to generate campaign: ${error.message}`);
+    throw error;
   }
 }
