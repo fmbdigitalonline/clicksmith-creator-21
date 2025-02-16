@@ -54,9 +54,10 @@ const ProjectCardActions = ({
         .from('projects')
         .select('business_idea, target_audience, audience_analysis, title')
         .eq('id', projectId)
-        .single();
+        .maybeSingle();
 
       if (projectError) throw projectError;
+      if (!project) throw new Error('Project not found');
 
       // Get any saved ad images
       const { data: adFeedback } = await supabase
@@ -64,7 +65,7 @@ const ProjectCardActions = ({
         .select('saved_images')
         .eq('project_id', projectId)
         .limit(1)
-        .single();
+        .maybeSingle();
 
       const savedImages = adFeedback?.saved_images || [];
 
