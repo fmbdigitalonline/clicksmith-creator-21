@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
@@ -13,6 +14,13 @@ interface SavedAd {
   rating: number;
   feedback: string;
   created_at: string;
+  imageurl?: string;
+  platform?: string;
+  size?: {
+    width: number;
+    height: number;
+    label: string;
+  };
 }
 
 interface AdFeedbackRow {
@@ -23,6 +31,9 @@ interface AdFeedbackRow {
   rating: number;
   feedback: string;
   created_at: string;
+  imageurl?: string;
+  platform?: string;
+  size?: Json;
 }
 
 export const SavedAdsGallery = () => {
@@ -43,7 +54,6 @@ export const SavedAdsGallery = () => {
           .from('ad_feedback')
           .select('*')
           .eq('user_id', user.id)
-          .not('saved_images', 'is', null)
           .order('created_at', { ascending: false });
 
         if (error) {
@@ -57,7 +67,8 @@ export const SavedAdsGallery = () => {
             ? (ad.saved_images as string[])
             : typeof ad.saved_images === 'string'
               ? [ad.saved_images as string]
-              : []
+              : [],
+          size: ad.size as { width: number; height: number; label: string }
         }));
 
         setSavedAds(convertedAds);
@@ -105,10 +116,10 @@ export const SavedAdsGallery = () => {
           )}
           
           {/* Image Section */}
-          {ad.saved_images && ad.saved_images[0] && (
+          {(ad.imageurl || (ad.saved_images && ad.saved_images[0])) && (
             <div className="aspect-video relative">
               <img
-                src={ad.saved_images[0]}
+                src={ad.imageurl || ad.saved_images[0]}
                 alt="Ad creative"
                 className="object-cover w-full h-full"
               />

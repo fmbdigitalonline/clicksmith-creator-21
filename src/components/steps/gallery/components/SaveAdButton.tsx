@@ -55,6 +55,13 @@ export const SaveAdButton = ({
         saved_images: [image.url],
         primary_text: primaryText || hook.text || null,
         headline: headline || hook.description || null,
+        imageurl: image.url, // Added this field to match the schema
+        platform: 'facebook', // Added default platform
+        size: {
+          width: 1200,
+          height: 628,
+          label: "Landscape (1.91:1)"
+        },
         created_at: new Date().toISOString()
       };
 
