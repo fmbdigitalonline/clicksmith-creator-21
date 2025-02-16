@@ -63,6 +63,15 @@ const BusinessIdeaStep = ({
         </p>
       </div>
 
+      <div className="space-y-4">
+        <Textarea
+          placeholder="e.g., I'm developing a mobile app that helps small business owners automate their social media marketing. It uses AI to generate content and schedule posts based on industry trends..."
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          className="min-h-[150px] text-base"
+        />
+      </div>
+
       <Card className="p-4 md:p-6 bg-gradient-to-br from-facebook/5 to-transparent border-facebook/20">
         <div className="flex items-start space-x-4">
           <div className="flex-shrink-0">
@@ -79,15 +88,6 @@ const BusinessIdeaStep = ({
           </div>
         </div>
       </Card>
-
-      <div className="space-y-4">
-        <Textarea
-          placeholder="e.g., I'm developing a mobile app that helps small business owners automate their social media marketing. It uses AI to generate content and schedule posts based on industry trends..."
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          className="min-h-[150px] text-base"
-        />
-      </div>
     </div>
   );
 };
