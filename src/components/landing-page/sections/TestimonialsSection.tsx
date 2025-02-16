@@ -18,7 +18,7 @@ const TestimonialsSection = ({ content, className }: TestimonialsSectionProps) =
   const title = content?.title || "What Our Clients Say";
 
   return (
-    <section className={cn("py-16 bg-background border-t border-b border-gray-100", className)}>
+    <section className={cn("py-16 bg-background border border-gray-100 rounded-lg", className)}>
       <div className="container mx-auto px-4">
         <h2 className="text-3xl font-bold text-center mb-12">{title}</h2>
         <div className="grid grid-cols-1 gap-8 max-w-3xl mx-auto">

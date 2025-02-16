@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -21,13 +20,12 @@ const HeroSection = ({ content, layout, className }: HeroSectionProps) => {
   return (
     <section className={cn(
       "relative min-h-[600px] flex items-center py-16 md:py-24",
-      "border-y border-gray-100",
+      "border border-gray-100 rounded-lg",
       className
     )}>
-      {/* Add background image when layout is centered */}
       {layout === "centered" && content.image && (
         <div className="absolute inset-0 z-0 border border-gray-100 rounded-lg overflow-hidden">
-          <div className="absolute inset-0 bg-black/60" /> {/* Darkened overlay */}
+          <div className="absolute inset-0 bg-black/60" />
           <img 
             src={content.image}
             alt="Hero background"
@@ -39,10 +37,9 @@ const HeroSection = ({ content, layout, className }: HeroSectionProps) => {
       <div className="container mx-auto px-4 relative z-10">
         <div className={cn(
           "grid gap-12",
-          "p-6 rounded-xl",
+          "p-6 rounded-xl border border-gray-100",
           layout === "split" ? "md:grid-cols-2 items-center" : "text-center max-w-4xl mx-auto"
         )}>
-          {/* Image for split layout - place it first in DOM but show second on desktop */}
           {layout === "split" && content.image && (
             <div className="order-2 md:order-1 border border-gray-100 rounded-lg overflow-hidden shadow-lg">
               <img 
@@ -53,11 +50,10 @@ const HeroSection = ({ content, layout, className }: HeroSectionProps) => {
             </div>
           )}
           
-          {/* Content section */}
           <div className={cn(
             "space-y-8",
             layout === "split" ? "order-1 md:order-2" : "mx-auto",
-            layout === "centered" && "text-white", // Add white text for centered layout
+            layout === "centered" && "text-white",
             layout === "split" && "p-6 border border-gray-100 rounded-lg bg-white/5 backdrop-blur-sm"
           )}>
             <h1 className={cn(
