@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { BadgeCheck } from "lucide-react";
 import LandingNav from "@/components/LandingNav";
+import { OnboardingDialog } from "@/components/onboarding/OnboardingDialog";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -56,6 +57,7 @@ const Login = () => {
   return (
     <>
       <LandingNav />
+      <OnboardingDialog />
       <div className="container mx-auto flex items-center justify-center min-h-screen py-8">
         <Card className="w-full max-w-md p-8">
           <div className="mb-6 space-y-4">
