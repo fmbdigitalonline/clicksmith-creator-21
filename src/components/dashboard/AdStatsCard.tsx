@@ -17,7 +17,7 @@ const AdStatsCard = () => {
 
       const { data: images, error: imagesError } = await supabase
         .from("ad_image_variants")
-        .select("created_at")
+        .select("original_image_url")
         .eq('user_id', user.id);
 
       const { data: feedback, error: feedbackError } = await supabase
@@ -34,10 +34,12 @@ const AdStatsCard = () => {
         return null;
       }
 
+      // Count unique original images only
+      const uniqueOriginalImages = new Set(images?.map(img => img.original_image_url));
       const uniquePrimaryTexts = new Set(feedback?.map(f => f.primary_text).filter(Boolean));
 
       return {
-        totalImages: images?.length || 0,
+        totalImages: uniqueOriginalImages.size || 0,
         totalAdTexts: uniquePrimaryTexts.size,
         totalAds: feedback?.length || 0,
         avgRating: feedback?.length 
