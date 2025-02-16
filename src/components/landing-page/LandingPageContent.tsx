@@ -1,54 +1,15 @@
+
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLandingPageTemplate } from "./hooks/useLandingPageTemplate";
-import HeroSection from "./sections/HeroSection";
-import ValuePropositionSection from "./sections/ValuePropositionSection";
-import FeaturesSection from "./sections/FeaturesSection";
-import TestimonialsSection from "./sections/TestimonialsSection";
-import CtaSection from "./sections/CtaSection";
-import HowItWorksSection from "./sections/HowItWorksSection";
-import MarketAnalysisSection from "./sections/MarketAnalysisSection";
-import ObjectionsSection from "./sections/ObjectionsSection";
-import FaqSection from "./sections/FaqSection";
-import FooterSection from "./sections/FooterSection";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
-
-interface LandingPageContentProps {
-  project: any;
-  landingPage: any;
-}
-
-// Map section keys to their corresponding components
-const sectionComponents = {
-  hero: HeroSection,
-  value_proposition: ValuePropositionSection,
-  features: FeaturesSection,
-  testimonials: TestimonialsSection,
-  cta: CtaSection,
-  how_it_works: HowItWorksSection,
-  market_analysis: MarketAnalysisSection,
-  objections: ObjectionsSection,
-  faq: FaqSection,
-  footer: FooterSection,
-} as const;
-
-// Default section order if none is provided
-const defaultSectionOrder = [
-  "hero",
-  "how_it_works",
-  "market_analysis",
-  "value_proposition",
-  "features",
-  "testimonials",
-  "objections",
-  "faq",
-  "cta",
-  "footer"
-];
+import { sectionComponents, defaultSectionOrder } from "./constants/sectionConfig";
+import { generateInitialContent } from "./utils/contentUtils";
+import type { LandingPageContentProps, SectionContentMap } from "./types/landingPageTypes";
 
 const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) => {
   const [activeView, setActiveView] = useState<"edit" | "preview">("preview");
@@ -59,18 +20,12 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  // Fetch the default template
   const { data: template, isLoading: isTemplateLoading } = useLandingPageTemplate();
-  
-  // Get the current layout from landingPage or template default
   const currentLayout = currentLayoutStyle || (template?.structure?.sections || {});
-
-  // Use the section order from the landing page, falling back to the default order
   const sectionOrder = landingPage?.section_order || defaultSectionOrder;
 
   const renderSection = (sectionKey: string) => {
-    // Map the section key to the actual content and component
-    const sectionContentMap: Record<string, any> = {
+    const sectionContentMap: SectionContentMap = {
       hero: { content: currentContent.hero, layout: currentLayout?.hero?.layout || template?.structure.sections.hero.layout },
       value_proposition: { content: { title: currentContent.valueProposition?.title, cards: currentContent.valueProposition?.cards } },
       features: { content: { title: currentContent.features?.title, description: currentContent.features?.description, items: currentContent.features?.items } },
@@ -83,15 +38,12 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
       footer: { content: landingPage?.footer_content || currentContent.footerContent }
     };
 
-    // Get the component for this section
     const SectionComponent = sectionComponents[sectionKey as keyof typeof sectionComponents];
     if (!SectionComponent) return null;
 
-    // Get the content for this section
     const sectionProps = sectionContentMap[sectionKey];
     if (!sectionProps) return null;
 
-    // Add common props like className
     return (
       <SectionComponent
         key={sectionKey}
@@ -111,7 +63,6 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
     });
 
     try {
-      // Use all available project data
       const { data: projectData, error: projectError } = await supabase
         .from('projects')
         .select('*')
@@ -120,7 +71,6 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
 
       if (projectError) throw projectError;
 
-      // Get any saved ad images
       const { data: adFeedback } = await supabase
         .from('ad_feedback')
         .select('saved_images')
@@ -138,7 +88,6 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
         projectImages: savedImages
       });
 
-      // Call the edge function to generate landing page content
       const { data: generatedContent, error } = await supabase.functions
         .invoke('generate-landing-page', {
           body: {
@@ -157,7 +106,6 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error("No authenticated user found");
 
-      // Save the generated content to the landing_pages table
       const { data: updatedLandingPage, error: saveError } = await supabase
         .from('landing_pages')
         .upsert({
@@ -197,11 +145,9 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
       
       console.log("Updated landing page:", updatedLandingPage);
 
-      // Update local state with new content
       setCurrentContent(generatedContent);
       setCurrentLayoutStyle(generatedContent.layout);
 
-      // Invalidate the landing page query to trigger a refetch
       await queryClient.invalidateQueries({
         queryKey: ["landing-page", project.id]
       });
@@ -259,179 +205,6 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
       </Tabs>
     </div>
   );
-};
-
-const generateInitialContent = (project: any) => {
-  // Ensure we have the required objects, even if empty
-  const businessIdea = project?.business_idea || {};
-  const audienceAnalysis = project?.audience_analysis || {};
-  const savedImages = project?.marketing_campaign?.saved_images || [];
-
-  // Default card data
-  const defaultCards = [
-    {
-      icon: "✨",
-      title: "Quality Product",
-      description: "Experience superior quality in every aspect"
-    },
-    {
-      icon: "🎯",
-      title: "Expert Service",
-      description: "Professional support when you need it"
-    },
-    {
-      icon: "💫",
-      title: "Great Value",
-      description: "Competitive pricing for premium offerings"
-    }
-  ];
-
-  // Default features with fallback images
-  const defaultFeatures = [
-    {
-      title: "Easy to Use",
-      description: "Intuitive design for the best user experience",
-      image: savedImages[0] || "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d",
-      icon: "🎯"
-    },
-    {
-      title: "Reliable Service",
-      description: "Consistent performance you can count on",
-      image: savedImages[1] || "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158",
-      icon: "🎯"
-    },
-    {
-      title: "Fast Support",
-      description: "Quick assistance whenever you need help",
-      image: savedImages[2] || "https://images.unsplash.com/photo-1461749280684-dccba630e2f6",
-      icon: "🎯"
-    }
-  ];
-
-  return {
-    hero: {
-      title: businessIdea?.valueProposition || project.title || "Welcome to Our Platform",
-      description: businessIdea?.description || "Discover the best solution for your needs",
-      cta: "Get Started Now",
-      // Hero section still uses generated image
-      image: "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b"
-    },
-    howItWorks: {
-      subheadline: "How It Works",
-      steps: [
-        {
-          title: "Step 1",
-          description: "Get started with our easy onboarding process"
-        },
-        {
-          title: "Step 2",
-          description: "Customize your experience to match your needs"
-        },
-        {
-          title: "Step 3",
-          description: "Enjoy the benefits of our solution"
-        }
-      ],
-      valueReinforcement: "Start your journey with us today"
-    },
-    marketAnalysis: {
-      context: "Understanding the Market",
-      solution: "Our Innovative Solution",
-      painPoints: [
-        {
-          title: "Challenge 1",
-          description: "Common industry pain point"
-        },
-        {
-          title: "Challenge 2",
-          description: "Another market challenge"
-        }
-      ],
-      features: Array.isArray(audienceAnalysis?.keyFeatures)
-        ? audienceAnalysis.keyFeatures.map((feature: string, index: number) => ({
-            title: feature.split(':')[0] || feature,
-            description: feature.split(':')[1] || feature,
-            image: savedImages[index % savedImages.length] || defaultFeatures[index % defaultFeatures.length].image
-          }))
-        : defaultFeatures,
-      socialProof: {
-        quote: "This solution has transformed our business operations",
-        author: "John Smith",
-        title: "CEO, Tech Company"
-      }
-    },
-    valueProposition: {
-      title: "Why Choose Us?",
-      cards: Array.isArray(audienceAnalysis?.benefits) 
-        ? audienceAnalysis.benefits.map((benefit: string) => ({
-            icon: "✨",
-            title: benefit.split(':')[0] || benefit,
-            description: benefit.split(':')[1] || benefit,
-          }))
-        : defaultCards,
-    },
-    features: {
-      title: "Key Features",
-      description: "Discover what makes us different",
-      items: Array.isArray(audienceAnalysis?.keyFeatures)
-        ? audienceAnalysis.keyFeatures.map((feature: string, index: number) => ({
-            title: feature.split(':')[0] || feature,
-            description: feature.split(':')[1] || feature,
-            icon: "🎯",
-            image: savedImages[index % savedImages.length] || defaultFeatures[index % defaultFeatures.length].image
-          }))
-        : defaultFeatures,
-    },
-    testimonials: {
-      title: "What Our Clients Say",
-      items: [{
-        quote: "This solution has transformed how we operate. Highly recommended!",
-        author: "John Smith",
-        role: "Business Owner"
-      },
-      {
-        quote: "The best decision we made for our business growth.",
-        author: "Jane Doe",
-        role: "Marketing Director"
-      }],
-    },
-    objections: {
-      subheadline: "Common Questions Answered",
-      concerns: [
-        {
-          question: "Is this right for my business?",
-          answer: "Our solution is designed to scale with businesses of all sizes"
-        },
-        {
-          question: "What about implementation?",
-          answer: "We provide full support throughout the implementation process"
-        }
-      ]
-    },
-    faq: {
-      subheadline: "Frequently Asked Questions",
-      questions: [
-        {
-          question: "How do I get started?",
-          answer: "Getting started is easy - simply sign up and follow our guided onboarding process"
-        },
-        {
-          question: "What support do you offer?",
-          answer: "We offer 24/7 customer support through multiple channels"
-        }
-      ]
-    },
-    cta: {
-      title: "Ready to Get Started?",
-      description: "Join thousands of satisfied customers and transform your business today.",
-      buttonText: "Start Now",
-    },
-    footerContent: {
-      contact: "Contact us at: support@example.com",
-      newsletter: "Subscribe to our newsletter for updates",
-      copyright: `© ${new Date().getFullYear()} All rights reserved.`
-    }
-  };
 };
 
 export default LandingPageContent;
