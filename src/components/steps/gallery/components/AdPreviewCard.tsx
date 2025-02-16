@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useParams } from "react-router-dom";
@@ -6,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { supabase } from "@/integrations/supabase/client"; // Add this import
+import { supabase } from "@/integrations/supabase/client";
 import MediaPreview from "./MediaPreview";
 import AdDetails from "./AdDetails";
 import DownloadControls from "./DownloadControls";
@@ -53,7 +52,6 @@ const AdPreviewCard = ({
   const [editedDescription, setEditedDescription] = useState(variant.description);
   const { toast } = useToast();
   const { projectId } = useParams();
-  const { saveGeneratedAds } = useAdPersistence(projectId);
 
   const getImageUrl = () => {
     if (variant.image?.url) {
@@ -63,6 +61,77 @@ const AdPreviewCard = ({
       return variant.imageUrl;
     }
     return null;
+  };
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError) {
+        console.error('Auth error:', authError);
+        throw new Error('Authentication error');
+      }
+      
+      if (!user) {
+        throw new Error('User must be logged in to save ad');
+      }
+
+      const imageUrl = getImageUrl();
+      if (!imageUrl) {
+        throw new Error('No image URL available to save');
+      }
+
+      console.log('Saving ad with data:', {
+        user_id: user.id,
+        project_id: projectId,
+        saved_images: [imageUrl],
+        primary_text: editedDescription,
+        headline: editedHeadline,
+        imageUrl: imageUrl,
+        platform: variant.platform,
+        size: selectedFormat || variant.size
+      });
+
+      const { data, error } = await supabase
+        .from('ad_feedback')
+        .insert({
+          user_id: user.id,
+          project_id: projectId,
+          saved_images: [imageUrl],
+          primary_text: editedDescription,
+          headline: editedHeadline,
+          imageUrl: imageUrl,
+          platform: variant.platform,
+          size: selectedFormat || variant.size,
+          feedback: 'saved',
+          rating: 5 // Default positive rating for saved ads
+        })
+        .select();
+
+      if (error) {
+        console.error('Database error:', error);
+        throw error;
+      }
+
+      console.log('Successfully saved ad:', data);
+
+      toast({
+        title: "Success!",
+        description: "Your ad has been saved successfully.",
+      });
+    } catch (error) {
+      console.error('Error saving ad:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error 
+          ? `Failed to save ad: ${error.message}` 
+          : "Failed to save ad. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleSaveTextEdits = () => {
@@ -112,49 +181,6 @@ const AdPreviewCard = ({
         description: error instanceof Error ? error.message : "Failed to download file.",
         variant: "destructive",
       });
-    }
-  };
-
-  const handleSave = async () => {
-    setIsSaving(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        throw new Error('User must be logged in to save ad');
-      }
-
-      const { error } = await supabase
-        .from('ad_feedback')
-        .insert({
-          user_id: user.id,
-          project_id: projectId,
-          saved_images: [getImageUrl()],
-          primary_text: editedDescription,
-          headline: editedHeadline,
-          imageUrl: getImageUrl(),
-          platform: variant.platform,
-          size: selectedFormat || variant.size,
-          feedback: 'saved',
-          rating: 5, // Default positive rating for saved ads
-          created_at: new Date().toISOString()
-        });
-
-      if (error) throw error;
-
-      toast({
-        title: "Success!",
-        description: "Your ad has been saved successfully.",
-      });
-    } catch (error) {
-      console.error('Error saving ad:', error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to save ad.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSaving(false);
     }
   };
 
