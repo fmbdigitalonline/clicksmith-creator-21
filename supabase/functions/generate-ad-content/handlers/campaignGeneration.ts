@@ -61,7 +61,7 @@ Return ONLY a valid JSON object with these fields:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4',  // Fixed: Changed from 'gpt-4o-mini' to 'gpt-4'
         messages: [
           {
             role: 'system',
@@ -87,15 +87,27 @@ Return ONLY a valid JSON object with these fields:
       throw new Error('Invalid response format from OpenAI');
     }
 
-    const content = data.choices[0].message.content;
-    console.log('Content before parsing:', content);
+    try {
+      const content = data.choices[0].message.content;
+      console.log('Content before parsing:', content);
 
-    const campaign = JSON.parse(content);
-    console.log('Parsed campaign:', campaign);
+      // Clean the content string to ensure it's valid JSON
+      const cleanContent = content.replace(/```json\n?|\n?```/g, '').trim();
+      const campaign = JSON.parse(cleanContent);
+      
+      // Validate the campaign object structure
+      if (!campaign.adCopies || !Array.isArray(campaign.adCopies) || !campaign.headlines || !Array.isArray(campaign.headlines)) {
+        throw new Error('Invalid campaign structure');
+      }
 
-    return { campaign };
+      console.log('Parsed campaign:', campaign);
+      return { campaign };
+    } catch (parseError) {
+      console.error('Error parsing campaign JSON:', parseError);
+      throw new Error('Failed to parse campaign data: ' + parseError.message);
+    }
   } catch (error) {
     console.error('Error in generateCampaign:', error);
-    throw error;
+    throw new Error('Campaign generation failed: ' + error.message);
   }
 }
