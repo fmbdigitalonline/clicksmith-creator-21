@@ -1,4 +1,3 @@
-
 import { useAdWizardState } from "@/hooks/useAdWizardState";
 import IdeaStep from "./steps/BusinessIdeaStep";
 import AudienceStep from "./steps/AudienceStep";
@@ -12,6 +11,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { Toggle } from "./ui/toggle";
 import { Video, Image } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 
 const AdWizard = () => {
   const [showCreateProject, setShowCreateProject] = useState(false);
@@ -77,19 +77,7 @@ const AdWizard = () => {
   };
 
   const handleVideoAdsToggle = async (enabled: boolean) => {
-    setVideoAdsEnabled(enabled);
-    if (projectId && projectId !== 'new') {
-      await supabase
-        .from('projects')
-        .update({ 
-          video_ads_enabled: enabled,
-          video_ad_preferences: enabled ? {
-            format: 'landscape',
-            duration: 30
-          } : null
-        })
-        .eq('id', projectId);
-    }
+    // Disabled for now - will be implemented in future
   };
 
   // Memoize the current step component to prevent unnecessary re-renders
@@ -148,19 +136,32 @@ const AdWizard = () => {
 
       <div className="flex items-center justify-end mb-6 space-x-2">
         <span className="text-sm text-gray-600">Image Ads</span>
-        <Toggle
-          pressed={videoAdsEnabled}
-          onPressedChange={handleVideoAdsToggle}
-          aria-label="Toggle video ads"
-          className="data-[state=on]:bg-facebook"
-        >
-          {videoAdsEnabled ? (
-            <Video className="h-4 w-4" />
-          ) : (
-            <Image className="h-4 w-4" />
-          )}
-        </Toggle>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div>
+                <Toggle
+                  pressed={videoAdsEnabled}
+                  onPressedChange={handleVideoAdsToggle}
+                  aria-label="Toggle video ads"
+                  className="data-[state=on]:bg-gray-300 cursor-not-allowed opacity-50"
+                  disabled
+                >
+                  {videoAdsEnabled ? (
+                    <Video className="h-4 w-4" />
+                  ) : (
+                    <Image className="h-4 w-4" />
+                  )}
+                </Toggle>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Video Ads - Coming Soon!</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
         <span className="text-sm text-gray-600">Video Ads</span>
+        <span className="text-xs text-gray-500 italic ml-1">Coming Soon!</span>
       </div>
 
       {currentStepComponent}
