@@ -7,7 +7,7 @@ export interface LandingPageContentProps {
 export interface SectionContentMap {
   [key: string]: {
     content: any;
-    layout?: string;
+    layout: string; // Remove the optional '?' since layout is required for hero section
   };
 }
 
