@@ -110,20 +110,31 @@ serve(async (req) => {
           
           const imageData = await generateImagePrompts(businessIdea, targetAudience, campaignData.campaign);
           console.log('Image data generated:', imageData);
+
+          // Create 2 variants for each of the 3 images across all platforms
+          const platforms = ['facebook', 'google', 'linkedin', 'tiktok'];
+          const variants = platforms.flatMap(platform => 
+            imageData.images.flatMap((image, imageIndex) => {
+              // Take only first two headlines/copies for each image
+              const headlines = campaignData.campaign.headlines.slice(0, 2);
+              const adCopies = campaignData.campaign.adCopies.slice(0, 2);
+              
+              return headlines.map((headline, variantIndex) => ({
+                platform,
+                headline,
+                description: adCopies[variantIndex].content,
+                imageUrl: image.url,
+                size: {
+                  width: image.width,
+                  height: image.height,
+                  label: image.label
+                }
+              }));
+            })
+          );
           
-          responseData = sanitizeJson({
-            variants: campaignData.campaign.adCopies.map((copy: any, index: number) => ({
-              platform: 'facebook',
-              headline: campaignData.campaign.headlines[index % campaignData.campaign.headlines.length],
-              description: copy.content,
-              imageUrl: imageData.images[0]?.url,
-              size: {
-                width: 1200,
-                height: 628,
-                label: "Facebook Feed"
-              }
-            }))
-          });
+          responseData = sanitizeJson({ variants });
+          
         } catch (error) {
           console.error('Error generating ad content:', error);
           throw error;
