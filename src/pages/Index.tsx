@@ -158,8 +158,8 @@ const Index = () => {
             </div>
             <div className="relative rounded-lg overflow-hidden shadow-xl">
               <img
-                src="/lovable-uploads/f8e07bf5-8804-4da4-b270-0ec6c5b8559c.png"
-                alt="Platform dashboard preview"
+                src="/lovable-uploads/7d22e5cf-12ef-4501-a1b9-3903165b75d6.png"
+                alt="Person overlooking a digital landscape from mountain top"
                 className="w-full h-auto"
               />
             </div>
