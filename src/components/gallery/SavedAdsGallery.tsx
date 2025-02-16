@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Json } from "@/integrations/supabase/types";
 import { SavedAdCard } from "./components/SavedAdCard";
 import { EmptyState } from "./components/EmptyState";
+import { Loader2 } from "lucide-react";
 
 interface SavedAd {
   id: string;
@@ -87,7 +88,13 @@ export const SavedAdsGallery = () => {
   }, [toast]);
 
   if (isLoading) {
-    return <div>Loading saved ads...</div>;
+    return (
+      <div className="flex flex-col items-center justify-center py-12">
+        <Loader2 className="w-8 h-8 animate-spin text-facebook mb-4" />
+        <p className="text-gray-600">Loading your saved ads...</p>
+        <p className="text-sm text-gray-500">We're retrieving your ad collection</p>
+      </div>
+    );
   }
 
   if (savedAds.length === 0) {
