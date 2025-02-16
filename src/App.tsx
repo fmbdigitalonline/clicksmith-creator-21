@@ -1,120 +1,154 @@
-
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
-import { Toaster } from "@/components/ui/toaster";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
-import { AppLayout } from "@/components/layout/AppLayout";
-import { SidebarProvider } from "@/components/ui/sidebar";
-import { OnboardingDialog } from "@/components/onboarding/OnboardingDialog";
+import Dashboard from "@/pages/Dashboard";
+import AdminDashboard from "@/pages/admin/AdminDashboard";
 import Login from "@/pages/Login";
-import Terms from "@/pages/Terms";
-import Privacy from "@/pages/Privacy";
+import Index from "@/pages/Index";
+import AdWizard from "@/pages/AdWizard";
+import Gallery from "@/pages/Gallery";
 import Projects from "@/pages/Projects";
+import ProjectDetail from "@/pages/ProjectDetail";
 import Settings from "@/pages/Settings";
 import Pricing from "@/pages/Pricing";
+import Tutorials from "@/pages/Tutorials";
+import FAQ from "@/pages/FAQ";
 import Contact from "@/pages/Contact";
-import AdWizard from "@/components/AdWizard";
-import Dashboard from "@/pages/Dashboard";
-import { SavedAdsGallery } from "@/components/gallery/SavedAdsGallery";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import Index from "@/pages/Index";
+import Feedback from "@/pages/Feedback";
+import AdDetail from "@/pages/AdDetail";
 import LandingPage from "@/pages/LandingPage";
-import LandingPages from "@/pages/LandingPages";
+import NotFound from "@/pages/NotFound";
 
-const queryClient = new QueryClient();
-
-function App() {
+const App = () => {
   return (
-    <QueryClientProvider client={queryClient}>
-      <SidebarProvider>
-        <Router>
-          <Routes>
-            {/* Public routes */}
-            <Route path="/login" element={<Login />} />
-            <Route path="/terms" element={<Terms />} />
-            <Route path="/privacy" element={<Privacy />} />
-            <Route path="/pricing" element={<Pricing />} />
-            <Route path="/contact" element={<Contact />} />
-            <Route path="/" element={<Index />} />
-
-            {/* Protected routes */}
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <Dashboard />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/projects"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <Projects />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/projects/:projectId/landing-page"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <LandingPage />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/landing-pages"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <LandingPages />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/settings"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <Settings />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/saved-ads"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <SavedAdsGallery />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/ad-wizard/:projectId"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <AdWizard />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-          <OnboardingDialog />
-          <Toaster />
-        </Router>
-      </SidebarProvider>
-    </QueryClientProvider>
+    <Router>
+      <Routes>
+        <Route path="/" element={<Index />} />
+        <Route path="/login" element={<Login />} />
+        {/* Protected routes */}
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute>
+              <AdminDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/ad-wizard"
+          element={
+            <ProtectedRoute>
+              <AdWizard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/ad-wizard/:projectId"
+          element={
+            <ProtectedRoute>
+              <AdWizard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/gallery"
+          element={
+            <ProtectedRoute>
+              <Gallery />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/projects"
+          element={
+            <ProtectedRoute>
+              <Projects />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/projects/:projectId"
+          element={
+            <ProtectedRoute>
+              <ProjectDetail />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute>
+              <Settings />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/pricing"
+          element={
+            <ProtectedRoute>
+              <Pricing />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/tutorials"
+          element={
+            <ProtectedRoute>
+              <Tutorials />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/faq"
+          element={
+            <ProtectedRoute>
+              <FAQ />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/contact"
+          element={
+            <ProtectedRoute>
+              <Contact />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/feedback"
+          element={
+            <ProtectedRoute>
+              <Feedback />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/ad-detail/:adId"
+          element={
+            <ProtectedRoute>
+              <AdDetail />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/landing-page/:landingPageId"
+          element={
+            <ProtectedRoute>
+              <LandingPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </Router>
   );
-}
+};
 
 export default App;
