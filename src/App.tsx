@@ -57,16 +57,6 @@ function App() {
               }
             />
             <Route
-              path="/dashboard/landing-pages"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <Projects />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
               path="/projects/:projectId/landing-page"
               element={
                 <ProtectedRoute>

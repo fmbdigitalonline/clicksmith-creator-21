@@ -46,10 +46,10 @@ const Navigation = () => {
               asChild
               className={cn(
                 "gap-2",
-                isActive("/dashboard/landing-pages") && "bg-accent"
+                isActive("/landing-pages") && "bg-accent"
               )}
             >
-              <Link to="/dashboard/landing-pages">
+              <Link to="/landing-pages">
                 <Layout className="h-4 w-4" />
                 <span>Landing Pages</span>
               </Link>
