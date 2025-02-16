@@ -1,32 +1,41 @@
 
-import { Users, CheckCircle2 } from "lucide-react";
+interface AudienceStepProps {
+  userType: string;
+}
 
-export function AudienceStep() {
+export function AudienceStep({ userType }: AudienceStepProps) {
+  const getTitle = () => {
+    switch (userType) {
+      case 'business_owner':
+        return 'Reach Your Ideal Customers';
+      case 'creator':
+        return 'Grow Your Following';
+      case 'affiliate':
+        return 'Find High-Converting Audiences';
+      default:
+        return 'Connect with Your Audience';
+    }
+  };
+
   return (
     <div className="space-y-6 mt-4">
-      <div className="flex items-start space-x-3">
-        <Users className="h-6 w-6 text-facebook mt-1" />
-        <div>
-          <p className="font-medium">Advanced Targeting</p>
-          <p className="text-sm text-muted-foreground">
-            Target your ideal customers based on demographics, interests, and behaviors.
-          </p>
-        </div>
-      </div>
-      <div className="p-4 bg-muted rounded-lg">
-        <h4 className="font-medium mb-2">Audience Insights</h4>
+      <div className="space-y-2">
+        <h3 className="font-medium text-lg">{getTitle()}</h3>
+        <p className="text-sm text-muted-foreground">
+          Our AI-powered targeting helps you:
+        </p>
         <ul className="space-y-2 text-sm">
           <li className="flex items-center">
-            <CheckCircle2 className="h-4 w-4 text-green-500 mr-2" />
-            Demographic analysis
+            • Identify your ideal audience demographics
           </li>
           <li className="flex items-center">
-            <CheckCircle2 className="h-4 w-4 text-green-500 mr-2" />
-            Interest mapping
+            • Target based on interests and behaviors
           </li>
           <li className="flex items-center">
-            <CheckCircle2 className="h-4 w-4 text-green-500 mr-2" />
-            Behavior tracking
+            • Optimize your reach and engagement
+          </li>
+          <li className="flex items-center">
+            • Track and improve performance
           </li>
         </ul>
       </div>
