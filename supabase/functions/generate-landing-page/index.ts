@@ -16,7 +16,6 @@ serve(async (req) => {
   try {
     console.log("Request received, method:", req.method);
     
-    // Safely parse the request body
     let body;
     try {
       const text = await req.text();
@@ -63,9 +62,132 @@ serve(async (req) => {
       throw new Error("API key configuration is missing");
     }
 
-    // Direct fetch to DeepSeek API for better control
-    async function createDeepSeekCompletion(messages: any) {
-      const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
+    // First, generate theme preferences based on business and audience
+    const themePrompt = `Based on this business:
+    ${JSON.stringify({ businessIdea, targetAudience, audienceAnalysis }, null, 2)}
+    
+    Generate a JSON object for the visual theme that would best represent this business and connect with their target audience. Include:
+    {
+      "colorScheme": {
+        "primary": string (color name),
+        "secondary": string (color name),
+        "accent": string (color name),
+        "background": string (color name)
+      },
+      "typography": {
+        "headingFont": string (specify a Google Font that fits the brand),
+        "bodyFont": string (specify a complementary Google Font),
+        "style": string (describe the typography style)
+      },
+      "mood": string (describe the overall mood/feeling),
+      "visualStyle": string (describe the visual style approach)
+    }
+    
+    Consider the business type, target audience preferences, and overall brand personality. Be creative but ensure the theme is professional and appropriate for the business context.
+    
+    IMPORTANT: Return ONLY valid JSON matching this exact structure. No markdown, no explanation.`;
+
+    console.log("Generating theme with prompt:", themePrompt);
+
+    // Generate theme preferences
+    const themeResponse = await fetch('https://api.deepseek.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'deepseek-chat',
+        messages: [
+          { 
+            role: "system", 
+            content: "You are an expert UI/UX designer specializing in creating cohesive visual themes for businesses."
+          },
+          { 
+            role: "user", 
+            content: themePrompt 
+          }
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.7,
+      }),
+    });
+
+    if (!themeResponse.ok) {
+      throw new Error(`Theme generation failed: ${themeResponse.statusText}`);
+    }
+
+    const themeData = await themeResponse.json();
+    const theme = JSON.parse(themeData.choices[0].message.content);
+    
+    console.log("Generated theme:", theme);
+
+    // Now generate the content with the theme in mind
+    const contentPrompt = `Create a landing page content for ${businessIdea.description || businessIdea.name} that reflects this visual theme and mood:
+    ${JSON.stringify(theme, null, 2)}
+    
+    Input Data:
+    ${JSON.stringify({ businessIdea, targetAudience, audienceAnalysis }, null, 2)}
+    
+    Generate a JSON object with these exact sections while maintaining the specified mood and visual style:
+    
+    {
+      "hero": {
+        "title": string,
+        "description": string,
+        "cta": string
+      },
+      "howItWorks": {
+        "steps": [
+          { "title": string, "description": string }
+        ],
+        "valueReinforcement": string
+      },
+      "marketAnalysis": {
+        "context": string,
+        "solution": string,
+        "painPoints": [
+          { "title": string, "description": string }
+        ],
+        "features": [
+          { "title": string, "description": string }
+        ]
+      },
+      "valueProposition": {
+        "title": string,
+        "cards": [
+          { "title": string, "description": string }
+        ]
+      },
+      "features": {
+        "description": string,
+        "items": [
+          { "title": string, "description": string }
+        ]
+      },
+      "testimonials": {
+        "items": [
+          { "quote": string, "author": string, "role": string }
+        ]
+      },
+      "objections": {
+        "subheadline": string,
+        "concerns": [
+          { "question": string, "answer": string }
+        ]
+      },
+      "cta": {
+        "title": string,
+        "description": string,
+        "buttonText": string
+      }
+    }
+    
+    IMPORTANT: Return ONLY valid JSON with these exact fields and nothing else. No markdown, no backticks.`;
+
+    let aidaContent;
+    try {
+      aidaContent = await fetch('https://api.deepseek.com/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${apiKey}`,
@@ -73,138 +195,29 @@ serve(async (req) => {
         },
         body: JSON.stringify({
           model: 'deepseek-chat',
-          messages,
+          messages: [
+            {
+              role: "system",
+              content: "You are an expert landing page copywriter. Create compelling content following the AIDA framework while maintaining the specified mood and visual style."
+            },
+            {
+              role: "user",
+              content: contentPrompt
+            }
+          ],
           response_format: { type: "json_object" },
           temperature: 0.7,
         }),
-      });
-
-      if (!response.ok) {
-        const text = await response.text();
-        console.error('DeepSeek API Error:', {
-          status: response.status,
-          statusText: response.statusText,
-          body: text
-        });
-        throw new Error(`DeepSeek API error: ${response.status} ${response.statusText} - ${text}`);
-      }
-
-      const data = await response.json();
-      console.log("Raw DeepSeek response:", data);
+      }).then(res => res.json())
+      .then(data => JSON.parse(data.choices[0].message.content));
       
-      if (!data.choices?.[0]?.message?.content) {
-        throw new Error('Invalid response format from DeepSeek');
-      }
-
-      try {
-        // Clean up the response content and parse as JSON
-        const content = data.choices[0].message.content.trim();
-        console.log("Content before parsing:", content);
-        
-        // Remove any markdown formatting if present
-        const cleanContent = content
-          .replace(/```json\s*/g, '')
-          .replace(/```\s*$/g, '')
-          .trim();
-        
-        const parsedContent = JSON.parse(cleanContent);
-        console.log("Parsed content:", parsedContent);
-        return parsedContent;
-      } catch (error) {
-        console.error("Error parsing DeepSeek response:", error);
-        console.error("Raw content:", data.choices[0].message.content);
-        throw new Error(`Failed to parse DeepSeek response: ${error.message}`);
-      }
-    }
-
-    // Generate main content following AIDA framework
-    const contentPrompt = `Create a landing page content for ${businessIdea.description || businessIdea.name}. 
-    
-Input Data:
-${JSON.stringify({ businessIdea, targetAudience, audienceAnalysis }, null, 2)}
-
-Generate a JSON object with these exact sections:
-
-{
-  "hero": {
-    "title": string,
-    "description": string,
-    "cta": string
-  },
-  "howItWorks": {
-    "steps": [
-      { "title": string, "description": string }
-    ],
-    "valueReinforcement": string
-  },
-  "marketAnalysis": {
-    "context": string,
-    "solution": string,
-    "painPoints": [
-      { "title": string, "description": string }
-    ],
-    "features": [
-      { "title": string, "description": string }
-    ]
-  },
-  "valueProposition": {
-    "title": string,
-    "cards": [
-      { "title": string, "description": string }
-    ]
-  },
-  "features": {
-    "description": string,
-    "items": [
-      { "title": string, "description": string }
-    ]
-  },
-  "testimonials": {
-    "items": [
-      { "quote": string, "author": string, "role": string }
-    ]
-  },
-  "objections": {
-    "subheadline": string,
-    "concerns": [
-      { "question": string, "answer": string }
-    ]
-  },
-  "cta": {
-    "title": string,
-    "description": string,
-    "buttonText": string
-  }
-}
-
-IMPORTANT: Return ONLY valid JSON with these exact fields and nothing else. No markdown, no backticks.`;
-
-    console.log("Generating content with prompt:", contentPrompt);
-
-    let aidaContent;
-    try {
-      aidaContent = await createDeepSeekCompletion([
-        {
-          role: "system",
-          content: "You are an expert landing page copywriter. Create compelling content following the AIDA framework. Return only valid JSON matching the exact structure specified."
-        },
-        {
-          role: "user",
-          content: contentPrompt
-        }
-      ]);
       console.log("Generated AIDA content:", aidaContent);
     } catch (error) {
       console.error("Error generating AIDA content:", error);
-      console.error("Error details:", {
-        name: error.name,
-        message: error.message,
-        stack: error.stack
-      });
       throw new Error("Failed to generate landing page content: " + error.message);
     }
 
-    // Handle hero image generation
+    // Handle hero image generation with theme-aware prompt
     let heroImage = null;
     try {
       console.log("Generating hero image...");
@@ -212,17 +225,7 @@ IMPORTANT: Return ONLY valid JSON with these exact fields and nothing else. No m
         auth: Deno.env.get('REPLICATE_API_KEY'),
       });
 
-      const styles = [
-        "professional DSLR photography",
-        "natural studio lighting",
-        "real commercial photography",
-        "professional corporate photo",
-        "high-end business photography"
-      ];
-      const randomStyle = styles[Math.floor(Math.random() * styles.length)];
-      const randomSeed = Math.floor(Math.random() * 1000000);
-
-      const imagePrompt = `Create a strictly photorealistic commercial photograph. The image must be indistinguishable from a professional DSLR camera shot, with absolutely no artistic or illustrated elements. ${aidaContent.hero.title}. ${aidaContent.hero.description}. Style: ${randomStyle}. Critical requirements: crystal clear focus, natural lighting, realistic shadows, professional studio quality, commercial photography standards.`;
+      const imagePrompt = `Create a strictly photorealistic commercial photograph that reflects this mood: ${theme.mood}. The image must be indistinguishable from a professional DSLR camera shot, with absolutely no artistic or illustrated elements. ${aidaContent.hero.title}. ${aidaContent.hero.description}. Style: ${theme.visualStyle}. Critical requirements: crystal clear focus, natural lighting, realistic shadows, professional studio quality, commercial photography standards.`;
       
       console.log("Image generation prompt:", imagePrompt);
 
@@ -235,7 +238,7 @@ IMPORTANT: Return ONLY valid JSON with these exact fields and nothing else. No m
             width: 1024,
             height: 1024,
             num_outputs: 1,
-            seed: randomSeed,
+            seed: Math.floor(Math.random() * 1000000),
             go_fast: true,
             megapixels: "1",
             aspect_ratio: "1:1",
@@ -253,14 +256,15 @@ IMPORTANT: Return ONLY valid JSON with these exact fields and nothing else. No m
       heroImage = null;
     }
 
-    // Combine all content
+    // Combine all content with theme
     const generatedContent = {
       ...aidaContent,
       hero: {
         ...aidaContent.hero,
         image: heroImage
       },
-      layout: "centered", // Default layout
+      theme,
+      layout: "centered",
       imagePlacements: projectImages.map((url: string, index: number) => ({
         url,
         section: ["features", "valueProposition", "proof"][index % 3]
@@ -279,7 +283,6 @@ IMPORTANT: Return ONLY valid JSON with these exact fields and nothing else. No m
 
   } catch (error) {
     console.error('Error in generate-landing-page function:', error);
-    console.error('Error stack:', error.stack);
     return new Response(
       JSON.stringify({
         error: error.message,
