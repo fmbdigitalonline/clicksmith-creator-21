@@ -13,6 +13,7 @@ import { AdFeedbackControls } from "./AdFeedbackControls";
 import { convertToFormat } from "@/utils/imageUtils";
 import { Pencil, ImagePlus, Check, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { Json } from "@/integrations/supabase/types";
 
 interface AdPreviewCardProps {
   variant: {
@@ -37,13 +38,13 @@ interface AdPreviewCardProps {
   selectedFormat?: { width: number; height: number; label: string };
 }
 
-interface GeneratedAd {
+type GeneratedAdJson = {
   id: string;
   headline: string;
   description: string;
   imageUrl?: string;
-  // ... add other properties as needed
-}
+  [key: string]: Json | undefined;
+};
 
 const AdPreviewCard = ({ 
   variant, 
@@ -85,7 +86,8 @@ const AdPreviewCard = ({
           .single();
 
         if (project?.generated_ads && Array.isArray(project.generated_ads)) {
-          const updatedAds = (project.generated_ads as GeneratedAd[]).map((ad) => {
+          const generatedAds = project.generated_ads as GeneratedAdJson[];
+          const updatedAds = generatedAds.map((ad) => {
             if (ad.id === variant.id) {
               return {
                 ...ad,
@@ -94,7 +96,7 @@ const AdPreviewCard = ({
               };
             }
             return ad;
-          });
+          }) as Json[];
 
           await supabase
             .from('projects')
@@ -145,7 +147,8 @@ const AdPreviewCard = ({
             .single();
 
           if (project?.generated_ads && Array.isArray(project.generated_ads)) {
-            const updatedAds = (project.generated_ads as GeneratedAd[]).map((ad) => {
+            const generatedAds = project.generated_ads as GeneratedAdJson[];
+            const updatedAds = generatedAds.map((ad) => {
               if (ad.id === variant.id) {
                 return {
                   ...ad,
@@ -153,7 +156,7 @@ const AdPreviewCard = ({
                 };
               }
               return ad;
-            });
+            }) as Json[];
 
             await supabase
               .from('projects')
