@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { OpenAI } from "https://esm.sh/openai@4.20.1";
 import Replicate from "https://esm.sh/replicate@0.25.1";
@@ -36,7 +37,7 @@ serve(async (req) => {
       );
     }
 
-    const { businessIdea, targetAudience, audienceAnalysis, marketingCampaign, projectImages = [] } = body;
+    const { businessIdea, targetAudience, audienceAnalysis, projectImages = [] } = body;
 
     if (!businessIdea) {
       console.error("Missing business idea in request");
@@ -53,7 +54,6 @@ serve(async (req) => {
       businessIdea,
       targetAudience,
       audienceAnalysis,
-      marketingCampaign,
       hasProjectImages: projectImages.length > 0
     });
 
@@ -64,7 +64,7 @@ serve(async (req) => {
     }
 
     // Direct fetch to DeepSeek API for better control
-    async function createDeepSeekCompletion(messages) {
+    async function createDeepSeekCompletion(messages: any) {
       const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -89,7 +89,32 @@ serve(async (req) => {
         throw new Error(`DeepSeek API error: ${response.status} ${response.statusText} - ${text}`);
       }
 
-      return response.json();
+      const data = await response.json();
+      console.log("Raw DeepSeek response:", data);
+      
+      if (!data.choices?.[0]?.message?.content) {
+        throw new Error('Invalid response format from DeepSeek');
+      }
+
+      try {
+        // Clean up the response content and parse as JSON
+        const content = data.choices[0].message.content.trim();
+        console.log("Content before parsing:", content);
+        
+        // Remove any markdown formatting if present
+        const cleanContent = content
+          .replace(/```json\s*/g, '')
+          .replace(/```\s*$/g, '')
+          .trim();
+        
+        const parsedContent = JSON.parse(cleanContent);
+        console.log("Parsed content:", parsedContent);
+        return parsedContent;
+      } catch (error) {
+        console.error("Error parsing DeepSeek response:", error);
+        console.error("Raw content:", data.choices[0].message.content);
+        throw new Error(`Failed to parse DeepSeek response: ${error.message}`);
+      }
     }
 
     // Generate main content following AIDA framework
@@ -101,6 +126,11 @@ ${JSON.stringify({ businessIdea, targetAudience, audienceAnalysis }, null, 2)}
 Generate a JSON object with these exact sections:
 
 {
+  "hero": {
+    "title": string,
+    "description": string,
+    "cta": string
+  },
   "howItWorks": {
     "steps": [
       { "title": string, "description": string }
@@ -118,6 +148,7 @@ Generate a JSON object with these exact sections:
     ]
   },
   "valueProposition": {
+    "title": string,
     "cards": [
       { "title": string, "description": string }
     ]
@@ -134,29 +165,25 @@ Generate a JSON object with these exact sections:
     ]
   },
   "objections": {
+    "subheadline": string,
     "concerns": [
       { "question": string, "answer": string }
     ]
   },
-  "faq": {
-    "questions": [
-      { "question": string, "answer": string }
-    ]
+  "cta": {
+    "title": string,
+    "description": string,
+    "buttonText": string
   }
 }
 
-Follow these rules:
-1. Make content compelling and focused on benefits
-2. Use professional tone
-3. Focus on solving pain points
-4. Include specific features and benefits
-5. Make all content relevant to the business idea and target audience`;
+IMPORTANT: Return ONLY valid JSON with these exact fields and nothing else. No markdown, no backticks.`;
 
     console.log("Generating content with prompt:", contentPrompt);
 
     let aidaContent;
     try {
-      const completion = await createDeepSeekCompletion([
+      aidaContent = await createDeepSeekCompletion([
         {
           role: "system",
           content: "You are an expert landing page copywriter. Create compelling content following the AIDA framework. Return only valid JSON matching the exact structure specified."
@@ -166,14 +193,6 @@ Follow these rules:
           content: contentPrompt
         }
       ]);
-
-      console.log("Raw DeepSeek response:", completion);
-      
-      if (!completion.choices?.[0]?.message?.content) {
-        throw new Error("Invalid response format from DeepSeek");
-      }
-
-      aidaContent = JSON.parse(completion.choices[0].message.content);
       console.log("Generated AIDA content:", aidaContent);
     } catch (error) {
       console.error("Error generating AIDA content:", error);
@@ -185,50 +204,14 @@ Follow these rules:
       throw new Error("Failed to generate landing page content: " + error.message);
     }
 
-    // Generate hero section with better error handling
-    let heroContent;
-    try {
-      const heroPrompt = `Create a compelling hero section for:
-Business: ${businessIdea.description}
-Target Audience: ${JSON.stringify(targetAudience)}
-Value Proposition: ${businessIdea.valueProposition}
-
-Return JSON with exact structure:
-{
-  "headline": string,
-  "subtitle": string
-}`;
-
-      const heroCompletion = await createDeepSeekCompletion([
-        {
-          role: "system",
-          content: "You are an expert copywriter. Return only valid JSON with the exact structure specified."
-        },
-        {
-          role: "user",
-          content: heroPrompt
-        }
-      ]);
-
-      heroContent = JSON.parse(heroCompletion.choices[0].message.content);
-      console.log("Generated hero content:", heroContent);
-    } catch (error) {
-      console.error("Error generating hero content:", error);
-      heroContent = {
-        headline: "Transform Your Business Ideas into Reality",
-        subtitle: "Get the professional guidance you need to succeed"
-      };
-    }
-
-    // Handle hero image generation with emphasis on realism
-    let heroImage;
+    // Handle hero image generation
+    let heroImage = null;
     try {
       console.log("Generating hero image...");
       const replicate = new Replicate({
         auth: Deno.env.get('REPLICATE_API_KEY'),
       });
 
-      // Add random seed and realistic style variations
       const styles = [
         "professional DSLR photography",
         "natural studio lighting",
@@ -239,7 +222,7 @@ Return JSON with exact structure:
       const randomStyle = styles[Math.floor(Math.random() * styles.length)];
       const randomSeed = Math.floor(Math.random() * 1000000);
 
-      const imagePrompt = `Create a strictly photorealistic commercial photograph. The image must be indistinguishable from a professional DSLR camera shot, with absolutely no artistic or illustrated elements. ${heroContent.headline}. ${heroContent.subtitle}. Style: ${randomStyle}. Critical requirements: crystal clear focus, natural lighting, realistic shadows, professional studio quality, commercial photography standards.`;
+      const imagePrompt = `Create a strictly photorealistic commercial photograph. The image must be indistinguishable from a professional DSLR camera shot, with absolutely no artistic or illustrated elements. ${aidaContent.hero.title}. ${aidaContent.hero.description}. Style: ${randomStyle}. Critical requirements: crystal clear focus, natural lighting, realistic shadows, professional studio quality, commercial photography standards.`;
       
       console.log("Image generation prompt:", imagePrompt);
 
@@ -270,99 +253,29 @@ Return JSON with exact structure:
       heroImage = null;
     }
 
-    // Combine all content with safe defaults
+    // Combine all content
     const generatedContent = {
+      ...aidaContent,
       hero: {
-        title: heroContent?.headline || "Transform Your Business",
-        description: heroContent?.subtitle || "Get started with our professional solution",
-        cta: "Get Started Now",
+        ...aidaContent.hero,
         image: heroImage
       },
-      howItWorks: aidaContent?.howItWorks || {
-        subheadline: "How It Works",
-        steps: [
-          {
-            title: "Share Your Vision",
-            description: "Tell us about your business idea"
-          },
-          {
-            title: "Get Professional Analysis",
-            description: "Receive expert insights and guidance"
-          },
-          {
-            title: "Implement Solutions",
-            description: "Put your plan into action"
-          }
-        ],
-        valueReinforcement: "Transform your business ideas into reality"
-      },
-      marketAnalysis: aidaContent?.marketAnalysis || {
-        context: "The market is evolving",
-        solution: "We provide innovative solutions",
-        painPoints: [],
-        features: []
-      },
-      valueProposition: {
-        title: "Why Choose Us?",
-        cards: aidaContent?.valueProposition?.cards || [
-          {
-            icon: "✨",
-            title: "Professional Quality",
-            description: "Expert solutions that deliver results"
-          },
-          {
-            icon: "🎯",
-            title: "Time-Saving",
-            description: "Quick implementation of proven strategies"
-          },
-          {
-            icon: "💫",
-            title: "Dedicated Support",
-            description: "Get help when you need it"
-          }
-        ]
-      },
-      features: aidaContent?.features || {
-        title: "Key Features",
-        description: "Everything you need to succeed",
-        items: []
-      },
-      testimonials: {
-        title: "What Our Clients Say",
-        items: aidaContent?.testimonials?.items || []
-      },
-      objections: {
-        subheadline: "Common Questions Answered",
-        concerns: aidaContent?.objections?.concerns || []
-      },
-      faq: {
-        subheadline: "Frequently Asked Questions",
-        questions: aidaContent?.faq?.questions || []
-      },
-      cta: {
-        title: "Ready to Get Started?",
-        description: "Join us today and transform your business.",
-        buttonText: "Get Started Now"
-      },
-      footerContent: {
-        contact: "Contact us for support",
-        newsletter: "Subscribe to our newsletter",
-        copyright: `© ${new Date().getFullYear()} All rights reserved.`
-      }
+      layout: "centered", // Default layout
+      imagePlacements: projectImages.map((url: string, index: number) => ({
+        url,
+        section: ["features", "valueProposition", "proof"][index % 3]
+      }))
     };
 
-    console.log("Successfully generated content, preparing response");
+    console.log("Final generated content:", generatedContent);
 
-    const response = new Response(
+    return new Response(
       JSON.stringify(generatedContent),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200
       }
     );
-
-    console.log("Sending response:", response.status);
-    return response;
 
   } catch (error) {
     console.error('Error in generate-landing-page function:', error);
