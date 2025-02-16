@@ -48,7 +48,10 @@ export default function LandingPageSettings({
 
       if (error) throw error;
 
-      await queryClient.invalidateQueries(["landing-pages"]);
+      // Update to use the correct invalidateQueries syntax
+      await queryClient.invalidateQueries({
+        queryKey: ["landing-pages"]
+      });
       
       toast({
         title: "Settings saved",
