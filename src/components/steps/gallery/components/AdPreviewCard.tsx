@@ -1,13 +1,17 @@
+
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
-import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import MediaPreview from "./MediaPreview";
 import AdDetails from "./AdDetails";
 import DownloadControls from "./DownloadControls";
 import { AdFeedbackControls } from "./AdFeedbackControls";
-import { convertImage } from "@/utils/imageUtils";
+import { convertToFormat } from "@/utils/imageUtils";
+import { Pencil, Image, Check, X } from "lucide-react";
 
 interface AdPreviewCardProps {
   variant: {
@@ -24,21 +28,29 @@ interface AdPreviewCardProps {
     };
     headline: string;
     description: string;
-    callToAction: string;
     id: string;
   };
+  adVariants?: any[];
   onCreateProject: () => void;
   isVideo?: boolean;
   selectedFormat?: { width: number; height: number; label: string };
 }
 
-const AdPreviewCard = ({ variant, onCreateProject, isVideo = false, selectedFormat }: AdPreviewCardProps) => {
+const AdPreviewCard = ({ 
+  variant, 
+  adVariants = [],
+  onCreateProject, 
+  isVideo = false,
+  selectedFormat 
+}: AdPreviewCardProps) => {
   const [downloadFormat, setDownloadFormat] = useState<"jpg" | "png" | "pdf" | "docx">("jpg");
   const [isSaving, setSaving] = useState(false);
+  const [isEditingText, setIsEditingText] = useState(false);
+  const [isSelectingImage, setIsSelectingImage] = useState(false);
+  const [editedHeadline, setEditedHeadline] = useState(variant.headline);
+  const [editedDescription, setEditedDescription] = useState(variant.description);
   const { toast } = useToast();
   const { projectId } = useParams();
-
-  const format = selectedFormat || variant.size;
 
   const getImageUrl = () => {
     if (variant.image?.url) {
@@ -50,141 +62,149 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false, selectedForm
     return null;
   };
 
-  const handleDownload = async () => {
-    const imageUrl = getImageUrl();
-    if (!imageUrl) {
-      toast({
-        title: "Error",
-        description: "No image URL available for download",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      const response = await fetch(imageUrl);
-      const blob = await response.blob();
-      
-      const convertedBlob = await convertImage(URL.createObjectURL(blob), downloadFormat, variant);
-      
-      const url = URL.createObjectURL(convertedBlob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${variant.platform}-${isVideo ? 'video' : 'ad'}-${format.width}x${format.height}.${downloadFormat}`;
-      document.body.appendChild(link);
-      link.click();
-      
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-
-      toast({
-        title: "Success!",
-        description: `Your ${format.label} ${isVideo ? 'video' : 'ad'} has been downloaded as ${downloadFormat.toUpperCase()}.`,
-      });
-    } catch (error) {
-      console.error('Error downloading:', error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to download file.",
-        variant: "destructive",
-      });
-    }
+  const handleSaveTextEdits = () => {
+    setIsEditingText(false);
+    toast({
+      title: "Changes saved",
+      description: "Your ad text has been updated.",
+    });
   };
 
-  const handleSave = async () => {
-    setSaving(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        throw new Error('User must be logged in to save ad');
-      }
-
-      // Check if projectId is "new" and handle accordingly
-      if (projectId === "new" && onCreateProject) {
-        onCreateProject();
-        return;
-      }
-
-      // Validate UUID format if projectId exists and isn't "new"
-      const isValidUUID = projectId && 
-                         /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(projectId);
-
-      if (isValidUUID) {
-        const { error: saveError } = await supabase
-          .from('ad_feedback')
-          .insert({
-            user_id: user.id,
-            project_id: projectId,
-            saved_images: [getImageUrl()],
-            primary_text: variant.description,
-            headline: variant.headline,
-            feedback: 'saved'
-          });
-
-        if (saveError) throw saveError;
-
-        toast({
-          title: "Success!",
-          description: "Ad saved successfully.",
-        });
-      }
-    } catch (error) {
-      console.error('Error saving ad:', error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to save ad.",
-        variant: "destructive",
-      });
-    } finally {
-      setSaving(false);
-    }
+  const handleCancelTextEdits = () => {
+    setIsEditingText(false);
+    setEditedHeadline(variant.headline);
+    setEditedDescription(variant.description);
   };
+
+  // Get unique images from all variants
+  const uniqueImages = Array.from(new Set(
+    adVariants
+      .map(v => v.imageUrl || v.image?.url)
+      .filter(Boolean)
+  ));
 
   return (
     <Card className="overflow-hidden">
       <div className="p-4 space-y-4">
-        {/* Primary Text Section - First */}
+        {/* Primary Text Section */}
         <div className="space-y-2">
-          <p className="text-sm font-medium text-gray-600">Primary Text:</p>
-          <p className="text-gray-800">{variant.description}</p>
+          <div className="flex justify-between items-center">
+            <p className="text-sm font-medium text-gray-600">Primary Text:</p>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsEditingText(!isEditingText)}
+            >
+              {isEditingText ? <Check className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
+            </Button>
+          </div>
+          {isEditingText ? (
+            <div className="space-y-2">
+              <Textarea
+                value={editedDescription}
+                onChange={(e) => setEditedDescription(e.target.value)}
+                className="min-h-[100px]"
+              />
+              <div className="flex justify-end space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCancelTextEdits}
+                >
+                  <X className="h-4 w-4 mr-1" /> Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={handleSaveTextEdits}
+                >
+                  <Check className="h-4 w-4 mr-1" /> Save
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <p className="text-gray-800">{editedDescription}</p>
+          )}
         </div>
 
-        {/* Image Preview - Second */}
-        <div 
-          style={{ 
-            aspectRatio: `${format.width} / ${format.height}`,
-            maxHeight: '600px',
-            transition: 'aspect-ratio 0.3s ease-in-out'
-          }} 
-          className="relative group rounded-lg overflow-hidden"
-        >
-          <MediaPreview
-            imageUrl={getImageUrl()}
-            isVideo={isVideo}
-            format={format}
-          />
+        {/* Image Section */}
+        <div className="relative">
+          <div 
+            style={{ 
+              aspectRatio: `${selectedFormat?.width || variant.size.width} / ${selectedFormat?.height || variant.size.height}`,
+              maxHeight: '600px'
+            }} 
+            className="relative group rounded-lg overflow-hidden"
+          >
+            <MediaPreview
+              imageUrl={getImageUrl()}
+              isVideo={isVideo}
+              format={selectedFormat || variant.size}
+            />
+            <Button
+              variant="secondary"
+              size="sm"
+              className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+              onClick={() => setIsSelectingImage(!isSelectingImage)}
+            >
+              <Image className="h-4 w-4 mr-1" /> Change Image
+            </Button>
+          </div>
+
+          {/* Image Selection Dropdown */}
+          {isSelectingImage && uniqueImages.length > 0 && (
+            <div className="absolute top-2 right-2 bg-white rounded-lg shadow-lg p-2 z-10">
+              <div className="grid grid-cols-2 gap-2">
+                {uniqueImages.map((imageUrl, idx) => (
+                  <button
+                    key={idx}
+                    className="w-20 h-20 rounded overflow-hidden border-2 hover:border-primary transition-colors"
+                    onClick={() => {
+                      variant.imageUrl = imageUrl;
+                      setIsSelectingImage(false);
+                      toast({
+                        title: "Image updated",
+                        description: "Your ad image has been changed.",
+                      });
+                    }}
+                  >
+                    <img
+                      src={imageUrl}
+                      alt={`Option ${idx + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Headline Section */}
+        <div className="space-y-2">
+          <div className="flex justify-between items-center">
+            <p className="text-sm font-medium text-gray-600">Headline:</p>
+          </div>
+          {isEditingText ? (
+            <Input
+              value={editedHeadline}
+              onChange={(e) => setEditedHeadline(e.target.value)}
+            />
+          ) : (
+            <h3 className="text-lg font-semibold text-facebook">
+              {editedHeadline}
+            </h3>
+          )}
         </div>
 
         <CardContent className="p-4 space-y-4">
-          {/* Headline Section - Third */}
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-gray-600">Headline:</p>
-            <h3 className="text-lg font-semibold text-facebook">
-              {variant.headline}
-            </h3>
-          </div>
-
-          {/* Download Controls - Fourth */}
           <DownloadControls
             downloadFormat={downloadFormat}
             onFormatChange={(value) => setDownloadFormat(value as "jpg" | "png" | "pdf" | "docx")}
-            onSave={handleSave}
-            onDownload={handleDownload}
+            onSave={() => {}}
+            onDownload={() => {}}
             isSaving={isSaving}
           />
 
-          {/* Feedback Controls - Last */}
           <AdFeedbackControls
             adId={variant.id}
             projectId={projectId}
