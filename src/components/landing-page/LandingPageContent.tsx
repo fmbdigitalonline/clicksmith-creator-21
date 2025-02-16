@@ -256,6 +256,7 @@ const generateInitialContent = (project: any) => {
   // Ensure we have the required objects, even if empty
   const businessIdea = project?.business_idea || {};
   const audienceAnalysis = project?.audience_analysis || {};
+  const savedImages = project?.marketing_campaign?.saved_images || [];
 
   // Default card data
   const defaultCards = [
@@ -276,24 +277,24 @@ const generateInitialContent = (project: any) => {
     }
   ];
 
-  // Default features with images
+  // Default features with fallback images
   const defaultFeatures = [
     {
       title: "Easy to Use",
       description: "Intuitive design for the best user experience",
-      image: "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d",
+      image: savedImages[0] || "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d",
       icon: "🎯"
     },
     {
       title: "Reliable Service",
       description: "Consistent performance you can count on",
-      image: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158",
+      image: savedImages[1] || "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158",
       icon: "🎯"
     },
     {
       title: "Fast Support",
       description: "Quick assistance whenever you need help",
-      image: "https://images.unsplash.com/photo-1461749280684-dccba630e2f6",
+      image: savedImages[2] || "https://images.unsplash.com/photo-1461749280684-dccba630e2f6",
       icon: "🎯"
     }
   ];
@@ -303,6 +304,7 @@ const generateInitialContent = (project: any) => {
       title: businessIdea?.valueProposition || project.title || "Welcome to Our Platform",
       description: businessIdea?.description || "Discover the best solution for your needs",
       cta: "Get Started Now",
+      // Hero section still uses generated image
       image: "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b"
     },
     howItWorks: {
@@ -340,7 +342,7 @@ const generateInitialContent = (project: any) => {
         ? audienceAnalysis.keyFeatures.map((feature: string, index: number) => ({
             title: feature.split(':')[0] || feature,
             description: feature.split(':')[1] || feature,
-            image: defaultFeatures[index % defaultFeatures.length].image
+            image: savedImages[index % savedImages.length] || defaultFeatures[index % defaultFeatures.length].image
           }))
         : defaultFeatures,
       socialProof: {
@@ -367,7 +369,7 @@ const generateInitialContent = (project: any) => {
             title: feature.split(':')[0] || feature,
             description: feature.split(':')[1] || feature,
             icon: "🎯",
-            image: defaultFeatures[index % defaultFeatures.length].image
+            image: savedImages[index % savedImages.length] || defaultFeatures[index % defaultFeatures.length].image
           }))
         : defaultFeatures,
     },
