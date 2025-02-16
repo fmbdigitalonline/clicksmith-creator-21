@@ -44,16 +44,22 @@ ${JSON.stringify(campaign, null, 2)}` : ''}
 Key Pain Points to Address:
 ${allPainPoints.map(point => `- ${point}`).join('\n')}
 
-Create 1 image prompt that:
-1. Visually represents the value proposition
-2. Connects emotionally with the target audience by addressing their pain points
-3. Is detailed enough for high-quality image generation
-4. Follows professional advertising best practices
+Create 3 DIFFERENT image prompts that:
+1. Each visually represents the value proposition in a unique way
+2. Each connects emotionally with the target audience by addressing different pain points
+3. Are detailed enough for high-quality image generation
+4. Follow professional advertising best practices
 
-Return ONLY a valid JSON array with exactly 1 item in this format:
+Return ONLY a valid JSON array with exactly 3 items in this format:
 [
   {
-    "prompt": "detailed_image_prompt"
+    "prompt": "detailed_image_prompt_1"
+  },
+  {
+    "prompt": "detailed_image_prompt_2"
+  },
+  {
+    "prompt": "detailed_image_prompt_3"
   }
 ]`;
 
@@ -76,7 +82,7 @@ Return ONLY a valid JSON array with exactly 1 item in this format:
         messages: [
           { 
             role: 'system', 
-            content: 'You are an expert at creating detailed image prompts for marketing visuals that align with business goals and target audiences.'
+            content: 'You are an expert at creating diverse and unique image prompts for marketing visuals that align with business goals and target audiences. Each prompt should be distinctly different from the others.'
           },
           { role: 'user', content: prompt }
         ],
@@ -97,25 +103,31 @@ Return ONLY a valid JSON array with exactly 1 item in this format:
     const generatedPrompts = safeJSONParse(data.choices[0].message.content);
     console.log('Generated prompts:', generatedPrompts);
 
-    if (!Array.isArray(generatedPrompts) || generatedPrompts.length === 0) {
-      throw new Error('Invalid prompts format: Expected non-empty array');
+    if (!Array.isArray(generatedPrompts) || generatedPrompts.length !== 3) {
+      throw new Error('Invalid prompts format: Expected array with exactly 3 items');
     }
 
-    // Generate one high-quality image in the largest format
-    console.log('Generating master image...');
-    const masterImageUrl = await generateWithReplicate(generatedPrompts[0].prompt, {
-      width: 1200,
-      height: 1200,
-    });
+    // Generate three different high-quality master images
+    console.log('Generating master images...');
+    const masterImagePromises = generatedPrompts.map(promptData => 
+      generateWithReplicate(promptData.prompt, {
+        width: 1200,
+        height: 1200,
+      })
+    );
 
-    // Create array of images with different sizes but same URL
-    const images = AD_FORMATS.map((format) => ({
-      url: masterImageUrl,
-      prompt: generatedPrompts[0].prompt,
-      width: format.width,
-      height: format.height,
-      label: format.label
-    }));
+    const masterImageUrls = await Promise.all(masterImagePromises);
+
+    // Create array of images with different sizes for each master image
+    const images = masterImageUrls.flatMap((imageUrl, index) => 
+      AD_FORMATS.map((format) => ({
+        url: imageUrl,
+        prompt: generatedPrompts[index].prompt,
+        width: format.width,
+        height: format.height,
+        label: format.label
+      }))
+    );
 
     console.log('Successfully generated images:', images);
     return { images };
