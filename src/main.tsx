@@ -13,8 +13,6 @@ const queryClient = new QueryClient({
       gcTime: 30 * 60 * 1000,
       // Retry failed requests 3 times
       retry: 3,
-      // Keep previous data when fetching new data
-      keepPreviousData: true,
       // Refetch on window focus (disabled to prevent unwanted refetches)
       refetchOnWindowFocus: false,
       // Important for wizard/form state persistence
