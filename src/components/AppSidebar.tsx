@@ -8,6 +8,7 @@ import {
   PlusCircle,
   Home,
   BookmarkIcon,
+  Layout,
 } from "lucide-react";
 import {
   Sidebar,
@@ -37,6 +38,11 @@ export function AppSidebar() {
       title: "Projects",
       icon: FolderKanban,
       url: "/projects",
+    },
+    {
+      title: "Landing Pages",
+      icon: Layout,
+      url: "/landing-pages",
     },
     {
       title: "Saved Ads",
