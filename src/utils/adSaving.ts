@@ -102,20 +102,16 @@ export const saveAd = async (params: SaveAdParams): Promise<SaveAdResult> => {
       };
     }
 
-    const baseFeedbackData = {
+    const feedbackData = {
       id: uuidv4(),
       user_id: user.id,
       rating: parseInt(rating, 10),
       feedback,
       saved_images: [image.url],
-      primary_text: primaryText || null,
-      headline: headline || null,
+      primary_text: primaryText || hook.text || null,
+      headline: headline || hook.description || null,
       created_at: new Date().toISOString()
     };
-
-    const feedbackData = validProjectId 
-      ? { ...baseFeedbackData, project_id: validProjectId }
-      : baseFeedbackData;
 
     const { error: feedbackError } = await supabase
       .from('ad_feedback')
