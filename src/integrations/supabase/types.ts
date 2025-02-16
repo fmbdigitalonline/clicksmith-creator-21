@@ -175,6 +175,51 @@ export type Database = {
           },
         ]
       }
+      admin_updates: {
+        Row: {
+          created_at: string
+          description: string
+          expiry_date: string | null
+          icon: string | null
+          id: string
+          metadata: Json | null
+          priority: number | null
+          publish_date: string | null
+          published: boolean | null
+          title: string
+          type: Database["public"]["Enums"]["update_type"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          expiry_date?: string | null
+          icon?: string | null
+          id?: string
+          metadata?: Json | null
+          priority?: number | null
+          publish_date?: string | null
+          published?: boolean | null
+          title: string
+          type: Database["public"]["Enums"]["update_type"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          expiry_date?: string | null
+          icon?: string | null
+          id?: string
+          metadata?: Json | null
+          priority?: number | null
+          publish_date?: string | null
+          published?: boolean | null
+          title?: string
+          type?: Database["public"]["Enums"]["update_type"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       anonymous_usage: {
         Row: {
           completed: boolean | null
@@ -798,6 +843,7 @@ export type Database = {
           full_name: string | null
           id: string
           is_active: boolean | null
+          is_admin: boolean | null
           is_business_owner: boolean | null
           payment_status: string | null
           updated_at: string
@@ -810,6 +856,7 @@ export type Database = {
           full_name?: string | null
           id: string
           is_active?: boolean | null
+          is_admin?: boolean | null
           is_business_owner?: boolean | null
           payment_status?: string | null
           updated_at?: string
@@ -822,6 +869,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           is_active?: boolean | null
+          is_admin?: boolean | null
           is_business_owner?: boolean | null
           payment_status?: string | null
           updated_at?: string
@@ -1176,6 +1224,7 @@ export type Database = {
       backup_type: "auto" | "manual"
       credit_operation_type: "credit_add" | "credit_deduct" | "credit_refund"
       image_generation_status: "pending" | "completed" | "failed"
+      update_type: "feature" | "update" | "incident" | "announcement"
     }
     CompositeTypes: {
       [_ in never]: never

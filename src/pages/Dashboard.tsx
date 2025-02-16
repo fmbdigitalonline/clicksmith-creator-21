@@ -1,7 +1,6 @@
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Lightbulb, FolderOpen, Eye, Pencil, Bell, BookOpen, MessageSquare, HelpCircle, Star, Info, AlertOctagon } from "lucide-react";
+import { Plus, Lightbulb, FolderOpen, Eye, Pencil, Bell, BookOpen, MessageSquare, HelpCircle, Star, Info, AlertOctagon, ArrowRight, Globe, BookmarkCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -40,7 +39,35 @@ const Dashboard = () => {
         .from("projects")
         .select("*")
         .order("updated_at", { ascending: false })
-        .limit(4);
+        .limit(3);
+
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: recentLandingPages } = useQuery({
+    queryKey: ["recent-landing-pages"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("landing_pages")
+        .select("*")
+        .order("updated_at", { ascending: false })
+        .limit(3);
+
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: recentSavedAds } = useQuery({
+    queryKey: ["recent-saved-ads"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("ad_feedback")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(3);
 
       if (error) throw error;
       return data;
@@ -259,40 +286,128 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Recent Projects with Enhanced Visual Design */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
-          <h2 className="text-2xl font-bold md:col-span-2 lg:col-span-4 flex items-center gap-2">
-            <FolderOpen className="h-6 w-6 text-primary" />
-            Recent Projects
-          </h2>
-          {recentProjects?.map((project) => (
-            <Card key={project.id} className="hover:shadow-md transition-shadow bg-gradient-to-br from-background to-muted/50">
-              <CardHeader>
-                <CardTitle className="text-lg">{project.title}</CardTitle>
-                <CardDescription>
-                  Updated {formatDistanceToNow(new Date(project.updated_at), { addSuffix: true })}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => navigate(`/projects/${project.id}`)}
-                  >
-                    <Pencil className="h-4 w-4 mr-1" /> Edit
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => navigate(`/ad-wizard/${project.id}`)}
-                  >
-                    <Eye className="h-4 w-4 mr-1" /> View Ads
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+        {/* Recent Projects */}
+        <div className="grid gap-4 mb-8">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold flex items-center gap-2">
+              <FolderOpen className="h-6 w-6 text-primary" />
+              Recent Projects
+            </h2>
+            <Button variant="ghost" className="gap-2" onClick={() => navigate("/projects")}>
+              View All <ArrowRight className="h-4 w-4" />
+            </Button>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {recentProjects?.map((project) => (
+              <Card key={project.id} className="hover:shadow-md transition-shadow">
+                <CardHeader>
+                  <CardTitle className="text-lg">{project.title}</CardTitle>
+                  <CardDescription>
+                    Updated {formatDistanceToNow(new Date(project.updated_at), { addSuffix: true })}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => navigate(`/projects/${project.id}`)}
+                    >
+                      <Pencil className="h-4 w-4 mr-1" /> Edit
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => navigate(`/ad-wizard/${project.id}`)}
+                    >
+                      <Eye className="h-4 w-4 mr-1" /> View Ads
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+
+        {/* Recent Landing Pages */}
+        <div className="grid gap-4 mb-8">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold flex items-center gap-2">
+              <Globe className="h-6 w-6 text-primary" />
+              Recent Landing Pages
+            </h2>
+            <Button variant="ghost" className="gap-2" onClick={() => navigate("/landing-pages")}>
+              View All <ArrowRight className="h-4 w-4" />
+            </Button>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {recentLandingPages?.map((page) => (
+              <Card key={page.id} className="hover:shadow-md transition-shadow">
+                <CardHeader>
+                  <CardTitle className="text-lg">{page.title}</CardTitle>
+                  <CardDescription>
+                    Updated {formatDistanceToNow(new Date(page.updated_at), { addSuffix: true })}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => navigate(`/projects/${page.project_id}/landing-page`)}
+                    >
+                      <Pencil className="h-4 w-4 mr-1" /> Edit
+                    </Button>
+                    {page.published && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => window.open(`/preview/${page.id}`, '_blank')}
+                      >
+                        <Eye className="h-4 w-4 mr-1" /> Preview
+                      </Button>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+
+        {/* Recent Saved Ads */}
+        <div className="grid gap-4 mb-8">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold flex items-center gap-2">
+              <BookmarkCheck className="h-6 w-6 text-primary" />
+              Recently Saved Ads
+            </h2>
+            <Button variant="ghost" className="gap-2" onClick={() => navigate("/saved-ads")}>
+              View All <ArrowRight className="h-4 w-4" />
+            </Button>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {recentSavedAds?.map((ad) => (
+              <Card key={ad.id} className="hover:shadow-md transition-shadow">
+                <CardHeader>
+                  <CardTitle className="text-lg">{ad.headline || "Untitled Ad"}</CardTitle>
+                  <CardDescription>
+                    Saved {formatDistanceToNow(new Date(ad.created_at), { addSuffix: true })}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => navigate(`/saved-ads/${ad.id}`)}
+                    >
+                      <Eye className="h-4 w-4 mr-1" /> View
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </div>
 
         {/* Resources & Help with Enhanced Visual Design */}
