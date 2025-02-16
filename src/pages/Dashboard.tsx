@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Lightbulb, FolderOpen, Eye, Pencil, Bell, BookOpen, MessageSquare, HelpCircle, Star, Info, AlertOctagon, ArrowRight, Globe, BookmarkCheck } from "lucide-react";
@@ -223,7 +224,7 @@ const Dashboard = () => {
               <CardDescription>Resume your business idea validation journey</CardDescription>
             </CardHeader>
           </Card>
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer bg-gradient-to-br from-blue-500/5 to-blue-500/10" onClick={() => navigate("/gallery")}>
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer bg-gradient-to-br from-blue-500/5 to-blue-500/10" onClick={() => navigate("/saved-ads")}>
             <CardHeader>
               <FolderOpen className="h-8 w-8 mb-2 text-blue-500" />
               <CardTitle>View Saved Ads</CardTitle>
@@ -420,11 +421,11 @@ const Dashboard = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <Button variant="link" className="w-full justify-start" onClick={() => navigate("/tutorials")}>
+              <Button variant="link" className="w-full justify-start" onClick={() => navigate("/dashboard")}>
                 <BookOpen className="h-4 w-4 mr-2" />
                 Getting Started with Ad Wizard
               </Button>
-              <Button variant="link" className="w-full justify-start" onClick={() => navigate("/faq")}>
+              <Button variant="link" className="w-full justify-start" onClick={() => navigate("/dashboard")}>
                 <HelpCircle className="h-4 w-4 mr-2" />
                 FAQs and Support
               </Button>
@@ -443,7 +444,7 @@ const Dashboard = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <Button variant="link" className="w-full justify-start" onClick={() => navigate("/feedback")}>
+              <Button variant="link" className="w-full justify-start" onClick={() => navigate("/contact")}>
                 <MessageSquare className="h-4 w-4 mr-2" />
                 Share Your Feedback
               </Button>
