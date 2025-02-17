@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,7 +10,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import { sectionComponents, defaultSectionOrder } from "./constants/sectionConfig";
 import { generateInitialContent } from "./utils/contentUtils";
 import type { LandingPageContentProps, SectionContentMap } from "./types/landingPageTypes";
-import LoadingState from "@/components/steps/complete/LoadingState";
 
 const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) => {
   const [activeView, setActiveView] = useState<"edit" | "preview">("preview");
@@ -159,6 +159,11 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
         return;
       }
 
+      toast({
+        title: "Creating landing page",
+        description: "Please wait while we generate your landing page...",
+      });
+
       const { data: projectData, error: projectError } = await supabase
         .from('projects')
         .select('*')
@@ -295,18 +300,11 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
       });
     } finally {
       setIsGenerating(false);
-      // Dismiss the loading toast
-      toast({
-        title: "Status",
-        description: "Generation complete",
-        duration: 2000,
-      });
     }
   };
 
   return (
     <div className="space-y-8">
-      {isGenerating && <LoadingState fullScreen />}
       <Tabs value={activeView} onValueChange={(v) => setActiveView(v as "edit" | "preview")}>
         <div className="flex justify-between items-center">
           <TabsList>
