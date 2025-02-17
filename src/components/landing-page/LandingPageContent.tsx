@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -66,6 +67,8 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
       const { error: updateError } = await supabase
         .from('landing_pages')
         .upsert({
+          title: `Landing Page for ${project.name || 'Project'}`,
+          user_id: user.id,
           project_id: project.id,
           content: data.content,
           layout_style: data.layout_style,
@@ -80,7 +83,9 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
       setCurrentLayoutStyle(data.layout_style);
 
       // Invalidate queries to refetch latest data
-      queryClient.invalidateQueries(['landing-page', project.id]);
+      await queryClient.invalidateQueries({
+        queryKey: ['landing-page', project.id]
+      });
 
       toast({
         title: "Content generated successfully",
