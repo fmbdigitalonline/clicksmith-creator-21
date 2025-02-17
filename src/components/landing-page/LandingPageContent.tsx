@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -24,75 +23,82 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
   const currentLayout = currentLayoutStyle || (template?.structure?.sections || {});
   const sectionOrder = landingPage?.section_order || defaultSectionOrder;
 
-  const renderSection = (sectionKey: string) => {
-    const sectionContentMap: SectionContentMap = {
-      hero: { 
-        content: currentContent.hero, 
-        layout: currentLayout?.hero?.layout || 'centered' // Provide default layout
-      },
-      value_proposition: { 
-        content: { title: currentContent.valueProposition?.title, cards: currentContent.valueProposition?.cards },
-        layout: 'default'
-      },
-      features: { 
-        content: { title: currentContent.features?.title, description: currentContent.features?.description, items: currentContent.features?.items },
-        layout: 'default'
-      },
-      testimonials: { 
-        content: { title: currentContent.testimonials?.title, items: currentContent.testimonials?.items },
-        layout: 'default'
-      },
-      cta: { 
-        content: currentContent.cta,
-        layout: 'default'
-      },
-      how_it_works: { 
-        content: landingPage?.how_it_works || currentContent.howItWorks,
-        layout: 'default'
-      },
-      market_analysis: { 
-        content: landingPage?.market_analysis || currentContent.marketAnalysis,
-        layout: 'default'
-      },
-      objections: { 
-        content: landingPage?.objections || currentContent.objections,
-        layout: 'default'
-      },
-      faq: { 
-        content: landingPage?.faq || currentContent.faq,
-        layout: 'default'
-      },
-      footer: { 
-        content: landingPage?.footer_content || currentContent.footerContent,
-        layout: 'default'
+  const checkUserCredits = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("No authenticated user found");
+
+      const { data: result, error } = await supabase.rpc('check_user_credits', {
+        p_user_id: user.id,
+        required_credits: 1
+      });
+
+      if (error) throw error;
+
+      if (!result.has_credits) {
+        toast({
+          title: "Insufficient credits",
+          description: result.error_message,
+          variant: "destructive",
+        });
+        return false;
       }
-    };
 
-    const SectionComponent = sectionComponents[sectionKey as keyof typeof sectionComponents];
-    if (!SectionComponent) return null;
+      return true;
+    } catch (error) {
+      console.error('Error checking credits:', error);
+      toast({
+        title: "Error",
+        description: "Failed to check credits availability",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
 
-    const sectionProps = sectionContentMap[sectionKey];
-    if (!sectionProps) return null;
+  const deductCredits = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("No authenticated user found");
 
-    return (
-      <SectionComponent
-        key={sectionKey}
-        {...sectionProps}
-        className={template?.structure.styles.spacing.sectionPadding}
-      />
-    );
+      const { data: result, error } = await supabase.rpc('deduct_user_credits', {
+        input_user_id: user.id,
+        credits_to_deduct: 1
+      });
+
+      if (error) throw error;
+
+      if (!result.success) {
+        throw new Error(result.error_message);
+      }
+
+      // Invalidate credits queries to refresh the display
+      await queryClient.invalidateQueries({ queryKey: ['credits'] });
+      await queryClient.invalidateQueries({ queryKey: ['subscription'] });
+      await queryClient.invalidateQueries({ queryKey: ['free_tier_usage'] });
+
+    } catch (error) {
+      console.error('Error deducting credits:', error);
+      throw error;
+    }
   };
 
   const generateLandingPageContent = async () => {
     setIsGenerating(true);
     console.log("Starting generation of new layout");
     
-    toast({
-      title: "Creating landing page",
-      description: "Please wait while we generate your landing page...",
-    });
-
     try {
+      // Check credits first
+      const hasCredits = await checkUserCredits();
+      if (!hasCredits) {
+        return;
+      }
+
+      toast({
+        title: "Creating landing page",
+        description: "Please wait while we generate your landing page...",
+      });
+
       const { data: projectData, error: projectError } = await supabase
         .from('projects')
         .select('*')
@@ -132,6 +138,9 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
       if (error) throw error;
       
       console.log("Generated content:", generatedContent);
+
+      // Deduct credits after successful generation
+      await deductCredits();
 
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error("No authenticated user found");
@@ -199,9 +208,64 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
     }
   };
 
-  if (isTemplateLoading) {
-    return <div>Loading template...</div>;
-  }
+  const renderSection = (sectionKey: string) => {
+    const sectionContentMap: SectionContentMap = {
+      hero: { 
+        content: currentContent.hero, 
+        layout: currentLayout?.hero?.layout || 'centered' // Provide default layout
+      },
+      value_proposition: { 
+        content: { title: currentContent.valueProposition?.title, cards: currentContent.valueProposition?.cards },
+        layout: 'default'
+      },
+      features: { 
+        content: { title: currentContent.features?.title, description: currentContent.features?.description, items: currentContent.features?.items },
+        layout: 'default'
+      },
+      testimonials: { 
+        content: { title: currentContent.testimonials?.title, items: currentContent.testimonials?.items },
+        layout: 'default'
+      },
+      cta: { 
+        content: currentContent.cta,
+        layout: 'default'
+      },
+      how_it_works: { 
+        content: landingPage?.how_it_works || currentContent.howItWorks,
+        layout: 'default'
+      },
+      market_analysis: { 
+        content: landingPage?.market_analysis || currentContent.marketAnalysis,
+        layout: 'default'
+      },
+      objections: { 
+        content: landingPage?.objections || currentContent.objections,
+        layout: 'default'
+      },
+      faq: { 
+        content: landingPage?.faq || currentContent.faq,
+        layout: 'default'
+      },
+      footer: { 
+        content: landingPage?.footer_content || currentContent.footerContent,
+        layout: 'default'
+      }
+    };
+
+    const SectionComponent = sectionComponents[sectionKey as keyof typeof sectionComponents];
+    if (!SectionComponent) return null;
+
+    const sectionProps = sectionContentMap[sectionKey];
+    if (!sectionProps) return null;
+
+    return (
+      <SectionComponent
+        key={sectionKey}
+        {...sectionProps}
+        className={template?.structure.styles.spacing.sectionPadding}
+      />
+    );
+  };
 
   return (
     <div className="space-y-8">
