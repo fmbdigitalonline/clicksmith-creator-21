@@ -35,6 +35,11 @@ export function AppSidebar() {
       url: "/dashboard",
     },
     {
+      title: "Help",
+      icon: HelpCircle,
+      url: "/contact",
+    },
+    {
       title: "Projects",
       icon: FolderKanban,
       url: "/projects",
@@ -48,11 +53,6 @@ export function AppSidebar() {
       title: "Landing Pages",
       icon: Layout,
       url: "/landing-pages",
-    },
-    {
-      title: "Help",
-      icon: HelpCircle,
-      url: "/contact",
     },
     {
       title: "Settings",
