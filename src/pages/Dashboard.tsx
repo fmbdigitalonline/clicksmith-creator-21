@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Lightbulb, FolderOpen, Eye, Pencil, Bell, BookOpen, MessageSquare, HelpCircle, Star, Info, AlertOctagon, ArrowRight, Globe, BookmarkCheck } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useQueryClient } from "@tanstack/react-query";
@@ -11,6 +11,7 @@ import AdStatsCard from "@/components/dashboard/AdStatsCard";
 import CreditsCard from "@/components/dashboard/CreditsCard";
 import { OnboardingDialog } from "@/components/onboarding/OnboardingDialog";
 import { formatDistanceToNow } from "date-fns";
+import { CheckCircle } from "lucide-react";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -321,7 +322,7 @@ const Dashboard = () => {
               <Card 
                 key={project.id} 
                 className="hover:shadow-md transition-shadow cursor-pointer"
-                onClick={() => handleProjectClick(project.id)}
+                onClick={() => navigate(`/projects/${project.id}`)}
               >
                 <CardHeader>
                   <CardTitle className="text-lg">{project.title}</CardTitle>
@@ -335,7 +336,7 @@ const Dashboard = () => {
                       variant="outline"
                       size="sm"
                       onClick={(e) => {
-                        e.stopPropagation(); // Prevent card click from triggering
+                        e.stopPropagation();
                         navigate(`/projects/${project.id}`);
                       }}
                     >
@@ -345,7 +346,7 @@ const Dashboard = () => {
                       variant="outline"
                       size="sm"
                       onClick={(e) => {
-                        e.stopPropagation(); // Prevent card click from triggering
+                        e.stopPropagation();
                         navigate(`/ad-wizard/${project.id}`);
                       }}
                     >
