@@ -27,6 +27,20 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
   const currentLayout = currentLayoutStyle || (template?.structure?.sections || {});
   const sectionOrder = landingPage?.section_order || defaultSectionOrder;
 
+  const getBusinessDescription = (businessIdea: any): string => {
+    if (typeof businessIdea === 'string') return businessIdea;
+    if (businessIdea?.description) return businessIdea.description;
+    if (businessIdea?.valueProposition) return businessIdea.valueProposition;
+    return '';
+  };
+
+  const getTargetAudienceDescription = (targetAudience: any): string => {
+    if (typeof targetAudience === 'string') return targetAudience;
+    if (targetAudience?.description) return targetAudience.description;
+    if (targetAudience?.icp) return targetAudience.icp;
+    return '';
+  };
+
   const renderSection = (sectionKey: string) => {
     const sectionData = currentContent[sectionKey];
     if (!sectionData || !sectionData.content) return null;
@@ -52,21 +66,26 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      // First log to check what we're sending
-      console.log('Project data:', {
-        project,
-        template,
-        businessIdea: project.business_idea,
-        targetAudience: project.target_audience
+      // Transform the business idea and target audience data
+      const businessDescription = getBusinessDescription(project.business_idea);
+      const targetAudienceDescription = getTargetAudienceDescription(project.target_audience);
+
+      // Log the transformed data
+      console.log('Sending to edge function:', {
+        projectId: project.id,
+        businessName: project.name,
+        businessDescription,
+        targetAudienceDescription,
+        templateStructure: template?.structure
       });
 
       const { data, error } = await supabase.functions.invoke('generate-landing-page', {
         body: {
           projectId: project.id,
-          businessIdea: project.business_idea?.description || project.business_idea,
           businessName: project.name,
-          targetAudience: project.target_audience?.description || project.target_audience,
-          template: template?.structure || template,
+          businessIdea: businessDescription,
+          targetAudience: targetAudienceDescription,
+          template: template?.structure,
           existingContent: currentContent,
           layoutStyle: currentLayoutStyle
         }
@@ -77,7 +96,11 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
         throw error;
       }
 
-      // Log the response to help debug
+      if (!data || !data.content) {
+        throw new Error('Invalid response from content generation');
+      }
+
+      // Log the successful response
       console.log('Generated content:', data);
 
       // Update landing page content in database
