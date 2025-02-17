@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useParams } from "react-router-dom";
@@ -13,6 +14,7 @@ import { AdFeedbackControls } from "./AdFeedbackControls";
 import { convertImage } from "@/utils/imageUtils";
 import { Pencil, Image, Check, X } from "lucide-react";
 import { useAdPersistence } from "@/hooks/gallery/useAdPersistence";
+import { AdSizeSelector, AD_FORMATS } from "../components/AdSizeSelector";
 
 interface AdPreviewCardProps {
   variant: {
@@ -42,7 +44,7 @@ const AdPreviewCard = ({
   adVariants = [],
   onCreateProject, 
   isVideo = false,
-  selectedFormat 
+  selectedFormat: initialFormat
 }: AdPreviewCardProps) => {
   const [downloadFormat, setDownloadFormat] = useState<"jpg" | "png" | "pdf" | "docx">("jpg");
   const [isSaving, setIsSaving] = useState(false);
@@ -50,6 +52,7 @@ const AdPreviewCard = ({
   const [isSelectingImage, setIsSelectingImage] = useState(false);
   const [editedHeadline, setEditedHeadline] = useState(variant.headline);
   const [editedDescription, setEditedDescription] = useState(variant.description);
+  const [selectedFormat, setSelectedFormat] = useState(initialFormat || variant.size);
   const { toast } = useToast();
   const { projectId } = useParams();
 
@@ -90,7 +93,7 @@ const AdPreviewCard = ({
         headline: editedHeadline,
         imageUrl: imageUrl,
         platform: variant.platform,
-        size: selectedFormat || variant.size
+        size: selectedFormat
       });
 
       const { data, error } = await supabase
@@ -103,9 +106,9 @@ const AdPreviewCard = ({
           headline: editedHeadline,
           imageUrl: imageUrl,
           platform: variant.platform,
-          size: selectedFormat || variant.size,
+          size: selectedFormat,
           feedback: 'saved',
-          rating: 5 // Default positive rating for saved ads
+          rating: 5
         })
         .select();
 
@@ -160,11 +163,11 @@ const AdPreviewCard = ({
     }
 
     try {
-      const blob = await convertImage(imageUrl, downloadFormat, variant);
+      const blob = await convertImage(imageUrl, downloadFormat, { ...variant, size: selectedFormat });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `${variant.platform}-ad-${selectedFormat?.width || variant.size.width}x${selectedFormat?.height || variant.size.height}.${downloadFormat}`;
+      link.download = `${variant.platform}-ad-${selectedFormat.width}x${selectedFormat.height}.${downloadFormat}`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -172,7 +175,7 @@ const AdPreviewCard = ({
 
       toast({
         title: "Success!",
-        description: `Your ${variant.size.label} ${isVideo ? 'video' : 'ad'} has been downloaded as ${downloadFormat.toUpperCase()}.`,
+        description: `Your ${selectedFormat.label} ${isVideo ? 'video' : 'ad'} has been downloaded as ${downloadFormat.toUpperCase()}.`,
       });
     } catch (error) {
       console.error('Error downloading:', error);
@@ -182,6 +185,14 @@ const AdPreviewCard = ({
         variant: "destructive",
       });
     }
+  };
+
+  const handleFormatChange = (format: typeof AD_FORMATS[0]) => {
+    setSelectedFormat(format);
+    toast({
+      title: "Format updated",
+      description: `Ad format changed to ${format.label}`,
+    });
   };
 
   // Get unique images from all variants
@@ -194,6 +205,14 @@ const AdPreviewCard = ({
   return (
     <Card className="overflow-hidden">
       <div className="p-4 space-y-4">
+        {/* Format Selector */}
+        <div className="flex justify-end mb-2">
+          <AdSizeSelector
+            selectedFormat={selectedFormat}
+            onFormatChange={handleFormatChange}
+          />
+        </div>
+
         {/* Primary Text Section */}
         <div className="space-y-2">
           <div className="flex justify-between items-center">
@@ -238,7 +257,7 @@ const AdPreviewCard = ({
         <div className="relative">
           <div 
             style={{ 
-              aspectRatio: `${selectedFormat?.width || variant.size.width} / ${selectedFormat?.height || variant.size.height}`,
+              aspectRatio: `${selectedFormat.width} / ${selectedFormat.height}`,
               maxHeight: '600px'
             }} 
             className="relative group rounded-lg overflow-hidden"
@@ -246,7 +265,7 @@ const AdPreviewCard = ({
             <MediaPreview
               imageUrl={getImageUrl()}
               isVideo={isVideo}
-              format={selectedFormat || variant.size}
+              format={selectedFormat}
             />
             <Button
               variant="secondary"
