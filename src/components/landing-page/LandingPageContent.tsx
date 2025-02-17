@@ -155,6 +155,7 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
       // Check credits first
       const hasCredits = await checkUserCredits();
       if (!hasCredits) {
+        setIsGenerating(false);
         return;
       }
 
@@ -169,84 +170,110 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
         .eq('id', project.id)
         .single();
 
-      if (projectError) throw projectError;
+      if (projectError) {
+        console.error('Project fetch error:', projectError);
+        throw projectError;
+      }
 
       // Changed from .single() to .maybeSingle() to handle no results gracefully
-      const { data: adFeedback } = await supabase
+      const { data: adFeedback, error: adFeedbackError } = await supabase
         .from('ad_feedback')
         .select('saved_images')
         .eq('project_id', project.id)
         .limit(1)
         .maybeSingle();
 
+      if (adFeedbackError && adFeedbackError.code !== 'PGRST116') {
+        console.error('Ad feedback fetch error:', adFeedbackError);
+        throw adFeedbackError;
+      }
+
       // If no ad feedback exists, use an empty array
       const savedImages = adFeedback?.saved_images || [];
 
-      console.log("Calling generate-landing-page function with data:", {
+      const requestBody = {
         businessIdea: projectData.business_idea,
         targetAudience: projectData.target_audience,
         audienceAnalysis: projectData.audience_analysis,
         marketingCampaign: projectData.marketing_campaign,
         projectImages: savedImages
-      });
+      };
 
-      const { data: generatedContent, error } = await supabase.functions
+      console.log("Calling generate-landing-page function with data:", requestBody);
+
+      const { data: generatedContent, error: functionError } = await supabase.functions
         .invoke('generate-landing-page', {
-          body: {
-            businessIdea: projectData.business_idea,
-            targetAudience: projectData.target_audience,
-            audienceAnalysis: projectData.audience_analysis,
-            marketingCampaign: projectData.marketing_campaign,
-            projectImages: savedImages
-          },
+          body: requestBody,
+          headers: {
+            'Content-Type': 'application/json'
+          }
         });
 
-      if (error) throw error;
+      if (functionError) {
+        console.error('Edge function error:', functionError);
+        throw new Error(`Landing page generation failed: ${functionError.message || 'Unknown error'}`);
+      }
+
+      if (!generatedContent) {
+        throw new Error('No content generated from the function');
+      }
       
       console.log("Generated content:", generatedContent);
 
       // Deduct credits after successful generation
-      await deductCredits();
+      try {
+        await deductCredits();
+      } catch (creditError) {
+        console.error('Credit deduction error:', creditError);
+        throw creditError;
+      }
 
       const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) throw new Error("No authenticated user found");
+      if (!userData.user) {
+        throw new Error("No authenticated user found");
+      }
+
+      const landingPageData = {
+        id: landingPage?.id,
+        title: projectData.title || "Landing Page",
+        project_id: project.id,
+        user_id: userData.user.id,
+        content: generatedContent,
+        image_placements: generatedContent.imagePlacements,
+        layout_style: generatedContent.layout,
+        template_version: 2,
+        section_order: [
+          "hero",
+          "value_proposition",
+          "features",
+          "proof",
+          "pricing",
+          "finalCta",
+          "footer"
+        ],
+        conversion_goals: [
+          "sign_up",
+          "contact_form",
+          "newsletter"
+        ],
+        how_it_works: generatedContent.howItWorks,
+        market_analysis: generatedContent.marketAnalysis,
+        objections: generatedContent.objections,
+        faq: generatedContent.faq,
+        footer_content: generatedContent.footerContent,
+        styling: generatedContent.theme
+      };
 
       const { data: updatedLandingPage, error: saveError } = await supabase
         .from('landing_pages')
-        .upsert({
-          id: landingPage?.id,
-          title: projectData.title || "Landing Page",
-          project_id: project.id,
-          user_id: userData.user.id,
-          content: generatedContent,
-          image_placements: generatedContent.imagePlacements,
-          layout_style: generatedContent.layout,
-          template_version: 2,
-          section_order: [
-            "hero",
-            "value_proposition",
-            "features",
-            "proof",
-            "pricing",
-            "finalCta",
-            "footer"
-          ],
-          conversion_goals: [
-            "sign_up",
-            "contact_form",
-            "newsletter"
-          ],
-          how_it_works: generatedContent.howItWorks,
-          market_analysis: generatedContent.marketAnalysis,
-          objections: generatedContent.objections,
-          faq: generatedContent.faq,
-          footer_content: generatedContent.footerContent,
-          styling: generatedContent.theme
-        })
+        .upsert(landingPageData)
         .select()
         .single();
 
-      if (saveError) throw saveError;
+      if (saveError) {
+        console.error('Landing page save error:', saveError);
+        throw saveError;
+      }
       
       console.log("Updated landing page:", updatedLandingPage);
 
@@ -266,7 +293,9 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
       console.error('Error generating landing page:', error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to generate landing page content",
+        description: error instanceof Error 
+          ? `Generation failed: ${error.message}` 
+          : "Failed to generate landing page content. Please try again.",
         variant: "destructive",
       });
     } finally {
