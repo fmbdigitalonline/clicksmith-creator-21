@@ -55,18 +55,18 @@ const Index = () => {
   const painPoints = [
     {
       icon: Users,
-      title: "Difficulty Identifying the Right Target Audience",
-      description: "Without a clear understanding of your ideal customer, your marketing efforts are likely to fall flat. Our AI-generated ICPs take the guesswork out of audience targeting."
+      title: "Not Sure Where to Start",
+      description: "Got a brilliant idea but don't know how to turn it into reality? Our platform guides you through each step of the validation process."
     },
     {
       icon: Lightbulb,
-      title: "Overwhelm from Too Many Tools and Platforms",
-      description: "The digital marketing world is flooded with tools. We consolidate everything you need into one platform—ICP generation, ad creation, and performance tracking."
+      title: "Fear of Failure",
+      description: "Worried about investing time and resources into an unproven idea? Test your concept with real people before making big commitments."
     },
     {
       icon: DollarSign,
-      title: "Fear of Wasting Money on Ineffective Campaigns",
-      description: "With our platform, you can test your ads on a small scale before committing significant resources. Save thousands on market research and ad testing."
+      title: "Limited Resources",
+      description: "Don't let budget constraints hold you back. Our platform helps you validate your idea efficiently and affordably."
     }
   ];
 
@@ -363,10 +363,10 @@ const Index = () => {
       <section className="py-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-5xl mx-auto">
           <h2 className="text-3xl font-bold text-center mb-4">
-            Deep Pain Points: Solving Your Biggest Challenges
+            Solving Your Biggest Challenges
           </h2>
           <p className="text-center text-muted-foreground mb-12 max-w-3xl mx-auto">
-            Let's dive deeper into some of the specific challenges that entrepreneurs and marketers face.
+            Everyone with an idea faces obstacles. Here's how we help you overcome them.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {painPoints.map((point) => (
