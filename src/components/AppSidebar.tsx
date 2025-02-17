@@ -30,14 +30,14 @@ export function AppSidebar() {
 
   const menuItems = [
     {
-      title: "Home",
-      icon: Home,
-      url: "/dashboard",
-    },
-    {
       title: "Help",
       icon: HelpCircle,
       url: "/contact",
+    },
+    {
+      title: "Home",
+      icon: Home,
+      url: "/dashboard",
     },
     {
       title: "Projects",
