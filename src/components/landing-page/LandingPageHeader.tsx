@@ -57,6 +57,7 @@ const LandingPageHeader = ({ project, landingPage }: LandingPageHeaderProps) => 
         description: "Your landing page has been updated successfully.",
       });
     } else {
+      const slug = generateUniqueSlug(project.title);
       const { error } = await supabase
         .from("landing_pages")
         .insert({
@@ -64,7 +65,7 @@ const LandingPageHeader = ({ project, landingPage }: LandingPageHeaderProps) => 
           user_id: user.id,
           title: project.title,
           content,
-          slug: generateSlug(project.title),
+          slug,
         });
 
       if (error) {
@@ -154,6 +155,13 @@ const generateSlug = (title: string): string => {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
+};
+
+const generateUniqueSlug = (title: string): string => {
+  const baseSlug = generateSlug(title);
+  // Add a random 6-character suffix
+  const randomSuffix = Math.random().toString(36).substring(2, 8);
+  return `${baseSlug}-${randomSuffix}`;
 };
 
 const generateLandingPageContent = (project: any) => {
