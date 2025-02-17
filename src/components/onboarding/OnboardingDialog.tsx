@@ -1,4 +1,3 @@
-
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -41,8 +40,13 @@ const steps = [
   },
 ];
 
-export function OnboardingDialog() {
-  const [open, setOpen] = useState(false);
+interface OnboardingDialogProps {
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}
+
+export function OnboardingDialog({ open: controlledOpen, onOpenChange }: OnboardingDialogProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [fullName, setFullName] = useState("");
   const [industry, setIndustry] = useState("");
@@ -50,6 +54,15 @@ export function OnboardingDialog() {
   const [userType, setUserType] = useState("consumer");
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  // Use controlled or uncontrolled open state
+  const isOpen = controlledOpen !== undefined ? controlledOpen : internalOpen;
+  const setOpen = (value: boolean) => {
+    if (onOpenChange) {
+      onOpenChange(value);
+    }
+    setInternalOpen(value);
+  };
 
   useEffect(() => {
     const checkOnboardingStatus = async () => {
@@ -108,8 +121,11 @@ export function OnboardingDialog() {
       }
     };
 
-    checkOnboardingStatus();
-  }, [toast]);
+    // Only run the check if we're not being controlled externally
+    if (controlledOpen === undefined) {
+      checkOnboardingStatus();
+    }
+  }, [toast, controlledOpen]);
 
   const handleStepComplete = async () => {
     try {
@@ -198,7 +214,7 @@ export function OnboardingDialog() {
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={isOpen} onOpenChange={setOpen}>
       <DialogContent className="sm:max-w-[425px]">
         <div className="space-y-4">
           <div>
