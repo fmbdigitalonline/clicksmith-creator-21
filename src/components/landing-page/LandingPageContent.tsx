@@ -52,16 +52,33 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
+      // First log to check what we're sending
+      console.log('Project data:', {
+        project,
+        template,
+        businessIdea: project.business_idea,
+        targetAudience: project.target_audience
+      });
+
       const { data, error } = await supabase.functions.invoke('generate-landing-page', {
         body: {
           projectId: project.id,
-          businessIdea: project.business_idea,
-          targetAudience: project.target_audience,
-          template: template
+          businessIdea: project.business_idea?.description || project.business_idea,
+          businessName: project.name,
+          targetAudience: project.target_audience?.description || project.target_audience,
+          template: template?.structure || template,
+          existingContent: currentContent,
+          layoutStyle: currentLayoutStyle
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Edge function error:', error);
+        throw error;
+      }
+
+      // Log the response to help debug
+      console.log('Generated content:', data);
 
       // Update landing page content in database
       const { error: updateError } = await supabase
