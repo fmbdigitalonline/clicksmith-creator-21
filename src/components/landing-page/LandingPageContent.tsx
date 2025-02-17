@@ -88,6 +88,65 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
     }
   };
 
+  const renderSection = (sectionKey: string) => {
+    const sectionContentMap: SectionContentMap = {
+      hero: { 
+        content: currentContent.hero, 
+        layout: currentLayout?.hero?.layout || 'centered'
+      },
+      value_proposition: { 
+        content: { title: currentContent.valueProposition?.title, cards: currentContent.valueProposition?.cards },
+        layout: 'default'
+      },
+      features: { 
+        content: { title: currentContent.features?.title, description: currentContent.features?.description, items: currentContent.features?.items },
+        layout: 'default'
+      },
+      testimonials: { 
+        content: { title: currentContent.testimonials?.title, items: currentContent.testimonials?.items },
+        layout: 'default'
+      },
+      cta: { 
+        content: currentContent.cta,
+        layout: 'default'
+      },
+      how_it_works: { 
+        content: landingPage?.how_it_works || currentContent.howItWorks,
+        layout: 'default'
+      },
+      market_analysis: { 
+        content: landingPage?.market_analysis || currentContent.marketAnalysis,
+        layout: 'default'
+      },
+      objections: { 
+        content: landingPage?.objections || currentContent.objections,
+        layout: 'default'
+      },
+      faq: { 
+        content: landingPage?.faq || currentContent.faq,
+        layout: 'default'
+      },
+      footer: { 
+        content: landingPage?.footer_content || currentContent.footerContent,
+        layout: 'default'
+      }
+    };
+
+    const SectionComponent = sectionComponents[sectionKey as keyof typeof sectionComponents];
+    if (!SectionComponent) return null;
+
+    const sectionProps = sectionContentMap[sectionKey];
+    if (!sectionProps) return null;
+
+    return (
+      <SectionComponent
+        key={sectionKey}
+        {...sectionProps}
+        className={template?.structure.styles.spacing.sectionPadding}
+      />
+    );
+  };
+
   const generateLandingPageContent = async () => {
     setIsGenerating(true);
     console.log("Starting generation of new layout");
