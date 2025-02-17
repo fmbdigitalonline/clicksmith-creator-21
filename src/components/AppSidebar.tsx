@@ -9,7 +9,6 @@ import {
   Home,
   BookmarkIcon,
   Layout,
-  HelpCircle,
 } from "lucide-react";
 import {
   Sidebar,
@@ -29,11 +28,6 @@ export function AppSidebar() {
   const currentPath = location.pathname;
 
   const menuItems = [
-    {
-      title: "Help",
-      icon: HelpCircle,
-      url: "/contact",
-    },
     {
       title: "Home",
       icon: Home,
