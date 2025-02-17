@@ -103,7 +103,7 @@ const Index = () => {
     },
     {
       question: "Is there a free trial?",
-      answer: "Yes! You can generate 12 free ICPs and ad sets to test the platform."
+      answer: "Yes! You can generate free ICPs and ad sets to test the platform."
     }
   ];
 
@@ -470,7 +470,7 @@ const Index = () => {
           <div className="flex justify-center gap-8 mb-8">
             <div className="flex items-center gap-2">
               <CheckCircle className="h-6 w-6 text-primary" />
-              <span className="text-muted-foreground">12 Free Generations</span>
+              <span className="text-muted-foreground">Free Generations</span>
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle className="h-6 w-6 text-primary" />
