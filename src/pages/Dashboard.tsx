@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Lightbulb, FolderOpen, Eye, Pencil, Bell, BookOpen, MessageSquare, HelpCircle, Star, Info, AlertOctagon, ArrowRight, Globe, BookmarkCheck } from "lucide-react";
@@ -206,6 +205,10 @@ const Dashboard = () => {
     }
   ];
 
+  const handleProjectClick = (projectId: string) => {
+    navigate(`/projects/${projectId}`);
+  };
+
   return (
     <>
       <OnboardingDialog />
@@ -315,7 +318,11 @@ const Dashboard = () => {
           </div>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {recentProjects?.map((project) => (
-              <Card key={project.id} className="hover:shadow-md transition-shadow">
+              <Card 
+                key={project.id} 
+                className="hover:shadow-md transition-shadow cursor-pointer"
+                onClick={() => handleProjectClick(project.id)}
+              >
                 <CardHeader>
                   <CardTitle className="text-lg">{project.title}</CardTitle>
                   <CardDescription>
@@ -327,14 +334,20 @@ const Dashboard = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => navigate(`/projects/${project.id}`)}
+                      onClick={(e) => {
+                        e.stopPropagation(); // Prevent card click from triggering
+                        navigate(`/projects/${project.id}`);
+                      }}
                     >
                       <Pencil className="h-4 w-4 mr-1" /> Edit
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => navigate(`/ad-wizard/${project.id}`)}
+                      onClick={(e) => {
+                        e.stopPropagation(); // Prevent card click from triggering
+                        navigate(`/ad-wizard/${project.id}`);
+                      }}
                     >
                       <Eye className="h-4 w-4 mr-1" /> View Ads
                     </Button>
