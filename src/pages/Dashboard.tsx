@@ -207,6 +207,7 @@ const Dashboard = () => {
   ];
 
   const handleProjectClick = (projectId: string) => {
+    console.log('Attempting to navigate to project:', projectId);
     navigate(`/projects/${projectId}`);
   };
 
@@ -322,7 +323,10 @@ const Dashboard = () => {
               <Card 
                 key={project.id} 
                 className="hover:shadow-md transition-shadow cursor-pointer"
-                onClick={() => navigate(`/projects/${project.id}`)}
+                onClick={() => {
+                  console.log('Card clicked for project:', project.id);
+                  handleProjectClick(project.id);
+                }}
               >
                 <CardHeader>
                   <CardTitle className="text-lg">{project.title}</CardTitle>
@@ -337,6 +341,7 @@ const Dashboard = () => {
                       size="sm"
                       onClick={(e) => {
                         e.stopPropagation();
+                        console.log('Edit button clicked for project:', project.id);
                         navigate(`/projects/${project.id}`);
                       }}
                     >
@@ -347,6 +352,7 @@ const Dashboard = () => {
                       size="sm"
                       onClick={(e) => {
                         e.stopPropagation();
+                        console.log('View Ads button clicked for project:', project.id);
                         navigate(`/ad-wizard/${project.id}`);
                       }}
                     >
