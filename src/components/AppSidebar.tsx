@@ -40,14 +40,14 @@ export function AppSidebar() {
       url: "/projects",
     },
     {
-      title: "Landing Pages",
-      icon: Layout,
-      url: "/landing-pages",
-    },
-    {
       title: "Saved Ads",
       icon: BookmarkIcon,
       url: "/saved-ads",
+    },
+    {
+      title: "Landing Pages",
+      icon: Layout,
+      url: "/landing-pages",
     },
     {
       title: "Help",
