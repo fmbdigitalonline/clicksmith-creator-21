@@ -33,7 +33,10 @@ const Projects = () => {
         .maybeSingle();
         
       if (error) throw error;
-      return data as Project | null;
+      
+      // First cast to unknown, then to Project
+      const typedData = data as unknown as Project;
+      return typedData;
     },
     enabled: !!projectId
   });
