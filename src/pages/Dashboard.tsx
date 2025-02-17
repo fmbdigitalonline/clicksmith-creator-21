@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Lightbulb, FolderOpen, Eye, Pencil, Bell, BookOpen, MessageSquare, HelpCircle, Star, Info, AlertOctagon, ArrowRight, Globe, BookmarkCheck } from "lucide-react";
@@ -366,6 +365,42 @@ const Dashboard = () => {
           </div>
         </div>
 
+        {/* Recent Saved Ads */}
+        <div className="grid gap-4 mb-8">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold flex items-center gap-2">
+              <BookmarkCheck className="h-6 w-6 text-primary" />
+              Recently Saved Ads
+            </h2>
+            <Button variant="ghost" className="gap-2" onClick={() => navigate("/saved-ads")}>
+              View All <ArrowRight className="h-4 w-4" />
+            </Button>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {recentSavedAds?.map((ad) => (
+              <Card key={ad.id} className="hover:shadow-md transition-shadow">
+                <CardHeader>
+                  <CardTitle className="text-lg">{ad.headline || "Untitled Ad"}</CardTitle>
+                  <CardDescription>
+                    Saved {formatDistanceToNow(new Date(ad.created_at), { addSuffix: true })}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => navigate(`/saved-ads`)}
+                    >
+                      <Eye className="h-4 w-4 mr-1" /> View
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+
         {/* Recent Landing Pages */}
         <div className="grid gap-4 mb-8">
           <div className="flex items-center justify-between">
@@ -404,42 +439,6 @@ const Dashboard = () => {
                         <Eye className="h-4 w-4 mr-1" /> Preview
                       </Button>
                     )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-
-        {/* Recent Saved Ads */}
-        <div className="grid gap-4 mb-8">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold flex items-center gap-2">
-              <BookmarkCheck className="h-6 w-6 text-primary" />
-              Recently Saved Ads
-            </h2>
-            <Button variant="ghost" className="gap-2" onClick={() => navigate("/saved-ads")}>
-              View All <ArrowRight className="h-4 w-4" />
-            </Button>
-          </div>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {recentSavedAds?.map((ad) => (
-              <Card key={ad.id} className="hover:shadow-md transition-shadow">
-                <CardHeader>
-                  <CardTitle className="text-lg">{ad.headline || "Untitled Ad"}</CardTitle>
-                  <CardDescription>
-                    Saved {formatDistanceToNow(new Date(ad.created_at), { addSuffix: true })}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => navigate(`/saved-ads`)}
-                    >
-                      <Eye className="h-4 w-4 mr-1" /> View
-                    </Button>
                   </div>
                 </CardContent>
               </Card>
