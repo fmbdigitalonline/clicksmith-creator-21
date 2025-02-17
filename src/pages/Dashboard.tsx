@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Lightbulb, FolderOpen, Eye, Pencil, Bell, BookOpen, MessageSquare, HelpCircle, Star, Info, AlertOctagon, ArrowRight, Globe, BookmarkCheck } from "lucide-react";
@@ -435,7 +436,7 @@ const Dashboard = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => navigate(`/gallery/${ad.id}`)}
+                      onClick={() => navigate(`/saved-ads`)}
                     >
                       <Eye className="h-4 w-4 mr-1" /> View
                     </Button>
