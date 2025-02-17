@@ -109,16 +109,16 @@ const Index = () => {
 
   const concerns = [
     {
-      title: "Will the Ads Reflect My Brand?",
-      description: "Absolutely! While our AI generates the initial ad copy and visuals, you have full control to customize them to match your brand's voice and style."
+      title: "Will This Work For My Idea?",
+      description: "Whether it's a product, service, creative project, or community initiative - our platform helps validate any type of idea. You don't need any special expertise to get started."
     },
     {
-      title: "Can Automated Solutions Really Work?",
-      description: "Our platform is designed to complement your creativity, not replace it. The AI provides a solid foundation, but your insights and expertise make the campaigns truly shine."
+      title: "What If I'm Not Tech-Savvy?",
+      description: "Our platform is designed to be simple and intuitive. We guide you through each step with clear instructions and helpful tips. No technical knowledge required."
     },
     {
-      title: "Is There a Steep Learning Curve?",
-      description: "Not at all! Our platform is designed to be intuitive and user-friendly. Our step-by-step guides and support team are here to help you."
+      title: "Is It Worth The Investment?",
+      description: "Start for free and test your idea on a small scale. Our step-by-step process helps you validate your concept before making any significant time or financial commitments."
     }
   ];
 
@@ -421,7 +421,7 @@ const Index = () => {
             Common Concerns Addressed
           </h2>
           <p className="text-center text-muted-foreground mb-12 max-w-3xl mx-auto">
-            We understand that trying a new tool can be intimidating. Here's how we address common concerns:
+            We understand that trying something new can feel daunting. Here's how we address common concerns:
           </p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {concerns.map((concern, index) => (
