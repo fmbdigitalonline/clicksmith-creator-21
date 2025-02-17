@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -28,17 +29,19 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("No authenticated user found");
 
-      const { data: result, error } = await supabase.rpc('check_user_credits', {
+      const { data: results, error } = await supabase.rpc('check_user_credits', {
         p_user_id: user.id,
         required_credits: 1
       });
 
       if (error) throw error;
 
-      if (!result.has_credits) {
+      // Get the first result from the array
+      const result = results?.[0];
+      if (!result || !result.has_credits) {
         toast({
           title: "Insufficient credits",
-          description: result.error_message,
+          description: result?.error_message || "Not enough credits available",
           variant: "destructive",
         });
         return false;
@@ -61,15 +64,17 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("No authenticated user found");
 
-      const { data: result, error } = await supabase.rpc('deduct_user_credits', {
+      const { data: results, error } = await supabase.rpc('deduct_user_credits', {
         input_user_id: user.id,
         credits_to_deduct: 1
       });
 
       if (error) throw error;
 
-      if (!result.success) {
-        throw new Error(result.error_message);
+      // Get the first result from the array
+      const result = results?.[0];
+      if (!result?.success) {
+        throw new Error(result?.error_message || "Failed to deduct credits");
       }
 
       // Invalidate credits queries to refresh the display
@@ -206,65 +211,6 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
     } finally {
       setIsGenerating(false);
     }
-  };
-
-  const renderSection = (sectionKey: string) => {
-    const sectionContentMap: SectionContentMap = {
-      hero: { 
-        content: currentContent.hero, 
-        layout: currentLayout?.hero?.layout || 'centered' // Provide default layout
-      },
-      value_proposition: { 
-        content: { title: currentContent.valueProposition?.title, cards: currentContent.valueProposition?.cards },
-        layout: 'default'
-      },
-      features: { 
-        content: { title: currentContent.features?.title, description: currentContent.features?.description, items: currentContent.features?.items },
-        layout: 'default'
-      },
-      testimonials: { 
-        content: { title: currentContent.testimonials?.title, items: currentContent.testimonials?.items },
-        layout: 'default'
-      },
-      cta: { 
-        content: currentContent.cta,
-        layout: 'default'
-      },
-      how_it_works: { 
-        content: landingPage?.how_it_works || currentContent.howItWorks,
-        layout: 'default'
-      },
-      market_analysis: { 
-        content: landingPage?.market_analysis || currentContent.marketAnalysis,
-        layout: 'default'
-      },
-      objections: { 
-        content: landingPage?.objections || currentContent.objections,
-        layout: 'default'
-      },
-      faq: { 
-        content: landingPage?.faq || currentContent.faq,
-        layout: 'default'
-      },
-      footer: { 
-        content: landingPage?.footer_content || currentContent.footerContent,
-        layout: 'default'
-      }
-    };
-
-    const SectionComponent = sectionComponents[sectionKey as keyof typeof sectionComponents];
-    if (!SectionComponent) return null;
-
-    const sectionProps = sectionContentMap[sectionKey];
-    if (!sectionProps) return null;
-
-    return (
-      <SectionComponent
-        key={sectionKey}
-        {...sectionProps}
-        className={template?.structure.styles.spacing.sectionPadding}
-      />
-    );
   };
 
   return (
