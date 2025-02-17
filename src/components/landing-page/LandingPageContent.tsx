@@ -14,7 +14,9 @@ import LoadingState from "@/components/steps/complete/LoadingState";
 const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) => {
   const [activeView, setActiveView] = useState<"edit" | "preview">("preview");
   const [isGenerating, setIsGenerating] = useState(false);
-  const [currentContent, setCurrentContent] = useState(landingPage?.content || generateInitialContent(project));
+  const [currentContent, setCurrentContent] = useState<SectionContentMap>(
+    landingPage?.content || generateInitialContent(project)
+  );
   const [currentLayoutStyle, setCurrentLayoutStyle] = useState(landingPage?.layout_style);
   
   const { toast } = useToast();
@@ -24,263 +26,71 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
   const currentLayout = currentLayoutStyle || (template?.structure?.sections || {});
   const sectionOrder = landingPage?.section_order || defaultSectionOrder;
 
-  const checkUserCredits = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("No authenticated user found");
-
-      const { data: results, error } = await supabase.rpc('check_user_credits', {
-        p_user_id: user.id,
-        required_credits: 1
-      });
-
-      if (error) throw error;
-
-      // Get the first result from the array
-      const result = results?.[0];
-      if (!result || !result.has_credits) {
-        toast({
-          title: "Insufficient credits",
-          description: result?.error_message || "Not enough credits available",
-          variant: "destructive",
-        });
-        return false;
-      }
-
-      return true;
-    } catch (error) {
-      console.error('Error checking credits:', error);
-      toast({
-        title: "Error",
-        description: "Failed to check credits availability",
-        variant: "destructive",
-      });
-      return false;
-    }
-  };
-
-  const deductCredits = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("No authenticated user found");
-
-      const { data: results, error } = await supabase.rpc('deduct_user_credits', {
-        input_user_id: user.id,
-        credits_to_deduct: 1
-      });
-
-      if (error) throw error;
-
-      // Get the first result from the array
-      const result = results?.[0];
-      if (!result?.success) {
-        throw new Error(result?.error_message || "Failed to deduct credits");
-      }
-
-      // Invalidate credits queries to refresh the display
-      await queryClient.invalidateQueries({ queryKey: ['credits'] });
-      await queryClient.invalidateQueries({ queryKey: ['subscription'] });
-      await queryClient.invalidateQueries({ queryKey: ['free_tier_usage'] });
-
-    } catch (error) {
-      console.error('Error deducting credits:', error);
-      throw error;
-    }
-  };
-
   const renderSection = (sectionKey: string) => {
-    const sectionContentMap: SectionContentMap = {
-      hero: { 
-        content: currentContent.hero, 
-        layout: currentLayout?.hero?.layout || 'centered'
-      },
-      value_proposition: { 
-        content: { title: currentContent.valueProposition?.title, cards: currentContent.valueProposition?.cards },
-        layout: 'default'
-      },
-      features: { 
-        content: { title: currentContent.features?.title, description: currentContent.features?.description, items: currentContent.features?.items },
-        layout: 'default'
-      },
-      testimonials: { 
-        content: { title: currentContent.testimonials?.title, items: currentContent.testimonials?.items },
-        layout: 'default'
-      },
-      cta: { 
-        content: currentContent.cta,
-        layout: 'default'
-      },
-      how_it_works: { 
-        content: landingPage?.how_it_works || currentContent.howItWorks,
-        layout: 'default'
-      },
-      market_analysis: { 
-        content: landingPage?.market_analysis || currentContent.marketAnalysis,
-        layout: 'default'
-      },
-      objections: { 
-        content: landingPage?.objections || currentContent.objections,
-        layout: 'default'
-      },
-      faq: { 
-        content: landingPage?.faq || currentContent.faq,
-        layout: 'default'
-      },
-      footer: { 
-        content: landingPage?.footer_content || currentContent.footerContent,
-        layout: 'default'
-      }
-    };
+    const sectionData = currentContent[sectionKey];
+    if (!sectionData || !sectionData.content) return null;
 
-    const SectionComponent = sectionComponents[sectionKey as keyof typeof sectionComponents];
-    if (!SectionComponent) return null;
-
-    const sectionProps = sectionContentMap[sectionKey];
-    if (!sectionProps) return null;
+    const Component = sectionComponents[sectionKey];
+    if (!Component) {
+      console.warn(`No component found for section: ${sectionKey}`);
+      return null;
+    }
 
     return (
-      <SectionComponent
+      <Component
         key={sectionKey}
-        {...sectionProps}
-        className={template?.structure.styles.spacing.sectionPadding}
+        content={sectionData.content}
+        layout={sectionData.layout}
       />
     );
   };
 
   const generateLandingPageContent = async () => {
     setIsGenerating(true);
-    console.log("Starting generation of new layout");
-    
     try {
-      toast({
-        title: "Creating landing page",
-        description: <LoadingState />,
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
+      const { data, error } = await supabase.functions.invoke('generate-landing-page', {
+        body: {
+          projectId: project.id,
+          businessIdea: project.business_idea,
+          targetAudience: project.target_audience,
+          template: template
+        }
       });
 
-      // Get the marketing campaign data for saved images
-      const { data: adFeedback } = await supabase
-        .from('ad_feedback')
-        .select('saved_images')
-        .eq('project_id', project.id)
-        .maybeSingle();
-      
-      const savedImages = adFeedback?.saved_images || [];
+      if (error) throw error;
 
-      // Prepare the request body
-      const requestBody = {
-        businessIdea: {
-          description: project.business_idea?.description || "",
-          valueProposition: project.business_idea?.valueProposition || project.title || ""
-        },
-        targetAudience: {
-          icp: project.target_audience?.icp || "",
-          name: project.target_audience?.name || "",
-          painPoints: project.target_audience?.painPoints || [],
-          coreMessage: project.target_audience?.coreMessage || "",
-          description: project.target_audience?.description || "",
-          positioning: project.target_audience?.positioning || "",
-          demographics: project.target_audience?.demographics || "",
-          marketingAngle: project.target_audience?.marketingAngle || "",
-          marketingChannels: project.target_audience?.marketingChannels || [],
-          messagingApproach: project.target_audience?.messagingApproach || ""
-        },
-        audienceAnalysis: {
-          marketDesire: project.audience_analysis?.marketDesire || "",
-          awarenessLevel: project.audience_analysis?.awarenessLevel || "",
-          deepPainPoints: project.audience_analysis?.deepPainPoints || [],
-          expandedDefinition: project.audience_analysis?.expandedDefinition || "",
-          potentialObjections: project.audience_analysis?.potentialObjections || [],
-          sophisticationLevel: project.audience_analysis?.sophisticationLevel || ""
-        },
-        projectImages: savedImages
-      };
-
-      console.log("Calling generate-landing-page function with data:", requestBody);
-
-      const { data: generatedContent, error: functionError } = await supabase.functions
-        .invoke('generate-landing-page', {
-          body: JSON.stringify(requestBody)
+      // Update landing page content in database
+      const { error: updateError } = await supabase
+        .from('landing_pages')
+        .upsert({
+          project_id: project.id,
+          content: data.content,
+          layout_style: data.layout_style,
+          section_order: data.section_order || defaultSectionOrder,
+          updated_at: new Date().toISOString()
         });
 
-      if (functionError) {
-        console.error('Edge function error:', functionError);
-        throw new Error(`Landing page generation failed: ${functionError.message || 'Unknown error'}`);
-      }
+      if (updateError) throw updateError;
 
-      if (!generatedContent) {
-        throw new Error('No content generated from the function');
-      }
-      
-      console.log("Generated content:", generatedContent);
+      // Update local state
+      setCurrentContent(data.content);
+      setCurrentLayoutStyle(data.layout_style);
 
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) {
-        throw new Error("No authenticated user found");
-      }
-
-      const landingPageData = {
-        id: landingPage?.id,
-        title: project.title || "Landing Page",
-        project_id: project.id,
-        user_id: userData.user.id,
-        content: generatedContent,
-        image_placements: generatedContent.imagePlacements,
-        layout_style: generatedContent.layout,
-        template_version: 2,
-        section_order: [
-          "hero",
-          "value_proposition",
-          "features",
-          "proof",
-          "pricing",
-          "finalCta",
-          "footer"
-        ],
-        conversion_goals: [
-          "sign_up",
-          "contact_form",
-          "newsletter"
-        ],
-        how_it_works: generatedContent.howItWorks,
-        market_analysis: generatedContent.marketAnalysis,
-        objections: generatedContent.objections,
-        faq: generatedContent.faq,
-        footer_content: generatedContent.footerContent,
-        styling: generatedContent.theme
-      };
-
-      const { data: updatedLandingPage, error: saveError } = await supabase
-        .from('landing_pages')
-        .upsert(landingPageData)
-        .select()
-        .single();
-
-      if (saveError) {
-        console.error('Landing page save error:', saveError);
-        throw saveError;
-      }
-      
-      console.log("Updated landing page:", updatedLandingPage);
-
-      setCurrentContent(generatedContent);
-      setCurrentLayoutStyle(generatedContent.layout);
-
-      await queryClient.invalidateQueries({
-        queryKey: ["landing-page", project.id]
-      });
+      // Invalidate queries to refetch latest data
+      queryClient.invalidateQueries(['landing-page', project.id]);
 
       toast({
-        title: "Success",
-        description: "Landing page content generated successfully!",
+        title: "Content generated successfully",
+        description: "Your landing page content has been updated.",
       });
-
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error generating landing page:', error);
       toast({
-        title: "Error",
-        description: error instanceof Error 
-          ? `Generation failed: ${error.message}` 
-          : "Failed to generate landing page content. Please try again.",
+        title: "Error generating content",
+        description: error.message || "Failed to generate landing page content",
         variant: "destructive",
       });
     } finally {
@@ -288,34 +98,43 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
     }
   };
 
+  if (isTemplateLoading) {
+    return <LoadingState />;
+  }
+
   return (
-    <div className="space-y-8">
-      <Tabs value={activeView} onValueChange={(v) => setActiveView(v as "edit" | "preview")}>
-        <div className="flex justify-between items-center">
-          <TabsList>
-            <TabsTrigger value="preview">Preview</TabsTrigger>
-            <TabsTrigger value="edit">Edit</TabsTrigger>
-          </TabsList>
-          <Button 
-            onClick={generateLandingPageContent}
-            disabled={isGenerating}
-          >
-            {isGenerating ? "Generating..." : "Generate New Layout"}
-          </Button>
+    <div className="min-h-screen">
+      <Tabs value={activeView} onValueChange={(value: "edit" | "preview") => setActiveView(value)}>
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between mb-4">
+            <TabsList>
+              <TabsTrigger value="preview">Preview</TabsTrigger>
+              <TabsTrigger value="edit">Edit</TabsTrigger>
+            </TabsList>
+            <Button 
+              onClick={() => generateLandingPageContent()}
+              disabled={isGenerating}
+            >
+              {isGenerating ? "Generating..." : "Generate Content"}
+            </Button>
+          </div>
         </div>
-        <TabsContent value="preview" className="mt-6">
-          {template && currentContent && (
-            <div className="space-y-12">
-              {sectionOrder.map((sectionKey) => renderSection(sectionKey))}
-            </div>
-          )}
+
+        <TabsContent value="preview" className="mt-0">
+          <div className="space-y-8">
+            {sectionOrder.map((sectionKey) => renderSection(sectionKey))}
+          </div>
         </TabsContent>
-        <TabsContent value="edit" className="mt-6">
-          <Card className="p-4">
-            <pre className="whitespace-pre-wrap">
-              {JSON.stringify(currentContent, null, 2)}
-            </pre>
-          </Card>
+
+        <TabsContent value="edit" className="mt-0">
+          <div className="container mx-auto px-4 py-8">
+            <Card className="p-6">
+              <h2 className="text-2xl font-bold mb-4">Content Editor</h2>
+              <p className="text-muted-foreground">
+                Content editing features coming soon...
+              </p>
+            </Card>
+          </div>
         </TabsContent>
       </Tabs>
     </div>

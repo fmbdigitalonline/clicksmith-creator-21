@@ -4,11 +4,17 @@ export interface LandingPageContentProps {
   landingPage: any;
 }
 
-export interface SectionContentMap {
-  [key: string]: {
-    content: any;
-    layout: string; // Remove the optional '?' since layout is required for hero section
+export interface SectionContent {
+  content: {
+    title?: string;
+    description?: string;
+    [key: string]: any;
   };
+  layout: string;
+}
+
+export interface SectionContentMap {
+  [key: string]: SectionContent;
 }
 
 export interface SectionComponentsMap {
