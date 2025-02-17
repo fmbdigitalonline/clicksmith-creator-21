@@ -6,6 +6,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import ProjectProgressDetails from "@/components/projects/ProjectProgressDetails";
+import { BusinessIdea, TargetAudience, AudienceAnalysis } from "@/types/adWizard";
+
+interface Project {
+  id: string;
+  title: string;
+  business_idea: BusinessIdea | null;
+  target_audience: TargetAudience | null;
+  audience_analysis: AudienceAnalysis | null;
+  marketing_campaign: any | null;
+}
 
 const Projects = () => {
   const navigate = useNavigate();
@@ -23,7 +33,7 @@ const Projects = () => {
         .maybeSingle();
         
       if (error) throw error;
-      return data;
+      return data as Project | null;
     },
     enabled: !!projectId
   });
@@ -82,9 +92,9 @@ const Projects = () => {
                 )}
               </div>
               <ProjectProgressDetails
-                businessIdea={project.business_idea}
-                targetAudience={project.target_audience}
-                audienceAnalysis={project.audience_analysis}
+                businessIdea={project.business_idea || undefined}
+                targetAudience={project.target_audience || undefined}
+                audienceAnalysis={project.audience_analysis || undefined}
               />
             </div>
           </div>
