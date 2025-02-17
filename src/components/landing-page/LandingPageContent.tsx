@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,6 +9,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { sectionComponents, defaultSectionOrder } from "./constants/sectionConfig";
 import { generateInitialContent } from "./utils/contentUtils";
 import type { LandingPageContentProps, SectionContentMap } from "./types/landingPageTypes";
+import LoadingState from "@/components/steps/complete/LoadingState";
 
 const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) => {
   const [activeView, setActiveView] = useState<"edit" | "preview">("preview");
@@ -161,7 +161,8 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
 
       toast({
         title: "Creating landing page",
-        description: "Please wait while we generate your landing page...",
+        description: <LoadingState fullScreen />,
+        duration: 100000, // Long duration since we'll dismiss it manually
       });
 
       const { data: projectData, error: projectError } = await supabase
@@ -300,6 +301,12 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
       });
     } finally {
       setIsGenerating(false);
+      // Dismiss the loading toast
+      toast({
+        title: "Status",
+        description: "Generation complete",
+        duration: 2000,
+      });
     }
   };
 
