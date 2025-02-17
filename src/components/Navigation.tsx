@@ -2,7 +2,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Settings, CreditCard, PlusCircle, HelpCircle } from "lucide-react";
+import { CreditCard, HelpCircle } from "lucide-react";
 import { CreditDisplay } from "./CreditDisplay";
 
 const Navigation = () => {
@@ -14,10 +14,6 @@ const Navigation = () => {
       return currentPath.includes('/ad-wizard');
     }
     return currentPath === path;
-  };
-
-  const handleStartClick = () => {
-    window.location.href = "/ad-wizard/new";
   };
   
   return (
@@ -31,15 +27,6 @@ const Navigation = () => {
           </Link>
           <div className="flex items-center gap-4">
             <CreditDisplay />
-            <Button
-              variant="default"
-              size="sm"
-              onClick={handleStartClick}
-              className="gap-2"
-            >
-              <PlusCircle className="h-4 w-4" />
-              <span>Start</span>
-            </Button>
             <Button
               variant="ghost"
               size="sm"
@@ -66,20 +53,6 @@ const Navigation = () => {
               <Link to="/contact">
                 <HelpCircle className="h-4 w-4" />
                 <span>Help</span>
-              </Link>
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              asChild
-              className={cn(
-                "gap-2",
-                isActive("/settings") && "bg-accent"
-              )}
-            >
-              <Link to="/settings">
-                <Settings className="h-4 w-4" />
-                <span>Settings</span>
               </Link>
             </Button>
           </div>
