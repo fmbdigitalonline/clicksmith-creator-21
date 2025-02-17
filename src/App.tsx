@@ -58,6 +58,16 @@ function App() {
               }
             />
             <Route
+              path="/projects/:projectId"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <Projects />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/projects/:projectId/landing-page"
               element={
                 <ProtectedRoute>
