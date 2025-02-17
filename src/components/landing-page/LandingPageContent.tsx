@@ -159,12 +159,6 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
         return;
       }
 
-      toast({
-        title: "Creating landing page",
-        description: <LoadingState fullScreen />,
-        duration: 100000, // Long duration since we'll dismiss it manually
-      });
-
       const { data: projectData, error: projectError } = await supabase
         .from('projects')
         .select('*')
@@ -312,6 +306,7 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
 
   return (
     <div className="space-y-8">
+      {isGenerating && <LoadingState fullScreen />}
       <Tabs value={activeView} onValueChange={(v) => setActiveView(v as "edit" | "preview")}>
         <div className="flex justify-between items-center">
           <TabsList>
