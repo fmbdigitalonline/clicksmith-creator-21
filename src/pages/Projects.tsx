@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
+import ProjectProgressDetails from "@/components/projects/ProjectProgressDetails";
 
 const Projects = () => {
   const navigate = useNavigate();
@@ -62,7 +63,30 @@ const Projects = () => {
               </Button>
               <h1 className="text-2xl font-bold">{project.title}</h1>
             </div>
-            {/* Project details here */}
+            <div className="space-y-6">
+              <div className="flex items-center gap-2">
+                <Button 
+                  onClick={() => handleStartAdWizard(project.id)}
+                  className="w-full sm:w-auto"
+                >
+                  Continue Ad Creation
+                </Button>
+                {project.marketing_campaign && (
+                  <Button 
+                    variant="outline"
+                    onClick={() => navigate(`/projects/${project.id}/landing-page`)}
+                    className="w-full sm:w-auto"
+                  >
+                    View Landing Page
+                  </Button>
+                )}
+              </div>
+              <ProjectProgressDetails
+                businessIdea={project.business_idea}
+                targetAudience={project.target_audience}
+                audienceAnalysis={project.audience_analysis}
+              />
+            </div>
           </div>
         ) : (
           <div>Loading project...</div>
