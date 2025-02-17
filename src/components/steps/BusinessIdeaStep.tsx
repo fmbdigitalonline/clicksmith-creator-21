@@ -22,7 +22,7 @@ const BusinessIdeaStep = ({
     if (description.length < 10) {
       toast({
         title: "Description too short",
-        description: "Please provide more details about your business idea.",
+        description: "Please provide more details about your idea.",
         variant: "destructive",
       });
       return;
@@ -50,7 +50,7 @@ const BusinessIdeaStep = ({
       console.error('Error submitting business idea:', error);
       toast({
         title: "Error",
-        description: "Failed to process your business idea. Please try again.",
+        description: "Failed to process your idea. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -82,9 +82,9 @@ const BusinessIdeaStep = ({
       </div>
 
       <div>
-        <h2 className="text-xl md:text-2xl font-semibold mb-2">Describe Your Business Concept</h2>
+        <h2 className="text-xl md:text-2xl font-semibold mb-2">Describe your Idea, Product, Concept or Service</h2>
         <p className="text-gray-600">
-          Share your business idea and we'll help you validate it through targeted market testing.
+          Share your vision and we'll help you validate it through targeted market testing.
         </p>
       </div>
 
@@ -108,7 +108,7 @@ const BusinessIdeaStep = ({
             <ul className="list-disc list-inside text-sm text-gray-600 space-y-1">
               <li>Describe your unique value proposition</li>
               <li>Highlight the problem you're solving</li>
-              <li>Mention your initial target market hypothesis</li>
+              <li>Mention your target market</li>
               <li>Include any competitive advantages</li>
             </ul>
           </div>
