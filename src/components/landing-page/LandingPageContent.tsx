@@ -171,13 +171,15 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
 
       if (projectError) throw projectError;
 
+      // Changed from .single() to .maybeSingle() to handle no results gracefully
       const { data: adFeedback } = await supabase
         .from('ad_feedback')
         .select('saved_images')
         .eq('project_id', project.id)
         .limit(1)
-        .single();
+        .maybeSingle();
 
+      // If no ad feedback exists, use an empty array
       const savedImages = adFeedback?.saved_images || [];
 
       console.log("Calling generate-landing-page function with data:", {
