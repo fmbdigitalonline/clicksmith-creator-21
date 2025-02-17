@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,6 +9,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { sectionComponents, defaultSectionOrder } from "./constants/sectionConfig";
 import { generateInitialContent } from "./utils/contentUtils";
 import type { LandingPageContentProps, SectionContentMap } from "./types/landingPageTypes";
+import LoadingState from "@/components/steps/complete/LoadingState";
 
 const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) => {
   const [activeView, setActiveView] = useState<"edit" | "preview">("preview");
@@ -152,50 +152,46 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
     console.log("Starting generation of new layout");
     
     try {
-      // Check credits first
-      const hasCredits = await checkUserCredits();
-      if (!hasCredits) {
-        setIsGenerating(false);
-        return;
-      }
-
       toast({
         title: "Creating landing page",
-        description: "Please wait while we generate your landing page...",
+        description: <LoadingState />,
       });
 
-      const { data: projectData, error: projectError } = await supabase
-        .from('projects')
-        .select('*')
-        .eq('id', project.id)
-        .single();
-
-      if (projectError) {
-        console.error('Project fetch error:', projectError);
-        throw projectError;
-      }
-
-      // Changed from .single() to .maybeSingle() to handle no results gracefully
-      const { data: adFeedback, error: adFeedbackError } = await supabase
+      // Get the marketing campaign data for saved images
+      const { data: adFeedback } = await supabase
         .from('ad_feedback')
         .select('saved_images')
         .eq('project_id', project.id)
-        .limit(1)
         .maybeSingle();
-
-      if (adFeedbackError && adFeedbackError.code !== 'PGRST116') {
-        console.error('Ad feedback fetch error:', adFeedbackError);
-        throw adFeedbackError;
-      }
-
-      // If no ad feedback exists, use an empty array
+      
       const savedImages = adFeedback?.saved_images || [];
 
+      // Prepare the request body
       const requestBody = {
-        businessIdea: projectData.business_idea,
-        targetAudience: projectData.target_audience,
-        audienceAnalysis: projectData.audience_analysis,
-        marketingCampaign: projectData.marketing_campaign,
+        businessIdea: {
+          description: project.business_idea?.description || "",
+          valueProposition: project.business_idea?.valueProposition || project.title || ""
+        },
+        targetAudience: {
+          icp: project.target_audience?.icp || "",
+          name: project.target_audience?.name || "",
+          painPoints: project.target_audience?.painPoints || [],
+          coreMessage: project.target_audience?.coreMessage || "",
+          description: project.target_audience?.description || "",
+          positioning: project.target_audience?.positioning || "",
+          demographics: project.target_audience?.demographics || "",
+          marketingAngle: project.target_audience?.marketingAngle || "",
+          marketingChannels: project.target_audience?.marketingChannels || [],
+          messagingApproach: project.target_audience?.messagingApproach || ""
+        },
+        audienceAnalysis: {
+          marketDesire: project.audience_analysis?.marketDesire || "",
+          awarenessLevel: project.audience_analysis?.awarenessLevel || "",
+          deepPainPoints: project.audience_analysis?.deepPainPoints || [],
+          expandedDefinition: project.audience_analysis?.expandedDefinition || "",
+          potentialObjections: project.audience_analysis?.potentialObjections || [],
+          sophisticationLevel: project.audience_analysis?.sophisticationLevel || ""
+        },
         projectImages: savedImages
       };
 
@@ -203,10 +199,7 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
 
       const { data: generatedContent, error: functionError } = await supabase.functions
         .invoke('generate-landing-page', {
-          body: requestBody,
-          headers: {
-            'Content-Type': 'application/json'
-          }
+          body: JSON.stringify(requestBody)
         });
 
       if (functionError) {
@@ -220,14 +213,6 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
       
       console.log("Generated content:", generatedContent);
 
-      // Deduct credits after successful generation
-      try {
-        await deductCredits();
-      } catch (creditError) {
-        console.error('Credit deduction error:', creditError);
-        throw creditError;
-      }
-
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) {
         throw new Error("No authenticated user found");
@@ -235,7 +220,7 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
 
       const landingPageData = {
         id: landingPage?.id,
-        title: projectData.title || "Landing Page",
+        title: project.title || "Landing Page",
         project_id: project.id,
         user_id: userData.user.id,
         content: generatedContent,
