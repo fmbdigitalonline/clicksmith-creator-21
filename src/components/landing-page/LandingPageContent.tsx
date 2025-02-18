@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -86,7 +87,7 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
 
       console.log('Received generated content:', data);
 
-      setCurrentContent({
+      const newContent = {
         hero: { content: data.hero, layout: "centered" },
         value_proposition: { content: data.value_proposition, layout: "grid" },
         features: { content: data.features, layout: "grid" },
@@ -94,13 +95,24 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
         pricing: { content: data.pricing, layout: "grid" },
         finalCta: { content: data.finalCta, layout: "centered" },
         footer: { content: data.footer, layout: "grid" }
-      });
+      };
+
+      setCurrentContent(newContent);
+
+      // Convert to database-compatible format
+      const dbContent = Object.entries(newContent).reduce((acc, [key, value]) => {
+        acc[key] = {
+          content: value.content,
+          layout: value.layout
+        };
+        return acc;
+      }, {} as Record<string, any>);
 
       const { error: updateError } = await supabase
         .from('landing_pages')
         .upsert({
           title: project.name || project.title || "Landing Page",
-          content: currentContent,
+          content: dbContent,
           project_id: project.id,
           user_id: user.id,
           layout_style: currentLayoutStyle,
