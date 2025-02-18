@@ -66,6 +66,11 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
       return null;
     }
 
+    if (sectionKey === 'hero') {
+      console.log("Hero section content:", sectionData.content);
+      console.log("Hero layout:", sectionData.layout);
+    }
+
     return (
       <Component
         key={sectionKey}
@@ -85,6 +90,13 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
       const businessDescription = project.business_idea?.description || project.business_idea?.valueProposition || '';
       const targetAudienceDescription = project.target_audience?.description || project.target_audience?.coreMessage || '';
 
+      console.log("Sending request with:", {
+        projectId: project.id,
+        businessName: project.name,
+        businessIdea: businessDescription,
+        targetAudience: targetAudienceDescription,
+      });
+
       const { data, error } = await supabase.functions.invoke('generate-landing-page', {
         body: {
           projectId: project.id,
@@ -102,16 +114,46 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
         throw error;
       }
 
+      console.log("Edge function response:", data);
+
       // Map the generated content to the correct structure
       const formattedContent = {
-        hero: { content: data.hero, layout: "centered" },
-        value_proposition: { content: data.valueProposition, layout: "grid" },
-        features: { content: data.marketAnalysis?.features, layout: "grid" },
-        proof: { content: data.testimonials, layout: "grid" },
-        pricing: { content: data.pricing, layout: "grid" },
-        finalCta: { content: data.finalCta, layout: "centered" },
-        footer: { content: data.footer, layout: "grid" }
+        hero: { 
+          content: data.hero || {
+            title: project.name,
+            description: businessDescription,
+            cta: "Get Started",
+            image: currentContent.hero?.content?.image
+          }, 
+          layout: "centered" 
+        },
+        value_proposition: { 
+          content: data.valueProposition || data.value_proposition, 
+          layout: "grid" 
+        },
+        features: { 
+          content: data.features || (data.marketAnalysis && data.marketAnalysis.features), 
+          layout: "grid" 
+        },
+        proof: { 
+          content: data.testimonials || data.proof, 
+          layout: "grid" 
+        },
+        pricing: { 
+          content: data.pricing, 
+          layout: "grid" 
+        },
+        finalCta: { 
+          content: data.finalCta || data.cta, 
+          layout: "centered" 
+        },
+        footer: { 
+          content: data.footer || currentContent.footer?.content, 
+          layout: "grid" 
+        }
       };
+
+      console.log("Formatted content:", formattedContent);
 
       // Update landing page content in database
       const { error: updateError } = await supabase
