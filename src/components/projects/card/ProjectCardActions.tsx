@@ -33,6 +33,8 @@ const ProjectCardActions = ({
   const queryClient = useQueryClient();
 
   const handleCreateLandingPage = async () => {
+    console.log("Starting landing page creation for project:", projectId);
+    
     if (!hasBusinessIdea || !hasTargetAudience || !hasAudienceAnalysis) {
       toast({
         title: "Missing information",
@@ -66,6 +68,8 @@ const ProjectCardActions = ({
 
       if (projectError) throw projectError;
 
+      console.log("Project data retrieved:", project);
+
       // Generate landing page content
       const { data: generatedContent, error } = await supabase.functions
         .invoke('generate-landing-page', {
@@ -74,9 +78,11 @@ const ProjectCardActions = ({
             businessName: project.title,
             businessIdea: project.business_idea,
             targetAudience: project.target_audience,
-            userId: user.id, // Pass the user ID to the edge function
+            userId: user.id,
           },
         });
+
+      console.log("Edge function response:", generatedContent);
 
       if (error) throw error;
 
