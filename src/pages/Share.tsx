@@ -7,19 +7,23 @@ import { useToast } from "@/components/ui/use-toast";
 const Share = () => {
   const { toast } = useToast();
   const shareUrl = "https://yourdomain.com";
-  const shareText = "Check out this amazing AI-powered ad creation tool! 🚀";
+  const shareTexts = {
+    twitter: "🚀 Transform your marketing with AI! I'm using this amazing tool to create high-converting ads in minutes. Save time and boost ROI with @AdWizard. Try it now!",
+    facebook: "🎯 Game-changing AI tool alert! I've been using this incredible platform to create professional ads that actually convert. It's revolutionized my marketing workflow. Check it out and see the difference for yourself!",
+    linkedin: "🔥 Excited to share this innovative AI-powered advertising platform that's transforming how businesses create ads. Perfect for marketers, entrepreneurs, and agencies looking to scale their ad creation process efficiently. #AI #DigitalMarketing #Innovation"
+  };
 
   const handleShare = (platform: string) => {
     let url = "";
     switch (platform) {
       case "twitter":
-        url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
+        url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareTexts.twitter)}&url=${encodeURIComponent(shareUrl)}`;
         break;
       case "facebook":
-        url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;
+        url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}&quote=${encodeURIComponent(shareTexts.facebook)}`;
         break;
       case "linkedin":
-        url = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`;
+        url = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}&summary=${encodeURIComponent(shareTexts.linkedin)}`;
         break;
     }
     window.open(url, "_blank");
@@ -44,7 +48,7 @@ const Share = () => {
         <Card>
           <CardHeader>
             <CardTitle>Share on Social Media</CardTitle>
-            <CardDescription>Choose your preferred platform</CardDescription>
+            <CardDescription>Choose your preferred platform to share</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <Button
