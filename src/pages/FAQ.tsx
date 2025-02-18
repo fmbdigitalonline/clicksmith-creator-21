@@ -2,9 +2,6 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
-import { MessageSquare } from "lucide-react";
 
 const FAQ = () => {
   return (
@@ -124,21 +121,6 @@ const FAQ = () => {
             </div>
           </TabsContent>
         </Tabs>
-
-        <div className="mt-12 border-t pt-8">
-          <Card className="bg-muted/50">
-            <CardContent className="pt-6 text-center">
-              <h2 className="text-xl font-semibold mb-3">Still Have Questions?</h2>
-              <p className="text-muted-foreground mb-6">Can't find the answer you're looking for? Our support team is here to help.</p>
-              <Button asChild>
-                <Link to="/contact" className="flex items-center gap-2">
-                  <MessageSquare className="h-4 w-4" />
-                  Contact Support
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
       </div>
     </AppLayout>
   );
