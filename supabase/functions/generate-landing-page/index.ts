@@ -13,7 +13,11 @@ serve(async (req) => {
   }
 
   try {
+    const requestData = await req.json();
+    console.log("Received request data:", JSON.stringify(requestData, null, 2));
+
     const {
+      projectId,
       businessName,
       businessIdea,
       targetAudience,
@@ -21,114 +25,104 @@ serve(async (req) => {
       marketingCampaign,
       selectedHooks,
       generatedAds,
-    } = await req.json();
+    } = requestData;
 
-    console.log("Business data:", JSON.stringify({
+    // Extract useful elements from the data
+    const painPoints = targetAudience?.painPoints || [];
+    const hooks = selectedHooks || [];
+    const valueProposition = businessIdea?.valueProposition || '';
+    const marketDesire = audienceAnalysis?.marketDesire || '';
+    const objections = audienceAnalysis?.potentialObjections || [];
+
+    console.log("Processing data for landing page generation:", {
+      projectId,
       businessName,
-      businessIdea,
-      targetAudience,
-      audienceAnalysis,
-      marketingCampaign,
-      selectedHooks,
-      generatedAds
-    }, null, 2));
+      hooks: hooks.length,
+      painPoints: painPoints.length
+    });
 
-    // Extract key elements from the marketing campaign
-    const campaignAngles = marketingCampaign?.angles || [];
-    const adCopies = marketingCampaign?.adCopies || [];
-    const headlines = marketingCampaign?.headlines || [];
-
-    // Build the landing page content using all available data
+    // Build comprehensive landing page content
     const landingPageContent = {
       hero: {
-        title: headlines[0] || businessName,
-        subtitle: targetAudience?.coreMessage || businessIdea?.valueProposition,
+        title: businessName || "Welcome",
+        subtitle: targetAudience?.coreMessage || "Transform Your Business Today",
+        description: valueProposition,
         cta: "Get Started Now",
-        description: businessIdea?.description
+        image: generatedAds?.[0]?.imageUrl || null
       },
 
       value_proposition: {
         title: "Why Choose Us",
-        items: [
+        subtitle: marketDesire,
+        items: painPoints.map((point, index) => ({
+          title: `Solution ${index + 1}`,
+          description: point,
+          icon: "CheckCircle"
+        }))
+      },
+
+      features: {
+        title: "Key Features",
+        subtitle: "Everything you need to succeed",
+        items: hooks.map((hook, index) => ({
+          title: hook.text || `Feature ${index + 1}`,
+          description: hook.description || "Description coming soon",
+          icon: "Star"
+        }))
+      },
+
+      proof: {
+        title: "Success Stories",
+        subtitle: `Join other ${targetAudience?.name || 'satisfied customers'}`,
+        testimonials: [
           {
-            title: "Perfect for " + targetAudience?.name,
-            description: targetAudience?.description
-          },
-          {
-            title: "Understand Your Needs",
-            description: audienceAnalysis?.marketDesire || targetAudience?.painPoints?.[0]
-          },
-          {
-            title: "Proven Approach",
-            description: targetAudience?.messagingApproach
+            quote: marketDesire,
+            author: targetAudience?.name || "Happy Customer",
+            role: "Verified User"
           }
         ]
       },
 
-      features: {
-        title: "Key Features & Benefits",
-        subtitle: "Everything you need to succeed",
-        items: audienceAnalysis?.deepPainPoints?.map(pain => ({
-          title: `Solution for ${pain}`,
-          description: selectedHooks?.find(hook => 
-            hook.text.toLowerCase().includes(pain.toLowerCase())
-          )?.description || pain
-        })) || []
-      },
-
-      proof: {
-        title: "What Our Clients Say",
-        subtitle: "Real Results, Real Stories",
-        testimonials: generatedAds?.filter(ad => 
-          ad.type === 'testimonial' || ad.content?.includes('testimonial')
-        )?.map(ad => ({
-          quote: ad.content,
-          author: "Satisfied Client",
-          role: targetAudience?.name
-        })) || []
-      },
-
       pricing: {
-        title: "Simple, Transparent Pricing",
-        subtitle: "Choose the plan that's right for you",
+        title: "Pricing Plans",
+        subtitle: "Choose the perfect plan for your needs",
         plans: [
           {
             name: "Starter",
             price: "Free",
-            features: [
-              "Basic Features",
-              "Community Support",
-              "Limited Access"
-            ]
+            features: ["Basic access", "Community support", "Core features"]
           },
           {
-            name: "Professional",
+            name: "Pro",
             price: "$49/mo",
-            features: [
-              "All Basic Features",
-              "Priority Support",
-              "Advanced Tools"
-            ]
+            features: ["Full access", "Priority support", "Advanced features"]
           }
         ]
       },
 
       finalCta: {
-        title: campaignAngles?.[0]?.hook || "Ready to Get Started?",
-        description: targetAudience?.positioning || "Join thousands of satisfied customers",
-        buttonText: "Start Your Journey"
+        title: "Ready to Get Started?",
+        description: targetAudience?.messagingApproach || "Take the first step towards success",
+        buttonText: "Start Now"
       },
 
       footer: {
         companyName: businessName,
-        description: businessIdea?.valueProposition,
+        description: valueProposition,
         links: {
-          product: ["Features", "Pricing", "Benefits"],
-          company: ["About Us", "Contact", "Privacy Policy"],
-          resources: ["Blog", "Support", "Documentation"]
+          product: ["Features", "Pricing", "Documentation"],
+          company: ["About", "Blog", "Careers"],
+          resources: ["Support", "Contact", "Privacy"]
+        },
+        socialLinks: {
+          twitter: "#",
+          facebook: "#",
+          instagram: "#"
         }
       }
     };
+
+    console.log("Generated landing page content:", JSON.stringify(landingPageContent, null, 2));
 
     return new Response(
       JSON.stringify(landingPageContent),
@@ -143,7 +137,10 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error generating landing page:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        details: "Error occurred while generating landing page content"
+      }),
       { 
         status: 500,
         headers: { 

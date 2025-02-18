@@ -76,7 +76,17 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      // Send all available project data for richer content generation
+      console.log('Sending project data:', {
+        projectId: project.id,
+        businessName: project.name,
+        businessIdea: project.business_idea,
+        targetAudience: project.target_audience,
+        audienceAnalysis: project.audience_analysis,
+        selectedHooks: project.selected_hooks,
+        generatedAds: project.generated_ads
+      });
+
+      // Send project data to edge function
       const { data, error } = await supabase.functions.invoke('generate-landing-page', {
         body: {
           projectId: project.id,
@@ -86,10 +96,7 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
           audienceAnalysis: project.audience_analysis,
           marketingCampaign: project.marketing_campaign,
           selectedHooks: project.selected_hooks,
-          generatedAds: project.generated_ads,
-          template: template?.structure,
-          existingContent: currentContent,
-          layoutStyle: currentLayoutStyle
+          generatedAds: project.generated_ads
         }
       });
 
@@ -97,6 +104,8 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
         console.error('Edge function error:', error);
         throw error;
       }
+
+      console.log('Received generated content:', data);
 
       // Map the generated content to the correct structure
       const formattedContent = {
@@ -122,7 +131,10 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
           updated_at: new Date().toISOString()
         });
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('Database update error:', updateError);
+        throw updateError;
+      }
 
       // Update local state with new content
       setCurrentContent(formattedContent);
