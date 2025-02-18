@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -120,7 +121,7 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
         .from('landing_pages')
         .upsert({
           title: project.name || project.title || "Landing Page",
-          content: newContent,
+          content: JSON.parse(JSON.stringify(newContent)), // Convert to raw JSON
           project_id: project.id,
           user_id: user.id,
           layout_style: currentLayoutStyle,
