@@ -94,32 +94,34 @@ const ProjectCardActions = ({
       if (!userData.user) throw new Error("No authenticated user found");
 
       // Save the generated content to the landing_pages table
+      const landingPageData = {
+        project_id: projectId,
+        user_id: userData.user.id,
+        title: `${project.title} Landing Page`,
+        content: generatedContent,
+        image_placements: [], // Default to empty array if not provided
+        layout_style: 'default', // Default layout style
+        template_version: 2,
+        section_order: [
+          "hero",
+          "value_proposition",
+          "features",
+          "proof",
+          "pricing",
+          "finalCta",
+          "footer"
+        ],
+        conversion_goals: [
+          "sign_up",
+          "contact_form",
+          "newsletter"
+        ],
+        published: false
+      };
+
       const { data: landingPage, error: saveError } = await supabase
         .from('landing_pages')
-        .upsert({
-          project_id: projectId,
-          user_id: userData.user.id,
-          title: `${project.title} Landing Page`,
-          content: generatedContent,
-          image_placements: generatedContent.imagePlacements || [],
-          layout_style: generatedContent.layout || 'default',
-          template_version: 2,
-          section_order: [
-            "hero",
-            "value_proposition",
-            "features",
-            "proof",
-            "pricing",
-            "finalCta",
-            "footer"
-          ],
-          conversion_goals: [
-            "sign_up",
-            "contact_form",
-            "newsletter"
-          ],
-          published: false
-        })
+        .upsert(landingPageData)
         .select()
         .single();
 
