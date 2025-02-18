@@ -68,12 +68,12 @@ const Affiliate = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <BadgeCheck className="h-5 w-5 text-primary" />
-              Lifetime Attribution
+              One-time Commission
             </CardTitle>
-            <CardDescription>Long-term earnings</CardDescription>
+            <CardDescription>Simple reward structure</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-muted-foreground">Earn from all future purchases made by your referred customers.</p>
+            <p className="text-muted-foreground">Get a one-time 20% commission for each customer you refer when they make their first purchase.</p>
           </CardContent>
         </Card>
 
