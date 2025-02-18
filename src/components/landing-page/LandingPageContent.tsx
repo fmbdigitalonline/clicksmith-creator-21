@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,17 +16,23 @@ import LoadingStateLandingPage from "./LoadingStateLandingPage";
 const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) => {
   const [activeView, setActiveView] = useState<"edit" | "preview">("preview");
   const [isGenerating, setIsGenerating] = useState(false);
-  const [currentContent, setCurrentContent] = useState<SectionContentMap>(
-    landingPage?.content ? {
-      hero: { content: landingPage.content.hero, layout: "centered" },
-      value_proposition: { content: landingPage.content.value_proposition, layout: "grid" },
-      features: { content: landingPage.content.features, layout: "grid" },
-      proof: { content: landingPage.content.proof, layout: "grid" },
-      pricing: { content: landingPage.content.pricing, layout: "grid" },
-      finalCta: { content: landingPage.content.finalCta, layout: "centered" },
-      footer: { content: landingPage.content.footer, layout: "grid" }
-    } : generateInitialContent(project)
-  );
+  const [currentContent, setCurrentContent] = useState<SectionContentMap>(() => {
+    if (landingPage?.content) {
+      // Convert legacy section names to new format if needed
+      const content = landingPage.content;
+      return {
+        hero: { content: content.hero, layout: "centered" },
+        value_proposition: { content: content.value_proposition || content.valueProposition, layout: "grid" },
+        features: { content: content.features, layout: "grid" },
+        proof: { content: content.proof || content.testimonials, layout: "grid" },
+        pricing: { content: content.pricing || content.pricing_section, layout: "grid" },
+        finalCta: { content: content.finalCta || content.cta, layout: "centered" },
+        footer: { content: content.footer, layout: "grid" }
+      };
+    }
+    return generateInitialContent(project);
+  });
+  
   const [currentLayoutStyle, setCurrentLayoutStyle] = useState(landingPage?.layout_style);
   
   const { toast } = useToast();
