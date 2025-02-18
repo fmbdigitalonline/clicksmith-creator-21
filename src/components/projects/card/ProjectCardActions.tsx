@@ -1,7 +1,7 @@
 
 import { CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Edit2, Trash2, PlayCircle, Layout } from "lucide-react";
+import { Edit2, Trash2, Layout } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,8 +23,6 @@ const ProjectCardActions = ({
   projectId,
   onEdit, 
   onDelete, 
-  onStartAdWizard,
-  hasCampaign,
   hasBusinessIdea,
   hasTargetAudience,
   hasAudienceAnalysis
@@ -171,15 +169,6 @@ const ProjectCardActions = ({
       >
         <Layout className="h-3.5 w-3.5 mr-1.5" />
         Landing Page
-      </Button>
-      <Button
-        variant="default"
-        size="sm"
-        className="h-7 text-xs"
-        onClick={onStartAdWizard}
-      >
-        <PlayCircle className="h-3.5 w-3.5 mr-1.5" />
-        {hasCampaign ? "View Ads" : "Create Ads"}
       </Button>
     </CardFooter>
   );
