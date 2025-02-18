@@ -91,40 +91,47 @@ const ProjectCardActions = ({
         throw new Error('Missing required project data');
       }
 
-      // Format the business idea and target audience data with proper typing
-      const businessIdea: BusinessIdea = {
-        description: typedProject.business_idea.description || "",
-        valueProposition: typedProject.business_idea.valueProposition || ""
+      // Format request payload
+      const payload = {
+        projectId,
+        businessName: typedProject.title,
+        businessIdea: {
+          description: typedProject.business_idea.description || "",
+          valueProposition: typedProject.business_idea.valueProposition || ""
+        },
+        targetAudience: {
+          name: typedProject.target_audience.name || "",
+          description: typedProject.target_audience.description || "",
+          demographics: typedProject.target_audience.demographics || "",
+          painPoints: typedProject.target_audience.painPoints || [],
+          icp: typedProject.target_audience.icp || "",
+          coreMessage: typedProject.target_audience.coreMessage || "",
+          positioning: typedProject.target_audience.positioning || "",
+          marketingAngle: typedProject.target_audience.marketingAngle || "",
+          messagingApproach: typedProject.target_audience.messagingApproach || "",
+          marketingChannels: typedProject.target_audience.marketingChannels || []
+        },
+        userId: user.id,
       };
 
-      const targetAudience: TargetAudience = {
-        name: typedProject.target_audience.name || "",
-        description: typedProject.target_audience.description || "",
-        demographics: typedProject.target_audience.demographics || "",
-        painPoints: typedProject.target_audience.painPoints || [],
-        icp: typedProject.target_audience.icp || "",
-        coreMessage: typedProject.target_audience.coreMessage || "",
-        positioning: typedProject.target_audience.positioning || "",
-        marketingAngle: typedProject.target_audience.marketingAngle || "",
-        messagingApproach: typedProject.target_audience.messagingApproach || "",
-        marketingChannels: typedProject.target_audience.marketingChannels || []
-      };
+      console.log("Sending payload to edge function:", payload);
 
       // Generate landing page content
       const { data: generatedContent, error } = await supabase.functions
         .invoke('generate-landing-page', {
-          body: JSON.stringify({
-            projectId,
-            businessName: typedProject.title,
-            businessIdea,
-            targetAudience,
-            userId: user.id,
-          })
+          body: JSON.stringify(payload)
         });
 
       console.log("Edge function response:", generatedContent);
 
-      if (error) throw error;
+      if (error) {
+        console.error("Edge function error:", error);
+        throw error;
+      }
+
+      if (!generatedContent) {
+        throw new Error('No content generated from edge function');
+      }
 
       // Dismiss loading toast and show success
       loadingToast.dismiss();

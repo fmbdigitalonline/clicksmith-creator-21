@@ -27,36 +27,44 @@ interface RequestBody {
 
 const extractJsonFromResponse = (text: string) => {
   try {
-    // Remove any potential leading/trailing whitespace
-    text = text.trim();
-    
-    // Find the first occurrence of '{' and last occurrence of '}'
-    const start = text.indexOf('{');
-    const end = text.lastIndexOf('}') + 1;
-    
-    if (start === -1 || end === 0) {
-      console.error('No JSON object found in response:', text);
-      throw new Error('No JSON found in response');
+    if (!text) {
+      console.error('Empty response received');
+      throw new Error('Empty response received');
     }
-    
-    // Extract the JSON string
-    const jsonStr = text.slice(start, end);
-    
-    // Try to parse, logging the attempt for debugging
-    console.log('Attempting to parse JSON:', jsonStr);
+
+    let jsonStr = text;
+
+    // If the response is a string containing JSON, extract it
+    if (typeof text === 'string') {
+      // Remove any potential leading/trailing whitespace
+      jsonStr = text.trim();
+      
+      // Find the first occurrence of '{' and last occurrence of '}'
+      const start = jsonStr.indexOf('{');
+      const end = jsonStr.lastIndexOf('}') + 1;
+      
+      if (start === -1 || end === 0) {
+        console.error('No JSON object found in response:', text);
+        throw new Error('No JSON found in response');
+      }
+      
+      // Extract the JSON string
+      jsonStr = jsonStr.slice(start, end);
+    }
     
     try {
       return JSON.parse(jsonStr);
     } catch (parseError) {
-      console.error('JSON parse error:', parseError);
+      console.error('Initial JSON parse error:', parseError);
       console.error('Problematic JSON string:', jsonStr);
       
-      // Attempt to clean and fix common JSON issues
+      // Clean the JSON string
       const cleanedStr = jsonStr
-        .replace(/(\w+):/g, '"$1":') // Add quotes to unquoted keys
+        .replace(/(\w+)\s*:/g, '"$1":') // Add quotes to unquoted keys
         .replace(/'/g, '"') // Replace single quotes with double quotes
-        .replace(/,\s*}/g, '}') // Remove trailing commas
-        .replace(/,\s*]/g, ']'); // Remove trailing commas in arrays
+        .replace(/,\s*[}\]]/g, '$1') // Remove trailing commas
+        .replace(/:\s*'([^']*)'/g, ':"$1"') // Convert string values with single quotes to double quotes
+        .replace(/\\([^"])/g, '$1'); // Remove unnecessary escape characters
       
       console.log('Attempting to parse cleaned JSON:', cleanedStr);
       return JSON.parse(cleanedStr);
@@ -69,41 +77,33 @@ const extractJsonFromResponse = (text: string) => {
 };
 
 serve(async (req) => {
+  // Handle CORS
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    const { projectId, businessName, businessIdea, targetAudience, userId } = await req.json() as RequestBody;
-    console.log('Received request:', { businessName, businessIdea, targetAudience, userId });
+    let requestBody;
+    try {
+      const text = await req.text();
+      console.log('Raw request body:', text);
+      requestBody = JSON.parse(text);
+    } catch (parseError) {
+      console.error('Error parsing request body:', parseError);
+      throw new Error('Invalid request body');
+    }
+
+    console.log('Parsed request body:', requestBody);
+    const { projectId, businessName, businessIdea, targetAudience, userId } = requestBody as RequestBody;
 
     if (!userId) {
       throw new Error('User ID is required');
     }
 
-    // 1. Generate professional theme with specific brand colors and typography
-    const themePrompt = `Create a professional and modern website theme JSON for: ${businessIdea?.description}. Target audience: ${targetAudience?.description}.
-    Consider the business's personality and target audience's preferences.
-    Return a valid JSON object with this exact structure:
-    {
-      "colors": {
-        "primary": "#hex",
-        "secondary": "#hex",
-        "accent": "#hex",
-        "background": "#hex",
-        "text": "#hex",
-        "muted": "#hex"
-      },
-      "fonts": {
-        "heading": "font name",
-        "body": "font name"
-      },
-      "spacing": {
-        "sectionPadding": "2rem",
-        "contentWidth": "1200"
-      },
-      "styleDescription": "description"
-    }`;
+    // Generate theme
+    const themePrompt = `Create a professional and modern theme with colors and fonts for: ${businessIdea?.description}. Target audience: ${targetAudience?.description}. Return only valid JSON.`;
+
+    console.log('Sending theme prompt:', themePrompt);
 
     const response = await fetch("https://api.deepseek.com/v1/chat/completions", {
       method: "POST",
@@ -119,23 +119,31 @@ serve(async (req) => {
       })
     });
 
-    const themeData = await response.json();
-    console.log('Theme API response:', themeData);
-    const theme = extractJsonFromResponse(themeData.choices[0].message.content);
-    console.log('Parsed theme:', theme);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('DeepSeek API error:', response.status, errorText);
+      throw new Error(`DeepSeek API error: ${response.status}`);
+    }
 
-    // 2. Generate hero image with specific style guidelines
+    const themeData = await response.json();
+    console.log('Theme API raw response:', themeData);
+    
+    let theme;
+    try {
+      theme = extractJsonFromResponse(themeData.choices[0].message.content);
+      console.log('Parsed theme:', theme);
+    } catch (error) {
+      console.error('Error parsing theme:', error);
+      throw new Error('Failed to parse theme data');
+    }
+
+    // Generate hero image
     const replicate = new Replicate({
       auth: Deno.env.get('REPLICATE_API_TOKEN') || '',
     });
 
-    const imagePrompt = `Create a professional hero image for ${businessName}. Business: ${businessIdea?.description}. 
-    Style: Modern, minimalist, high-end corporate photography.
-    Include: Clean composition, subtle brand colors, professional lighting.
-    Mood: ${targetAudience?.messagingApproach || 'Professional and trustworthy'}.
-    Make it perfect for a website header with text overlay.`;
-    
-    console.log('Generating hero image with prompt:', imagePrompt);
+    const imagePrompt = `Professional hero image for ${businessName}. Business: ${businessIdea?.description}. Style: Modern, minimalist.`;
+    console.log('Image generation prompt:', imagePrompt);
     
     const heroImage = await replicate.run(
       "black-forest-labs/flux-1.1-pro",
@@ -150,43 +158,12 @@ serve(async (req) => {
       }
     );
 
-    // 3. Generate AIDA-structured content with strict JSON format
-    const contentPrompt = `Create a landing page content structure for ${businessName}.
-    Business: ${businessIdea?.description}
-    Value Proposition: ${businessIdea?.valueProposition}
-    Target Audience: ${targetAudience?.description}
-    Core Message: ${targetAudience?.coreMessage}
+    console.log('Generated hero image:', heroImage);
 
-    Return a valid JSON object with this exact structure:
-    {
-      "hero": {
-        "title": "headline",
-        "description": "subheadline",
-        "cta": "button text"
-      },
-      "valueProposition": {
-        "title": "section title",
-        "description": "value statement",
-        "cards": [
-          {
-            "title": "benefit",
-            "description": "explanation",
-            "icon": "emoji"
-          }
-        ]
-      },
-      "features": {
-        "title": "section title",
-        "description": "intro",
-        "items": [
-          {
-            "title": "feature",
-            "description": "benefit",
-            "icon": "emoji"
-          }
-        ]
-      }
-    }`;
+    // Generate content
+    const contentPrompt = `Create landing page content for ${businessName}. Business: ${businessIdea?.description}. Value Proposition: ${businessIdea?.valueProposition}. Return only valid JSON.`;
+    
+    console.log('Sending content prompt:', contentPrompt);
 
     const contentResponse = await fetch("https://api.deepseek.com/v1/chat/completions", {
       method: "POST",
@@ -202,32 +179,48 @@ serve(async (req) => {
       })
     });
 
-    const contentData = await contentResponse.json();
-    console.log('Content API response:', contentData);
-    const content = extractJsonFromResponse(contentData.choices[0].message.content);
-    console.log('Parsed content:', content);
+    if (!contentResponse.ok) {
+      const errorText = await contentResponse.text();
+      console.error('DeepSeek API content error:', contentResponse.status, errorText);
+      throw new Error(`DeepSeek API content error: ${contentResponse.status}`);
+    }
 
-    // 4. Combine everything into the landing page structure
+    const contentData = await contentResponse.json();
+    console.log('Content API raw response:', contentData);
+    
+    let content;
+    try {
+      content = extractJsonFromResponse(contentData.choices[0].message.content);
+      console.log('Parsed content:', content);
+    } catch (error) {
+      console.error('Error parsing content:', error);
+      throw new Error('Failed to parse content data');
+    }
+
+    // Combine everything
     const landingPageContent = {
       hero: {
-        title: content.hero.title,
-        description: content.hero.description,
-        cta: content.hero.cta,
+        title: content.hero?.title || "Welcome",
+        description: content.hero?.description || "",
+        cta: content.hero?.cta || "Get Started",
         image: Array.isArray(heroImage) && heroImage.length > 0 ? heroImage[0] : heroImage
       },
-      valueProposition: content.valueProposition,
-      features: content.features,
-      styling: {
-        colors: theme.colors,
-        fonts: theme.fonts,
-        spacing: theme.spacing,
-        styleDescription: theme.styleDescription
-      }
+      valueProposition: content.valueProposition || {
+        title: "Value Proposition",
+        description: businessIdea?.valueProposition || "",
+        cards: []
+      },
+      features: content.features || {
+        title: "Features",
+        description: "",
+        items: []
+      },
+      styling: theme
     };
 
     console.log('Final landing page content:', landingPageContent);
 
-    // 5. Save to database
+    // Save to database
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') || '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
