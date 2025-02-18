@@ -1,3 +1,4 @@
+
 import { useLocation } from "react-router-dom";
 import {
   Breadcrumb,
@@ -27,7 +28,7 @@ const BreadcrumbNav = () => {
     <Breadcrumb>
       <BreadcrumbList>
         <BreadcrumbItem>
-          <BreadcrumbLink href="/">Home</BreadcrumbLink>
+          <BreadcrumbLink href="/dashboard">Home</BreadcrumbLink>
         </BreadcrumbItem>
         {pathSegments.map((segment, index) => (
           <BreadcrumbItem key={index}>
