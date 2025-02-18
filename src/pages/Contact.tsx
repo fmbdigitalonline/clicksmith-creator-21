@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/use-toast";
 import { Mail } from "lucide-react";
-import LandingNav from "@/components/LandingNav";
+import { AppLayout } from "@/components/layout/AppLayout";
 
 const Contact = () => {
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -18,9 +18,8 @@ const Contact = () => {
   };
 
   return (
-    <div className="min-h-screen">
-      <LandingNav />
-      <div className="container mx-auto px-4 pt-32">
+    <AppLayout>
+      <div className="container mx-auto px-4">
         <div className="max-w-2xl mx-auto">
           <div className="text-center mb-12">
             <div className="flex justify-center mb-4">
@@ -84,7 +83,7 @@ const Contact = () => {
           </div>
         </div>
       </div>
-    </div>
+    </AppLayout>
   );
 };
 
