@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -202,17 +203,20 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
 
   return (
     <div className="min-h-screen">
-      <Dialog open={isGenerating}>
-        <DialogContent>
+      <Dialog open={isGenerating} modal>
+        <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Generating Content</DialogTitle>
+            <DialogTitle>Generating Your Landing Page</DialogTitle>
             <DialogDescription>
-              Please wait while we generate your landing page content...
+              Please wait while we analyze your project data and generate a custom landing page optimized for your business.
             </DialogDescription>
           </DialogHeader>
           <div className="flex items-center justify-center p-6">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
           </div>
+          <DialogDescription className="text-center text-sm text-muted-foreground">
+            This may take a few moments. We're crafting unique content based on your business details.
+          </DialogDescription>
         </DialogContent>
       </Dialog>
 
