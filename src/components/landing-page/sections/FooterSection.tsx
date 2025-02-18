@@ -46,30 +46,30 @@ const FooterSection = ({ content, className }: FooterSectionProps) => {
   return (
     <footer className={cn("py-16 bg-background border-t border-gray-100", className)}>
       <div className="container mx-auto px-4">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-12 mb-12">
           {content.contact && (
             <div>
-              <h3 className="text-lg font-semibold mb-4">Contact Us</h3>
+              <h3 className="text-lg font-semibold mb-6">Contact Us</h3>
               {renderContact(content.contact)}
             </div>
           )}
           
           <div>
-            <h3 className="text-lg font-semibold mb-4">Resources</h3>
-            <div className="space-y-3">
-              <Button variant="link" asChild className="p-0 h-auto text-muted-foreground hover:text-primary">
+            <h3 className="text-lg font-semibold mb-6">Resources</h3>
+            <div className="flex flex-col gap-4">
+              <Button variant="link" asChild className="p-0 h-auto text-muted-foreground hover:text-primary justify-start">
                 <Link to="/faq" className="flex items-center gap-2">
                   <BookOpen className="h-4 w-4" />
                   Getting Started
                 </Link>
               </Button>
-              <Button variant="link" asChild className="p-0 h-auto text-muted-foreground hover:text-primary">
+              <Button variant="link" asChild className="p-0 h-auto text-muted-foreground hover:text-primary justify-start">
                 <Link to="/faq" className="flex items-center gap-2">
                   <BookOpen className="h-4 w-4" />
                   FAQs and Support
                 </Link>
               </Button>
-              <Button variant="link" asChild className="p-0 h-auto text-muted-foreground hover:text-primary">
+              <Button variant="link" asChild className="p-0 h-auto text-muted-foreground hover:text-primary justify-start">
                 <Link to="/contact" className="flex items-center gap-2">
                   <MessageSquare className="h-4 w-4" />
                   Contact Support
@@ -79,15 +79,15 @@ const FooterSection = ({ content, className }: FooterSectionProps) => {
           </div>
 
           <div>
-            <h3 className="text-lg font-semibold mb-4">Help Us Improve</h3>
-            <div className="space-y-3">
-              <Button variant="link" asChild className="p-0 h-auto text-muted-foreground hover:text-primary">
+            <h3 className="text-lg font-semibold mb-6">Help Us Improve</h3>
+            <div className="flex flex-col gap-4">
+              <Button variant="link" asChild className="p-0 h-auto text-muted-foreground hover:text-primary justify-start">
                 <Link to="/contact" className="flex items-center gap-2">
                   <MessageSquare className="h-4 w-4" />
                   Share Your Feedback
                 </Link>
               </Button>
-              <Button variant="link" asChild className="p-0 h-auto text-muted-foreground hover:text-primary">
+              <Button variant="link" asChild className="p-0 h-auto text-muted-foreground hover:text-primary justify-start">
                 <a href="https://trustpilot.com" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
                   <Star className="h-4 w-4" />
                   Rate Us on Trustpilot
@@ -97,21 +97,21 @@ const FooterSection = ({ content, className }: FooterSectionProps) => {
           </div>
 
           <div>
-            <h3 className="text-lg font-semibold mb-4">Share & Earn</h3>
-            <div className="space-y-3">
-              <Button variant="link" asChild className="p-0 h-auto text-muted-foreground hover:text-primary">
+            <h3 className="text-lg font-semibold mb-6">Share & Earn</h3>
+            <div className="flex flex-col gap-4">
+              <Button variant="link" asChild className="p-0 h-auto text-muted-foreground hover:text-primary justify-start">
                 <Link to="/referral" className="flex items-center gap-2">
                   <UsersRound className="h-4 w-4" />
                   Refer a Friend
                 </Link>
               </Button>
-              <Button variant="link" asChild className="p-0 h-auto text-muted-foreground hover:text-primary">
+              <Button variant="link" asChild className="p-0 h-auto text-muted-foreground hover:text-primary justify-start">
                 <Link to="/affiliate" className="flex items-center gap-2">
                   <DollarSign className="h-4 w-4" />
                   Affiliate Program
                 </Link>
               </Button>
-              <Button variant="link" asChild className="p-0 h-auto text-muted-foreground hover:text-primary">
+              <Button variant="link" asChild className="p-0 h-auto text-muted-foreground hover:text-primary justify-start">
                 <Link to="/share" className="flex items-center gap-2">
                   <Share2 className="h-4 w-4" />
                   Share on Social Media
@@ -121,10 +121,10 @@ const FooterSection = ({ content, className }: FooterSectionProps) => {
           </div>
           
           {content.newsletter && (
-            <div>
-              <h3 className="text-lg font-semibold mb-4">Stay Updated</h3>
+            <div className="sm:col-span-2 lg:col-span-4">
+              <h3 className="text-lg font-semibold mb-6">Stay Updated</h3>
               <p className="text-muted-foreground mb-4">{content.newsletter}</p>
-              <div className="flex gap-2">
+              <div className="flex gap-2 max-w-md">
                 <Input type="email" placeholder="Enter your email" />
                 <Button>Subscribe</Button>
               </div>
