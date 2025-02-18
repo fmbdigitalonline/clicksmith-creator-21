@@ -495,9 +495,7 @@ const Index = () => {
       <FooterSection 
         content={{
           contact: {
-            email: "support@viable.com",
-            phone: "+1 (555) 123-4567",
-            address: "123 Business Avenue, Suite 100, San Francisco, CA 94107"
+            email: "info@fmbonline.nl"
           },
           newsletter: "Subscribe to our newsletter for updates and insights",
           copyright: `© ${new Date().getFullYear()} Viable. All rights reserved.`
