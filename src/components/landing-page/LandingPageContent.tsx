@@ -9,73 +9,21 @@ import { useQueryClient } from "@tanstack/react-query";
 import { sectionComponents } from "./constants/sectionConfig";
 import { generateInitialContent } from "./utils/contentUtils";
 import type { LandingPageContentProps, SectionContentMap } from "./types/landingPageTypes";
+import LoadingState from "@/components/steps/complete/LoadingState";
 import LoadingStateLandingPage from "./LoadingStateLandingPage";
 
 const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) => {
   const [activeView, setActiveView] = useState<"edit" | "preview">("preview");
   const [isGenerating, setIsGenerating] = useState(false);
-
-  // Initialize content from landing page data or generate initial content
   const [currentContent, setCurrentContent] = useState<SectionContentMap>(
     landingPage?.content ? {
-      hero: { 
-        content: landingPage.content.hero || {
-          title: "",
-          description: "",
-          cta: "Get Started",
-          image: ""
-        }, 
-        layout: "centered" 
-      },
-      value_proposition: { 
-        content: landingPage.content.valueProposition || {
-          title: "",
-          description: "",
-          cards: []
-        }, 
-        layout: "grid" 
-      },
-      features: { 
-        content: landingPage.content.features || {
-          title: "",
-          description: "",
-          items: []
-        }, 
-        layout: "grid" 
-      },
-      testimonials: { 
-        content: landingPage.content.testimonials || {
-          title: "What Our Clients Say",
-          items: []
-        }, 
-        layout: "grid" 
-      },
-      pricing: { 
-        content: landingPage.content.pricing || {
-          title: "Simple Pricing",
-          description: "Choose the plan that works for you",
-          items: []
-        }, 
-        layout: "grid" 
-      },
-      cta: { 
-        content: landingPage.content.cta || {
-          title: "Ready to Get Started?",
-          description: "Join us today",
-          buttonText: "Get Started"
-        }, 
-        layout: "centered" 
-      },
-      footer: { 
-        content: landingPage.content.footer || {
-          copyright: `© ${new Date().getFullYear()} All rights reserved.`,
-          links: {
-            company: ["About", "Contact"],
-            resources: ["Documentation", "Support"]
-          }
-        }, 
-        layout: "grid" 
-      }
+      hero: { content: landingPage.content.hero, layout: "centered" },
+      value_proposition: { content: landingPage.content.value_proposition, layout: "grid" },
+      features: { content: landingPage.content.features, layout: "grid" },
+      proof: { content: landingPage.content.proof, layout: "grid" },
+      pricing: { content: landingPage.content.pricing, layout: "grid" },
+      finalCta: { content: landingPage.content.finalCta, layout: "centered" },
+      footer: { content: landingPage.content.footer, layout: "grid" }
     } : generateInitialContent(project)
   );
   const [currentLayoutStyle, setCurrentLayoutStyle] = useState(landingPage?.layout_style);
@@ -89,9 +37,9 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
     "hero",
     "value_proposition",
     "features",
-    "testimonials",
+    "proof",
     "pricing",
-    "cta",
+    "finalCta",
     "footer"
   ];
 
@@ -126,14 +74,16 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      console.log("Sending request with project:", project);
+      // Transform business idea and target audience data
+      const businessDescription = project.business_idea?.description || project.business_idea?.valueProposition || '';
+      const targetAudienceDescription = project.target_audience?.description || project.target_audience?.coreMessage || '';
 
       const { data, error } = await supabase.functions.invoke('generate-landing-page', {
         body: {
           projectId: project.id,
           businessName: project.name,
-          businessIdea: project.business_idea?.description || '',
-          targetAudience: project.target_audience?.description || '',
+          businessIdea: businessDescription,
+          targetAudience: targetAudienceDescription,
           template: template?.structure,
           existingContent: currentContent,
           layoutStyle: currentLayoutStyle
@@ -145,31 +95,23 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
         throw error;
       }
 
-      console.log("Generated content from edge function:", data);
-
-      // Update local state with new content
+      // Map the generated content to the correct structure
       const formattedContent = {
         hero: { content: data.hero, layout: "centered" },
         value_proposition: { content: data.valueProposition, layout: "grid" },
-        features: { content: data.features, layout: "grid" },
-        testimonials: { content: data.testimonials, layout: "grid" },
+        features: { content: data.marketAnalysis?.features, layout: "grid" },
+        proof: { content: data.testimonials, layout: "grid" },
         pricing: { content: data.pricing, layout: "grid" },
-        cta: { content: data.cta || {
-          title: "Ready to Get Started?",
-          description: "Join us today",
-          buttonText: "Get Started"
-        }, layout: "centered" },
+        finalCta: { content: data.finalCta, layout: "centered" },
         footer: { content: data.footer, layout: "grid" }
       };
 
-      console.log("Formatted content:", formattedContent);
-
-      // Store the raw response data in the database
+      // Update landing page content in database
       const { error: updateError } = await supabase
         .from('landing_pages')
         .upsert({
           title: project.name || "Landing Page",
-          content: data,
+          content: formattedContent,
           project_id: project.id,
           user_id: user.id,
           layout_style: currentLayoutStyle,
@@ -179,8 +121,10 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
 
       if (updateError) throw updateError;
 
+      // Update local state with new content
       setCurrentContent(formattedContent);
-      
+
+      // Invalidate queries to refetch latest data
       await queryClient.invalidateQueries({
         queryKey: ['landing-page', project.id]
       });
