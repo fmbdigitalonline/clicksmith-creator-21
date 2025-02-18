@@ -42,7 +42,46 @@ const LandingPage = () => {
         throw new Error("Project not found");
       }
 
-      return data;
+      // Transform the data to match expected types
+      const transformedProject = {
+        id: data.id,
+        title: data.title,
+        name: data.name || undefined,
+        business_idea: {
+          description: typeof data.business_idea === 'string' 
+            ? data.business_idea 
+            : data.business_idea?.description || '',
+          valueProposition: typeof data.business_idea === 'string'
+            ? data.business_idea
+            : data.business_idea?.valueProposition
+        },
+        target_audience: typeof data.target_audience === 'string'
+          ? { description: data.target_audience }
+          : {
+              description: data.target_audience?.description,
+              name: data.target_audience?.name,
+              painPoints: Array.isArray(data.target_audience?.painPoints) 
+                ? data.target_audience.painPoints 
+                : undefined,
+              demographics: data.target_audience?.demographics,
+              marketingAngle: data.target_audience?.marketingAngle
+            },
+        audience_analysis: typeof data.audience_analysis === 'string'
+          ? { description: data.audience_analysis }
+          : {
+              marketDesire: data.audience_analysis?.marketDesire,
+              awarenessLevel: data.audience_analysis?.awarenessLevel,
+              deepPainPoints: Array.isArray(data.audience_analysis?.deepPainPoints)
+                ? data.audience_analysis.deepPainPoints
+                : undefined,
+              expandedDefinition: data.audience_analysis?.expandedDefinition
+            },
+        marketing_campaign: data.marketing_campaign,
+        selected_hooks: Array.isArray(data.selected_hooks) ? data.selected_hooks : [],
+        generated_ads: Array.isArray(data.generated_ads) ? data.generated_ads : []
+      };
+
+      return transformedProject;
     },
     retry: false,
   });
@@ -72,7 +111,21 @@ const LandingPage = () => {
           throw error;
         }
 
-        return data;
+        // Transform the landing page data to match expected types
+        if (data) {
+          return {
+            id: data.id,
+            content: typeof data.content === 'string' 
+              ? JSON.parse(data.content)
+              : data.content,
+            layout_style: data.layout_style,
+            section_order: Array.isArray(data.section_order) 
+              ? data.section_order 
+              : undefined
+          };
+        }
+
+        return null;
       } catch (error) {
         console.error("Error fetching landing page:", error);
         return null;
