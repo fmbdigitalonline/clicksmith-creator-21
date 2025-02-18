@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -24,15 +23,7 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
   const [activeView, setActiveView] = useState<"edit" | "preview">("preview");
   const [isGenerating, setIsGenerating] = useState(false);
   const [currentContent, setCurrentContent] = useState<SectionContentMap>(
-    landingPage?.content ? {
-      hero: { content: landingPage.content.hero, layout: "centered" },
-      value_proposition: { content: landingPage.content.value_proposition, layout: "grid" },
-      features: { content: landingPage.content.features, layout: "grid" },
-      proof: { content: landingPage.content.proof, layout: "grid" },
-      pricing: { content: landingPage.content.pricing, layout: "grid" },
-      finalCta: { content: landingPage.content.finalCta, layout: "centered" },
-      footer: { content: landingPage.content.footer, layout: "grid" }
-    } : generateInitialContent(project)
+    landingPage?.content || generateInitialContent(project)
   );
   const [currentLayoutStyle, setCurrentLayoutStyle] = useState(landingPage?.layout_style);
   
@@ -95,39 +86,21 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
 
       console.log('Received generated content:', data);
 
-      const formattedContent = {
+      setCurrentContent({
         hero: { content: data.hero, layout: "centered" },
-        value_proposition: { content: {
-          title: data.value_proposition.title,
-          subtitle: data.value_proposition.subtitle,
-          items: data.value_proposition.items
-        }, layout: "grid" },
-        features: { content: {
-          title: data.features.title,
-          subtitle: data.features.subtitle,
-          items: data.features.items
-        }, layout: "grid" },
-        proof: { content: {
-          title: data.proof.title,
-          subtitle: data.proof.subtitle,
-          testimonials: data.proof.testimonials
-        }, layout: "grid" },
-        pricing: { content: {
-          title: data.pricing.title,
-          subtitle: data.pricing.subtitle,
-          plans: data.pricing.plans
-        }, layout: "grid" },
+        value_proposition: { content: data.value_proposition, layout: "grid" },
+        features: { content: data.features, layout: "grid" },
+        proof: { content: data.proof, layout: "grid" },
+        pricing: { content: data.pricing, layout: "grid" },
         finalCta: { content: data.finalCta, layout: "centered" },
         footer: { content: data.footer, layout: "grid" }
-      };
-
-      console.log('Formatted content to save:', formattedContent);
+      });
 
       const { error: updateError } = await supabase
         .from('landing_pages')
         .upsert({
-          title: project.name || "Landing Page",
-          content: formattedContent,
+          title: project.name || project.title || "Landing Page",
+          content: currentContent,
           project_id: project.id,
           user_id: user.id,
           layout_style: currentLayoutStyle,
@@ -137,7 +110,6 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
 
       if (updateError) throw updateError;
 
-      setCurrentContent(formattedContent);
       await queryClient.invalidateQueries({
         queryKey: ['landing-page', project.id]
       });
@@ -186,25 +158,26 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
 
   return (
     <div className="min-h-screen">
-      <Dialog open={isGenerating}>
+      <Dialog open={isGenerating} modal>
         <DialogContent 
           className="sm:max-w-[425px]"
-          aria-describedby="loading-dialog-description"
+          aria-describedby="loading-description"
         >
           <DialogHeader>
             <DialogTitle>Generating Your Landing Page</DialogTitle>
-            <DialogDescription>
-              Please wait while we analyze your project data and generate a custom landing page optimized for your business.
+            <DialogDescription id="loading-header-description">
+              Please wait while we analyze your project data and generate a custom landing page.
             </DialogDescription>
           </DialogHeader>
           <div className="flex items-center justify-center p-6">
             <div 
               className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"
-              aria-label="Loading..."
+              aria-label="Loading indicator"
+              role="progressbar"
             />
           </div>
-          <DialogDescription id="loading-dialog-description" className="text-center text-sm text-muted-foreground">
-            This may take a few moments. We're crafting unique content based on your business details.
+          <DialogDescription id="loading-description">
+            We're crafting unique content based on your business details. This may take a few moments.
           </DialogDescription>
         </DialogContent>
       </Dialog>
