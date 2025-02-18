@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { sectionComponents } from "./constants/sectionConfig";
 import { generateInitialContent } from "./utils/contentUtils";
+import { transformEdgeResponse } from "./utils/contentTransformer";
 import type { LandingPageContentProps, SectionContentMap } from "./types/landingPageTypes";
 import LoadingState from "@/components/steps/complete/LoadingState";
 import LoadingStateLandingPage from "./LoadingStateLandingPage";
@@ -99,7 +99,7 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
       if (!user) throw new Error('User not authenticated');
 
       const payload = formatProjectData();
-      console.log('Formatted payload for edge function:', payload);
+      console.log('Sending payload to edge function:', payload);
 
       const { data, error } = await supabase.functions.invoke('generate-landing-page', {
         body: payload
@@ -110,66 +110,17 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
 
       console.log('Received generated content:', data);
 
-      const newContent = {
-        hero: { 
-          content: {
-            title: data.hero.title || project.title,
-            subtitle: data.hero.subtitle || data.hero.title,
-            description: data.hero.description || project.business_idea.description,
-            cta: data.hero.cta || 'Get Started',
-            image: data.hero.image || 'https://images.unsplash.com/photo-1488590528505-98d2b5aba04b'
-          },
-          layout: "centered" 
-        },
-        value_proposition: { 
-          content: data.value_proposition,
-          layout: "grid" 
-        },
-        features: { 
-          content: {
-            ...data.features,
-            items: data.features.items || []
-          },
-          layout: "grid" 
-        },
-        proof: { 
-          content: data.proof,
-          layout: "grid" 
-        },
-        pricing: { 
-          content: data.pricing,
-          layout: "grid" 
-        },
-        finalCta: { 
-          content: data.finalCta,
-          layout: "centered" 
-        },
-        footer: { 
-          content: {
-            ...data.footer,
-            companyName: project.title || 'My Business',
-            description: project.business_idea.description || ''
-          },
-          layout: "grid" 
-        }
-      };
-
+      // Transform the edge function response into the expected structure
+      const newContent = transformEdgeResponse(data, project);
+      console.log('Transformed content:', newContent);
+      
       setCurrentContent(newContent);
-
-      // Convert to database-compatible format
-      const dbContent = Object.entries(newContent).reduce((acc, [key, value]) => {
-        acc[key] = {
-          content: value.content,
-          layout: value.layout
-        };
-        return acc;
-      }, {} as Record<string, any>);
 
       const { error: updateError } = await supabase
         .from('landing_pages')
         .upsert({
           title: project.name || project.title || "Landing Page",
-          content: dbContent,
+          content: newContent,
           project_id: project.id,
           user_id: user.id,
           layout_style: currentLayoutStyle,
@@ -211,6 +162,11 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
       console.warn(`No component found for section: ${sectionKey}`);
       return null;
     }
+
+    console.log(`Rendering section ${sectionKey}:`, {
+      content: sectionData.content,
+      layout: sectionData.layout
+    });
 
     return (
       <Component
