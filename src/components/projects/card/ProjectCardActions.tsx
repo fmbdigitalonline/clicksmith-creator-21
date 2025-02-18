@@ -79,8 +79,11 @@ const ProjectCardActions = ({
         description: "Your landing page has been created.",
       });
 
-      // Invalidate queries and navigate to the landing page
-      await queryClient.invalidateQueries(['landing-page', projectId]);
+      // Invalidate queries with the correct type format
+      await queryClient.invalidateQueries({
+        queryKey: ['landing-page', projectId]
+      });
+      
       navigate(`/projects/${projectId}/landing-page`);
     } catch (error) {
       console.error('Error creating landing page:', error);
