@@ -90,6 +90,40 @@ const Dashboard = () => {
     enabled: !!userData?.user,
   });
 
+  // New query for admin updates
+  const { data: updates } = useQuery({
+    queryKey: ["admin-updates"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("admin_updates")
+        .select("*")
+        .order("priority", { ascending: false })
+        .order("created_at", { ascending: false })
+        .limit(3);
+
+      if (error) throw error;
+
+      return data.map(update => ({
+        ...update,
+        icon: getUpdateIcon(update.type)
+      }));
+    }
+  });
+
+  // Helper function to get the appropriate icon based on update type
+  const getUpdateIcon = (type: string) => {
+    switch (type) {
+      case 'feature':
+        return Lightbulb;
+      case 'incident':
+        return AlertOctagon;
+      case 'announcement':
+        return Bell;
+      default:
+        return Info;
+    }
+  };
+
   useEffect(() => {
     const setupRealtimeSubscriptions = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -178,34 +212,6 @@ const Dashboard = () => {
   const userName = userData?.profile?.full_name || userData?.user?.email?.split('@')[0] || "there";
   const lastAccessedProject = recentProjects?.[0];
 
-  // Dummy updates data - this would typically come from your backend
-  const updates = [
-    {
-      id: 1,
-      type: "feature",
-      title: "New Feature: Enhanced AI Image Generation",
-      description: "We've upgraded our AI image generation capabilities for even better results!",
-      date: "2024-02-10",
-      icon: Lightbulb
-    },
-    {
-      id: 2,
-      type: "update",
-      title: "Platform Update",
-      description: "Performance improvements and bug fixes for a smoother experience.",
-      date: "2024-02-08",
-      icon: Info
-    },
-    {
-      id: 3,
-      type: "incident",
-      title: "Scheduled Maintenance",
-      description: "Brief maintenance window scheduled for Feb 15, 2:00-4:00 UTC.",
-      date: "2024-02-07",
-      icon: AlertOctagon
-    }
-  ];
-
   const handleProjectClick = (projectId: string) => {
     console.log('Attempting to navigate to project:', projectId);
     navigate(`/projects/${projectId}`);
@@ -260,37 +266,40 @@ const Dashboard = () => {
           </Card>
         </div>
 
-        {/* Message Board */}
+        {/* Message Board - Now using dynamic data */}
         <div className="mb-8">
           <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
             <Bell className="h-5 w-5 text-primary" />
             Latest Updates
           </h2>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {updates.map((update) => (
-              <Card key={update.id} className={`
-                hover:shadow-md transition-shadow
-                ${update.type === 'incident' ? 'border-destructive/20' : ''}
-                ${update.type === 'feature' ? 'border-primary/20' : ''}
-              `}>
-                <CardHeader>
-                  <div className="flex items-center gap-2">
-                    <update.icon className={`
-                      h-5 w-5
-                      ${update.type === 'incident' ? 'text-destructive' : ''}
-                      ${update.type === 'feature' ? 'text-primary' : ''}
-                    `} />
-                    <CardTitle className="text-lg">{update.title}</CardTitle>
-                  </div>
-                  <CardDescription>
-                    {formatDistanceToNow(new Date(update.date), { addSuffix: true })}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground">{update.description}</p>
-                </CardContent>
-              </Card>
-            ))}
+            {updates?.map((update) => {
+              const UpdateIcon = update.icon;
+              return (
+                <Card key={update.id} className={`
+                  hover:shadow-md transition-shadow
+                  ${update.type === 'incident' ? 'border-destructive/20' : ''}
+                  ${update.type === 'feature' ? 'border-primary/20' : ''}
+                `}>
+                  <CardHeader>
+                    <div className="flex items-center gap-2">
+                      <UpdateIcon className={`
+                        h-5 w-5
+                        ${update.type === 'incident' ? 'text-destructive' : ''}
+                        ${update.type === 'feature' ? 'text-primary' : ''}
+                      `} />
+                      <CardTitle className="text-lg">{update.title}</CardTitle>
+                    </div>
+                    <CardDescription>
+                      {formatDistanceToNow(new Date(update.created_at), { addSuffix: true })}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-muted-foreground">{update.description}</p>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         </div>
 
