@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,93 +8,38 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { sectionComponents } from "./constants/sectionConfig";
 import { generateInitialContent } from "./utils/contentUtils";
-import type { LandingPageContentProps, SectionContentMap, SectionContent } from "./types/landingPageTypes";
+import type { LandingPageContentProps, SectionContentMap } from "./types/landingPageTypes";
+import LoadingState from "@/components/steps/complete/LoadingState";
 import LoadingStateLandingPage from "./LoadingStateLandingPage";
 
 const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) => {
   const [activeView, setActiveView] = useState<"edit" | "preview">("preview");
   const [isGenerating, setIsGenerating] = useState(false);
-  const [currentContent, setCurrentContent] = useState<SectionContentMap>(() => {
-    if (landingPage?.content) {
-      console.log("Initializing with landing page content:", landingPage.content);
-      const initialContent: SectionContentMap = {
-        hero: {
-          content: landingPage.content.hero || {
-            title: project.name || "Welcome",
-            description: project.business_idea?.description || "",
-            cta: "Get Started",
-            image: ""
-          },
-          layout: "centered" as const
-        },
-        value_proposition: {
-          content: landingPage.content.valueProposition || {
-            title: "Value Proposition",
-            description: "",
-            cards: []
-          },
-          layout: "grid" as const
-        },
-        features: {
-          content: landingPage.content.features || {
-            title: "Features",
-            description: "",
-            items: []
-          },
-          layout: "grid" as const
-        },
-        testimonials: {
-          content: landingPage.content.testimonials || {
-            title: "What Our Clients Say",
-            items: []
-          },
-          layout: "grid" as const
-        },
-        pricing: {
-          content: landingPage.content.pricing || {
-            title: "Pricing",
-            description: "Choose the plan that works for you",
-            items: []
-          },
-          layout: "grid" as const
-        },
-        cta: {
-          content: landingPage.content.cta || {
-            title: "Ready to Get Started?",
-            description: "Join us today",
-            buttonText: "Get Started Now"
-          },
-          layout: "centered" as const
-        },
-        footer: {
-          content: landingPage.content.footer || {
-            copyright: `© ${new Date().getFullYear()} All rights reserved.`,
-            links: {
-              company: ["About", "Contact"],
-              resources: ["Documentation", "Support"]
-            }
-          },
-          layout: "grid" as const
-        }
-      };
-      return initialContent;
-    }
-    return generateInitialContent(project);
-  });
-
+  const [currentContent, setCurrentContent] = useState<SectionContentMap>(
+    landingPage?.content ? {
+      hero: { content: landingPage.content.hero, layout: "centered" },
+      value_proposition: { content: landingPage.content.value_proposition, layout: "grid" },
+      features: { content: landingPage.content.features, layout: "grid" },
+      proof: { content: landingPage.content.proof, layout: "grid" },
+      pricing: { content: landingPage.content.pricing, layout: "grid" },
+      finalCta: { content: landingPage.content.finalCta, layout: "centered" },
+      footer: { content: landingPage.content.footer, layout: "grid" }
+    } : generateInitialContent(project)
+  );
   const [currentLayoutStyle, setCurrentLayoutStyle] = useState(landingPage?.layout_style);
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { data: template, isLoading: isTemplateLoading } = useLandingPageTemplate();
   
+  const { data: template, isLoading: isTemplateLoading } = useLandingPageTemplate();
+  const currentLayout = currentLayoutStyle || (template?.structure?.sections || {});
   const sectionOrder = landingPage?.section_order || [
     "hero",
     "value_proposition",
     "features",
-    "testimonials",
+    "proof",
     "pricing",
-    "cta",
+    "finalCta",
     "footer"
   ];
 
@@ -119,7 +63,7 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
       <Component
         key={sectionKey}
         content={sectionData.content}
-        layout={sectionData.layout}
+        layout={sectionData.layout || "default"}
       />
     );
   };
@@ -130,41 +74,44 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      const businessIdea = project.business_idea || {};
-      const targetAudience = project.target_audience || {};
+      // Transform business idea and target audience data
+      const businessDescription = project.business_idea?.description || project.business_idea?.valueProposition || '';
+      const targetAudienceDescription = project.target_audience?.description || project.target_audience?.coreMessage || '';
 
       const { data, error } = await supabase.functions.invoke('generate-landing-page', {
         body: {
           projectId: project.id,
           businessName: project.name,
-          businessIdea,
-          targetAudience,
+          businessIdea: businessDescription,
+          targetAudience: targetAudienceDescription,
           template: template?.structure,
           existingContent: currentContent,
           layoutStyle: currentLayoutStyle
         }
       });
 
-      if (error) throw error;
-
-      console.log("Generated content:", data);
+      if (error) {
+        console.error('Edge function error:', error);
+        throw error;
+      }
 
       // Map the generated content to the correct structure
-      const formattedContent: SectionContentMap = {
+      const formattedContent = {
         hero: { content: data.hero, layout: "centered" },
         value_proposition: { content: data.valueProposition, layout: "grid" },
-        features: { content: data.features, layout: "grid" },
-        testimonials: { content: data.testimonials, layout: "grid" },
+        features: { content: data.marketAnalysis?.features, layout: "grid" },
+        proof: { content: data.testimonials, layout: "grid" },
         pricing: { content: data.pricing, layout: "grid" },
-        cta: { content: data.cta, layout: "centered" },
+        finalCta: { content: data.finalCta, layout: "centered" },
         footer: { content: data.footer, layout: "grid" }
       };
 
+      // Update landing page content in database
       const { error: updateError } = await supabase
         .from('landing_pages')
         .upsert({
           title: project.name || "Landing Page",
-          content: data,
+          content: formattedContent,
           project_id: project.id,
           user_id: user.id,
           layout_style: currentLayoutStyle,
@@ -174,8 +121,10 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
 
       if (updateError) throw updateError;
 
+      // Update local state with new content
       setCurrentContent(formattedContent);
-      
+
+      // Invalidate queries to refetch latest data
       await queryClient.invalidateQueries({
         queryKey: ['landing-page', project.id]
       });

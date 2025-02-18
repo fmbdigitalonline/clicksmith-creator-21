@@ -9,55 +9,18 @@ export interface SectionContent {
     title?: string;
     description?: string;
     cta?: string;
-    buttonText?: string;
     image?: string;
-    cards?: Array<{
-      title: string;
-      description: string;
-      icon?: string;
-    }>;
-    items?: Array<{
-      title: string;
-      description: string;
-      icon?: string;
-      image?: string;
-    }>;
-    links?: {
-      company: string[];
-      resources: string[];
-    };
-    copyright?: string;
+    cards?: any[];
+    items?: any[];
+    [key: string]: any;
   };
-  layout: "centered" | "grid";
+  layout: string;
 }
 
 export interface SectionContentMap {
   [key: string]: SectionContent;
 }
 
-export interface LandingPageTemplate {
-  id: string;
-  name: string;
-  description: string;
-  structure: {
-    sections: {
-      [key: string]: {
-        type: string;
-        components: string[];
-        layout?: string;
-        cardsPerRow?: number;
-      };
-    };
-    styles: {
-      colorScheme: string;
-      typography: {
-        headingFont: string;
-        bodyFont: string;
-      };
-      spacing: {
-        sectionPadding: string;
-        componentGap: string;
-      };
-    };
-  };
+export interface SectionComponentsMap {
+  [key: string]: React.ComponentType<any>;
 }

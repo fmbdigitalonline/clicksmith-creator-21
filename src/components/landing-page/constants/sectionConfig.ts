@@ -4,29 +4,36 @@ import ValuePropositionSection from "../sections/ValuePropositionSection";
 import FeaturesSection from "../sections/FeaturesSection";
 import TestimonialsSection from "../sections/TestimonialsSection";
 import CtaSection from "../sections/CtaSection";
+import HowItWorksSection from "../sections/HowItWorksSection";
+import MarketAnalysisSection from "../sections/MarketAnalysisSection";
+import ObjectionsSection from "../sections/ObjectionsSection";
+import FaqSection from "../sections/FaqSection";
 import FooterSection from "../sections/FooterSection";
-import PricingSection from "../sections/PricingSection";
 
 // Map section keys to their corresponding components
 export const sectionComponents = {
   hero: HeroSection,
   value_proposition: ValuePropositionSection,
   features: FeaturesSection,
-  proof: TestimonialsSection, // Map 'proof' to TestimonialsSection
-  testimonials: TestimonialsSection, // Keep this for backward compatibility
-  pricing: PricingSection,
+  testimonials: TestimonialsSection,
   cta: CtaSection,
-  finalCta: CtaSection, // Map 'finalCta' to CtaSection
+  how_it_works: HowItWorksSection,
+  market_analysis: MarketAnalysisSection,
+  objections: ObjectionsSection,
+  faq: FaqSection,
   footer: FooterSection,
 } as const;
 
-// Default section order - updated to match expected structure
+// Default section order if none is provided
 export const defaultSectionOrder = [
   "hero",
+  "how_it_works",
+  "market_analysis",
   "value_proposition",
   "features",
-  "proof", // Changed from testimonials to proof
-  "pricing",
-  "finalCta", // Changed from cta to finalCta
+  "testimonials",
+  "objections",
+  "faq",
+  "cta",
   "footer"
 ];
