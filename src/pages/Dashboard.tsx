@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Lightbulb, FolderOpen, Eye, Pencil, Bell, Info, ArrowRight, Globe, BookmarkCheck } from "lucide-react";
+import { Plus, Lightbulb, FolderOpen, Eye, Pencil, Bell, BookOpen, MessageSquare, HelpCircle, Star, Info, AlertOctagon, ArrowRight, Globe, BookmarkCheck } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -178,7 +178,7 @@ const Dashboard = () => {
   const userName = userData?.profile?.full_name || userData?.user?.email?.split('@')[0] || "there";
   const lastAccessedProject = recentProjects?.[0];
 
-  // Simplified updates data
+  // Dummy updates data - this would typically come from your backend
   const updates = [
     {
       id: 1,
@@ -195,24 +195,47 @@ const Dashboard = () => {
       description: "Performance improvements and bug fixes for a smoother experience.",
       date: "2024-02-08",
       icon: Info
+    },
+    {
+      id: 3,
+      type: "incident",
+      title: "Scheduled Maintenance",
+      description: "Brief maintenance window scheduled for Feb 15, 2:00-4:00 UTC.",
+      date: "2024-02-07",
+      icon: AlertOctagon
     }
   ];
+
+  const handleProjectClick = (projectId: string) => {
+    console.log('Attempting to navigate to project:', projectId);
+    navigate(`/projects/${projectId}`);
+  };
 
   return (
     <>
       <OnboardingDialog />
-      <div className="container mx-auto px-4 py-6 max-w-7xl">
-        {/* Welcome Section with simplified design */}
-        <div className="bg-gradient-to-r from-background to-muted p-6 rounded-lg mb-8">
-          <h1 className="text-3xl font-bold mb-2">Welcome back, {userName}!</h1>
-          {lastAccessedProject && (
-            <p className="text-muted-foreground">
-              Last project: {lastAccessedProject.title} ({formatDistanceToNow(new Date(lastAccessedProject.updated_at), { addSuffix: true })})
-            </p>
-          )}
+      <div className="container mx-auto px-4 py-6">
+        {/* Welcome Section with Hero Image */}
+        <div className="relative mb-8 rounded-lg overflow-hidden">
+          <div className="absolute inset-0">
+            <img 
+              src="photo-1488590528505-98d2b5aba04b" 
+              alt="Dashboard Hero"
+              className="w-full h-full object-cover opacity-20"
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-primary/40 to-transparent" />
+          </div>
+          <div className="relative z-10 p-8">
+            <h1 className="text-4xl font-bold mb-2">Welcome back, {userName}!</h1>
+            {lastAccessedProject && (
+              <p className="text-muted-foreground text-lg">
+                Last accessed: {lastAccessedProject.title} {formatDistanceToNow(new Date(lastAccessedProject.updated_at), { addSuffix: true })}
+              </p>
+            )}
+          </div>
         </div>
 
-        {/* Main Action Cards - Keep these prominent */}
+        {/* Quick Actions with Enhanced Visual Design */}
         <div className="grid gap-4 md:grid-cols-3 mb-8">
           <Card className="hover:shadow-lg transition-shadow cursor-pointer bg-gradient-to-br from-primary/5 to-primary/10" onClick={() => navigate("/ad-wizard/new")}>
             <CardHeader>
@@ -237,69 +260,237 @@ const Dashboard = () => {
           </Card>
         </div>
 
-        {/* Stats Row - Simplified and compact */}
-        <div className="grid gap-4 md:grid-cols-3 mb-8">
-          <ProjectsCard />
-          <AdStatsCard />
-          <CreditsCard />
+        {/* Message Board */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+            <Bell className="h-5 w-5 text-primary" />
+            Latest Updates
+          </h2>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {updates.map((update) => (
+              <Card key={update.id} className={`
+                hover:shadow-md transition-shadow
+                ${update.type === 'incident' ? 'border-destructive/20' : ''}
+                ${update.type === 'feature' ? 'border-primary/20' : ''}
+              `}>
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <update.icon className={`
+                      h-5 w-5
+                      ${update.type === 'incident' ? 'text-destructive' : ''}
+                      ${update.type === 'feature' ? 'text-primary' : ''}
+                    `} />
+                    <CardTitle className="text-lg">{update.title}</CardTitle>
+                  </div>
+                  <CardDescription>
+                    {formatDistanceToNow(new Date(update.date), { addSuffix: true })}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground">{update.description}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </div>
 
-        {/* Recent Activity - Simplified layout */}
-        <div className="grid md:grid-cols-2 gap-8">
-          {/* Recent Projects - Compact list */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold">Recent Projects</h2>
-              <Button variant="ghost" size="sm" onClick={() => navigate("/projects")}>
-                View all <ArrowRight className="h-4 w-4 ml-2" />
-              </Button>
-            </div>
-            <div className="space-y-2">
-              {recentProjects?.slice(0, 3).map((project) => (
-                <Card key={project.id} className="cursor-pointer hover:bg-accent/5" onClick={() => navigate(`/projects/${project.id}`)}>
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="font-medium">{project.title}</h3>
-                        <p className="text-sm text-muted-foreground">
-                          Updated {formatDistanceToNow(new Date(project.updated_at), { addSuffix: true })}
-                        </p>
-                      </div>
-                      <Button variant="ghost" size="sm">
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+        {/* Stats Cards with Enhanced Visual Design */}
+        <div className="grid gap-4 md:grid-cols-3 mb-8">
+          <div className="bg-gradient-to-br from-background to-muted rounded-lg p-[1px]">
+            <ProjectsCard />
           </div>
+          <div className="bg-gradient-to-br from-background to-muted rounded-lg p-[1px]">
+            <AdStatsCard />
+          </div>
+          <div className="bg-gradient-to-br from-background to-muted rounded-lg p-[1px]">
+            <CreditsCard />
+          </div>
+        </div>
 
-          {/* Updates - Compact list */}
-          <div className="space-y-4">
-            <h2 className="text-xl font-semibold flex items-center gap-2">
-              <Bell className="h-5 w-5 text-primary" />
-              Latest Updates
+        {/* Recent Projects */}
+        <div className="grid gap-4 mb-8">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold flex items-center gap-2">
+              <FolderOpen className="h-6 w-6 text-primary" />
+              Recent Projects
             </h2>
-            <div className="space-y-2">
-              {updates.map((update) => (
-                <Card key={update.id} className="relative">
-                  <CardContent className="p-4">
-                    <div className="flex items-start gap-3">
-                      <update.icon className={`h-5 w-5 mt-1 ${update.type === 'feature' ? 'text-primary' : 'text-muted-foreground'}`} />
-                      <div>
-                        <h3 className="font-medium">{update.title}</h3>
-                        <p className="text-sm text-muted-foreground">{update.description}</p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {formatDistanceToNow(new Date(update.date), { addSuffix: true })}
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+            <Button variant="ghost" className="gap-2" onClick={() => navigate("/projects")}>
+              View All <ArrowRight className="h-4 w-4" />
+            </Button>
           </div>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {recentProjects?.map((project) => (
+              <Card 
+                key={project.id} 
+                className="hover:shadow-md transition-shadow cursor-pointer"
+                onClick={() => {
+                  console.log('Card clicked for project:', project.id);
+                  handleProjectClick(project.id);
+                }}
+              >
+                <CardHeader>
+                  <CardTitle className="text-lg">{project.title}</CardTitle>
+                  <CardDescription>
+                    Updated {formatDistanceToNow(new Date(project.updated_at), { addSuffix: true })}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        console.log('Edit button clicked for project:', project.id);
+                        navigate(`/projects/${project.id}`);
+                      }}
+                    >
+                      <Pencil className="h-4 w-4 mr-1" /> Edit
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        console.log('View Ads button clicked for project:', project.id);
+                        navigate(`/ad-wizard/${project.id}`);
+                      }}
+                    >
+                      <Eye className="h-4 w-4 mr-1" /> View Ads
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+
+        {/* Recent Saved Ads */}
+        <div className="grid gap-4 mb-8">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold flex items-center gap-2">
+              <BookmarkCheck className="h-6 w-6 text-primary" />
+              Recently Saved Ads
+            </h2>
+            <Button variant="ghost" className="gap-2" onClick={() => navigate("/saved-ads")}>
+              View All <ArrowRight className="h-4 w-4" />
+            </Button>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {recentSavedAds?.map((ad) => (
+              <Card key={ad.id} className="hover:shadow-md transition-shadow">
+                <CardHeader>
+                  <CardTitle className="text-lg">{ad.headline || "Untitled Ad"}</CardTitle>
+                  <CardDescription>
+                    Saved {formatDistanceToNow(new Date(ad.created_at), { addSuffix: true })}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => navigate(`/saved-ads`)}
+                    >
+                      <Eye className="h-4 w-4 mr-1" /> View
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+
+        {/* Recent Landing Pages */}
+        <div className="grid gap-4 mb-8">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold flex items-center gap-2">
+              <Globe className="h-6 w-6 text-primary" />
+              Recent Landing Pages
+            </h2>
+            <Button variant="ghost" className="gap-2" onClick={() => navigate("/landing-pages")}>
+              View All <ArrowRight className="h-4 w-4" />
+            </Button>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {recentLandingPages?.map((page) => (
+              <Card key={page.id} className="hover:shadow-md transition-shadow">
+                <CardHeader>
+                  <CardTitle className="text-lg">{page.title}</CardTitle>
+                  <CardDescription>
+                    Updated {formatDistanceToNow(new Date(page.updated_at), { addSuffix: true })}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => navigate(`/projects/${page.project_id}/landing-page`)}
+                    >
+                      <Pencil className="h-4 w-4 mr-1" /> Edit
+                    </Button>
+                    {page.published && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => window.open(`/preview/${page.id}`, '_blank')}
+                      >
+                        <Eye className="h-4 w-4 mr-1" /> Preview
+                      </Button>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+
+        {/* Resources & Help with Enhanced Visual Design */}
+        <div className="grid gap-4 md:grid-cols-2">
+          <Card className="bg-gradient-to-br from-background to-muted/50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BookOpen className="h-5 w-5 text-primary" />
+                Resources
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Button variant="link" className="w-full justify-start" onClick={() => navigate("/dashboard")}>
+                <BookOpen className="h-4 w-4 mr-2" />
+                Getting Started with Ad Wizard
+              </Button>
+              <Button variant="link" className="w-full justify-start" onClick={() => navigate("/dashboard")}>
+                <HelpCircle className="h-4 w-4 mr-2" />
+                FAQs and Support
+              </Button>
+              <Button variant="link" className="w-full justify-start" onClick={() => navigate("/contact")}>
+                <MessageSquare className="h-4 w-4 mr-2" />
+                Contact Support
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-background to-muted/50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Star className="h-5 w-5 text-primary" />
+                Help Us Improve
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Button variant="link" className="w-full justify-start" onClick={() => navigate("/contact")}>
+                <MessageSquare className="h-4 w-4 mr-2" />
+                Share Your Feedback
+              </Button>
+              <Button asChild variant="link" className="w-full justify-start">
+                <a href="https://trustpilot.com" target="_blank" rel="noopener noreferrer">
+                  <Star className="h-4 w-4 mr-2" />
+                  Rate Us on Trustpilot
+                </a>
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </>
