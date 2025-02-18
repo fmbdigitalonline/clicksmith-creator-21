@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,20 +10,54 @@ import { useQueryClient } from "@tanstack/react-query";
 import { sectionComponents } from "./constants/sectionConfig";
 import { generateInitialContent } from "./utils/contentUtils";
 import type { LandingPageContentProps, SectionContentMap } from "./types/landingPageTypes";
-import LoadingState from "@/components/steps/complete/LoadingState";
 import LoadingStateLandingPage from "./LoadingStateLandingPage";
 
 const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) => {
   const [activeView, setActiveView] = useState<"edit" | "preview">("preview");
   const [isGenerating, setIsGenerating] = useState(false);
+
+  // Initialize content from landing page data or generate initial content
   const [currentContent, setCurrentContent] = useState<SectionContentMap>(
     landingPage?.content ? {
       hero: { content: landingPage.content.hero, layout: "centered" },
-      value_proposition: { content: landingPage.content.value_proposition, layout: "grid" },
-      features: { content: landingPage.content.features, layout: "grid" },
-      proof: { content: landingPage.content.proof, layout: "grid" },
-      pricing: { content: landingPage.content.pricing, layout: "grid" },
-      finalCta: { content: landingPage.content.finalCta, layout: "centered" },
+      value_proposition: { 
+        content: {
+          title: landingPage.content.valueProposition?.title,
+          description: landingPage.content.valueProposition?.description,
+          cards: landingPage.content.valueProposition?.cards
+        }, 
+        layout: "grid" 
+      },
+      features: { 
+        content: {
+          title: landingPage.content.features?.title,
+          description: landingPage.content.features?.description,
+          items: landingPage.content.features?.items
+        }, 
+        layout: "grid" 
+      },
+      testimonials: { 
+        content: landingPage.content.proof || {
+          title: "What Our Clients Say",
+          items: []
+        }, 
+        layout: "grid" 
+      },
+      pricing: { 
+        content: landingPage.content.pricing || {
+          title: "Simple, Transparent Pricing",
+          items: []
+        }, 
+        layout: "grid" 
+      },
+      cta: { 
+        content: landingPage.content.finalCta || {
+          title: "Ready to Get Started?",
+          description: "Join us today",
+          buttonText: "Get Started"
+        }, 
+        layout: "centered" 
+      },
       footer: { content: landingPage.content.footer, layout: "grid" }
     } : generateInitialContent(project)
   );
@@ -37,9 +72,9 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
     "hero",
     "value_proposition",
     "features",
-    "proof",
+    "testimonials",
     "pricing",
-    "finalCta",
+    "cta",
     "footer"
   ];
 
@@ -99,10 +134,10 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
       const formattedContent = {
         hero: { content: data.hero, layout: "centered" },
         value_proposition: { content: data.valueProposition, layout: "grid" },
-        features: { content: data.marketAnalysis?.features, layout: "grid" },
-        proof: { content: data.testimonials, layout: "grid" },
+        features: { content: data.features, layout: "grid" },
+        testimonials: { content: data.testimonials, layout: "grid" },
         pricing: { content: data.pricing, layout: "grid" },
-        finalCta: { content: data.finalCta, layout: "centered" },
+        cta: { content: data.finalCta, layout: "centered" },
         footer: { content: data.footer, layout: "grid" }
       };
 
