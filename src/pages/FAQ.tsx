@@ -2,6 +2,9 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { Button } from "@/components/ui/button";
+import { MessageSquare } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const FAQ = () => {
   return (
@@ -121,6 +124,22 @@ const FAQ = () => {
             </div>
           </TabsContent>
         </Tabs>
+
+        {/* Contact Support CTA */}
+        <div className="mt-12 text-center">
+          <Card className="max-w-2xl mx-auto">
+            <CardContent className="py-6">
+              <h3 className="text-lg font-semibold mb-2">Can't find what you're looking for?</h3>
+              <p className="text-muted-foreground mb-4">Our support team is here to help you with any questions you may have.</p>
+              <Button asChild>
+                <Link to="/contact" className="inline-flex items-center gap-2">
+                  <MessageSquare className="h-4 w-4" />
+                  Contact Support
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </AppLayout>
   );
