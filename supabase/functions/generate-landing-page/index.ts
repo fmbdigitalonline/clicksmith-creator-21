@@ -28,7 +28,7 @@ serve(async (req) => {
           error: 'Invalid request body',
           details: parseError.message
         }),
-        {
+        { 
           status: 400,
           headers: {
             ...corsHeaders,
@@ -40,76 +40,66 @@ serve(async (req) => {
 
     const { projectId, businessName, businessIdea, targetAudience } = requestData;
 
-    // Validate required fields
-    if (!projectId || !businessName) {
-      return new Response(
-        JSON.stringify({
-          error: 'Missing required fields',
-          details: 'projectId and businessName are required'
-        }),
-        {
-          status: 400,
-          headers: {
-            ...corsHeaders,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-    }
+    // Extract key information
+    const businessDescription = typeof businessIdea === 'string' 
+      ? businessIdea 
+      : businessIdea?.description || businessIdea?.valueProposition || '';
+    
+    const targetDescription = typeof targetAudience === 'string'
+      ? targetAudience
+      : targetAudience?.description || targetAudience?.coreMessage || '';
 
-    // Generate placeholder content for testing
+    const painPoints = targetAudience?.painPoints || [];
+    const marketingChannels = targetAudience?.marketingChannels || [];
+    const positioning = targetAudience?.positioning || '';
+    const marketingAngle = targetAudience?.marketingAngle || '';
+
+    // Generate content using the detailed information
     const landingPageContent = {
       hero: {
-        title: businessName,
-        description: businessIdea?.description || "Welcome to our platform",
-        cta: "Get Started",
+        title: businessIdea?.valueProposition || "Transform Your Business",
+        description: businessDescription,
+        cta: "Get Started Now",
         image: "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d"
       },
       valueProposition: {
         title: "Why Choose Us",
-        description: businessIdea?.valueProposition || "We deliver value to our customers",
-        cards: [
-          {
-            title: "Quality Service",
-            description: "Best-in-class service delivery",
-            icon: "✨"
-          },
-          {
-            title: "Expert Support",
-            description: "24/7 dedicated support",
-            icon: "🌟"
-          },
-          {
-            title: "Innovation",
-            description: "Cutting-edge solutions",
-            icon: "💡"
-          }
-        ]
+        description: targetAudience?.coreMessage || "We understand your needs",
+        cards: painPoints.slice(0, 3).map(point => ({
+          title: point.split(':')[0] || point,
+          description: point.split(':')[1] || "We have the solution",
+          icon: "✨"
+        }))
       },
       features: {
-        title: "Our Features",
-        description: "Discover what makes us unique",
+        title: "Features That Matter",
+        description: positioning,
         items: [
           {
-            title: "Easy to Use",
-            description: "Intuitive interface for all users",
-            icon: "🎯"
+            title: "Streamlined Process",
+            description: "From idea to execution in minutes",
+            icon: "🚀"
           },
           {
-            title: "Powerful Tools",
-            description: "Advanced features at your fingertips",
+            title: "Smart Automation",
+            description: "Save time with AI-powered tools",
             icon: "⚡"
+          },
+          {
+            title: "Multi-Channel Support",
+            description: `Reach your audience on ${marketingChannels.slice(0, 3).join(', ')}`,
+            icon: "🎯"
           }
         ]
       },
       testimonials: {
-        title: "What Our Clients Say",
+        title: "Success Stories",
         items: [
           {
-            quote: "Amazing service and support!",
-            author: "John Doe",
-            role: "CEO",
-            company: "Tech Corp"
+            quote: marketingAngle,
+            author: targetAudience?.name || "Satisfied Customer",
+            role: "Business Owner",
+            company: "Success Stories Ltd"
           }
         ]
       },
@@ -141,6 +131,11 @@ serve(async (req) => {
           }
         ]
       },
+      cta: {
+        title: marketingAngle || "Ready to Transform Your Business?",
+        description: targetAudience?.messagingApproach || "Join thousands of successful businesses",
+        buttonText: "Get Started Now"
+      },
       footer: {
         content: {
           copyright: `© ${new Date().getFullYear()} ${businessName}. All rights reserved.`,
@@ -159,8 +154,7 @@ serve(async (req) => {
         headers: {
           ...corsHeaders,
           'Content-Type': 'application/json'
-        },
-        status: 200
+        }
       }
     );
 
