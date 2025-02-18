@@ -14,7 +14,7 @@ export const generateInitialContent = (project: any): SectionContentMap => {
         cta: "Get Started Now",
         image: savedImages[0] || "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b"
       },
-      layout: "centered"
+      layout: "centered" as const
     },
     value_proposition: {
       content: {
@@ -42,7 +42,7 @@ export const generateInitialContent = (project: any): SectionContentMap => {
           }
         ]
       },
-      layout: "grid"
+      layout: "grid" as const
     },
     features: {
       content: {
@@ -68,7 +68,7 @@ export const generateInitialContent = (project: any): SectionContentMap => {
           }
         ]
       },
-      layout: "grid"
+      layout: "grid" as const
     },
     proof: {
       content: {
@@ -83,7 +83,7 @@ export const generateInitialContent = (project: any): SectionContentMap => {
           }
         ]
       },
-      layout: "grid"
+      layout: "grid" as const
     },
     pricing: {
       content: {
@@ -104,7 +104,7 @@ export const generateInitialContent = (project: any): SectionContentMap => {
           }
         ]
       },
-      layout: "grid"
+      layout: "grid" as const
     },
     finalCta: {
       content: {
@@ -113,7 +113,7 @@ export const generateInitialContent = (project: any): SectionContentMap => {
         buttonText: "Get Started Now",
         background: "bg-gradient-glass"
       },
-      layout: "centered"
+      layout: "centered" as const
     },
     footer: {
       content: {
@@ -123,7 +123,7 @@ export const generateInitialContent = (project: any): SectionContentMap => {
         },
         copyright: `© ${new Date().getFullYear()} All rights reserved.`
       },
-      layout: "grid"
+      layout: "grid" as const
     }
   };
 };
