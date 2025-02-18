@@ -4,9 +4,18 @@ import type { SectionContentMap } from "../types/landingPageTypes";
 export const generateInitialContent = (project: any): SectionContentMap => {
   const businessIdea = project?.business_idea || {};
   const audienceAnalysis = project?.audience_analysis || {};
+  const targetAudience = project?.target_audience || {};
   const savedImages = project?.marketing_campaign?.saved_images || [];
 
-  const defaultCards = [
+  const painPoints = targetAudience?.painPoints || [];
+  const marketingChannels = targetAudience?.marketingChannels || [];
+
+  // Map pain points to value proposition cards
+  const cards = painPoints.map((point: string) => ({
+    icon: "✨",
+    title: "Solution",
+    description: point
+  })) || [
     {
       icon: "✨",
       title: "Quality Product",
@@ -24,7 +33,12 @@ export const generateInitialContent = (project: any): SectionContentMap => {
     }
   ];
 
-  const defaultFeatures = [
+  // Map marketing channels to features
+  const features = marketingChannels.map((channel: string) => ({
+    title: channel,
+    description: `Reach your audience effectively on ${channel}`,
+    icon: "🎯"
+  })) || [
     {
       title: "Intuitive Platform",
       description: "Our user-friendly interface ensures you can get started immediately",
@@ -37,28 +51,11 @@ export const generateInitialContent = (project: any): SectionContentMap => {
     }
   ];
 
-  const cards = Array.isArray(audienceAnalysis?.benefits) 
-    ? audienceAnalysis.benefits.map((benefit: string) => ({
-        icon: "✨",
-        title: benefit.split(':')[0] || benefit,
-        description: benefit.split(':')[1] || benefit,
-      }))
-    : defaultCards;
-
-  const features = Array.isArray(audienceAnalysis?.keyFeatures)
-    ? audienceAnalysis.keyFeatures.map((feature: string, index: number) => ({
-        title: feature.split(':')[0] || feature,
-        description: feature.split(':')[1] || feature,
-        icon: "🎯",
-        image: savedImages[index % savedImages.length] || ""
-      }))
-    : defaultFeatures;
-
   return {
     hero: {
       content: {
-        title: businessIdea?.valueProposition || project?.title || "Welcome to Our Platform",
-        description: businessIdea?.description || "Discover the best solution for your needs",
+        title: businessIdea?.valueProposition || "Transform Your Business Ideas into Reality",
+        description: businessIdea?.description || "Get the professional guidance you need to succeed",
         cta: "Get Started Now",
         image: savedImages[0] || ""
       },
@@ -66,8 +63,8 @@ export const generateInitialContent = (project: any): SectionContentMap => {
     },
     value_proposition: {
       content: {
-        title: "Why Choose Us?",
-        description: "We deliver comprehensive solutions that drive real results",
+        title: "Why Choose Us",
+        description: targetAudience?.coreMessage || "We deliver comprehensive solutions that drive real results",
         cards
       },
       layout: "grid" as const
@@ -80,7 +77,7 @@ export const generateInitialContent = (project: any): SectionContentMap => {
       },
       layout: "grid" as const
     },
-    testimonials: {
+    proof: {
       content: {
         title: "What Our Clients Say",
         items: []
@@ -89,16 +86,16 @@ export const generateInitialContent = (project: any): SectionContentMap => {
     },
     pricing: {
       content: {
-        title: "Pricing",
+        title: "Simple Pricing",
         description: "Choose the plan that works for you",
         items: []
       },
       layout: "grid" as const
     },
-    cta: {
+    finalCta: {
       content: {
         title: "Ready to Transform Your Business?",
-        description: "Join thousands of satisfied customers today.",
+        description: targetAudience?.messagingApproach || "Join thousands of satisfied customers today.",
         buttonText: "Get Started Now"
       },
       layout: "centered" as const
