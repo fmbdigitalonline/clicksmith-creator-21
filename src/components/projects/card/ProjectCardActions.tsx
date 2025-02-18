@@ -93,14 +93,53 @@ const ProjectCardActions = ({
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error("No authenticated user found");
 
+      // Transform the generated content into the expected format
+      const formattedContent = {
+        hero: generatedContent.hero || {
+          title: project.business_idea.valueProposition || project.business_idea.description,
+          description: project.target_audience.coreMessage || "Transform your business today",
+          cta: "Get Started",
+          image: savedImages[0] || "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b"
+        },
+        value_proposition: {
+          title: "Why Choose Us",
+          description: project.target_audience.messagingApproach || "We deliver exceptional value",
+          cards: generatedContent.valueProposition?.cards || []
+        },
+        features: {
+          title: "Key Features",
+          description: "Discover what makes us unique",
+          items: generatedContent.marketAnalysis?.features || []
+        },
+        proof: {
+          title: "What Our Clients Say",
+          testimonials: generatedContent.testimonials?.items || []
+        },
+        pricing: {
+          title: "Simple, Transparent Pricing",
+          description: "Choose the plan that's right for you",
+          plans: []
+        },
+        finalCta: {
+          title: "Ready to Get Started?",
+          description: project.target_audience.coreMessage || "Join us today",
+          buttonText: "Get Started Now"
+        },
+        footer: {
+          contact: "Contact us",
+          newsletter: "Subscribe to our newsletter",
+          copyright: `© ${new Date().getFullYear()} ${project.title}. All rights reserved.`
+        }
+      };
+
       // Save the generated content to the landing_pages table
       const landingPageData = {
         project_id: projectId,
         user_id: userData.user.id,
         title: `${project.title} Landing Page`,
-        content: generatedContent,
-        image_placements: [], // Default to empty array if not provided
-        layout_style: 'default', // Default layout style
+        content: formattedContent,
+        image_placements: [], 
+        layout_style: 'default',
         template_version: 2,
         section_order: [
           "hero",
