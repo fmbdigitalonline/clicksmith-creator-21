@@ -14,7 +14,7 @@ serve(async (req) => {
 
   try {
     const requestData = await req.json();
-    console.log("Received request data:", JSON.stringify(requestData, null, 2));
+    console.log("Received request data in edge function:", JSON.stringify(requestData, null, 2));
 
     const {
       projectId,
@@ -25,55 +25,76 @@ serve(async (req) => {
       marketingCampaign,
       selectedHooks,
       generatedAds,
-      timestamp // Include timestamp in destructuring
+      timestamp
     } = requestData;
 
-    // Log the timestamp to verify we're getting new requests
-    console.log("Generation timestamp:", timestamp);
+    // Log each piece of data separately for debugging
+    console.log("Project ID:", projectId);
+    console.log("Business Name:", businessName);
+    console.log("Business Idea:", JSON.stringify(businessIdea, null, 2));
+    console.log("Target Audience:", JSON.stringify(targetAudience, null, 2));
+    console.log("Audience Analysis:", JSON.stringify(audienceAnalysis, null, 2));
+    console.log("Marketing Campaign:", JSON.stringify(marketingCampaign, null, 2));
+    console.log("Selected Hooks:", JSON.stringify(selectedHooks, null, 2));
+    console.log("Generated Ads:", JSON.stringify(generatedAds, null, 2));
+    console.log("Timestamp:", timestamp);
 
     // Extract useful elements from the data
     const painPoints = targetAudience?.painPoints || [];
     const hooks = selectedHooks || [];
     const valueProposition = businessIdea?.valueProposition || '';
+    const marketDesire = audienceAnalysis?.marketDesire || '';
+    const objections = audienceAnalysis?.potentialObjections || [];
 
-    // Add some randomization to content selection
+    // Add randomization elements
     const getRandomItem = <T>(array: T[]): T => {
       return array[Math.floor(Math.random() * array.length)];
     };
 
-    // Build landing page content with some variation
+    // Add some variation in content generation
+    const headlines = [
+      valueProposition,
+      marketDesire,
+      targetAudience?.coreMessage,
+      `Transform your ${businessName || 'business'} today`
+    ].filter(Boolean);
+
+    const ctaButtons = [
+      "Get Started Now",
+      "Begin Your Journey",
+      "Transform Today",
+      "Learn More",
+      targetAudience?.marketingAngle
+    ].filter(Boolean);
+
+    // Build landing page content with variation
     const landingPageContent = {
       hero: {
-        title: businessIdea?.valueProposition || businessName || "Welcome",
+        title: getRandomItem(headlines) || "Welcome",
         subtitle: targetAudience?.coreMessage || "Transform Your Business Today",
         description: valueProposition,
-        cta: getRandomItem([
-          "Get Started Now",
-          "Start Your Journey",
-          "Begin Today",
-          "Transform Your Business"
-        ]),
+        cta: getRandomItem(ctaButtons),
         image: generatedAds?.[0]?.imageUrl || null
       },
 
       value_proposition: {
         title: "Why Choose Us",
-        subtitle: targetAudience?.positioning || "We deliver results",
+        subtitle: targetAudience?.positioning || marketDesire || "We deliver results",
         items: painPoints.map((point, index) => ({
           title: `Solution ${index + 1}`,
           description: point,
           icon: getRandomItem(["CheckCircle", "Star", "Shield", "Zap"])
-        }))
+        })).slice(0, 3) // Limit to 3 items for better presentation
       },
 
       features: {
         title: "Key Features",
         subtitle: "Everything you need to succeed",
-        items: hooks.map((hook, index) => ({
-          title: hook.text || `Feature ${index + 1}`,
-          description: hook.description || "Description coming soon",
+        items: (hooks.length > 0 ? hooks : objections).map((item: any, index: number) => ({
+          title: item.text || item || `Feature ${index + 1}`,
+          description: item.description || "Details coming soon",
           icon: getRandomItem(["Star", "Zap", "Shield", "Award"])
-        }))
+        })).slice(0, 6) // Limit to 6 features
       },
 
       proof: {
@@ -86,7 +107,7 @@ serve(async (req) => {
         subtitle: `Join other ${targetAudience?.name || 'satisfied customers'}`,
         testimonials: [
           {
-            quote: targetAudience?.painPoints?.[0] || "Great experience!",
+            quote: marketDesire || painPoints[0] || "Great experience!",
             author: targetAudience?.name || "Happy Customer",
             role: "Verified User"
           }
@@ -94,12 +115,7 @@ serve(async (req) => {
       },
 
       pricing: {
-        title: getRandomItem([
-          "Simple Pricing",
-          "Choose Your Plan",
-          "Pricing Plans",
-          "Start Today"
-        ]),
+        title: "Simple Pricing",
         subtitle: "Choose the perfect plan for your needs",
         plans: [
           {
@@ -117,23 +133,18 @@ serve(async (req) => {
 
       finalCta: {
         title: getRandomItem([
-          "Ready to Get Started?",
           "Start Your Journey Today",
+          targetAudience?.messagingApproach,
           "Transform Your Business Now",
           "Join Us Today"
-        ]),
+        ]) || "Ready to Get Started?",
         description: targetAudience?.messagingApproach || "Take the first step towards success",
-        buttonText: getRandomItem([
-          "Get Started",
-          "Start Now",
-          "Begin Your Journey",
-          "Transform Today"
-        ])
+        buttonText: getRandomItem(ctaButtons)
       },
 
       footer: {
-        companyName: businessName,
-        description: valueProposition,
+        companyName: businessName || "Your Business",
+        description: valueProposition || marketDesire || "Transform your business today",
         links: {
           product: ["Features", "Pricing", "Documentation"],
           company: ["About", "Blog", "Careers"],
@@ -142,7 +153,7 @@ serve(async (req) => {
       }
     };
 
-    console.log("Generated landing page content:", JSON.stringify(landingPageContent, null, 2));
+    console.log("Generated content:", JSON.stringify(landingPageContent, null, 2));
 
     return new Response(
       JSON.stringify(landingPageContent),
@@ -155,7 +166,7 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Error generating landing page:', error);
+    console.error('Error in edge function:', error);
     return new Response(
       JSON.stringify({ 
         error: error.message,
