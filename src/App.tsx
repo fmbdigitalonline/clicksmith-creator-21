@@ -19,6 +19,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Index from "@/pages/Index";
 import LandingPage from "@/pages/LandingPage";
 import LandingPages from "@/pages/LandingPages";
+import Referral from "@/pages/Referral";
+import Affiliate from "@/pages/Affiliate";
+import Share from "@/pages/Share";
 
 const queryClient = new QueryClient();
 
@@ -113,6 +116,37 @@ function App() {
                 <ProtectedRoute>
                   <AppLayout>
                     <AdWizard />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            {/* New protected routes */}
+            <Route
+              path="/referral"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <Referral />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/affiliate"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <Affiliate />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/share"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <Share />
                   </AppLayout>
                 </ProtectedRoute>
               }
