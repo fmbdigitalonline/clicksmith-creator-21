@@ -20,6 +20,14 @@ interface ProjectCardActionsProps {
   hasAudienceAnalysis?: boolean;
 }
 
+interface ProjectData {
+  id: string;
+  title: string;
+  business_idea: BusinessIdea;
+  target_audience: TargetAudience;
+  audience_analysis: any;
+}
+
 const ProjectCardActions = ({ 
   projectId,
   onEdit, 
@@ -74,20 +82,26 @@ const ProjectCardActions = ({
 
       if (projectError) throw projectError;
 
-      console.log("Project data retrieved:", project);
+      const typedProject = project as ProjectData;
+      console.log("Project data retrieved:", typedProject);
 
-      // Format the business idea and target audience data
-      const businessIdea = {
-        description: project.business_idea?.description || "",
-        valueProposition: project.business_idea?.valueProposition || ""
+      // Format the business idea and target audience data with proper typing
+      const businessIdea: BusinessIdea = {
+        description: typedProject.business_idea?.description || "",
+        valueProposition: typedProject.business_idea?.valueProposition || ""
       };
 
-      const targetAudience = {
-        description: project.target_audience?.description || "",
-        coreMessage: project.target_audience?.coreMessage || "",
-        messagingApproach: project.target_audience?.messagingApproach || "",
-        painPoints: project.target_audience?.painPoints || [],
-        benefits: project.target_audience?.benefits || []
+      const targetAudience: TargetAudience = {
+        name: typedProject.target_audience?.name || "",
+        description: typedProject.target_audience?.description || "",
+        demographics: typedProject.target_audience?.demographics || "",
+        painPoints: typedProject.target_audience?.painPoints || [],
+        icp: typedProject.target_audience?.icp || "",
+        coreMessage: typedProject.target_audience?.coreMessage || "",
+        positioning: typedProject.target_audience?.positioning || "",
+        marketingAngle: typedProject.target_audience?.marketingAngle || "",
+        messagingApproach: typedProject.target_audience?.messagingApproach || "",
+        marketingChannels: typedProject.target_audience?.marketingChannels || []
       };
 
       // Generate landing page content
@@ -95,7 +109,7 @@ const ProjectCardActions = ({
         .invoke('generate-landing-page', {
           body: {
             projectId,
-            businessName: project.title,
+            businessName: typedProject.title,
             businessIdea,
             targetAudience,
             userId: user.id,
