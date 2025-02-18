@@ -20,6 +20,29 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
+const LoadingDialog = ({ isOpen }: { isOpen: boolean }) => (
+  <Dialog open={isOpen} modal>
+    <DialogContent className="sm:max-w-[425px]">
+      <DialogHeader>
+        <DialogTitle>Generating Your Landing Page</DialogTitle>
+        <DialogDescription>
+          Please wait while we analyze your project data and generate a custom landing page.
+        </DialogDescription>
+      </DialogHeader>
+      <div className="flex items-center justify-center p-6">
+        <div 
+          className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"
+          aria-label="Loading indicator"
+          role="progressbar"
+        />
+      </div>
+      <DialogDescription>
+        We're crafting unique content based on your business details. This may take a few moments.
+      </DialogDescription>
+    </DialogContent>
+  </Dialog>
+);
+
 const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) => {
   const [activeView, setActiveView] = useState<"edit" | "preview">("preview");
   const [isGenerating, setIsGenerating] = useState(false);
@@ -88,13 +111,47 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
       console.log('Received generated content:', data);
 
       const newContent = {
-        hero: { content: data.hero, layout: "centered" },
-        value_proposition: { content: data.value_proposition, layout: "grid" },
-        features: { content: data.features, layout: "grid" },
-        proof: { content: data.proof, layout: "grid" },
-        pricing: { content: data.pricing, layout: "grid" },
-        finalCta: { content: data.finalCta, layout: "centered" },
-        footer: { content: data.footer, layout: "grid" }
+        hero: { 
+          content: {
+            title: data.hero.title || project.title,
+            subtitle: data.hero.subtitle || data.hero.title,
+            description: data.hero.description || project.business_idea.description,
+            cta: data.hero.cta || 'Get Started',
+            image: data.hero.image || 'https://images.unsplash.com/photo-1488590528505-98d2b5aba04b'
+          },
+          layout: "centered" 
+        },
+        value_proposition: { 
+          content: data.value_proposition,
+          layout: "grid" 
+        },
+        features: { 
+          content: {
+            ...data.features,
+            items: data.features.items || []
+          },
+          layout: "grid" 
+        },
+        proof: { 
+          content: data.proof,
+          layout: "grid" 
+        },
+        pricing: { 
+          content: data.pricing,
+          layout: "grid" 
+        },
+        finalCta: { 
+          content: data.finalCta,
+          layout: "centered" 
+        },
+        footer: { 
+          content: {
+            ...data.footer,
+            companyName: project.title || 'My Business',
+            description: project.business_idea.description || ''
+          },
+          layout: "grid" 
+        }
       };
 
       setCurrentContent(newContent);
@@ -170,29 +227,7 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
 
   return (
     <div className="min-h-screen">
-      <Dialog open={isGenerating} modal>
-        <DialogContent 
-          className="sm:max-w-[425px]"
-          aria-describedby="loading-description"
-        >
-          <DialogHeader>
-            <DialogTitle>Generating Your Landing Page</DialogTitle>
-            <DialogDescription id="loading-header-description">
-              Please wait while we analyze your project data and generate a custom landing page.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex items-center justify-center p-6">
-            <div 
-              className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"
-              aria-label="Loading indicator"
-              role="progressbar"
-            />
-          </div>
-          <DialogDescription id="loading-description">
-            We're crafting unique content based on your business details. This may take a few moments.
-          </DialogDescription>
-        </DialogContent>
-      </Dialog>
+      <LoadingDialog isOpen={isGenerating} />
 
       <Tabs value={activeView} onValueChange={(value: "edit" | "preview") => setActiveView(value)}>
         <div className="container mx-auto px-4 py-4">
