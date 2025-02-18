@@ -37,28 +37,38 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
         layout: "grid" 
       },
       testimonials: { 
-        content: landingPage.content.proof || {
-          title: "What Our Clients Say",
-          items: []
+        content: {
+          title: landingPage.content.testimonials?.title,
+          items: landingPage.content.testimonials?.items || []
         }, 
         layout: "grid" 
       },
       pricing: { 
-        content: landingPage.content.pricing || {
-          title: "Simple, Transparent Pricing",
-          items: []
+        content: {
+          title: landingPage.content.pricing?.title,
+          description: landingPage.content.pricing?.description,
+          items: landingPage.content.pricing?.items || []
         }, 
         layout: "grid" 
       },
       cta: { 
-        content: landingPage.content.finalCta || {
-          title: "Ready to Get Started?",
-          description: "Join us today",
-          buttonText: "Get Started"
+        content: {
+          title: landingPage.content.cta?.title || "Ready to Get Started?",
+          description: landingPage.content.cta?.description || "Join us today",
+          buttonText: landingPage.content.cta?.buttonText || "Get Started"
         }, 
         layout: "centered" 
       },
-      footer: { content: landingPage.content.footer, layout: "grid" }
+      footer: { 
+        content: landingPage.content.footer || {
+          copyright: `© ${new Date().getFullYear()} All rights reserved.`,
+          links: {
+            company: ["About", "Contact"],
+            resources: ["Documentation", "Support"]
+          }
+        }, 
+        layout: "grid" 
+      }
     } : generateInitialContent(project)
   );
   const [currentLayoutStyle, setCurrentLayoutStyle] = useState(landingPage?.layout_style);
@@ -130,6 +140,8 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
         throw error;
       }
 
+      console.log("Generated content:", data);
+
       // Map the generated content to the correct structure
       const formattedContent = {
         hero: { content: data.hero, layout: "centered" },
@@ -137,7 +149,11 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
         features: { content: data.features, layout: "grid" },
         testimonials: { content: data.testimonials, layout: "grid" },
         pricing: { content: data.pricing, layout: "grid" },
-        cta: { content: data.finalCta, layout: "centered" },
+        cta: { content: data.cta || {
+          title: "Ready to Get Started?",
+          description: "Join us today",
+          buttonText: "Get Started"
+        }, layout: "centered" },
         footer: { content: data.footer, layout: "grid" }
       };
 
@@ -146,7 +162,7 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
         .from('landing_pages')
         .upsert({
           title: project.name || "Landing Page",
-          content: formattedContent,
+          content: data, // Store the raw data
           project_id: project.id,
           user_id: user.id,
           layout_style: currentLayoutStyle,
