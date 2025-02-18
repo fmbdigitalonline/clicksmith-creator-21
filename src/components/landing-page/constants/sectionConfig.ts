@@ -12,19 +12,21 @@ export const sectionComponents = {
   hero: HeroSection,
   value_proposition: ValuePropositionSection,
   features: FeaturesSection,
-  testimonials: TestimonialsSection,
+  proof: TestimonialsSection, // Map 'proof' to TestimonialsSection
+  testimonials: TestimonialsSection, // Keep this for backward compatibility
   pricing: PricingSection,
   cta: CtaSection,
+  finalCta: CtaSection, // Map 'finalCta' to CtaSection
   footer: FooterSection,
 } as const;
 
-// Default section order
+// Default section order - updated to match expected structure
 export const defaultSectionOrder = [
   "hero",
   "value_proposition",
   "features",
-  "testimonials",
+  "proof", // Changed from testimonials to proof
   "pricing",
-  "cta",
+  "finalCta", // Changed from cta to finalCta
   "footer"
 ];
