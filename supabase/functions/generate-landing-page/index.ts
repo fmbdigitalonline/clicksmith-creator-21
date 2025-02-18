@@ -1,184 +1,268 @@
 
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import { corsHeaders } from '../_shared/cors.ts'
+import Replicate from "https://esm.sh/replicate@0.25.2"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+interface BusinessIdea {
+  description?: string;
+  valueProposition?: string;
+}
+
+interface TargetAudience {
+  description?: string;
+  coreMessage?: string;
+  messagingApproach?: string;
+  painPoints?: string[];
+  benefits?: string[];
+}
+
+interface RequestBody {
+  projectId: string;
+  businessName: string;
+  businessIdea: BusinessIdea;
+  targetAudience: TargetAudience;
+  userId: string;
+}
+
+const extractJsonFromResponse = (text: string) => {
+  try {
+    if (!text) {
+      console.error('Empty response received');
+      throw new Error('Empty response received');
+    }
+
+    let jsonStr = text;
+
+    // If the response is a string containing JSON, extract it
+    if (typeof text === 'string') {
+      // Remove any potential leading/trailing whitespace
+      jsonStr = text.trim();
+      
+      // Find the first occurrence of '{' and last occurrence of '}'
+      const start = jsonStr.indexOf('{');
+      const end = jsonStr.lastIndexOf('}') + 1;
+      
+      if (start === -1 || end === 0) {
+        console.error('No JSON object found in response:', text);
+        throw new Error('No JSON found in response');
+      }
+      
+      // Extract the JSON string
+      jsonStr = jsonStr.slice(start, end);
+    }
+    
+    try {
+      return JSON.parse(jsonStr);
+    } catch (parseError) {
+      console.error('Initial JSON parse error:', parseError);
+      console.error('Problematic JSON string:', jsonStr);
+      
+      // Clean the JSON string
+      const cleanedStr = jsonStr
+        .replace(/(\w+)\s*:/g, '"$1":') // Add quotes to unquoted keys
+        .replace(/'/g, '"') // Replace single quotes with double quotes
+        .replace(/,\s*[}\]]/g, '$1') // Remove trailing commas
+        .replace(/:\s*'([^']*)'/g, ':"$1"') // Convert string values with single quotes to double quotes
+        .replace(/\\([^"])/g, '$1'); // Remove unnecessary escape characters
+      
+      console.log('Attempting to parse cleaned JSON:', cleanedStr);
+      return JSON.parse(cleanedStr);
+    }
+  } catch (error) {
+    console.error('Error in extractJsonFromResponse:', error);
+    console.error('Original text:', text);
+    throw new Error('Failed to parse AI response');
+  }
 };
 
 serve(async (req) => {
+  // Handle CORS
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    const requestData = await req.json();
-    console.log("Received request data in edge function:", JSON.stringify(requestData, null, 2));
+    let requestBody;
+    try {
+      const text = await req.text();
+      console.log('Raw request body:', text);
+      requestBody = JSON.parse(text);
+    } catch (parseError) {
+      console.error('Error parsing request body:', parseError);
+      throw new Error('Invalid request body');
+    }
 
-    const {
-      projectId,
-      businessName,
-      businessIdea,
-      targetAudience,
-      audienceAnalysis,
-      marketingCampaign,
-      selectedHooks,
-      generatedAds,
-      timestamp
-    } = requestData;
+    console.log('Parsed request body:', requestBody);
+    const { projectId, businessName, businessIdea, targetAudience, userId } = requestBody as RequestBody;
 
-    // Log each piece of data separately for debugging
-    console.log("Project ID:", projectId);
-    console.log("Business Name:", businessName);
-    console.log("Business Idea:", JSON.stringify(businessIdea, null, 2));
-    console.log("Target Audience:", JSON.stringify(targetAudience, null, 2));
-    console.log("Audience Analysis:", JSON.stringify(audienceAnalysis, null, 2));
-    console.log("Marketing Campaign:", JSON.stringify(marketingCampaign, null, 2));
-    console.log("Selected Hooks:", JSON.stringify(selectedHooks, null, 2));
-    console.log("Generated Ads:", JSON.stringify(generatedAds, null, 2));
-    console.log("Timestamp:", timestamp);
+    if (!userId) {
+      throw new Error('User ID is required');
+    }
 
-    // Extract useful elements from the data
-    const painPoints = targetAudience?.painPoints || [];
-    const hooks = selectedHooks || [];
-    const valueProposition = businessIdea?.valueProposition || '';
-    const marketDesire = audienceAnalysis?.marketDesire || '';
-    const objections = audienceAnalysis?.potentialObjections || [];
+    // Generate theme
+    const themePrompt = `Create a professional and modern theme with colors and fonts for: ${businessIdea?.description}. Target audience: ${targetAudience?.description}. Return only valid JSON.`;
 
-    // Add randomization elements
-    const getRandomItem = <T>(array: T[]): T => {
-      return array[Math.floor(Math.random() * array.length)];
-    };
+    console.log('Sending theme prompt:', themePrompt);
 
-    // Add some variation in content generation
-    const headlines = [
-      valueProposition,
-      marketDesire,
-      targetAudience?.coreMessage,
-      `Transform your ${businessName || 'business'} today`
-    ].filter(Boolean);
-
-    const ctaButtons = [
-      "Get Started Now",
-      "Begin Your Journey",
-      "Transform Today",
-      "Learn More",
-      targetAudience?.marketingAngle
-    ].filter(Boolean);
-
-    // Build landing page content with variation
-    const landingPageContent = {
-      hero: {
-        title: getRandomItem(headlines) || "Welcome",
-        subtitle: targetAudience?.coreMessage || "Transform Your Business Today",
-        description: valueProposition,
-        cta: getRandomItem(ctaButtons),
-        image: generatedAds?.[0]?.imageUrl || null
+    const response = await fetch("https://api.deepseek.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${Deno.env.get('DEEPSEEK_API_KEY')}`
       },
+      body: JSON.stringify({
+        model: "deepseek-chat",
+        messages: [{ role: "user", content: themePrompt }],
+        temperature: 0.7,
+        response_format: { type: "json_object" }
+      })
+    });
 
-      value_proposition: {
-        title: "Why Choose Us",
-        subtitle: targetAudience?.positioning || marketDesire || "We deliver results",
-        items: painPoints.map((point, index) => ({
-          title: `Solution ${index + 1}`,
-          description: point,
-          icon: getRandomItem(["CheckCircle", "Star", "Shield", "Zap"])
-        })).slice(0, 3) // Limit to 3 items for better presentation
-      },
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('DeepSeek API error:', response.status, errorText);
+      throw new Error(`DeepSeek API error: ${response.status}`);
+    }
 
-      features: {
-        title: "Key Features",
-        subtitle: "Everything you need to succeed",
-        items: (hooks.length > 0 ? hooks : objections).map((item: any, index: number) => ({
-          title: item.text || item || `Feature ${index + 1}`,
-          description: item.description || "Details coming soon",
-          icon: getRandomItem(["Star", "Zap", "Shield", "Award"])
-        })).slice(0, 6) // Limit to 6 features
-      },
+    const themeData = await response.json();
+    console.log('Theme API raw response:', themeData);
+    
+    let theme;
+    try {
+      theme = extractJsonFromResponse(themeData.choices[0].message.content);
+      console.log('Parsed theme:', theme);
+    } catch (error) {
+      console.error('Error parsing theme:', error);
+      throw new Error('Failed to parse theme data');
+    }
 
-      proof: {
-        title: getRandomItem([
-          "Success Stories",
-          "Client Testimonials",
-          "What Our Clients Say",
-          "Real Results"
-        ]),
-        subtitle: `Join other ${targetAudience?.name || 'satisfied customers'}`,
-        testimonials: [
-          {
-            quote: marketDesire || painPoints[0] || "Great experience!",
-            author: targetAudience?.name || "Happy Customer",
-            role: "Verified User"
-          }
-        ]
-      },
+    // Generate hero image
+    const replicate = new Replicate({
+      auth: Deno.env.get('REPLICATE_API_TOKEN') || '',
+    });
 
-      pricing: {
-        title: "Simple Pricing",
-        subtitle: "Choose the perfect plan for your needs",
-        plans: [
-          {
-            name: "Starter",
-            price: "Free",
-            features: ["Basic access", "Community support", "Core features"]
-          },
-          {
-            name: "Pro",
-            price: "$49/mo",
-            features: ["Full access", "Priority support", "Advanced features"]
-          }
-        ]
-      },
-
-      finalCta: {
-        title: getRandomItem([
-          "Start Your Journey Today",
-          targetAudience?.messagingApproach,
-          "Transform Your Business Now",
-          "Join Us Today"
-        ]) || "Ready to Get Started?",
-        description: targetAudience?.messagingApproach || "Take the first step towards success",
-        buttonText: getRandomItem(ctaButtons)
-      },
-
-      footer: {
-        companyName: businessName || "Your Business",
-        description: valueProposition || marketDesire || "Transform your business today",
-        links: {
-          product: ["Features", "Pricing", "Documentation"],
-          company: ["About", "Blog", "Careers"],
-          resources: ["Support", "Contact", "Privacy"]
+    const imagePrompt = `Professional hero image for ${businessName}. Business: ${businessIdea?.description}. Style: Modern, minimalist.`;
+    console.log('Image generation prompt:', imagePrompt);
+    
+    const heroImage = await replicate.run(
+      "black-forest-labs/flux-1.1-pro",
+      {
+        input: {
+          prompt: imagePrompt,
+          num_outputs: 1,
+          aspect_ratio: "16:9",
+          output_format: "webp",
+          output_quality: 95
         }
       }
+    );
+
+    console.log('Generated hero image:', heroImage);
+
+    // Generate content
+    const contentPrompt = `Create landing page content for ${businessName}. Business: ${businessIdea?.description}. Value Proposition: ${businessIdea?.valueProposition}. Return only valid JSON.`;
+    
+    console.log('Sending content prompt:', contentPrompt);
+
+    const contentResponse = await fetch("https://api.deepseek.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${Deno.env.get('DEEPSEEK_API_KEY')}`
+      },
+      body: JSON.stringify({
+        model: "deepseek-chat",
+        messages: [{ role: "user", content: contentPrompt }],
+        temperature: 0.7,
+        response_format: { type: "json_object" }
+      })
+    });
+
+    if (!contentResponse.ok) {
+      const errorText = await contentResponse.text();
+      console.error('DeepSeek API content error:', contentResponse.status, errorText);
+      throw new Error(`DeepSeek API content error: ${contentResponse.status}`);
+    }
+
+    const contentData = await contentResponse.json();
+    console.log('Content API raw response:', contentData);
+    
+    let content;
+    try {
+      content = extractJsonFromResponse(contentData.choices[0].message.content);
+      console.log('Parsed content:', content);
+    } catch (error) {
+      console.error('Error parsing content:', error);
+      throw new Error('Failed to parse content data');
+    }
+
+    // Combine everything
+    const landingPageContent = {
+      hero: {
+        title: content.hero?.title || "Welcome",
+        description: content.hero?.description || "",
+        cta: content.hero?.cta || "Get Started",
+        image: Array.isArray(heroImage) && heroImage.length > 0 ? heroImage[0] : heroImage
+      },
+      valueProposition: content.valueProposition || {
+        title: "Value Proposition",
+        description: businessIdea?.valueProposition || "",
+        cards: []
+      },
+      features: content.features || {
+        title: "Features",
+        description: "",
+        items: []
+      },
+      styling: theme
     };
 
-    console.log("Generated content:", JSON.stringify(landingPageContent, null, 2));
+    console.log('Final landing page content:', landingPageContent);
+
+    // Save to database
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') || '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
+    );
+
+    const { error: updateError } = await supabase
+      .from('landing_pages')
+      .upsert({
+        project_id: projectId,
+        user_id: userId,
+        title: businessName,
+        content: landingPageContent,
+        styling: theme,
+        updated_at: new Date().toISOString()
+      });
+
+    if (updateError) {
+      console.error('Error updating landing page:', updateError);
+      throw updateError;
+    }
 
     return new Response(
       JSON.stringify(landingPageContent),
-      { 
-        headers: { 
+      {
+        headers: {
           ...corsHeaders,
-          'Content-Type': 'application/json'
-        } 
-      }
-    );
-
+          'Content-Type': 'application/json',
+        },
+        status: 200,
+      },
+    )
   } catch (error) {
-    console.error('Error in edge function:', error);
+    console.error('Error in generate-landing-page:', error);
     return new Response(
       JSON.stringify({ 
         error: error.message,
-        details: "Error occurred while generating landing page content"
-      }),
+        details: error instanceof Error ? error.stack : undefined
+      }), 
       { 
-        status: 500,
-        headers: { 
-          ...corsHeaders,
-          'Content-Type': 'application/json'
-        }
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+        status: 400 
       }
-    );
+    )
   }
-});
+})

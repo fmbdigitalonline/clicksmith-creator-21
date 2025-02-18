@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,17 +8,23 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { sectionComponents } from "./constants/sectionConfig";
 import { generateInitialContent } from "./utils/contentUtils";
-import { transformEdgeResponse } from "./utils/contentTransformer";
 import type { LandingPageContentProps, SectionContentMap } from "./types/landingPageTypes";
 import LoadingState from "@/components/steps/complete/LoadingState";
 import LoadingStateLandingPage from "./LoadingStateLandingPage";
-import LoadingDialog from "./components/LoadingDialog";
 
 const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) => {
   const [activeView, setActiveView] = useState<"edit" | "preview">("preview");
   const [isGenerating, setIsGenerating] = useState(false);
   const [currentContent, setCurrentContent] = useState<SectionContentMap>(
-    landingPage?.content || generateInitialContent(project)
+    landingPage?.content ? {
+      hero: { content: landingPage.content.hero, layout: "centered" },
+      value_proposition: { content: landingPage.content.value_proposition, layout: "grid" },
+      features: { content: landingPage.content.features, layout: "grid" },
+      proof: { content: landingPage.content.proof, layout: "grid" },
+      pricing: { content: landingPage.content.pricing, layout: "grid" },
+      finalCta: { content: landingPage.content.finalCta, layout: "centered" },
+      footer: { content: landingPage.content.footer, layout: "grid" }
+    } : generateInitialContent(project)
   );
   const [currentLayoutStyle, setCurrentLayoutStyle] = useState(landingPage?.layout_style);
   
@@ -38,30 +43,29 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
     "footer"
   ];
 
-  const formatProjectData = () => {
-    const businessIdea = typeof project.business_idea === 'string' 
-      ? { description: project.business_idea, valueProposition: project.business_idea }
-      : project.business_idea || {};
+  console.log("Current content:", currentContent);
+  console.log("Landing page data:", landingPage);
 
-    const targetAudience = typeof project.target_audience === 'string'
-      ? { description: project.target_audience }
-      : project.target_audience || {};
+  const renderSection = (sectionKey: string) => {
+    const sectionData = currentContent[sectionKey];
+    if (!sectionData?.content) {
+      console.log(`No content for section: ${sectionKey}`);
+      return null;
+    }
 
-    const audienceAnalysis = typeof project.audience_analysis === 'string'
-      ? { description: project.audience_analysis }
-      : project.audience_analysis || {};
+    const Component = sectionComponents[sectionKey];
+    if (!Component) {
+      console.warn(`No component found for section: ${sectionKey}`);
+      return null;
+    }
 
-    return {
-      projectId: project.id,
-      businessName: project.name || project.title || "My Business",
-      businessIdea,
-      targetAudience,
-      audienceAnalysis,
-      marketingCampaign: project.marketing_campaign || {},
-      selectedHooks: Array.isArray(project.selected_hooks) ? project.selected_hooks : [],
-      generatedAds: Array.isArray(project.generated_ads) ? project.generated_ads : [],
-      timestamp: new Date().toISOString()
-    };
+    return (
+      <Component
+        key={sectionKey}
+        content={sectionData.content}
+        layout={sectionData.layout || "default"}
+      />
+    );
   };
 
   const generateLandingPageContent = async () => {
@@ -70,29 +74,44 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      const payload = formatProjectData();
-      console.log('Sending payload to edge function:', payload);
+      // Transform business idea and target audience data
+      const businessDescription = project.business_idea?.description || project.business_idea?.valueProposition || '';
+      const targetAudienceDescription = project.target_audience?.description || project.target_audience?.coreMessage || '';
 
       const { data, error } = await supabase.functions.invoke('generate-landing-page', {
-        body: payload
+        body: {
+          projectId: project.id,
+          businessName: project.name,
+          businessIdea: businessDescription,
+          targetAudience: targetAudienceDescription,
+          template: template?.structure,
+          existingContent: currentContent,
+          layoutStyle: currentLayoutStyle
+        }
       });
 
-      if (error) throw error;
-      if (!data) throw new Error('No content received from edge function');
+      if (error) {
+        console.error('Edge function error:', error);
+        throw error;
+      }
 
-      console.log('Received generated content:', data);
+      // Map the generated content to the correct structure
+      const formattedContent = {
+        hero: { content: data.hero, layout: "centered" },
+        value_proposition: { content: data.valueProposition, layout: "grid" },
+        features: { content: data.marketAnalysis?.features, layout: "grid" },
+        proof: { content: data.testimonials, layout: "grid" },
+        pricing: { content: data.pricing, layout: "grid" },
+        finalCta: { content: data.finalCta, layout: "centered" },
+        footer: { content: data.footer, layout: "grid" }
+      };
 
-      // Transform the edge function response into the expected structure
-      const newContent = transformEdgeResponse(data, project);
-      console.log('Transformed content:', newContent);
-      
-      setCurrentContent(newContent);
-
+      // Update landing page content in database
       const { error: updateError } = await supabase
         .from('landing_pages')
         .upsert({
-          title: project.name || project.title || "Landing Page",
-          content: JSON.parse(JSON.stringify(newContent)), // Convert to raw JSON
+          title: project.name || "Landing Page",
+          content: formattedContent,
           project_id: project.id,
           user_id: user.id,
           layout_style: currentLayoutStyle,
@@ -102,6 +121,10 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
 
       if (updateError) throw updateError;
 
+      // Update local state with new content
+      setCurrentContent(formattedContent);
+
+      // Invalidate queries to refetch latest data
       await queryClient.invalidateQueries({
         queryKey: ['landing-page', project.id]
       });
@@ -122,41 +145,12 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
     }
   };
 
-  const renderSection = (sectionKey: string) => {
-    const sectionData = currentContent[sectionKey];
-    if (!sectionData?.content) {
-      console.log(`No content for section: ${sectionKey}`);
-      return null;
-    }
-
-    const Component = sectionComponents[sectionKey];
-    if (!Component) {
-      console.warn(`No component found for section: ${sectionKey}`);
-      return null;
-    }
-
-    console.log(`Rendering section ${sectionKey}:`, {
-      content: sectionData.content,
-      layout: sectionData.layout
-    });
-
-    return (
-      <Component
-        key={sectionKey}
-        content={sectionData.content}
-        layout={sectionData.layout}
-      />
-    );
-  };
-
   if (isTemplateLoading) {
     return <LoadingStateLandingPage />;
   }
 
   return (
     <div className="min-h-screen">
-      <LoadingDialog isOpen={isGenerating} />
-
       <Tabs value={activeView} onValueChange={(value: "edit" | "preview") => setActiveView(value)}>
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between mb-4">
@@ -167,7 +161,6 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
             <Button 
               onClick={generateLandingPageContent}
               disabled={isGenerating}
-              aria-label={isGenerating ? "Generating content..." : "Generate content"}
             >
               {isGenerating ? "Generating..." : "Generate Content"}
             </Button>

@@ -3,7 +3,6 @@ import HeroSection from "../sections/HeroSection";
 import ValuePropositionSection from "../sections/ValuePropositionSection";
 import FeaturesSection from "../sections/FeaturesSection";
 import TestimonialsSection from "../sections/TestimonialsSection";
-import PricingSection from "../sections/PricingSection";
 import CtaSection from "../sections/CtaSection";
 import HowItWorksSection from "../sections/HowItWorksSection";
 import MarketAnalysisSection from "../sections/MarketAnalysisSection";
@@ -16,11 +15,8 @@ export const sectionComponents = {
   hero: HeroSection,
   value_proposition: ValuePropositionSection,
   features: FeaturesSection,
-  proof: TestimonialsSection, // Map 'proof' to TestimonialsSection
   testimonials: TestimonialsSection,
-  pricing: PricingSection,
   cta: CtaSection,
-  finalCta: CtaSection, // Map 'finalCta' to CtaSection
   how_it_works: HowItWorksSection,
   market_analysis: MarketAnalysisSection,
   objections: ObjectionsSection,
@@ -31,10 +27,13 @@ export const sectionComponents = {
 // Default section order if none is provided
 export const defaultSectionOrder = [
   "hero",
+  "how_it_works",
+  "market_analysis",
   "value_proposition",
   "features",
-  "proof",
-  "pricing",
-  "finalCta",
+  "testimonials",
+  "objections",
+  "faq",
+  "cta",
   "footer"
 ];
