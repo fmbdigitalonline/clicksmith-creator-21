@@ -42,7 +42,7 @@ const ProjectCardActions = ({
     }
 
     // Show loading toast with landing page loading state
-    const loadingToast = toast({
+    const toastInstance = toast({
       title: "Creating landing page",
       description: <LoadingStateLandingPage />,
       duration: 100000, // Long duration since we'll dismiss it manually
@@ -126,7 +126,7 @@ const ProjectCardActions = ({
       if (saveError) throw saveError;
 
       // Dismiss loading toast
-      toast.dismiss(loadingToast);
+      toastInstance.dismiss();
 
       // Show success message
       toast({
@@ -135,14 +135,16 @@ const ProjectCardActions = ({
       });
 
       // Invalidate landing pages query to refetch latest data
-      await queryClient.invalidateQueries(['landing-page', projectId]);
+      await queryClient.invalidateQueries({
+        queryKey: ['landing-page', projectId]
+      });
 
       // Navigate to the landing page editor
       navigate(`/projects/${projectId}/landing-page`);
     } catch (error) {
       console.error('Error creating landing page:', error);
       // Dismiss loading toast
-      toast.dismiss(loadingToast);
+      toastInstance.dismiss();
       
       toast({
         title: "Error",
