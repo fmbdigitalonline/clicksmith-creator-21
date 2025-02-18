@@ -1,5 +1,7 @@
 
-export const generateInitialContent = (project: any) => {
+import { SectionContentMap } from "../types/landingPageTypes";
+
+export const generateInitialContent = (project: any): SectionContentMap => {
   const businessIdea = project?.business_idea || {};
   const audienceAnalysis = project?.audience_analysis || {};
   const savedImages = project?.marketing_campaign?.saved_images || [];
@@ -72,7 +74,7 @@ export const generateInitialContent = (project: any) => {
       content: {
         title: "What Our Clients Say",
         description: "Success stories from businesses like yours",
-        items: [
+        testimonials: [
           {
             quote: "This platform has revolutionized our operations!",
             author: "Sarah Chen",
@@ -87,16 +89,18 @@ export const generateInitialContent = (project: any) => {
       content: {
         title: "Simple, Transparent Pricing",
         description: "Choose the plan that's right for you",
-        items: [
+        pricingTiers: [
           {
             name: "Starter",
             price: "Free",
-            features: ["Basic features", "Community support", "1 project"]
+            features: ["Basic features", "Community support", "1 project"],
+            cta: "Get Started"
           },
           {
             name: "Pro",
             price: "$49/mo",
-            features: ["All features", "Priority support", "Unlimited projects"]
+            features: ["All features", "Priority support", "Unlimited projects"],
+            cta: "Go Pro"
           }
         ]
       },
@@ -106,7 +110,8 @@ export const generateInitialContent = (project: any) => {
       content: {
         title: "Ready to Transform Your Business?",
         description: "Join thousands of satisfied customers today.",
-        cta: "Get Started Now",
+        buttonText: "Get Started Now",
+        background: "bg-gradient-glass"
       },
       layout: "centered"
     },
