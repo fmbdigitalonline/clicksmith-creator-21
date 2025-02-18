@@ -1,4 +1,6 @@
 
+import type { SectionContentMap } from "../types/landingPageTypes";
+
 export const generateInitialContent = (project: any): SectionContentMap => {
   const businessIdea = project?.business_idea || {};
   const audienceAnalysis = project?.audience_analysis || {};
