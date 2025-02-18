@@ -8,6 +8,7 @@ export const generateInitialContent = (project: any) => {
     hero: {
       content: {
         title: businessIdea?.valueProposition || project.title || "Welcome to Our Platform",
+        subtitle: businessIdea?.valueProposition || project.title || "Welcome",
         description: businessIdea?.description || "Discover the best solution for your needs",
         cta: "Get Started Now",
         image: savedImages[0] || "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b"
@@ -16,27 +17,27 @@ export const generateInitialContent = (project: any) => {
     },
     value_proposition: {
       content: {
-        title: "Why Choose Us?",
-        description: "We deliver comprehensive solutions that drive real results",
-        cards: audienceAnalysis?.benefits?.map((benefit: string) => ({
-          icon: "✨",
+        title: "Why Choose Us",
+        subtitle: "We deliver comprehensive solutions that drive real results",
+        items: audienceAnalysis?.benefits?.map((benefit: string) => ({
           title: benefit.split(':')[0] || benefit,
           description: benefit.split(':')[1] || benefit,
+          icon: "✨"
         })) || [
           {
-            icon: "✨",
             title: "Quality Product",
-            description: "Experience superior quality in every aspect of our service"
+            description: "Experience superior quality in every aspect of our service",
+            icon: "✨"
           },
           {
-            icon: "🎯",
             title: "Expert Service",
-            description: "Professional support available 24/7 when you need it most"
+            description: "Professional support available 24/7 when you need it most",
+            icon: "🎯"
           },
           {
-            icon: "💫",
             title: "Great Value",
-            description: "Competitive pricing with premium features included"
+            description: "Competitive pricing with premium features included",
+            icon: "💫"
           }
         ]
       },
@@ -44,24 +45,22 @@ export const generateInitialContent = (project: any) => {
     },
     features: {
       content: {
-        title: "Powerful Features",
-        description: "Everything you need to succeed",
+        title: "Key Features",
+        subtitle: "Everything you need to succeed",
         items: audienceAnalysis?.keyFeatures?.map((feature: string, index: number) => ({
           title: feature.split(':')[0] || feature,
           description: feature.split(':')[1] || feature,
           icon: "🎯",
-          image: savedImages[index % savedImages.length] || "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d"
+          image: savedImages[index % savedImages.length] || undefined
         })) || [
           {
             title: "Intuitive Platform",
             description: "Our user-friendly interface ensures you can get started immediately",
-            image: savedImages[0] || "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d",
             icon: "🎯"
           },
           {
             title: "Advanced Analytics",
             description: "Get detailed insights into your performance",
-            image: savedImages[1] || "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158",
             icon: "📊"
           }
         ]
@@ -70,9 +69,9 @@ export const generateInitialContent = (project: any) => {
     },
     proof: {
       content: {
-        title: "What Our Clients Say",
-        description: "Success stories from businesses like yours",
-        items: [
+        title: "Client Testimonials",
+        subtitle: "Success stories from businesses like yours",
+        testimonials: [
           {
             quote: "This platform has revolutionized our operations!",
             author: "Sarah Chen",
@@ -85,9 +84,9 @@ export const generateInitialContent = (project: any) => {
     },
     pricing: {
       content: {
-        title: "Simple, Transparent Pricing",
-        description: "Choose the plan that's right for you",
-        items: [
+        title: "Simple Pricing",
+        subtitle: "Choose the plan that's right for you",
+        plans: [
           {
             name: "Starter",
             price: "Free",
@@ -106,17 +105,18 @@ export const generateInitialContent = (project: any) => {
       content: {
         title: "Ready to Transform Your Business?",
         description: "Join thousands of satisfied customers today.",
-        cta: "Get Started Now",
+        buttonText: "Get Started Now"
       },
       layout: "centered"
     },
     footer: {
       content: {
+        companyName: project.name || project.title || "Our Company",
+        description: businessIdea?.description || "Making your business better",
         links: {
           company: ["About", "Contact", "Careers"],
           resources: ["Blog", "Help Center", "Support"]
-        },
-        copyright: `© ${new Date().getFullYear()} All rights reserved.`
+        }
       },
       layout: "grid"
     }
