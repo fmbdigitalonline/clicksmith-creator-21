@@ -2,8 +2,14 @@
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { CreditCard, HelpCircle } from "lucide-react";
+import { CreditCard, HelpCircle, MessageSquare, BookOpen } from "lucide-react";
 import { CreditDisplay } from "./CreditDisplay";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const Navigation = () => {
   const location = useLocation();
@@ -41,20 +47,28 @@ const Navigation = () => {
                 <span>Pricing</span>
               </Link>
             </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              asChild
-              className={cn(
-                "gap-2",
-                isActive("/contact") && "bg-accent"
-              )}
-            >
-              <Link to="/contact">
-                <HelpCircle className="h-4 w-4" />
-                <span>Help</span>
-              </Link>
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="gap-2">
+                  <HelpCircle className="h-4 w-4" />
+                  <span>Help</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem asChild>
+                  <Link to="/faq" className="flex items-center gap-2">
+                    <BookOpen className="h-4 w-4" />
+                    FAQ
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/contact" className="flex items-center gap-2">
+                    <MessageSquare className="h-4 w-4" />
+                    Contact Support
+                  </Link>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </div>
