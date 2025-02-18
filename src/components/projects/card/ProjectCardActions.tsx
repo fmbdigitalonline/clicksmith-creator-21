@@ -20,13 +20,6 @@ interface ProjectCardActionsProps {
   hasAudienceAnalysis?: boolean;
 }
 
-interface ProjectData {
-  business_idea: BusinessIdea;
-  target_audience: TargetAudience;
-  audience_analysis: any;
-  title: string;
-}
-
 const ProjectCardActions = ({ 
   projectId,
   onEdit, 
@@ -49,154 +42,49 @@ const ProjectCardActions = ({
       return;
     }
 
-    // Show loading toast with landing page loading state
-    const toastInstance = toast({
-      title: "Creating landing page",
+    // Show loading toast
+    const loadingToast = toast({
+      title: "Creating your landing page",
       description: <LoadingStateLandingPage />,
-      duration: 100000, // Long duration since we'll dismiss it manually
+      duration: 100000,
     });
 
     try {
-      // Get the project data first
+      // Get the project data
       const { data: project, error: projectError } = await supabase
         .from('projects')
-        .select('business_idea, target_audience, audience_analysis, title')
+        .select('*, business_idea, target_audience, audience_analysis')
         .eq('id', projectId)
         .single();
 
       if (projectError) throw projectError;
-      if (!project) throw new Error('Project not found');
 
-      const typedProject = project as unknown as ProjectData;
-
-      // Get any saved ad images
-      const { data: adFeedback } = await supabase
-        .from('ad_feedback')
-        .select('saved_images')
-        .eq('project_id', projectId)
-        .maybeSingle();
-      
-      const savedImages = adFeedback?.saved_images || [];
-
-      console.log("Calling generate-landing-page function with data:", {
-        businessIdea: typedProject.business_idea,
-        targetAudience: typedProject.target_audience,
-        audienceAnalysis: typedProject.audience_analysis,
-        projectImages: savedImages
-      });
-
-      // Call the edge function to generate landing page content
+      // Generate landing page content
       const { data: generatedContent, error } = await supabase.functions
         .invoke('generate-landing-page', {
           body: {
-            businessIdea: typedProject.business_idea,
-            targetAudience: typedProject.target_audience,
-            audienceAnalysis: typedProject.audience_analysis,
-            projectImages: savedImages
+            projectId,
+            businessName: project.title,
+            businessIdea: project.business_idea,
+            targetAudience: project.target_audience,
           },
         });
 
       if (error) throw error;
-      
-      console.log("Generated content:", generatedContent);
 
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) throw new Error("No authenticated user found");
-
-      // Transform the generated content into the expected format
-      const formattedContent = {
-        hero: generatedContent.hero || {
-          title: typedProject.business_idea?.valueProposition || typedProject.business_idea?.description || "Transform Your Business",
-          description: typedProject.target_audience?.coreMessage || "Transform your business today",
-          cta: "Get Started",
-          image: savedImages[0] || "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b"
-        },
-        value_proposition: {
-          title: "Why Choose Us",
-          description: typedProject.target_audience?.messagingApproach || "We deliver exceptional value",
-          cards: (generatedContent.valueProposition?.cards as any[]) || []
-        },
-        features: {
-          title: "Key Features",
-          description: "Discover what makes us unique",
-          items: (generatedContent.marketAnalysis?.features as any[]) || []
-        },
-        proof: {
-          title: "What Our Clients Say",
-          testimonials: (generatedContent.testimonials?.items as any[]) || []
-        },
-        pricing: {
-          title: "Simple, Transparent Pricing",
-          description: "Choose the plan that's right for you",
-          plans: []
-        },
-        finalCta: {
-          title: "Ready to Get Started?",
-          description: typedProject.target_audience?.coreMessage || "Join us today",
-          buttonText: "Get Started Now"
-        },
-        footer: {
-          contact: "Contact us",
-          newsletter: "Subscribe to our newsletter",
-          copyright: `© ${new Date().getFullYear()} ${typedProject.title}. All rights reserved.`
-        }
-      };
-
-      // Save the generated content to the landing_pages table
-      const landingPageData = {
-        project_id: projectId,
-        user_id: userData.user.id,
-        title: `${typedProject.title} Landing Page`,
-        content: formattedContent,
-        image_placements: [], 
-        layout_style: 'default',
-        template_version: 2,
-        section_order: [
-          "hero",
-          "value_proposition",
-          "features",
-          "proof",
-          "pricing",
-          "finalCta",
-          "footer"
-        ],
-        conversion_goals: [
-          "sign_up",
-          "contact_form",
-          "newsletter"
-        ],
-        published: false
-      };
-
-      const { data: landingPage, error: saveError } = await supabase
-        .from('landing_pages')
-        .upsert(landingPageData)
-        .select()
-        .single();
-
-      if (saveError) throw saveError;
-
-      // Dismiss loading toast
-      toastInstance.dismiss();
-
-      // Show success message
+      // Dismiss loading toast and show success
+      loadingToast.dismiss();
       toast({
-        title: "Success",
-        description: "Your landing page has been generated successfully!",
+        title: "Success!",
+        description: "Your landing page has been created.",
       });
 
-      // Invalidate landing pages query to refetch latest data
-      await queryClient.invalidateQueries({
-        queryKey: ['landing-page', projectId]
-      });
-
-      // Navigate to the landing page editor
+      // Invalidate queries and navigate to the landing page
+      await queryClient.invalidateQueries(['landing-page', projectId]);
       navigate(`/projects/${projectId}/landing-page`);
     } catch (error) {
       console.error('Error creating landing page:', error);
-      // Dismiss loading toast
-      toastInstance.dismiss();
-      
+      loadingToast.dismiss();
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to create landing page",
