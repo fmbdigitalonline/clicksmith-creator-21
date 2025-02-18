@@ -23,8 +23,8 @@ interface ProjectCardActionsProps {
 interface ProjectData {
   id: string;
   title: string;
-  business_idea: BusinessIdea;
-  target_audience: TargetAudience;
+  business_idea: BusinessIdea | null;
+  target_audience: TargetAudience | null;
   audience_analysis: any;
 }
 
@@ -81,39 +81,45 @@ const ProjectCardActions = ({
         .single();
 
       if (projectError) throw projectError;
+      if (!project) throw new Error('Project not found');
 
       const typedProject = project as ProjectData;
       console.log("Project data retrieved:", typedProject);
 
+      // Ensure we have the required data
+      if (!typedProject.business_idea || !typedProject.target_audience) {
+        throw new Error('Missing required project data');
+      }
+
       // Format the business idea and target audience data with proper typing
       const businessIdea: BusinessIdea = {
-        description: typedProject.business_idea?.description || "",
-        valueProposition: typedProject.business_idea?.valueProposition || ""
+        description: typedProject.business_idea.description || "",
+        valueProposition: typedProject.business_idea.valueProposition || ""
       };
 
       const targetAudience: TargetAudience = {
-        name: typedProject.target_audience?.name || "",
-        description: typedProject.target_audience?.description || "",
-        demographics: typedProject.target_audience?.demographics || "",
-        painPoints: typedProject.target_audience?.painPoints || [],
-        icp: typedProject.target_audience?.icp || "",
-        coreMessage: typedProject.target_audience?.coreMessage || "",
-        positioning: typedProject.target_audience?.positioning || "",
-        marketingAngle: typedProject.target_audience?.marketingAngle || "",
-        messagingApproach: typedProject.target_audience?.messagingApproach || "",
-        marketingChannels: typedProject.target_audience?.marketingChannels || []
+        name: typedProject.target_audience.name || "",
+        description: typedProject.target_audience.description || "",
+        demographics: typedProject.target_audience.demographics || "",
+        painPoints: typedProject.target_audience.painPoints || [],
+        icp: typedProject.target_audience.icp || "",
+        coreMessage: typedProject.target_audience.coreMessage || "",
+        positioning: typedProject.target_audience.positioning || "",
+        marketingAngle: typedProject.target_audience.marketingAngle || "",
+        messagingApproach: typedProject.target_audience.messagingApproach || "",
+        marketingChannels: typedProject.target_audience.marketingChannels || []
       };
 
       // Generate landing page content
       const { data: generatedContent, error } = await supabase.functions
         .invoke('generate-landing-page', {
-          body: {
+          body: JSON.stringify({
             projectId,
             businessName: typedProject.title,
             businessIdea,
             targetAudience,
             userId: user.id,
-          },
+          })
         });
 
       console.log("Edge function response:", generatedContent);
