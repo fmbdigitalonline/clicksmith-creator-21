@@ -51,9 +51,9 @@ serve(async (req) => {
     
     console.log('Generating hero image with prompt:', imagePrompt);
     
-    // Generate hero image using Replicate
+    // Generate hero image using Replicate with the correct model
     const heroImage = await replicate.run(
-      "black-forest-labs/flux-schnell",
+      "black-forest-labs/flux-1.1-pro",
       {
         input: {
           prompt: imagePrompt,
