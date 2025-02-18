@@ -8,6 +8,10 @@ export interface SectionContent {
   content: {
     title?: string;
     description?: string;
+    cta?: string;
+    image?: string;
+    cards?: any[];
+    items?: any[];
     [key: string]: any;
   };
   layout: string;

@@ -106,22 +106,8 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
 
       console.log('Generated content:', data);
 
-      // Update landing page content in database
-      const { error: updateError } = await supabase
-        .from('landing_pages')
-        .upsert({
-          user_id: user.id,
-          project_id: project.id,
-          content: data,
-          layout_style: currentLayoutStyle,
-          section_order: sectionOrder,
-          updated_at: new Date().toISOString()
-        });
-
-      if (updateError) throw updateError;
-
-      // Update local state with new content
-      setCurrentContent({
+      // Map the generated content to the correct structure
+      const formattedContent = {
         hero: { content: data.hero, layout: "centered" },
         value_proposition: { content: data.valueProposition, layout: "grid" },
         features: { content: data.marketAnalysis?.features, layout: "grid" },
@@ -129,7 +115,24 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
         pricing: { content: data.pricing, layout: "grid" },
         finalCta: { content: data.finalCta, layout: "centered" },
         footer: { content: data.footer, layout: "grid" }
-      });
+      };
+
+      // Update landing page content in database
+      const { error: updateError } = await supabase
+        .from('landing_pages')
+        .upsert({
+          project_id: project.id,
+          content: formattedContent,
+          layout_style: currentLayoutStyle,
+          section_order: sectionOrder,
+          updated_at: new Date().toISOString(),
+          title: project.name || "Landing Page" // Add required title field
+        });
+
+      if (updateError) throw updateError;
+
+      // Update local state with new content
+      setCurrentContent(formattedContent);
 
       // Invalidate queries to refetch latest data
       await queryClient.invalidateQueries({
