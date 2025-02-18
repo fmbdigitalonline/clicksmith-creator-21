@@ -1,9 +1,48 @@
 
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { DollarSign, BadgeCheck, Rocket, ArrowRight } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { useToast } from "@/components/ui/use-toast";
+
+const formSchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  email: z.string().email("Please enter a valid email"),
+  website: z.string().url("Please enter a valid website URL"),
+  reason: z.string().min(10, "Please provide more details about why you want to join")
+});
 
 const Affiliate = () => {
+  const [open, setOpen] = useState(false);
+  const { toast } = useToast();
+  
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      website: "",
+      reason: ""
+    },
+  });
+
+  const onSubmit = (values: z.infer<typeof formSchema>) => {
+    console.log(values);
+    toast({
+      title: "Application submitted!",
+      description: "We'll review your application and get back to you soon.",
+    });
+    setOpen(false);
+    form.reset();
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-4xl font-bold mb-6 flex items-center gap-2">
@@ -16,12 +55,12 @@ const Affiliate = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <DollarSign className="h-5 w-5 text-primary" />
-              30% Commission
+              20% Commission
             </CardTitle>
             <CardDescription>Earn for every referred sale</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-muted-foreground">Earn 30% commission on all referral sales, paid out monthly.</p>
+            <p className="text-muted-foreground">Earn 20% commission on all referral sales, paid out monthly.</p>
           </CardContent>
         </Card>
 
@@ -85,9 +124,83 @@ const Affiliate = () => {
       </Card>
 
       <div className="flex justify-center">
-        <Button size="lg" className="gap-2">
-          Apply Now <ArrowRight className="h-4 w-4" />
-        </Button>
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild>
+            <Button size="lg" className="gap-2">
+              Apply Now <ArrowRight className="h-4 w-4" />
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Affiliate Program Application</DialogTitle>
+              <DialogDescription>
+                Fill out this form to join our affiliate program. We'll review your application and get back to you shortly.
+              </DialogDescription>
+            </DialogHeader>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Name</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Your name" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input placeholder="your@email.com" type="email" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="website"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Website</FormLabel>
+                      <FormControl>
+                        <Input placeholder="https://your-website.com" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="reason"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Why do you want to join?</FormLabel>
+                      <FormControl>
+                        <Textarea 
+                          placeholder="Tell us about your audience and how you plan to promote our platform" 
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <div className="flex justify-end">
+                  <Button type="submit">Submit Application</Button>
+                </div>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
