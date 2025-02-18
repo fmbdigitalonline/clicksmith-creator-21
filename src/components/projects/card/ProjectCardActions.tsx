@@ -6,7 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
-import LoadingState from "@/components/steps/complete/LoadingState";
+import LoadingStateLandingPage from "@/components/landing-page/LoadingStateLandingPage";
 
 interface ProjectCardActionsProps {
   projectId: string;
@@ -41,10 +41,10 @@ const ProjectCardActions = ({
       return;
     }
 
-    // Show loading toast with custom loading state
+    // Show loading toast with landing page loading state
     toast({
       title: "Creating landing page",
-      description: <LoadingState />,
+      description: <LoadingStateLandingPage />,
       duration: 100000, // Long duration since we'll dismiss it manually
     });
 

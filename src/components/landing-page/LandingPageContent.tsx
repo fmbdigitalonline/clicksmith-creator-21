@@ -10,6 +10,7 @@ import { sectionComponents, defaultSectionOrder } from "./constants/sectionConfi
 import { generateInitialContent } from "./utils/contentUtils";
 import type { LandingPageContentProps, SectionContentMap } from "./types/landingPageTypes";
 import LoadingState from "@/components/steps/complete/LoadingState";
+import LoadingStateLandingPage from "./LoadingStateLandingPage";
 
 const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) => {
   const [activeView, setActiveView] = useState<"edit" | "preview">("preview");
@@ -171,7 +172,7 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
   };
 
   if (isTemplateLoading) {
-    return <LoadingState />;
+    return <LoadingStateLandingPage />;
   }
 
   return (
