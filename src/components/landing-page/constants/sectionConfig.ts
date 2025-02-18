@@ -5,6 +5,7 @@ import FeaturesSection from "../sections/FeaturesSection";
 import TestimonialsSection from "../sections/TestimonialsSection";
 import CtaSection from "../sections/CtaSection";
 import FooterSection from "../sections/FooterSection";
+import PricingSection from "../sections/PricingSection";
 
 // Map section keys to their corresponding components
 export const sectionComponents = {
@@ -12,6 +13,7 @@ export const sectionComponents = {
   value_proposition: ValuePropositionSection,
   features: FeaturesSection,
   testimonials: TestimonialsSection,
+  pricing: PricingSection,
   cta: CtaSection,
   footer: FooterSection,
 } as const;
@@ -22,6 +24,7 @@ export const defaultSectionOrder = [
   "value_proposition",
   "features",
   "testimonials",
+  "pricing",
   "cta",
   "footer"
 ];
