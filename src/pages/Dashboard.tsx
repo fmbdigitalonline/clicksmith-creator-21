@@ -266,6 +266,19 @@ const Dashboard = () => {
           </Card>
         </div>
 
+        {/* Stats Cards with Enhanced Visual Design */}
+        <div className="grid gap-4 md:grid-cols-3 mb-8">
+          <div className="bg-gradient-to-br from-background to-muted rounded-lg p-[1px]">
+            <ProjectsCard />
+          </div>
+          <div className="bg-gradient-to-br from-background to-muted rounded-lg p-[1px]">
+            <AdStatsCard />
+          </div>
+          <div className="bg-gradient-to-br from-background to-muted rounded-lg p-[1px]">
+            <CreditsCard />
+          </div>
+        </div>
+
         {/* Message Board - Now using dynamic data */}
         <div className="mb-8">
           <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
@@ -300,19 +313,6 @@ const Dashboard = () => {
                 </Card>
               );
             })}
-          </div>
-        </div>
-
-        {/* Stats Cards with Enhanced Visual Design */}
-        <div className="grid gap-4 md:grid-cols-3 mb-8">
-          <div className="bg-gradient-to-br from-background to-muted rounded-lg p-[1px]">
-            <ProjectsCard />
-          </div>
-          <div className="bg-gradient-to-br from-background to-muted rounded-lg p-[1px]">
-            <AdStatsCard />
-          </div>
-          <div className="bg-gradient-to-br from-background to-muted rounded-lg p-[1px]">
-            <CreditsCard />
           </div>
         </div>
 
