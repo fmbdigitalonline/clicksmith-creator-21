@@ -11,7 +11,9 @@ serve(async (req) => {
   }
 
   try {
-    const { projectId, businessName, businessIdea, targetAudience, template, existingContent, layoutStyle } = await req.json()
+    console.log("Request received");
+    const { projectId, businessName, businessIdea, targetAudience } = await req.json();
+    console.log("Request payload:", { projectId, businessName, businessIdea, targetAudience });
 
     // Validate required fields
     if (!projectId || !businessName) {
@@ -23,81 +25,18 @@ serve(async (req) => {
     Business description: ${businessIdea}
     Target audience: ${targetAudience}
     
-    Generate content for each section of the landing page in a consistent format including:
-    1. Hero section with a compelling headline, description, and CTA
-    2. Value proposition section highlighting key benefits
-    3. Features section showcasing main product/service features
-    4. Proof/testimonials section
-    5. Pricing section if applicable
-    6. Final call-to-action section
-    7. Footer section with basic information
+    Generate JSON content for a landing page with the following sections:
+    - Hero section with headline, description, and CTA
+    - Value proposition with key benefits
+    - Features section
+    - Social proof/testimonials
+    - Pricing section
+    - Final call-to-action
+    - Footer
 
-    IMPORTANT: Return ONLY the JSON content without any markdown formatting or code blocks. The response should start with { and end with }.
-    The JSON should follow this exact structure:
-    {
-      "hero": {
-        "title": "compelling headline",
-        "description": "engaging description",
-        "cta": "call to action text"
-      },
-      "value_proposition": {
-        "title": "section title",
-        "description": "section description",
-        "cards": [
-          {
-            "title": "benefit title",
-            "description": "benefit description",
-            "icon": "✨"
-          }
-        ]
-      },
-      "features": {
-        "title": "Features section title",
-        "description": "Features section description",
-        "items": [
-          {
-            "title": "feature name",
-            "description": "feature description",
-            "icon": "🎯"
-          }
-        ]
-      },
-      "proof": {
-        "title": "Social proof section title",
-        "description": "Social proof section description",
-        "items": [
-          {
-            "quote": "testimonial text",
-            "author": "person name",
-            "role": "job title",
-            "company": "company name"
-          }
-        ]
-      },
-      "pricing": {
-        "title": "Pricing section title",
-        "description": "Pricing section description",
-        "items": [
-          {
-            "name": "plan name",
-            "price": "price amount",
-            "features": ["feature 1", "feature 2"]
-          }
-        ]
-      },
-      "finalCta": {
-        "title": "CTA section title",
-        "description": "CTA description",
-        "buttonText": "button text"
-      },
-      "footer": {
-        "links": {
-          "company": ["About", "Contact", "Careers"],
-          "resources": ["Blog", "Help Center", "Support"]
-        }
-      }
-    }`
+    Return strictly valid JSON with no markdown formatting.`
 
+    console.log("Sending request to DeepSeek");
     // Call DeepSeek API
     const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
       method: 'POST',
@@ -109,17 +48,18 @@ serve(async (req) => {
         model: "deepseek-chat",
         messages: [{
           role: "system",
-          content: "You are a landing page content generator. Always return pure JSON without any markdown formatting."
+          content: "You are a landing page content generator. Return only valid JSON data without any markdown."
         }, {
           role: "user",
           content: prompt
         }],
         temperature: 0.7,
-        max_tokens: 3000
+        max_tokens: 2000
       })
     })
 
     const data = await response.json()
+    console.log("DeepSeek raw response:", data);
     
     if (!data.choices || !data.choices[0]) {
       throw new Error('No response from DeepSeek')
@@ -129,78 +69,88 @@ serve(async (req) => {
     try {
       // Clean the response to ensure it's valid JSON
       const cleanedResponse = data.choices[0].message.content.trim()
-        .replace(/^```json\s*/, '')  // Remove leading ```json if present
-        .replace(/\s*```$/, '')      // Remove trailing ``` if present
+        .replace(/^```json\s*/, '')
+        .replace(/\s*```$/, '');
       
-      content = JSON.parse(cleanedResponse)
+      console.log("Cleaned response:", cleanedResponse);
+      content = JSON.parse(cleanedResponse);
       console.log("Parsed content:", content);
     } catch (parseError) {
-      console.error('JSON Parse Error:', parseError)
-      console.log('Raw content:', data.choices[0].message.content)
-      throw new Error('Failed to parse DeepSeek response as JSON')
+      console.error('JSON Parse Error:', parseError);
+      console.log('Raw content:', data.choices[0].message.content);
+      throw new Error('Failed to parse DeepSeek response as JSON');
     }
 
-    // Ensure consistent field structure
+    // Format the content to match the expected structure
     const formattedContent = {
       hero: {
         content: {
           title: content.hero?.title || businessName,
           description: content.hero?.description || businessIdea,
           cta: content.hero?.cta || "Get Started",
-          image: existingContent?.hero?.content?.image || null
+          image: "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b"
         },
         layout: "centered"
       },
       value_proposition: {
-        content: content.value_proposition || content.valueProposition || {
-          title: "Why Choose Us",
-          description: "We deliver comprehensive solutions that drive real results",
-          cards: []
+        content: {
+          title: content.value_proposition?.title || "Why Choose Us",
+          description: content.value_proposition?.description || "We deliver comprehensive solutions that drive real results",
+          cards: content.value_proposition?.cards || [
+            {
+              icon: "✨",
+              title: "Quality Product",
+              description: "Experience superior quality in every aspect of our service"
+            }
+          ]
         },
         layout: "grid"
       },
       features: {
-        content: content.features || {
-          title: "Features",
-          description: "Key features of our platform",
-          items: []
+        content: {
+          title: content.features?.title || "Features",
+          description: content.features?.description || "Key features of our platform",
+          items: content.features?.items || []
         },
         layout: "grid"
       },
       proof: {
-        content: content.proof || content.testimonials || {
-          title: "What Our Clients Say",
-          items: []
+        content: {
+          title: content.proof?.title || "What Our Clients Say",
+          description: content.proof?.description || "Success stories from businesses like yours",
+          items: content.proof?.items || []
         },
         layout: "grid"
       },
       pricing: {
-        content: content.pricing || {
-          title: "Simple, Transparent Pricing",
-          description: "Choose the plan that's right for you",
-          items: []
+        content: {
+          title: content.pricing?.title || "Simple, Transparent Pricing",
+          description: content.pricing?.description || "Choose the plan that's right for you",
+          items: content.pricing?.items || []
         },
         layout: "grid"
       },
       finalCta: {
-        content: content.finalCta || content.cta || {
-          title: "Ready to Get Started?",
-          description: "Join us today and transform your business",
-          buttonText: "Get Started Now"
+        content: {
+          title: content.finalCta?.title || "Ready to Get Started?",
+          description: content.finalCta?.description || "Join us today and transform your business",
+          cta: content.finalCta?.cta || "Get Started Now"
         },
         layout: "centered"
       },
       footer: {
-        content: content.footer || {
+        content: {
           links: {
             company: ["About", "Contact", "Careers"],
             resources: ["Blog", "Help Center", "Support"]
           },
-          copyright: `© ${new Date().getFullYear()} ${businessName}. All rights reserved.`
+          copyright: `© ${new Date().getFullYear()} All rights reserved.`
         },
         layout: "grid"
       }
-    }
+    };
+
+    console.log("Final formatted content:", formattedContent);
 
     // Return the formatted content with CORS headers
     return new Response(
@@ -216,7 +166,10 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error:', error)
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        stack: error.stack
+      }),
       { 
         status: 400,
         headers: {
