@@ -62,7 +62,13 @@ const ProjectCardActions = ({
       // Get the project data
       const { data: project, error: projectError } = await supabase
         .from('projects')
-        .select('*, business_idea, target_audience, audience_analysis')
+        .select(`
+          id,
+          title,
+          business_idea,
+          target_audience,
+          audience_analysis
+        `)
         .eq('id', projectId)
         .single();
 
@@ -70,14 +76,28 @@ const ProjectCardActions = ({
 
       console.log("Project data retrieved:", project);
 
+      // Format the business idea and target audience data
+      const businessIdea = {
+        description: project.business_idea?.description || "",
+        valueProposition: project.business_idea?.valueProposition || ""
+      };
+
+      const targetAudience = {
+        description: project.target_audience?.description || "",
+        coreMessage: project.target_audience?.coreMessage || "",
+        messagingApproach: project.target_audience?.messagingApproach || "",
+        painPoints: project.target_audience?.painPoints || [],
+        benefits: project.target_audience?.benefits || []
+      };
+
       // Generate landing page content
       const { data: generatedContent, error } = await supabase.functions
         .invoke('generate-landing-page', {
           body: {
             projectId,
             businessName: project.title,
-            businessIdea: project.business_idea,
-            targetAudience: project.target_audience,
+            businessIdea,
+            targetAudience,
             userId: user.id,
           },
         });
