@@ -50,6 +50,13 @@ const ProjectCardActions = ({
     });
 
     try {
+      // Get user session
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+
       // Get the project data
       const { data: project, error: projectError } = await supabase
         .from('projects')
@@ -67,6 +74,7 @@ const ProjectCardActions = ({
             businessName: project.title,
             businessIdea: project.business_idea,
             targetAudience: project.target_audience,
+            userId: user.id, // Pass the user ID to the edge function
           },
         });
 

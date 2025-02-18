@@ -1,4 +1,3 @@
-
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { corsHeaders } from '../_shared/cors.ts'
 import Replicate from "https://esm.sh/replicate@0.25.2"
@@ -22,6 +21,7 @@ interface RequestBody {
   businessName: string;
   businessIdea: BusinessIdea;
   targetAudience: TargetAudience;
+  userId: string; // Add userId to the request body
 }
 
 // Helper function to extract JSON from DeepSeek response
@@ -46,8 +46,12 @@ serve(async (req) => {
   }
 
   try {
-    const { projectId, businessName, businessIdea, targetAudience } = await req.json() as RequestBody;
-    console.log('Received request:', { businessName, businessIdea, targetAudience });
+    const { projectId, businessName, businessIdea, targetAudience, userId } = await req.json() as RequestBody;
+    console.log('Received request:', { businessName, businessIdea, targetAudience, userId });
+
+    if (!userId) {
+      throw new Error('User ID is required');
+    }
 
     // 1. Generate theme and styling using DeepSeek
     const themePrompt = `Generate a JSON response for a modern, professional website theme based on this business: ${businessIdea?.description}. 
@@ -177,7 +181,7 @@ serve(async (req) => {
 
     console.log('Final landing page content:', landingPageContent);
 
-    // 5. Save to database
+    // 5. Save to database with user_id
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') || '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
@@ -187,6 +191,7 @@ serve(async (req) => {
       .from('landing_pages')
       .upsert({
         project_id: projectId,
+        user_id: userId, // Add the user_id here
         title: businessName,
         content: landingPageContent,
         styling: theme,
