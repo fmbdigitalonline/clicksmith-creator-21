@@ -1,3 +1,4 @@
+
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { corsHeaders } from '../_shared/cors.ts'
 import Replicate from "https://esm.sh/replicate@0.25.2"
@@ -21,13 +22,11 @@ interface RequestBody {
   businessName: string;
   businessIdea: BusinessIdea;
   targetAudience: TargetAudience;
-  userId: string; // Add userId to the request body
+  userId: string;
 }
 
-// Helper function to extract JSON from DeepSeek response
 const extractJsonFromResponse = (text: string) => {
   try {
-    // Find the first { and last } to extract just the JSON part
     const start = text.indexOf('{');
     const end = text.lastIndexOf('}') + 1;
     if (start === -1 || end === 0) throw new Error('No JSON found in response');
@@ -53,23 +52,28 @@ serve(async (req) => {
       throw new Error('User ID is required');
     }
 
-    // 1. Generate theme and styling using DeepSeek
-    const themePrompt = `Generate a JSON response for a modern, professional website theme based on this business: ${businessIdea?.description}. 
-    Target audience: ${targetAudience?.description}. 
-    The response should be a valid JSON object with these exact properties:
+    // 1. Generate professional theme with specific brand colors and typography
+    const themePrompt = `Create a professional and modern website theme JSON for: ${businessIdea?.description}. Target audience: ${targetAudience?.description}.
+    Consider the business's personality and target audience's preferences.
+    Return a JSON with:
     {
       "colors": {
-        "primary": "#hex",
-        "secondary": "#hex",
-        "accent": "#hex",
-        "background": "#hex",
-        "text": "#hex"
+        "primary": "#hex (vibrant brand color)",
+        "secondary": "#hex (complementary accent)",
+        "accent": "#hex (call-to-action color)",
+        "background": "#hex (light neutral)",
+        "text": "#hex (readable dark)",
+        "muted": "#hex (subtle accent)"
       },
       "fonts": {
-        "heading": "Google Font Name",
-        "body": "Google Font Name"
+        "heading": "Professional Google Font name for headings",
+        "body": "Highly readable Google Font name for body text"
       },
-      "styleDescription": "Brief style description"
+      "spacing": {
+        "sectionPadding": "spacing in rem",
+        "contentWidth": "max width in pixels"
+      },
+      "styleDescription": "Brief style guide explanation"
     }`;
 
     const response = await fetch("https://api.deepseek.com/v1/chat/completions", {
@@ -90,13 +94,16 @@ serve(async (req) => {
     const theme = extractJsonFromResponse(themeData.choices[0].message.content);
     console.log('Parsed theme:', theme);
 
-    // 2. Generate hero image using Replicate
+    // 2. Generate hero image with specific style guidelines
     const replicate = new Replicate({
       auth: Deno.env.get('REPLICATE_API_TOKEN') || '',
     });
 
-    const imagePrompt = `Create a modern, professional hero image for: ${businessIdea?.description}. 
-    Target audience: ${targetAudience?.description}. Style: clean, minimalist, corporate photography.`;
+    const imagePrompt = `Create a professional hero image for ${businessName}. Business: ${businessIdea?.description}. 
+    Style: Modern, minimalist, high-end corporate photography.
+    Include: Clean composition, subtle brand colors, professional lighting.
+    Mood: ${targetAudience?.messagingApproach || 'Professional and trustworthy'}.
+    Make it perfect for a website header with text overlay.`;
     
     console.log('Generating hero image with prompt:', imagePrompt);
     
@@ -113,34 +120,67 @@ serve(async (req) => {
       }
     );
 
-    // 3. Generate compelling content using DeepSeek
-    const contentPrompt = `Generate a JSON response for a landing page content based on this business: ${businessIdea?.description}. 
-    Target audience: ${targetAudience?.description}. 
-    The response should be a valid JSON object with these exact properties:
+    // 3. Generate AIDA-structured content
+    const contentPrompt = `Create a complete landing page content structure for ${businessName} following the AIDA framework.
+    Business Description: ${businessIdea?.description}
+    Target Audience: ${targetAudience?.description}
+    Pain Points: ${JSON.stringify(targetAudience?.painPoints)}
+    Core Message: ${targetAudience?.coreMessage}
+
+    Return a JSON object with these exact sections:
     {
       "hero": {
-        "title": "compelling headline",
-        "description": "engaging subheadline"
+        "title": "Compelling headline that grabs attention",
+        "description": "Engaging subheadline that explains value",
+        "cta": "Action-oriented button text"
       },
       "valueProposition": {
-        "title": "section title",
-        "description": "section description",
+        "title": "Clear benefit-focused section title",
+        "description": "Compelling value statement",
         "cards": [
           {
-            "title": "benefit 1",
-            "description": "description 1"
+            "title": "Key benefit 1",
+            "description": "Detailed explanation",
+            "icon": "Relevant emoji"
           }
         ]
       },
       "features": {
-        "title": "section title",
-        "description": "section description",
+        "title": "Features section headline",
+        "description": "Features introduction",
         "items": [
           {
-            "title": "feature 1",
-            "description": "description 1"
+            "title": "Feature name",
+            "description": "Feature benefit",
+            "icon": "Relevant emoji"
           }
         ]
+      },
+      "testimonials": {
+        "title": "Social proof section title",
+        "items": [
+          {
+            "quote": "Compelling testimonial",
+            "author": "Name",
+            "role": "Position"
+          }
+        ]
+      },
+      "pricing": {
+        "title": "Clear pricing section title",
+        "description": "Pricing introduction",
+        "plans": [
+          {
+            "name": "Plan name",
+            "price": "Price",
+            "features": ["Feature 1", "Feature 2"]
+          }
+        ]
+      },
+      "cta": {
+        "title": "Final call to action headline",
+        "description": "Urgency-creating subheadline",
+        "buttonText": "CTA button text"
       }
     }`;
 
@@ -162,26 +202,30 @@ serve(async (req) => {
     const content = extractJsonFromResponse(contentData.choices[0].message.content);
     console.log('Parsed content:', content);
 
-    // 4. Combine everything into the landing page content structure
+    // 4. Combine everything into the landing page structure
     const landingPageContent = {
       hero: {
         title: content.hero.title,
         description: content.hero.description,
-        cta: "Get Started Now",
+        cta: content.hero.cta,
         image: Array.isArray(heroImage) && heroImage.length > 0 ? heroImage[0] : heroImage
       },
       valueProposition: content.valueProposition,
       features: content.features,
+      testimonials: content.testimonials,
+      pricing: content.pricing,
+      cta: content.cta,
       styling: {
         colors: theme.colors,
         fonts: theme.fonts,
+        spacing: theme.spacing,
         styleDescription: theme.styleDescription
       }
     };
 
     console.log('Final landing page content:', landingPageContent);
 
-    // 5. Save to database with user_id
+    // 5. Save to database
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') || '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
@@ -191,7 +235,7 @@ serve(async (req) => {
       .from('landing_pages')
       .upsert({
         project_id: projectId,
-        user_id: userId, // Add the user_id here
+        user_id: userId,
         title: businessName,
         content: landingPageContent,
         styling: theme,
