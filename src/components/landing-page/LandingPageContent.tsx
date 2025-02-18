@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -51,29 +50,15 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
     "footer"
   ];
 
-  console.log("Project data before generation:", {
-    id: project.id,
-    name: project.name,
-    businessIdea: project.business_idea,
-    targetAudience: project.target_audience,
-    audienceAnalysis: project.audience_analysis,
-    marketingCampaign: project.marketing_campaign,
-    selectedHooks: project.selected_hooks?.length,
-    generatedAds: project.generated_ads?.length
-  });
-
   const formatProjectData = () => {
-    // Ensure business_idea is properly structured
     const businessIdea = typeof project.business_idea === 'string' 
       ? { description: project.business_idea, valueProposition: project.business_idea }
       : project.business_idea || {};
 
-    // Ensure target_audience is an object
     const targetAudience = typeof project.target_audience === 'string'
       ? { description: project.target_audience }
       : project.target_audience || {};
 
-    // Ensure audience_analysis is an object
     const audienceAnalysis = typeof project.audience_analysis === 'string'
       ? { description: project.audience_analysis }
       : project.audience_analysis || {};
@@ -97,40 +82,46 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      // Format the project data
       const payload = formatProjectData();
       console.log('Formatted payload for edge function:', payload);
 
-      // Send project data to edge function
       const { data, error } = await supabase.functions.invoke('generate-landing-page', {
         body: payload
       });
 
-      if (error) {
-        console.error('Edge function error:', error);
-        throw error;
-      }
+      if (error) throw error;
+      if (!data) throw new Error('No content received from edge function');
 
       console.log('Received generated content:', data);
 
-      if (!data) {
-        throw new Error('No content received from edge function');
-      }
-
-      // Map the generated content to the correct structure
       const formattedContent = {
         hero: { content: data.hero, layout: "centered" },
-        value_proposition: { content: data.value_proposition, layout: "grid" },
-        features: { content: data.features, layout: "grid" },
-        proof: { content: data.proof, layout: "grid" },
-        pricing: { content: data.pricing, layout: "grid" },
+        value_proposition: { content: {
+          title: data.value_proposition.title,
+          subtitle: data.value_proposition.subtitle,
+          items: data.value_proposition.items
+        }, layout: "grid" },
+        features: { content: {
+          title: data.features.title,
+          subtitle: data.features.subtitle,
+          items: data.features.items
+        }, layout: "grid" },
+        proof: { content: {
+          title: data.proof.title,
+          subtitle: data.proof.subtitle,
+          testimonials: data.proof.testimonials
+        }, layout: "grid" },
+        pricing: { content: {
+          title: data.pricing.title,
+          subtitle: data.pricing.subtitle,
+          plans: data.pricing.plans
+        }, layout: "grid" },
         finalCta: { content: data.finalCta, layout: "centered" },
         footer: { content: data.footer, layout: "grid" }
       };
 
       console.log('Formatted content to save:', formattedContent);
 
-      // Update landing page content in database
       const { error: updateError } = await supabase
         .from('landing_pages')
         .upsert({
@@ -143,15 +134,9 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
           updated_at: new Date().toISOString()
         });
 
-      if (updateError) {
-        console.error('Database update error:', updateError);
-        throw updateError;
-      }
+      if (updateError) throw updateError;
 
-      // Update local state with new content
       setCurrentContent(formattedContent);
-
-      // Invalidate queries to refetch latest data
       await queryClient.invalidateQueries({
         queryKey: ['landing-page', project.id]
       });
@@ -185,14 +170,11 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
       return null;
     }
 
-    console.log(`${sectionKey} section content:`, sectionData.content);
-    console.log(`${sectionKey} layout:`, sectionData.layout);
-
     return (
       <Component
         key={sectionKey}
         content={sectionData.content}
-        layout={sectionData.layout || "default"}
+        layout={sectionData.layout}
       />
     );
   };
