@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ChevronLeft } from "lucide-react";
@@ -7,6 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { PricingHeader } from "@/components/pricing/PricingHeader";
 import { PricingCard } from "@/components/pricing/PricingCard";
 import { PricingFAQ } from "@/components/pricing/PricingFAQ";
+import LandingNav from "@/components/LandingNav";
 
 interface Plan {
   id: string;
@@ -83,46 +85,55 @@ const Pricing = () => {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="animate-pulse text-lg">Loading plans...</div>
-      </div>
+      <>
+        <LandingNav />
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="animate-pulse text-lg">Loading plans...</div>
+        </div>
+      </>
     );
   }
 
   if (error) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh] text-red-500">
-        Failed to load pricing plans
-      </div>
+      <>
+        <LandingNav />
+        <div className="flex items-center justify-center min-h-[60vh] text-red-500">
+          Failed to load pricing plans
+        </div>
+      </>
     );
   }
 
   return (
-    <div className="container mx-auto py-12 px-4">
-      <div className="mb-8">
-        <Button
-          variant="ghost"
-          onClick={() => navigate('/projects')}
-          className="flex items-center gap-2"
-        >
-          <ChevronLeft className="h-4 w-4" />
-          Back to Dashboard
-        </Button>
-      </div>
-      
-      <PricingHeader />
+    <div>
+      <LandingNav />
+      <div className="container mx-auto py-12 px-4">
+        <div className="mb-8">
+          <Button
+            variant="ghost"
+            onClick={() => navigate('/projects')}
+            className="flex items-center gap-2"
+          >
+            <ChevronLeft className="h-4 w-4" />
+            Back to Dashboard
+          </Button>
+        </div>
+        
+        <PricingHeader />
 
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
-        {plans?.map((plan) => (
-          <PricingCard
-            key={plan.id}
-            plan={plan}
-            onSubscribe={handleSubscribe}
-          />
-        ))}
-      </div>
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
+          {plans?.map((plan) => (
+            <PricingCard
+              key={plan.id}
+              plan={plan}
+              onSubscribe={handleSubscribe}
+            />
+          ))}
+        </div>
 
-      <PricingFAQ />
+        <PricingFAQ />
+      </div>
     </div>
   );
 };
