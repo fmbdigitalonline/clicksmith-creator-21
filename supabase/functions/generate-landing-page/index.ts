@@ -1,134 +1,93 @@
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import { corsHeaders } from '../_shared/cors.ts'
 
 interface RequestBody {
   businessIdea: {
-    description: string;
-    valueProposition: string;
+    valueProposition?: string;
+    description?: string;
   };
   targetAudience: {
-    icp: string;
-    name: string;
-    painPoints: string[];
-    coreMessage: string;
-    description: string;
-    positioning: string;
-    demographics: string;
-    marketingAngle: string;
-    marketingChannels: string[];
-    messagingApproach: string;
+    coreMessage?: string;
+    messagingApproach?: string;
   };
-  audienceAnalysis: {
-    marketDesire: string;
-    awarenessLevel: string;
-    deepPainPoints: string[];
-    expandedDefinition: string;
-    potentialObjections: string[];
-    sophisticationLevel: string;
-  };
-  projectImages?: string[];
+  audienceAnalysis: any;
+  projectImages: string[];
 }
 
+const getDefaultHero = (businessIdea: any) => ({
+  title: businessIdea?.valueProposition || businessIdea?.description || "Transform Your Business",
+  description: "Start your journey to success today",
+  cta: "Get Started Now",
+  image: "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b"
+});
+
 serve(async (req) => {
-  // Handle CORS preflight requests
+  // Handle CORS
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    const requestData = await req.json();
-    console.log('Received request data:', JSON.stringify(requestData, null, 2));
+    const { businessIdea, targetAudience, audienceAnalysis, projectImages } = await req.json() as RequestBody;
 
-    if (!requestData.businessIdea || !requestData.targetAudience || !requestData.audienceAnalysis) {
-      throw new Error('Missing required fields in request body');
-    }
+    console.log('Received request data:', { businessIdea, targetAudience, audienceAnalysis, projectImages });
 
-    // Generate the landing page content based on the input data
+    // Generate the landing page content
     const landingPageContent = {
       hero: {
-        title: requestData.businessIdea.valueProposition || requestData.businessIdea.description,
-        description: requestData.targetAudience.coreMessage,
-        cta: "Get Started Now",
-        image: requestData.projectImages?.[0] || "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b"
-      },
-      howItWorks: {
-        subheadline: "How It Works",
-        steps: [
-          {
-            title: "Discover",
-            description: "Learn how our solution addresses your specific needs"
-          },
-          {
-            title: "Implement",
-            description: "Quick and easy setup with our expert guidance"
-          },
-          {
-            title: "Transform",
-            description: "See immediate results and continuous improvement"
-          }
-        ],
-        valueReinforcement: requestData.targetAudience.positioning
-      },
-      marketAnalysis: {
-        context: "Understanding Your Challenges",
-        solution: requestData.businessIdea.valueProposition,
-        painPoints: requestData.targetAudience.painPoints.map(point => ({
-          title: point,
-          description: point
-        })),
-        features: requestData.audienceAnalysis.deepPainPoints.map((point, index) => ({
-          title: `Solution ${index + 1}`,
-          description: point,
-          image: requestData.projectImages?.[index] || `https://images.unsplash.com/photo-${index + 1}`,
-          icon: "✨"
-        })),
-        socialProof: {
-          quote: requestData.targetAudience.coreMessage,
-          author: "Industry Leader",
-          title: "Satisfied Customer"
-        }
+        title: businessIdea?.valueProposition || businessIdea?.description || "Transform Your Business",
+        description: targetAudience?.coreMessage || "Transform your business today",
+        cta: "Get Started",
+        image: projectImages[0] || "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b"
       },
       valueProposition: {
-        title: "Why Choose Us",
-        description: requestData.targetAudience.messagingApproach,
-        cards: requestData.targetAudience.marketingChannels.map(channel => ({
-          icon: "✨",
-          title: channel,
-          description: `Leverage ${channel} for maximum impact`
-        }))
-      },
-      testimonials: {
-        title: "What Our Clients Say",
-        description: "Real results from real customers",
-        items: [
+        cards: [
           {
-            quote: requestData.audienceAnalysis.marketDesire,
-            author: requestData.targetAudience.name,
-            role: "Satisfied Customer",
-            company: "Leading Company"
+            title: "Expert Solutions",
+            description: "Tailored to your unique needs",
+            icon: "✨"
+          },
+          {
+            title: "Proven Results",
+            description: "Track record of success",
+            icon: "📈"
+          },
+          {
+            title: "Dedicated Support",
+            description: "Here when you need us",
+            icon: "🤝"
           }
         ]
       },
-      objections: {
-        subheadline: "Common Questions Answered",
-        description: "We understand your concerns",
-        concerns: requestData.audienceAnalysis.potentialObjections.map(objection => ({
-          question: objection,
-          answer: `We address this by providing comprehensive solutions and support.`
-        }))
+      marketAnalysis: {
+        features: [
+          {
+            title: "Easy Integration",
+            description: "Seamlessly fits into your workflow"
+          },
+          {
+            title: "Time-Saving",
+            description: "Automate repetitive tasks"
+          },
+          {
+            title: "Cost-Effective",
+            description: "Maximum value for your investment"
+          }
+        ]
       },
-      cta: {
-        title: "Ready to Get Started?",
-        description: requestData.targetAudience.coreMessage,
-        buttonText: "Start Now",
-        subtext: "Risk-free trial • Cancel anytime"
+      testimonials: {
+        items: [
+          {
+            quote: "This solution transformed our business operations",
+            author: "Jane Smith",
+            role: "CEO, TechCorp"
+          }
+        ]
       }
     };
+
+    console.log('Generated content:', landingPageContent);
 
     return new Response(
       JSON.stringify(landingPageContent),
@@ -139,21 +98,22 @@ serve(async (req) => {
         },
         status: 200,
       },
-    );
+    )
   } catch (error) {
-    console.error('Error:', error.message);
+    console.error('Error in generate-landing-page:', error);
+    
     return new Response(
       JSON.stringify({
-        error: 'Invalid request body',
-        details: error.message
-      }),
+        error: error.message,
+        details: error.stack
+      }), 
       {
         headers: {
           ...corsHeaders,
           'Content-Type': 'application/json',
         },
-        status: 400,
-      },
-    );
+        status: 400
+      }
+    )
   }
-});
+})
