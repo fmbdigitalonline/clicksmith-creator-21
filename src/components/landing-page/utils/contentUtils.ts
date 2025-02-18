@@ -1,5 +1,5 @@
 
-export const generateInitialContent = (project: any) => {
+export const generateInitialContent = (project: any): SectionContentMap => {
   const businessIdea = project?.business_idea || {};
   const audienceAnalysis = project?.audience_analysis || {};
   const savedImages = project?.marketing_campaign?.saved_images || [];
@@ -12,7 +12,7 @@ export const generateInitialContent = (project: any) => {
         cta: "Get Started Now",
         image: savedImages[0] || ""
       },
-      layout: "centered"
+      layout: "centered" as const
     },
     value_proposition: {
       content: {
@@ -40,7 +40,7 @@ export const generateInitialContent = (project: any) => {
           }
         ]
       },
-      layout: "grid"
+      layout: "grid" as const
     },
     features: {
       content: {
@@ -64,14 +64,22 @@ export const generateInitialContent = (project: any) => {
           }
         ]
       },
-      layout: "grid"
+      layout: "grid" as const
     },
     testimonials: {
       content: {
         title: "What Our Clients Say",
         items: []
       },
-      layout: "grid"
+      layout: "grid" as const
+    },
+    pricing: {
+      content: {
+        title: "Pricing",
+        description: "Choose the plan that works for you",
+        items: []
+      },
+      layout: "grid" as const
     },
     cta: {
       content: {
@@ -79,7 +87,7 @@ export const generateInitialContent = (project: any) => {
         description: "Join thousands of satisfied customers today.",
         buttonText: "Get Started Now",
       },
-      layout: "centered"
+      layout: "centered" as const
     },
     footer: {
       content: {
@@ -89,7 +97,7 @@ export const generateInitialContent = (project: any) => {
         },
         copyright: `© ${new Date().getFullYear()} All rights reserved.`
       },
-      layout: "grid"
+      layout: "grid" as const
     }
   };
 };
