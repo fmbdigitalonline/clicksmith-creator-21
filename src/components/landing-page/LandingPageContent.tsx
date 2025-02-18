@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -60,6 +59,31 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
     );
   };
 
+  const generateLandingPageTitle = (businessName: string, businessIdea: string): string => {
+    const keywords = businessIdea.toLowerCase().split(' ');
+    
+    // Extract meaningful words
+    const meaningfulWords = keywords.filter(word => 
+      word.length > 3 && 
+      !['the', 'and', 'for', 'that', 'with'].includes(word)
+    );
+    
+    // Get industry or key term from business idea
+    const keyTerm = meaningfulWords[0] || businessName;
+    
+    // Creative title formats
+    const titleFormats = [
+      `${businessName} - Innovating ${keyTerm}`,
+      `${businessName} | Future of ${keyTerm}`,
+      `Transform Your ${keyTerm} - ${businessName}`,
+      `${businessName} - Revolutionary ${keyTerm} Solutions`,
+      `Next-Gen ${keyTerm} by ${businessName}`,
+    ];
+    
+    // Select a random format
+    return titleFormats[Math.floor(Math.random() * titleFormats.length)];
+  };
+
   const generateLandingPageContent = async () => {
     setIsGenerating(true);
     try {
@@ -78,6 +102,9 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
         targetAudienceDescription,
         templateStructure: template?.structure
       });
+
+      // Generate creative title
+      const pageTitle = generateLandingPageTitle(project.name || 'Project', businessDescription);
 
       const { data, error } = await supabase.functions.invoke('generate-landing-page', {
         body: {
@@ -107,7 +134,7 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
       const { error: updateError } = await supabase
         .from('landing_pages')
         .upsert({
-          title: `Landing Page for ${project.name || 'Project'}`,
+          title: pageTitle,
           user_id: user.id,
           project_id: project.id,
           content: data.content,

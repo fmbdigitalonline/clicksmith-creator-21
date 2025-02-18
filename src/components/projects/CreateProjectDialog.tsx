@@ -1,3 +1,4 @@
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
@@ -14,6 +15,39 @@ interface CreateProjectDialogProps {
   onStartAdWizard?: (projectId?: string) => void;
   initialBusinessIdea?: string;
 }
+
+const generateProjectName = (businessIdea: string): string => {
+  // Extract key terms from business idea
+  const keywords = businessIdea.toLowerCase().split(' ');
+  
+  // Common creative prefixes
+  const prefixes = [
+    "Project",
+    "Vision",
+    "Venture",
+    "Initiative",
+    "Launch",
+    "Innovation",
+    "Blueprint",
+  ];
+  
+  // Try to find meaningful words in the business idea
+  const meaningfulWords = keywords.filter(word => 
+    word.length > 3 && 
+    !['the', 'and', 'for', 'that', 'with'].includes(word)
+  );
+  
+  // Select a random prefix
+  const prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
+  
+  // Get a key term from the business idea
+  const keyTerm = meaningfulWords[0] || 'Venture';
+  
+  // Capitalize first letter of each word
+  const capitalizedTerm = keyTerm.charAt(0).toUpperCase() + keyTerm.slice(1);
+  
+  return `${prefix} ${capitalizedTerm}`;
+};
 
 const CreateProjectDialog = ({
   open,
@@ -52,8 +86,11 @@ const CreateProjectDialog = ({
       ? values.tags.split(",").map((tag) => tag.trim())
       : [];
 
+    // Generate creative project name based on business idea
+    const projectTitle = generateProjectName(values.businessIdea);
+
     let projectData: any = {
-      title: values.title,
+      title: projectTitle,
       description: values.description || null,
       tags,
       user_id: userId,
