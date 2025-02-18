@@ -8,9 +8,9 @@ const Share = () => {
   const { toast } = useToast();
   const shareUrl = "https://yourdomain.com";
   const shareTexts = {
-    twitter: "🚀 Transform your marketing with AI! I'm using this amazing tool to create high-converting ads in minutes. Save time and boost ROI with @AdWizard. Try it now!",
-    facebook: "🎯 Game-changing AI tool alert! I've been using this incredible platform to create professional ads that actually convert. It's revolutionized my marketing workflow. Check it out and see the difference for yourself!",
-    linkedin: "🔥 Excited to share this innovative AI-powered advertising platform that's transforming how businesses create ads. Perfect for marketers, entrepreneurs, and agencies looking to scale their ad creation process efficiently. #AI #DigitalMarketing #Innovation"
+    twitter: "🎯 Validate your business idea before investing time and money! Using AI to test market fit in minutes. Save months of uncertainty with @Viable. Try it now!",
+    facebook: "🚀 Found this game-changing platform that helps validate business ideas before investing! Test your concept with real market data and save months of uncertainty. Perfect for entrepreneurs and innovators looking to validate their next big idea.",
+    linkedin: "💡 Excited to share this innovative platform that's transforming how entrepreneurs validate business ideas. Using AI to test market fit before investing time and resources. Perfect for founders who want to validate their concepts quickly and efficiently. #Entrepreneurship #Innovation #StartupValidation"
   };
 
   const handleShare = (platform: string) => {
