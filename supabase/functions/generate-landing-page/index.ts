@@ -33,7 +33,7 @@ serve(async (req) => {
     6. Final call-to-action section
     7. Footer section with basic information
 
-    Return the content in a structured JSON format with consistent field names.`
+    IMPORTANT: Return ONLY the JSON content without any markdown formatting or code blocks. The response should start with { and end with }.`
 
     // Call OpenAI API
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -43,8 +43,11 @@ serve(async (req) => {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: "gpt-4",
+        model: "gpt-4o",  // Updated to use the correct model name
         messages: [{
+          role: "system",
+          content: "You are a landing page content generator. Always return pure JSON without any markdown formatting."
+        }, {
           role: "user",
           content: prompt
         }],
@@ -58,34 +61,79 @@ serve(async (req) => {
       throw new Error('No response from OpenAI')
     }
 
-    // Parse the response and ensure consistent field names
-    let content = JSON.parse(data.choices[0].message.content)
+    let content;
+    try {
+      // Clean the response to ensure it's valid JSON
+      const cleanedResponse = data.choices[0].message.content.trim()
+        .replace(/^```json\s*/, '')  // Remove leading ```json if present
+        .replace(/\s*```$/, '')      // Remove trailing ``` if present
+      
+      content = JSON.parse(cleanedResponse)
+    } catch (parseError) {
+      console.error('JSON Parse Error:', parseError)
+      console.log('Raw content:', data.choices[0].message.content)
+      throw new Error('Failed to parse OpenAI response as JSON')
+    }
 
     // Ensure consistent field structure
     const formattedContent = {
       hero: {
-        title: content.hero?.title || businessName,
-        description: content.hero?.description || businessIdea,
-        cta: content.hero?.cta || "Get Started",
-        image: existingContent?.hero?.content?.image || null
+        content: {
+          title: content.hero?.title || businessName,
+          description: content.hero?.description || businessIdea,
+          cta: content.hero?.cta || "Get Started",
+          image: existingContent?.hero?.content?.image || null
+        },
+        layout: "centered"
       },
-      value_proposition: content.value_proposition || content.valueProposition || {
-        title: "Why Choose Us",
-        points: []
+      value_proposition: {
+        content: content.value_proposition || content.valueProposition || {
+          title: "Why Choose Us",
+          description: "We deliver comprehensive solutions that drive real results",
+          cards: []
+        },
+        layout: "grid"
       },
-      features: content.features || [],
-      proof: content.proof || content.testimonials || [],
-      pricing: content.pricing || {
-        plans: []
+      features: {
+        content: content.features || {
+          title: "Features",
+          description: "Key features of our platform",
+          items: []
+        },
+        layout: "grid"
       },
-      finalCta: content.finalCta || content.cta || {
-        title: "Ready to Get Started?",
-        description: "Join us today and transform your business",
-        buttonText: "Get Started Now"
+      proof: {
+        content: content.proof || content.testimonials || {
+          title: "What Our Clients Say",
+          items: []
+        },
+        layout: "grid"
       },
-      footer: content.footer || {
-        links: [],
-        copyright: `© ${new Date().getFullYear()} ${businessName}. All rights reserved.`
+      pricing: {
+        content: content.pricing || {
+          title: "Simple, Transparent Pricing",
+          description: "Choose the plan that's right for you",
+          items: []
+        },
+        layout: "grid"
+      },
+      finalCta: {
+        content: content.finalCta || content.cta || {
+          title: "Ready to Get Started?",
+          description: "Join us today and transform your business",
+          buttonText: "Get Started Now"
+        },
+        layout: "centered"
+      },
+      footer: {
+        content: content.footer || {
+          links: {
+            company: ["About", "Contact", "Careers"],
+            resources: ["Blog", "Help Center", "Support"]
+          },
+          copyright: `© ${new Date().getFullYear()} ${businessName}. All rights reserved.`
+        },
+        layout: "grid"
       }
     }
 
