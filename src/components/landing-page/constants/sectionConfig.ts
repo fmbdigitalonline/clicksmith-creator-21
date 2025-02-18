@@ -9,6 +9,7 @@ import MarketAnalysisSection from "../sections/MarketAnalysisSection";
 import ObjectionsSection from "../sections/ObjectionsSection";
 import FaqSection from "../sections/FaqSection";
 import FooterSection from "../sections/FooterSection";
+import PricingSection from "../sections/PricingSection";  // Added this import
 
 // Map section keys to their corresponding components
 export const sectionComponents = {
