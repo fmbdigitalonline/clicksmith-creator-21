@@ -1,6 +1,8 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { corsHeaders } from '../_shared/cors.ts'
+import Replicate from "https://esm.sh/replicate@0.25.2"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
 
 interface BusinessIdea {
   description?: string;
@@ -11,6 +13,8 @@ interface TargetAudience {
   description?: string;
   coreMessage?: string;
   messagingApproach?: string;
+  painPoints?: string[];
+  benefits?: string[];
 }
 
 interface RequestBody {
@@ -24,13 +28,12 @@ interface RequestBody {
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    const { businessName, businessIdea, targetAudience } = await req.json() as RequestBody;
+    const { projectId, businessName, businessIdea, targetAudience } = await req.json() as RequestBody;
 
     console.log('Received request:', { businessName, businessIdea, targetAudience });
 
@@ -38,58 +41,91 @@ serve(async (req) => {
     const businessDescription = businessIdea?.description || businessIdea?.valueProposition || '';
     const targetDescription = targetAudience?.coreMessage || targetAudience?.description || '';
 
+    // Initialize Replicate client for image generation
+    const replicate = new Replicate({
+      auth: Deno.env.get('REPLICATE_API_TOKEN') || '',
+    });
+
+    // Generate a hero image prompt based on business description
+    const imagePrompt = `Create a modern, professional hero image for a business website. The business is about: ${businessDescription}. Style: clean, minimalist, corporate, high-quality, professional photography.`;
+    
+    console.log('Generating hero image with prompt:', imagePrompt);
+    
+    // Generate hero image using Replicate
+    const heroImage = await replicate.run(
+      "black-forest-labs/flux-schnell",
+      {
+        input: {
+          prompt: imagePrompt,
+          go_fast: true,
+          megapixels: "1",
+          num_outputs: 1,
+          aspect_ratio: "16:9",
+          output_format: "webp",
+          output_quality: 80,
+          num_inference_steps: 4
+        }
+      }
+    );
+
+    console.log('Generated hero image:', heroImage);
+
+    // Generate benefits and features from pain points if they exist
+    const benefits = targetAudience?.benefits || targetAudience?.painPoints?.map(pain => ({
+      title: `Solution for ${pain}`,
+      description: `We help you overcome ${pain.toLowerCase()} with our innovative approach.`,
+      icon: "✨"
+    })) || [
+      {
+        title: "Expert Solutions",
+        description: "Tailored to your unique needs",
+        icon: "✨"
+      },
+      {
+        title: "Proven Results",
+        description: "Track record of success",
+        icon: "📈"
+      },
+      {
+        title: "Dedicated Support",
+        description: "Here when you need us",
+        icon: "🤝"
+      }
+    ];
+
+    // Generate features based on benefits
+    const features = benefits.map((benefit, index) => ({
+      title: benefit.title,
+      description: benefit.description,
+      icon: "🎯",
+      image: heroImage[index % heroImage.length] || "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d"
+    }));
+
     // Generate content based on the business idea and target audience
     const landingPageContent = {
       hero: {
         title: businessIdea?.valueProposition || businessName || "Welcome",
         description: businessDescription.slice(0, 150) + (businessDescription.length > 150 ? "..." : ""),
         cta: "Get Started Now",
-        image: "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d"
+        image: Array.isArray(heroImage) && heroImage.length > 0 ? heroImage[0] : "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d"
       },
       valueProposition: {
-        title: "Why Choose Us",
+        title: "Why Choose Us?",
         description: targetAudience?.messagingApproach || "We deliver exceptional value to our customers",
-        cards: [
-          {
-            title: "Expert Solutions",
-            description: "Tailored to your unique needs",
-            icon: "✨"
-          },
-          {
-            title: "Proven Results",
-            description: "Track record of success",
-            icon: "📈"
-          },
-          {
-            title: "Dedicated Support",
-            description: "Here when you need us",
-            icon: "🤝"
-          }
-        ]
+        cards: benefits.slice(0, 3) // Limit to 3 cards for better layout
       },
       marketAnalysis: {
-        features: [
-          {
-            title: "Easy Integration",
-            description: "Seamlessly fits into your workflow",
-            icon: "🔄",
-            image: "https://images.unsplash.com/photo-1460925895917-afdab827c52f"
-          },
-          {
-            title: "Data-Driven",
-            description: "Make informed decisions with powerful analytics",
-            icon: "📊",
-            image: "https://images.unsplash.com/photo-1551288049-bebda4e38f71"
-          }
-        ]
+        features: features.slice(0, 2) // Limit to 2 main features
       },
       testimonials: {
+        title: "What Our Clients Say",
+        description: "Real feedback from satisfied customers",
         items: [
           {
-            quote: "This solution transformed our business operations",
-            author: "Jane Smith",
-            role: "CEO",
-            company: "TechCorp"
+            quote: `${businessDescription.slice(0, 50)}... has transformed how we work`,
+            author: "Sarah Chen",
+            role: "Director",
+            company: "Innovation Corp"
           }
         ]
       },
@@ -110,9 +146,9 @@ serve(async (req) => {
         ]
       },
       finalCta: {
-        title: "Ready to Get Started?",
+        title: "Ready to Transform Your Business?",
         description: targetDescription,
-        cta: "Start Now"
+        cta: "Get Started Now"
       },
       footer: {
         links: {
@@ -124,6 +160,25 @@ serve(async (req) => {
     };
 
     console.log('Generated landing page content:', landingPageContent);
+
+    // Save the generated content to the database
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') || '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
+    );
+
+    const { error: updateError } = await supabase
+      .from('landing_pages')
+      .upsert({
+        project_id: projectId,
+        content: landingPageContent,
+        updated_at: new Date().toISOString()
+      });
+
+    if (updateError) {
+      console.error('Error updating landing page:', updateError);
+      throw updateError;
+    }
 
     return new Response(
       JSON.stringify(landingPageContent),
