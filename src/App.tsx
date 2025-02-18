@@ -13,6 +13,8 @@ import ForgotPassword from "@/pages/auth/ForgotPassword";
 import ResetPassword from "@/pages/auth/ResetPassword";
 import PrivateRoute from "@/components/auth/PrivateRoute";
 import { AuthProvider } from "@/providers/AuthProvider";
+import { AppLayout } from "@/components/layout/AppLayout";
+import { Index } from "@/pages/Index";
 
 const queryClient = new QueryClient();
 
@@ -25,11 +27,15 @@ export default function App() {
             router={createBrowserRouter([
               {
                 path: "/",
-                element: <PrivateRoute><Dashboard /></PrivateRoute>,
+                element: <Index />,
+              },
+              {
+                path: "/dashboard",
+                element: <PrivateRoute><AppLayout><Dashboard /></AppLayout></PrivateRoute>,
               },
               {
                 path: "/ad-wizard/:projectId",
-                element: <PrivateRoute><AdWizard /></PrivateRoute>,
+                element: <PrivateRoute><AppLayout><AdWizard /></AppLayout></PrivateRoute>,
               },
               {
                 path: "/auth/callback",
