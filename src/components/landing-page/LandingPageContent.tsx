@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,6 +11,13 @@ import { generateInitialContent } from "./utils/contentUtils";
 import type { LandingPageContentProps, SectionContentMap } from "./types/landingPageTypes";
 import LoadingState from "@/components/steps/complete/LoadingState";
 import LoadingStateLandingPage from "./LoadingStateLandingPage";
+import { 
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) => {
   const [activeView, setActiveView] = useState<"edit" | "preview">("preview");
@@ -166,6 +172,20 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
 
   return (
     <div className="min-h-screen">
+      <Dialog open={isGenerating}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Generating Content</DialogTitle>
+            <DialogDescription>
+              Please wait while we generate your landing page content...
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex items-center justify-center p-6">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <Tabs value={activeView} onValueChange={(value: "edit" | "preview") => setActiveView(value)}>
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between mb-4">
