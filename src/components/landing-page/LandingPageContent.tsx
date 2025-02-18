@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -185,8 +186,11 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
 
   return (
     <div className="min-h-screen">
-      <Dialog open={isGenerating} modal>
-        <DialogContent className="sm:max-w-[425px]">
+      <Dialog open={isGenerating}>
+        <DialogContent 
+          className="sm:max-w-[425px]"
+          aria-describedby="loading-dialog-description"
+        >
           <DialogHeader>
             <DialogTitle>Generating Your Landing Page</DialogTitle>
             <DialogDescription>
@@ -194,9 +198,12 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
             </DialogDescription>
           </DialogHeader>
           <div className="flex items-center justify-center p-6">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+            <div 
+              className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"
+              aria-label="Loading..."
+            />
           </div>
-          <DialogDescription className="text-center text-sm text-muted-foreground">
+          <DialogDescription id="loading-dialog-description" className="text-center text-sm text-muted-foreground">
             This may take a few moments. We're crafting unique content based on your business details.
           </DialogDescription>
         </DialogContent>
@@ -212,6 +219,7 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
             <Button 
               onClick={generateLandingPageContent}
               disabled={isGenerating}
+              aria-label={isGenerating ? "Generating content..." : "Generate content"}
             >
               {isGenerating ? "Generating..." : "Generate Content"}
             </Button>
