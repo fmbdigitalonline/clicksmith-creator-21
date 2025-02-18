@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -45,6 +46,7 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
 
   console.log("Current content:", currentContent);
   console.log("Landing page data:", landingPage);
+  console.log("Full project data:", project);
 
   const renderSection = (sectionKey: string) => {
     const sectionData = currentContent[sectionKey];
@@ -74,16 +76,17 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      // Transform business idea and target audience data
-      const businessDescription = project.business_idea?.description || project.business_idea?.valueProposition || '';
-      const targetAudienceDescription = project.target_audience?.description || project.target_audience?.coreMessage || '';
-
+      // Send all available project data for richer content generation
       const { data, error } = await supabase.functions.invoke('generate-landing-page', {
         body: {
           projectId: project.id,
           businessName: project.name,
-          businessIdea: businessDescription,
-          targetAudience: targetAudienceDescription,
+          businessIdea: project.business_idea,
+          targetAudience: project.target_audience,
+          audienceAnalysis: project.audience_analysis,
+          marketingCampaign: project.marketing_campaign,
+          selectedHooks: project.selected_hooks,
+          generatedAds: project.generated_ads,
           template: template?.structure,
           existingContent: currentContent,
           layoutStyle: currentLayoutStyle
@@ -98,9 +101,9 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
       // Map the generated content to the correct structure
       const formattedContent = {
         hero: { content: data.hero, layout: "centered" },
-        value_proposition: { content: data.valueProposition, layout: "grid" },
-        features: { content: data.marketAnalysis?.features, layout: "grid" },
-        proof: { content: data.testimonials, layout: "grid" },
+        value_proposition: { content: data.value_proposition, layout: "grid" },
+        features: { content: data.features, layout: "grid" },
+        proof: { content: data.proof, layout: "grid" },
         pricing: { content: data.pricing, layout: "grid" },
         finalCta: { content: data.finalCta, layout: "centered" },
         footer: { content: data.footer, layout: "grid" }
