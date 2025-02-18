@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -79,14 +78,6 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
       const businessDescription = project.business_idea?.description || project.business_idea?.valueProposition || '';
       const targetAudienceDescription = project.target_audience?.description || project.target_audience?.coreMessage || '';
 
-      console.log('Sending to edge function:', {
-        projectId: project.id,
-        businessName: project.name,
-        businessDescription,
-        targetAudienceDescription,
-        templateStructure: template?.structure
-      });
-
       const { data, error } = await supabase.functions.invoke('generate-landing-page', {
         body: {
           projectId: project.id,
@@ -104,8 +95,6 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
         throw error;
       }
 
-      console.log('Generated content:', data);
-
       // Map the generated content to the correct structure
       const formattedContent = {
         hero: { content: data.hero, layout: "centered" },
@@ -121,12 +110,13 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
       const { error: updateError } = await supabase
         .from('landing_pages')
         .upsert({
-          project_id: project.id,
+          title: project.name || "Landing Page",
           content: formattedContent,
+          project_id: project.id,
+          user_id: user.id,
           layout_style: currentLayoutStyle,
           section_order: sectionOrder,
-          updated_at: new Date().toISOString(),
-          title: project.name || "Landing Page" // Add required title field
+          updated_at: new Date().toISOString()
         });
 
       if (updateError) throw updateError;
