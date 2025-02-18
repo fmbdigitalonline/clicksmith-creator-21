@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import LoadingStateLandingPage from "@/components/landing-page/LoadingStateLandingPage";
+import { BusinessIdea, TargetAudience } from "@/types/adWizard";
 
 interface ProjectCardActionsProps {
   projectId: string;
@@ -17,6 +18,13 @@ interface ProjectCardActionsProps {
   hasBusinessIdea?: boolean;
   hasTargetAudience?: boolean;
   hasAudienceAnalysis?: boolean;
+}
+
+interface ProjectData {
+  business_idea: BusinessIdea;
+  target_audience: TargetAudience;
+  audience_analysis: any;
+  title: string;
 }
 
 const ProjectCardActions = ({ 
@@ -59,6 +67,8 @@ const ProjectCardActions = ({
       if (projectError) throw projectError;
       if (!project) throw new Error('Project not found');
 
+      const typedProject = project as unknown as ProjectData;
+
       // Get any saved ad images
       const { data: adFeedback } = await supabase
         .from('ad_feedback')
@@ -69,9 +79,9 @@ const ProjectCardActions = ({
       const savedImages = adFeedback?.saved_images || [];
 
       console.log("Calling generate-landing-page function with data:", {
-        businessIdea: project.business_idea,
-        targetAudience: project.target_audience,
-        audienceAnalysis: project.audience_analysis,
+        businessIdea: typedProject.business_idea,
+        targetAudience: typedProject.target_audience,
+        audienceAnalysis: typedProject.audience_analysis,
         projectImages: savedImages
       });
 
@@ -79,9 +89,9 @@ const ProjectCardActions = ({
       const { data: generatedContent, error } = await supabase.functions
         .invoke('generate-landing-page', {
           body: {
-            businessIdea: project.business_idea,
-            targetAudience: project.target_audience,
-            audienceAnalysis: project.audience_analysis,
+            businessIdea: typedProject.business_idea,
+            targetAudience: typedProject.target_audience,
+            audienceAnalysis: typedProject.audience_analysis,
             projectImages: savedImages
           },
         });
@@ -96,24 +106,24 @@ const ProjectCardActions = ({
       // Transform the generated content into the expected format
       const formattedContent = {
         hero: generatedContent.hero || {
-          title: project.business_idea.valueProposition || project.business_idea.description,
-          description: project.target_audience.coreMessage || "Transform your business today",
+          title: typedProject.business_idea?.valueProposition || typedProject.business_idea?.description || "Transform Your Business",
+          description: typedProject.target_audience?.coreMessage || "Transform your business today",
           cta: "Get Started",
           image: savedImages[0] || "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b"
         },
         value_proposition: {
           title: "Why Choose Us",
-          description: project.target_audience.messagingApproach || "We deliver exceptional value",
-          cards: generatedContent.valueProposition?.cards || []
+          description: typedProject.target_audience?.messagingApproach || "We deliver exceptional value",
+          cards: (generatedContent.valueProposition?.cards as any[]) || []
         },
         features: {
           title: "Key Features",
           description: "Discover what makes us unique",
-          items: generatedContent.marketAnalysis?.features || []
+          items: (generatedContent.marketAnalysis?.features as any[]) || []
         },
         proof: {
           title: "What Our Clients Say",
-          testimonials: generatedContent.testimonials?.items || []
+          testimonials: (generatedContent.testimonials?.items as any[]) || []
         },
         pricing: {
           title: "Simple, Transparent Pricing",
@@ -122,13 +132,13 @@ const ProjectCardActions = ({
         },
         finalCta: {
           title: "Ready to Get Started?",
-          description: project.target_audience.coreMessage || "Join us today",
+          description: typedProject.target_audience?.coreMessage || "Join us today",
           buttonText: "Get Started Now"
         },
         footer: {
           contact: "Contact us",
           newsletter: "Subscribe to our newsletter",
-          copyright: `© ${new Date().getFullYear()} ${project.title}. All rights reserved.`
+          copyright: `© ${new Date().getFullYear()} ${typedProject.title}. All rights reserved.`
         }
       };
 
@@ -136,7 +146,7 @@ const ProjectCardActions = ({
       const landingPageData = {
         project_id: projectId,
         user_id: userData.user.id,
-        title: `${project.title} Landing Page`,
+        title: `${typedProject.title} Landing Page`,
         content: formattedContent,
         image_placements: [], 
         layout_style: 'default',
