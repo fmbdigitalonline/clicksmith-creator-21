@@ -1,9 +1,8 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeaders } from "../_shared/cors.ts";
 
-const openAiKey = Deno.env.get('OPENAI_API_KEY')
+const DEEPSEEK_API_KEY = Deno.env.get('DEEPSEEK_API_KEY');
 
 serve(async (req) => {
   // Handle CORS
@@ -33,17 +32,81 @@ serve(async (req) => {
     6. Final call-to-action section
     7. Footer section with basic information
 
-    IMPORTANT: Return ONLY the JSON content without any markdown formatting or code blocks. The response should start with { and end with }.`
+    IMPORTANT: Return ONLY the JSON content without any markdown formatting or code blocks. The response should start with { and end with }.
+    The JSON should follow this exact structure:
+    {
+      "hero": {
+        "title": "compelling headline",
+        "description": "engaging description",
+        "cta": "call to action text"
+      },
+      "value_proposition": {
+        "title": "section title",
+        "description": "section description",
+        "cards": [
+          {
+            "title": "benefit title",
+            "description": "benefit description",
+            "icon": "✨"
+          }
+        ]
+      },
+      "features": {
+        "title": "Features section title",
+        "description": "Features section description",
+        "items": [
+          {
+            "title": "feature name",
+            "description": "feature description",
+            "icon": "🎯"
+          }
+        ]
+      },
+      "proof": {
+        "title": "Social proof section title",
+        "description": "Social proof section description",
+        "items": [
+          {
+            "quote": "testimonial text",
+            "author": "person name",
+            "role": "job title",
+            "company": "company name"
+          }
+        ]
+      },
+      "pricing": {
+        "title": "Pricing section title",
+        "description": "Pricing section description",
+        "items": [
+          {
+            "name": "plan name",
+            "price": "price amount",
+            "features": ["feature 1", "feature 2"]
+          }
+        ]
+      },
+      "finalCta": {
+        "title": "CTA section title",
+        "description": "CTA description",
+        "buttonText": "button text"
+      },
+      "footer": {
+        "links": {
+          "company": ["About", "Contact", "Careers"],
+          "resources": ["Blog", "Help Center", "Support"]
+        }
+      }
+    }`
 
-    // Call OpenAI API
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    // Call DeepSeek API
+    const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openAiKey}`,
+        'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: "gpt-4o",  // Updated to use the correct model name
+        model: "deepseek-chat",
         messages: [{
           role: "system",
           content: "You are a landing page content generator. Always return pure JSON without any markdown formatting."
@@ -51,14 +114,15 @@ serve(async (req) => {
           role: "user",
           content: prompt
         }],
-        temperature: 0.7
+        temperature: 0.7,
+        max_tokens: 3000
       })
     })
 
     const data = await response.json()
     
     if (!data.choices || !data.choices[0]) {
-      throw new Error('No response from OpenAI')
+      throw new Error('No response from DeepSeek')
     }
 
     let content;
@@ -69,10 +133,11 @@ serve(async (req) => {
         .replace(/\s*```$/, '')      // Remove trailing ``` if present
       
       content = JSON.parse(cleanedResponse)
+      console.log("Parsed content:", content);
     } catch (parseError) {
       console.error('JSON Parse Error:', parseError)
       console.log('Raw content:', data.choices[0].message.content)
-      throw new Error('Failed to parse OpenAI response as JSON')
+      throw new Error('Failed to parse DeepSeek response as JSON')
     }
 
     // Ensure consistent field structure
