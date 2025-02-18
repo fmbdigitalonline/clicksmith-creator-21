@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { sectionComponents } from "./constants/sectionConfig";
 import { generateInitialContent } from "./utils/contentUtils";
-import type { LandingPageContentProps, SectionContentMap } from "./types/landingPageTypes";
+import type { LandingPageContentProps, SectionContentMap, SectionContent } from "./types/landingPageTypes";
 import LoadingStateLandingPage from "./LoadingStateLandingPage";
 
 const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) => {
@@ -18,7 +18,7 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
   const [currentContent, setCurrentContent] = useState<SectionContentMap>(() => {
     if (landingPage?.content) {
       console.log("Initializing with landing page content:", landingPage.content);
-      return {
+      const initialContent: SectionContentMap = {
         hero: {
           content: landingPage.content.hero || {
             title: project.name || "Welcome",
@@ -26,7 +26,7 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
             cta: "Get Started",
             image: ""
           },
-          layout: "centered"
+          layout: "centered" as const
         },
         value_proposition: {
           content: landingPage.content.valueProposition || {
@@ -34,7 +34,7 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
             description: "",
             cards: []
           },
-          layout: "grid"
+          layout: "grid" as const
         },
         features: {
           content: landingPage.content.features || {
@@ -42,14 +42,14 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
             description: "",
             items: []
           },
-          layout: "grid"
+          layout: "grid" as const
         },
         testimonials: {
           content: landingPage.content.testimonials || {
             title: "What Our Clients Say",
             items: []
           },
-          layout: "grid"
+          layout: "grid" as const
         },
         pricing: {
           content: landingPage.content.pricing || {
@@ -57,7 +57,7 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
             description: "Choose the plan that works for you",
             items: []
           },
-          layout: "grid"
+          layout: "grid" as const
         },
         cta: {
           content: landingPage.content.cta || {
@@ -65,7 +65,7 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
             description: "Join us today",
             buttonText: "Get Started Now"
           },
-          layout: "centered"
+          layout: "centered" as const
         },
         footer: {
           content: landingPage.content.footer || {
@@ -75,9 +75,10 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
               resources: ["Documentation", "Support"]
             }
           },
-          layout: "grid"
+          layout: "grid" as const
         }
       };
+      return initialContent;
     }
     return generateInitialContent(project);
   });
@@ -118,7 +119,7 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
       <Component
         key={sectionKey}
         content={sectionData.content}
-        layout={sectionData.layout || "default"}
+        layout={sectionData.layout}
       />
     );
   };
@@ -129,7 +130,6 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      // Transform business idea and target audience data
       const businessIdea = project.business_idea || {};
       const targetAudience = project.target_audience || {};
 
@@ -150,7 +150,7 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
       console.log("Generated content:", data);
 
       // Map the generated content to the correct structure
-      const formattedContent = {
+      const formattedContent: SectionContentMap = {
         hero: { content: data.hero, layout: "centered" },
         value_proposition: { content: data.valueProposition, layout: "grid" },
         features: { content: data.features, layout: "grid" },
@@ -160,7 +160,6 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
         footer: { content: data.footer, layout: "grid" }
       };
 
-      // Update landing page content in database
       const { error: updateError } = await supabase
         .from('landing_pages')
         .upsert({
