@@ -1,4 +1,0 @@
-
-[functions.facebook-auth]
-verify_jwt = false
-

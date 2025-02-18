@@ -9,62 +9,6 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      ad_campaigns: {
-        Row: {
-          budget: number | null
-          created_at: string | null
-          end_date: string | null
-          id: string
-          name: string
-          platform: Database["public"]["Enums"]["ad_platform"]
-          platform_campaign_id: string | null
-          project_id: string | null
-          start_date: string | null
-          status: string
-          targeting: Json | null
-          updated_at: string | null
-          user_id: string | null
-        }
-        Insert: {
-          budget?: number | null
-          created_at?: string | null
-          end_date?: string | null
-          id?: string
-          name: string
-          platform: Database["public"]["Enums"]["ad_platform"]
-          platform_campaign_id?: string | null
-          project_id?: string | null
-          start_date?: string | null
-          status: string
-          targeting?: Json | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          budget?: number | null
-          created_at?: string | null
-          end_date?: string | null
-          id?: string
-          name?: string
-          platform?: Database["public"]["Enums"]["ad_platform"]
-          platform_campaign_id?: string | null
-          project_id?: string | null
-          start_date?: string | null
-          status?: string
-          targeting?: Json | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ad_campaigns_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       ad_feedback: {
         Row: {
           ad_id: string | null
@@ -891,45 +835,6 @@ export type Database = {
         }
         Relationships: []
       }
-      platform_connections: {
-        Row: {
-          access_token: string
-          account_id: string | null
-          account_name: string | null
-          created_at: string | null
-          id: string
-          platform: Database["public"]["Enums"]["ad_platform"]
-          refresh_token: string | null
-          token_expires_at: string | null
-          updated_at: string | null
-          user_id: string | null
-        }
-        Insert: {
-          access_token: string
-          account_id?: string | null
-          account_name?: string | null
-          created_at?: string | null
-          id?: string
-          platform: Database["public"]["Enums"]["ad_platform"]
-          refresh_token?: string | null
-          token_expires_at?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          access_token?: string
-          account_id?: string | null
-          account_name?: string | null
-          created_at?: string | null
-          id?: string
-          platform?: Database["public"]["Enums"]["ad_platform"]
-          refresh_token?: string | null
-          token_expires_at?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Relationships: []
-      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -1316,7 +1221,6 @@ export type Database = {
       }
     }
     Enums: {
-      ad_platform: "facebook" | "google" | "linkedin" | "tiktok"
       backup_type: "auto" | "manual"
       credit_operation_type: "credit_add" | "credit_deduct" | "credit_refund"
       image_generation_status: "pending" | "completed" | "failed"
