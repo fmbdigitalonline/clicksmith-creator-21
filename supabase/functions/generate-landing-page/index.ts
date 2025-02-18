@@ -27,14 +27,43 @@ interface RequestBody {
 
 const extractJsonFromResponse = (text: string) => {
   try {
+    // Remove any potential leading/trailing whitespace
+    text = text.trim();
+    
+    // Find the first occurrence of '{' and last occurrence of '}'
     const start = text.indexOf('{');
     const end = text.lastIndexOf('}') + 1;
-    if (start === -1 || end === 0) throw new Error('No JSON found in response');
     
+    if (start === -1 || end === 0) {
+      console.error('No JSON object found in response:', text);
+      throw new Error('No JSON found in response');
+    }
+    
+    // Extract the JSON string
     const jsonStr = text.slice(start, end);
-    return JSON.parse(jsonStr);
+    
+    // Try to parse, logging the attempt for debugging
+    console.log('Attempting to parse JSON:', jsonStr);
+    
+    try {
+      return JSON.parse(jsonStr);
+    } catch (parseError) {
+      console.error('JSON parse error:', parseError);
+      console.error('Problematic JSON string:', jsonStr);
+      
+      // Attempt to clean and fix common JSON issues
+      const cleanedStr = jsonStr
+        .replace(/(\w+):/g, '"$1":') // Add quotes to unquoted keys
+        .replace(/'/g, '"') // Replace single quotes with double quotes
+        .replace(/,\s*}/g, '}') // Remove trailing commas
+        .replace(/,\s*]/g, ']'); // Remove trailing commas in arrays
+      
+      console.log('Attempting to parse cleaned JSON:', cleanedStr);
+      return JSON.parse(cleanedStr);
+    }
   } catch (error) {
-    console.error('Error parsing DeepSeek response:', error);
+    console.error('Error in extractJsonFromResponse:', error);
+    console.error('Original text:', text);
     throw new Error('Failed to parse AI response');
   }
 };
@@ -55,25 +84,25 @@ serve(async (req) => {
     // 1. Generate professional theme with specific brand colors and typography
     const themePrompt = `Create a professional and modern website theme JSON for: ${businessIdea?.description}. Target audience: ${targetAudience?.description}.
     Consider the business's personality and target audience's preferences.
-    Return a JSON with:
+    Return a valid JSON object with this exact structure:
     {
       "colors": {
-        "primary": "#hex (vibrant brand color)",
-        "secondary": "#hex (complementary accent)",
-        "accent": "#hex (call-to-action color)",
-        "background": "#hex (light neutral)",
-        "text": "#hex (readable dark)",
-        "muted": "#hex (subtle accent)"
+        "primary": "#hex",
+        "secondary": "#hex",
+        "accent": "#hex",
+        "background": "#hex",
+        "text": "#hex",
+        "muted": "#hex"
       },
       "fonts": {
-        "heading": "Professional Google Font name for headings",
-        "body": "Highly readable Google Font name for body text"
+        "heading": "font name",
+        "body": "font name"
       },
       "spacing": {
-        "sectionPadding": "spacing in rem",
-        "contentWidth": "max width in pixels"
+        "sectionPadding": "2rem",
+        "contentWidth": "1200"
       },
-      "styleDescription": "Brief style guide explanation"
+      "styleDescription": "description"
     }`;
 
     const response = await fetch("https://api.deepseek.com/v1/chat/completions", {
@@ -85,7 +114,8 @@ serve(async (req) => {
       body: JSON.stringify({
         model: "deepseek-chat",
         messages: [{ role: "user", content: themePrompt }],
-        temperature: 0.7
+        temperature: 0.7,
+        response_format: { type: "json_object" }
       })
     });
 
@@ -120,67 +150,41 @@ serve(async (req) => {
       }
     );
 
-    // 3. Generate AIDA-structured content
-    const contentPrompt = `Create a complete landing page content structure for ${businessName} following the AIDA framework.
-    Business Description: ${businessIdea?.description}
+    // 3. Generate AIDA-structured content with strict JSON format
+    const contentPrompt = `Create a landing page content structure for ${businessName}.
+    Business: ${businessIdea?.description}
+    Value Proposition: ${businessIdea?.valueProposition}
     Target Audience: ${targetAudience?.description}
-    Pain Points: ${JSON.stringify(targetAudience?.painPoints)}
     Core Message: ${targetAudience?.coreMessage}
 
-    Return a JSON object with these exact sections:
+    Return a valid JSON object with this exact structure:
     {
       "hero": {
-        "title": "Compelling headline that grabs attention",
-        "description": "Engaging subheadline that explains value",
-        "cta": "Action-oriented button text"
+        "title": "headline",
+        "description": "subheadline",
+        "cta": "button text"
       },
       "valueProposition": {
-        "title": "Clear benefit-focused section title",
-        "description": "Compelling value statement",
+        "title": "section title",
+        "description": "value statement",
         "cards": [
           {
-            "title": "Key benefit 1",
-            "description": "Detailed explanation",
-            "icon": "Relevant emoji"
+            "title": "benefit",
+            "description": "explanation",
+            "icon": "emoji"
           }
         ]
       },
       "features": {
-        "title": "Features section headline",
-        "description": "Features introduction",
+        "title": "section title",
+        "description": "intro",
         "items": [
           {
-            "title": "Feature name",
-            "description": "Feature benefit",
-            "icon": "Relevant emoji"
+            "title": "feature",
+            "description": "benefit",
+            "icon": "emoji"
           }
         ]
-      },
-      "testimonials": {
-        "title": "Social proof section title",
-        "items": [
-          {
-            "quote": "Compelling testimonial",
-            "author": "Name",
-            "role": "Position"
-          }
-        ]
-      },
-      "pricing": {
-        "title": "Clear pricing section title",
-        "description": "Pricing introduction",
-        "plans": [
-          {
-            "name": "Plan name",
-            "price": "Price",
-            "features": ["Feature 1", "Feature 2"]
-          }
-        ]
-      },
-      "cta": {
-        "title": "Final call to action headline",
-        "description": "Urgency-creating subheadline",
-        "buttonText": "CTA button text"
       }
     }`;
 
@@ -193,7 +197,8 @@ serve(async (req) => {
       body: JSON.stringify({
         model: "deepseek-chat",
         messages: [{ role: "user", content: contentPrompt }],
-        temperature: 0.7
+        temperature: 0.7,
+        response_format: { type: "json_object" }
       })
     });
 
@@ -212,9 +217,6 @@ serve(async (req) => {
       },
       valueProposition: content.valueProposition,
       features: content.features,
-      testimonials: content.testimonials,
-      pricing: content.pricing,
-      cta: content.cta,
       styling: {
         colors: theme.colors,
         fonts: theme.fonts,
