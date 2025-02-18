@@ -466,11 +466,11 @@ const Dashboard = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <Button variant="link" className="w-full justify-start" onClick={() => navigate("/dashboard")}>
+              <Button variant="link" className="w-full justify-start" onClick={() => navigate("/faq")}>
                 <BookOpen className="h-4 w-4 mr-2" />
                 Getting Started with Ad Wizard
               </Button>
-              <Button variant="link" className="w-full justify-start" onClick={() => navigate("/dashboard")}>
+              <Button variant="link" className="w-full justify-start" onClick={() => navigate("/faq")}>
                 <HelpCircle className="h-4 w-4 mr-2" />
                 FAQs and Support
               </Button>
