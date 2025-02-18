@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -50,31 +51,16 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
     "footer"
   ];
 
-  console.log("Current content:", currentContent);
-  console.log("Landing page data:", landingPage);
-  console.log("Full project data:", project);
-
-  const renderSection = (sectionKey: string) => {
-    const sectionData = currentContent[sectionKey];
-    if (!sectionData?.content) {
-      console.log(`No content for section: ${sectionKey}`);
-      return null;
-    }
-
-    const Component = sectionComponents[sectionKey];
-    if (!Component) {
-      console.warn(`No component found for section: ${sectionKey}`);
-      return null;
-    }
-
-    return (
-      <Component
-        key={sectionKey}
-        content={sectionData.content}
-        layout={sectionData.layout || "default"}
-      />
-    );
-  };
+  console.log("Project data before generation:", {
+    id: project.id,
+    name: project.name,
+    businessIdea: project.business_idea,
+    targetAudience: project.target_audience,
+    audienceAnalysis: project.audience_analysis,
+    marketingCampaign: project.marketing_campaign,
+    selectedHooks: project.selected_hooks?.length,
+    generatedAds: project.generated_ads?.length
+  });
 
   const generateLandingPageContent = async () => {
     setIsGenerating(true);
@@ -82,28 +68,27 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      console.log('Sending project data:', {
+      // Add timestamp to ensure uniqueness
+      const timestamp = new Date().toISOString();
+      console.log(`Starting generation at ${timestamp} for project:`, project.id);
+
+      const payload = {
         projectId: project.id,
         businessName: project.name,
         businessIdea: project.business_idea,
         targetAudience: project.target_audience,
         audienceAnalysis: project.audience_analysis,
+        marketingCampaign: project.marketing_campaign,
         selectedHooks: project.selected_hooks,
-        generatedAds: project.generated_ads
-      });
+        generatedAds: project.generated_ads,
+        timestamp // Add timestamp to payload
+      };
+
+      console.log('Sending payload to edge function:', payload);
 
       // Send project data to edge function
       const { data, error } = await supabase.functions.invoke('generate-landing-page', {
-        body: {
-          projectId: project.id,
-          businessName: project.name,
-          businessIdea: project.business_idea,
-          targetAudience: project.target_audience,
-          audienceAnalysis: project.audience_analysis,
-          marketingCampaign: project.marketing_campaign,
-          selectedHooks: project.selected_hooks,
-          generatedAds: project.generated_ads
-        }
+        body: payload
       });
 
       if (error) {
@@ -112,6 +97,10 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
       }
 
       console.log('Received generated content:', data);
+
+      if (!data) {
+        throw new Error('No content received from edge function');
+      }
 
       // Map the generated content to the correct structure
       const formattedContent = {
@@ -123,6 +112,8 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
         finalCta: { content: data.finalCta, layout: "centered" },
         footer: { content: data.footer, layout: "grid" }
       };
+
+      console.log('Formatted content:', formattedContent);
 
       // Update landing page content in database
       const { error: updateError } = await supabase
@@ -164,6 +155,31 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  const renderSection = (sectionKey: string) => {
+    const sectionData = currentContent[sectionKey];
+    if (!sectionData?.content) {
+      console.log(`No content for section: ${sectionKey}`);
+      return null;
+    }
+
+    const Component = sectionComponents[sectionKey];
+    if (!Component) {
+      console.warn(`No component found for section: ${sectionKey}`);
+      return null;
+    }
+
+    console.log(`${sectionKey} section content:`, sectionData.content);
+    console.log(`${sectionKey} layout:`, sectionData.layout);
+
+    return (
+      <Component
+        key={sectionKey}
+        content={sectionData.content}
+        layout={sectionData.layout || "default"}
+      />
+    );
   };
 
   if (isTemplateLoading) {

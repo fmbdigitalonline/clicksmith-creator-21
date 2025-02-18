@@ -25,39 +25,44 @@ serve(async (req) => {
       marketingCampaign,
       selectedHooks,
       generatedAds,
+      timestamp // Include timestamp in destructuring
     } = requestData;
+
+    // Log the timestamp to verify we're getting new requests
+    console.log("Generation timestamp:", timestamp);
 
     // Extract useful elements from the data
     const painPoints = targetAudience?.painPoints || [];
     const hooks = selectedHooks || [];
     const valueProposition = businessIdea?.valueProposition || '';
-    const marketDesire = audienceAnalysis?.marketDesire || '';
-    const objections = audienceAnalysis?.potentialObjections || [];
 
-    console.log("Processing data for landing page generation:", {
-      projectId,
-      businessName,
-      hooks: hooks.length,
-      painPoints: painPoints.length
-    });
+    // Add some randomization to content selection
+    const getRandomItem = <T>(array: T[]): T => {
+      return array[Math.floor(Math.random() * array.length)];
+    };
 
-    // Build comprehensive landing page content
+    // Build landing page content with some variation
     const landingPageContent = {
       hero: {
-        title: businessName || "Welcome",
+        title: businessIdea?.valueProposition || businessName || "Welcome",
         subtitle: targetAudience?.coreMessage || "Transform Your Business Today",
         description: valueProposition,
-        cta: "Get Started Now",
+        cta: getRandomItem([
+          "Get Started Now",
+          "Start Your Journey",
+          "Begin Today",
+          "Transform Your Business"
+        ]),
         image: generatedAds?.[0]?.imageUrl || null
       },
 
       value_proposition: {
         title: "Why Choose Us",
-        subtitle: marketDesire,
+        subtitle: targetAudience?.positioning || "We deliver results",
         items: painPoints.map((point, index) => ({
           title: `Solution ${index + 1}`,
           description: point,
-          icon: "CheckCircle"
+          icon: getRandomItem(["CheckCircle", "Star", "Shield", "Zap"])
         }))
       },
 
@@ -67,16 +72,21 @@ serve(async (req) => {
         items: hooks.map((hook, index) => ({
           title: hook.text || `Feature ${index + 1}`,
           description: hook.description || "Description coming soon",
-          icon: "Star"
+          icon: getRandomItem(["Star", "Zap", "Shield", "Award"])
         }))
       },
 
       proof: {
-        title: "Success Stories",
+        title: getRandomItem([
+          "Success Stories",
+          "Client Testimonials",
+          "What Our Clients Say",
+          "Real Results"
+        ]),
         subtitle: `Join other ${targetAudience?.name || 'satisfied customers'}`,
         testimonials: [
           {
-            quote: marketDesire,
+            quote: targetAudience?.painPoints?.[0] || "Great experience!",
             author: targetAudience?.name || "Happy Customer",
             role: "Verified User"
           }
@@ -84,7 +94,12 @@ serve(async (req) => {
       },
 
       pricing: {
-        title: "Pricing Plans",
+        title: getRandomItem([
+          "Simple Pricing",
+          "Choose Your Plan",
+          "Pricing Plans",
+          "Start Today"
+        ]),
         subtitle: "Choose the perfect plan for your needs",
         plans: [
           {
@@ -101,9 +116,19 @@ serve(async (req) => {
       },
 
       finalCta: {
-        title: "Ready to Get Started?",
+        title: getRandomItem([
+          "Ready to Get Started?",
+          "Start Your Journey Today",
+          "Transform Your Business Now",
+          "Join Us Today"
+        ]),
         description: targetAudience?.messagingApproach || "Take the first step towards success",
-        buttonText: "Start Now"
+        buttonText: getRandomItem([
+          "Get Started",
+          "Start Now",
+          "Begin Your Journey",
+          "Transform Today"
+        ])
       },
 
       footer: {
@@ -113,11 +138,6 @@ serve(async (req) => {
           product: ["Features", "Pricing", "Documentation"],
           company: ["About", "Blog", "Careers"],
           resources: ["Support", "Contact", "Privacy"]
-        },
-        socialLinks: {
-          twitter: "#",
-          facebook: "#",
-          instagram: "#"
         }
       }
     };
