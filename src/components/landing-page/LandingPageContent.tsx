@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -62,29 +61,44 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
     generatedAds: project.generated_ads?.length
   });
 
+  const formatProjectData = () => {
+    // Ensure business_idea is properly structured
+    const businessIdea = typeof project.business_idea === 'string' 
+      ? { description: project.business_idea, valueProposition: project.business_idea }
+      : project.business_idea || {};
+
+    // Ensure target_audience is an object
+    const targetAudience = typeof project.target_audience === 'string'
+      ? { description: project.target_audience }
+      : project.target_audience || {};
+
+    // Ensure audience_analysis is an object
+    const audienceAnalysis = typeof project.audience_analysis === 'string'
+      ? { description: project.audience_analysis }
+      : project.audience_analysis || {};
+
+    return {
+      projectId: project.id,
+      businessName: project.name || project.title || "My Business",
+      businessIdea,
+      targetAudience,
+      audienceAnalysis,
+      marketingCampaign: project.marketing_campaign || {},
+      selectedHooks: Array.isArray(project.selected_hooks) ? project.selected_hooks : [],
+      generatedAds: Array.isArray(project.generated_ads) ? project.generated_ads : [],
+      timestamp: new Date().toISOString()
+    };
+  };
+
   const generateLandingPageContent = async () => {
     setIsGenerating(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      // Add timestamp to ensure uniqueness
-      const timestamp = new Date().toISOString();
-      console.log(`Starting generation at ${timestamp} for project:`, project.id);
-
-      const payload = {
-        projectId: project.id,
-        businessName: project.name,
-        businessIdea: project.business_idea,
-        targetAudience: project.target_audience,
-        audienceAnalysis: project.audience_analysis,
-        marketingCampaign: project.marketing_campaign,
-        selectedHooks: project.selected_hooks,
-        generatedAds: project.generated_ads,
-        timestamp // Add timestamp to payload
-      };
-
-      console.log('Sending payload to edge function:', payload);
+      // Format the project data
+      const payload = formatProjectData();
+      console.log('Formatted payload for edge function:', payload);
 
       // Send project data to edge function
       const { data, error } = await supabase.functions.invoke('generate-landing-page', {
@@ -113,7 +127,7 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
         footer: { content: data.footer, layout: "grid" }
       };
 
-      console.log('Formatted content:', formattedContent);
+      console.log('Formatted content to save:', formattedContent);
 
       // Update landing page content in database
       const { error: updateError } = await supabase
