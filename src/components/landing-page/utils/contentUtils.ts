@@ -1,7 +1,5 @@
 
-import { SectionContentMap } from "../types/landingPageTypes";
-
-export const generateInitialContent = (project: any): SectionContentMap => {
+export const generateInitialContent = (project: any) => {
   const businessIdea = project?.business_idea || {};
   const audienceAnalysis = project?.audience_analysis || {};
   const savedImages = project?.marketing_campaign?.saved_images || [];
@@ -14,7 +12,7 @@ export const generateInitialContent = (project: any): SectionContentMap => {
         cta: "Get Started Now",
         image: savedImages[0] || "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b"
       },
-      layout: "centered" as const
+      layout: "centered"
     },
     value_proposition: {
       content: {
@@ -42,7 +40,7 @@ export const generateInitialContent = (project: any): SectionContentMap => {
           }
         ]
       },
-      layout: "grid" as const
+      layout: "grid"
     },
     features: {
       content: {
@@ -68,13 +66,13 @@ export const generateInitialContent = (project: any): SectionContentMap => {
           }
         ]
       },
-      layout: "grid" as const
+      layout: "grid"
     },
     proof: {
       content: {
         title: "What Our Clients Say",
         description: "Success stories from businesses like yours",
-        testimonials: [
+        items: [
           {
             quote: "This platform has revolutionized our operations!",
             author: "Sarah Chen",
@@ -83,37 +81,34 @@ export const generateInitialContent = (project: any): SectionContentMap => {
           }
         ]
       },
-      layout: "grid" as const
+      layout: "grid"
     },
     pricing: {
       content: {
         title: "Simple, Transparent Pricing",
         description: "Choose the plan that's right for you",
-        pricingTiers: [
+        items: [
           {
             name: "Starter",
             price: "Free",
-            features: ["Basic features", "Community support", "1 project"],
-            cta: "Get Started"
+            features: ["Basic features", "Community support", "1 project"]
           },
           {
             name: "Pro",
             price: "$49/mo",
-            features: ["All features", "Priority support", "Unlimited projects"],
-            cta: "Go Pro"
+            features: ["All features", "Priority support", "Unlimited projects"]
           }
         ]
       },
-      layout: "grid" as const
+      layout: "grid"
     },
     finalCta: {
       content: {
         title: "Ready to Transform Your Business?",
         description: "Join thousands of satisfied customers today.",
-        buttonText: "Get Started Now",
-        background: "bg-gradient-glass"
+        cta: "Get Started Now",
       },
-      layout: "centered" as const
+      layout: "centered"
     },
     footer: {
       content: {
@@ -123,7 +118,7 @@ export const generateInitialContent = (project: any): SectionContentMap => {
         },
         copyright: `© ${new Date().getFullYear()} All rights reserved.`
       },
-      layout: "grid" as const
+      layout: "grid"
     }
   };
 };

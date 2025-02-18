@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,20 +15,17 @@ import LoadingStateLandingPage from "./LoadingStateLandingPage";
 const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) => {
   const [activeView, setActiveView] = useState<"edit" | "preview">("preview");
   const [isGenerating, setIsGenerating] = useState(false);
-  const [currentContent, setCurrentContent] = useState<SectionContentMap>(() => {
-    if (landingPage?.content) {
-      return {
-        hero: { content: landingPage.content.hero, layout: "centered" as const },
-        value_proposition: { content: landingPage.content.value_proposition, layout: "grid" as const },
-        features: { content: landingPage.content.features, layout: "grid" as const },
-        proof: { content: landingPage.content.proof, layout: "grid" as const },
-        pricing: { content: landingPage.content.pricing, layout: "grid" as const },
-        finalCta: { content: landingPage.content.finalCta, layout: "centered" as const },
-        footer: { content: landingPage.content.footer, layout: "grid" as const }
-      };
-    }
-    return generateInitialContent(project);
-  });
+  const [currentContent, setCurrentContent] = useState<SectionContentMap>(
+    landingPage?.content ? {
+      hero: { content: landingPage.content.hero, layout: "centered" },
+      value_proposition: { content: landingPage.content.value_proposition, layout: "grid" },
+      features: { content: landingPage.content.features, layout: "grid" },
+      proof: { content: landingPage.content.proof, layout: "grid" },
+      pricing: { content: landingPage.content.pricing, layout: "grid" },
+      finalCta: { content: landingPage.content.finalCta, layout: "centered" },
+      footer: { content: landingPage.content.footer, layout: "grid" }
+    } : generateInitialContent(project)
+  );
   const [currentLayoutStyle, setCurrentLayoutStyle] = useState(landingPage?.layout_style);
   
   const { toast } = useToast();
@@ -67,7 +63,7 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
       <Component
         key={sectionKey}
         content={sectionData.content}
-        layout={sectionData.layout}
+        layout={sectionData.layout || "default"}
       />
     );
   };
@@ -99,32 +95,23 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
         throw error;
       }
 
-      // Map the generated content to the correct structure with proper typing
-      const formattedContent: SectionContentMap = {
-        hero: { content: data.hero, layout: "centered" as const },
-        value_proposition: { content: data.valueProposition, layout: "grid" as const },
-        features: { content: data.marketAnalysis?.features, layout: "grid" as const },
-        proof: { content: data.testimonials, layout: "grid" as const },
-        pricing: { content: data.pricing, layout: "grid" as const },
-        finalCta: { content: data.finalCta, layout: "centered" as const },
-        footer: { content: data.footer, layout: "grid" as const }
+      // Map the generated content to the correct structure
+      const formattedContent = {
+        hero: { content: data.hero, layout: "centered" },
+        value_proposition: { content: data.valueProposition, layout: "grid" },
+        features: { content: data.marketAnalysis?.features, layout: "grid" },
+        proof: { content: data.testimonials, layout: "grid" },
+        pricing: { content: data.pricing, layout: "grid" },
+        finalCta: { content: data.finalCta, layout: "centered" },
+        footer: { content: data.footer, layout: "grid" }
       };
-
-      // Convert the content to a plain object for database storage
-      const dbContent = Object.entries(formattedContent).reduce((acc, [key, value]) => {
-        acc[key] = {
-          content: value.content,
-          layout: value.layout
-        };
-        return acc;
-      }, {} as Record<string, any>);
 
       // Update landing page content in database
       const { error: updateError } = await supabase
         .from('landing_pages')
         .upsert({
           title: project.name || "Landing Page",
-          content: dbContent,
+          content: formattedContent,
           project_id: project.id,
           user_id: user.id,
           layout_style: currentLayoutStyle,
