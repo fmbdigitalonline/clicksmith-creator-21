@@ -2,11 +2,22 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { corsHeaders } from '../_shared/cors.ts'
 
+interface BusinessIdea {
+  description?: string;
+  valueProposition?: string;
+}
+
+interface TargetAudience {
+  description?: string;
+  coreMessage?: string;
+  messagingApproach?: string;
+}
+
 interface RequestBody {
   projectId: string;
   businessName: string;
-  businessIdea: string;
-  targetAudience: string;
+  businessIdea: BusinessIdea;
+  targetAudience: TargetAudience;
   template?: any;
   existingContent?: any;
   layoutStyle?: string;
@@ -21,28 +32,23 @@ serve(async (req) => {
   try {
     const { businessName, businessIdea, targetAudience } = await req.json() as RequestBody;
 
-    // Validate required inputs
-    if (!businessIdea || !targetAudience) {
-      throw new Error('Missing required input: businessIdea or targetAudience');
-    }
+    console.log('Received request:', { businessName, businessIdea, targetAudience });
 
-    console.log('Generating landing page content for:', {
-      businessName,
-      businessIdea,
-      targetAudience
-    });
+    // Extract the descriptions from nested objects
+    const businessDescription = businessIdea?.description || businessIdea?.valueProposition || '';
+    const targetDescription = targetAudience?.coreMessage || targetAudience?.description || '';
 
     // Generate content based on the business idea and target audience
     const landingPageContent = {
       hero: {
-        title: businessName || "Welcome",
-        description: businessIdea.slice(0, 150) + "...", // Truncate for hero section
+        title: businessIdea?.valueProposition || businessName || "Welcome",
+        description: businessDescription.slice(0, 150) + (businessDescription.length > 150 ? "..." : ""),
         cta: "Get Started Now",
         image: "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d"
       },
       valueProposition: {
         title: "Why Choose Us",
-        description: "We deliver exceptional value to our customers",
+        description: targetAudience?.messagingApproach || "We deliver exceptional value to our customers",
         cards: [
           {
             title: "Expert Solutions",
@@ -105,7 +111,7 @@ serve(async (req) => {
       },
       finalCta: {
         title: "Ready to Get Started?",
-        description: targetAudience,
+        description: targetDescription,
         cta: "Start Now"
       },
       footer: {
@@ -116,6 +122,8 @@ serve(async (req) => {
         copyright: `© ${new Date().getFullYear()} ${businessName || 'Company'}. All rights reserved.`
       }
     };
+
+    console.log('Generated landing page content:', landingPageContent);
 
     return new Response(
       JSON.stringify(landingPageContent),
