@@ -4,7 +4,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Layout } from "lucide-react";
 import ProjectProgressDetails from "@/components/projects/ProjectProgressDetails";
 import { BusinessIdea, TargetAudience, AudienceAnalysis } from "@/types/adWizard";
 
@@ -49,6 +49,12 @@ const Projects = () => {
     }
   };
 
+  const handleCreateLandingPage = () => {
+    if (project?.id) {
+      navigate(`/projects/${project.id}/landing-page`);
+    }
+  };
+
   if (projectId && !project) {
     return (
       <div className="container mx-auto px-4 py-4">
@@ -84,15 +90,14 @@ const Projects = () => {
                 >
                   Continue Ad Creation
                 </Button>
-                {project.marketing_campaign && (
-                  <Button 
-                    variant="outline"
-                    onClick={() => navigate(`/projects/${project.id}/landing-page`)}
-                    className="w-full sm:w-auto"
-                  >
-                    View Landing Page
-                  </Button>
-                )}
+                <Button 
+                  variant="outline"
+                  onClick={handleCreateLandingPage}
+                  className="w-full sm:w-auto"
+                >
+                  <Layout className="w-4 h-4 mr-2" />
+                  Create Landing Page
+                </Button>
               </div>
               <ProjectProgressDetails
                 businessIdea={project.business_idea || undefined}
