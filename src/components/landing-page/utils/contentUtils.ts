@@ -68,7 +68,7 @@ export const generateInitialContent = (project: any) => {
       },
       layout: "grid"
     },
-    proof: {
+    proof: {  // Changed from testimonials to proof
       content: {
         title: "What Our Clients Say",
         description: "Success stories from businesses like yours",
@@ -83,7 +83,7 @@ export const generateInitialContent = (project: any) => {
       },
       layout: "grid"
     },
-    pricing: {
+    pricing: {  // Changed from pricing_section to pricing
       content: {
         title: "Simple, Transparent Pricing",
         description: "Choose the plan that's right for you",
@@ -102,7 +102,7 @@ export const generateInitialContent = (project: any) => {
       },
       layout: "grid"
     },
-    finalCta: {
+    finalCta: {  // Changed from cta to finalCta
       content: {
         title: "Ready to Transform Your Business?",
         description: "Join thousands of satisfied customers today.",
@@ -122,3 +122,4 @@ export const generateInitialContent = (project: any) => {
     }
   };
 };
+

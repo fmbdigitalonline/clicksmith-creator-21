@@ -15,8 +15,9 @@ export const sectionComponents = {
   hero: HeroSection,
   value_proposition: ValuePropositionSection,
   features: FeaturesSection,
-  testimonials: TestimonialsSection,
-  cta: CtaSection,
+  proof: TestimonialsSection,  // Changed from testimonials to proof
+  pricing: PricingSection,     // Changed from pricing_section to pricing
+  finalCta: CtaSection,       // Changed from cta to finalCta
   how_it_works: HowItWorksSection,
   market_analysis: MarketAnalysisSection,
   objections: ObjectionsSection,
@@ -27,13 +28,11 @@ export const sectionComponents = {
 // Default section order if none is provided
 export const defaultSectionOrder = [
   "hero",
-  "how_it_works",
-  "market_analysis",
   "value_proposition",
   "features",
-  "testimonials",
-  "objections",
-  "faq",
-  "cta",
+  "proof",
+  "pricing",
+  "finalCta",
   "footer"
 ];
+
