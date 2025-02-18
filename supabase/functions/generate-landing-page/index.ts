@@ -24,6 +24,22 @@ interface RequestBody {
   targetAudience: TargetAudience;
 }
 
+// Helper function to extract JSON from DeepSeek response
+const extractJsonFromResponse = (text: string) => {
+  try {
+    // Find the first { and last } to extract just the JSON part
+    const start = text.indexOf('{');
+    const end = text.lastIndexOf('}') + 1;
+    if (start === -1 || end === 0) throw new Error('No JSON found in response');
+    
+    const jsonStr = text.slice(start, end);
+    return JSON.parse(jsonStr);
+  } catch (error) {
+    console.error('Error parsing DeepSeek response:', error);
+    throw new Error('Failed to parse AI response');
+  }
+};
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -34,11 +50,23 @@ serve(async (req) => {
     console.log('Received request:', { businessName, businessIdea, targetAudience });
 
     // 1. Generate theme and styling using DeepSeek
-    const themePrompt = `Create a modern, professional website theme for a business that: ${businessIdea?.description}. 
+    const themePrompt = `Generate a JSON response for a modern, professional website theme based on this business: ${businessIdea?.description}. 
     Target audience: ${targetAudience?.description}. 
-    Include recommendations for: color scheme (with hex codes), typography (specify Google Fonts), and overall style. 
-    Format the response as JSON with properties: colors (object with primary, secondary, accent, background, text), 
-    fonts (object with heading and body fonts), and styleDescription (string).`;
+    The response should be a valid JSON object with these exact properties:
+    {
+      "colors": {
+        "primary": "#hex",
+        "secondary": "#hex",
+        "accent": "#hex",
+        "background": "#hex",
+        "text": "#hex"
+      },
+      "fonts": {
+        "heading": "Google Font Name",
+        "body": "Google Font Name"
+      },
+      "styleDescription": "Brief style description"
+    }`;
 
     const response = await fetch("https://api.deepseek.com/v1/chat/completions", {
       method: "POST",
@@ -54,8 +82,9 @@ serve(async (req) => {
     });
 
     const themeData = await response.json();
-    console.log('Theme generation response:', themeData);
-    const theme = JSON.parse(themeData.choices[0].message.content);
+    console.log('Theme API response:', themeData);
+    const theme = extractJsonFromResponse(themeData.choices[0].message.content);
+    console.log('Parsed theme:', theme);
 
     // 2. Generate hero image using Replicate
     const replicate = new Replicate({
@@ -63,8 +92,7 @@ serve(async (req) => {
     });
 
     const imagePrompt = `Create a modern, professional hero image for: ${businessIdea?.description}. 
-    Target audience: ${targetAudience?.description}. Style: clean, minimalist, corporate photography, 
-    using colors that match: ${theme.colors.primary} and ${theme.colors.secondary}`;
+    Target audience: ${targetAudience?.description}. Style: clean, minimalist, corporate photography.`;
     
     console.log('Generating hero image with prompt:', imagePrompt);
     
@@ -82,14 +110,34 @@ serve(async (req) => {
     );
 
     // 3. Generate compelling content using DeepSeek
-    const contentPrompt = `Create professional landing page content for a business that: ${businessIdea?.description}. 
-    Target audience: ${targetAudience?.description}. Pain points: ${targetAudience?.painPoints?.join(', ')}. 
-    Benefits: ${targetAudience?.benefits?.join(', ')}. 
-    Format the response as JSON with the following structure:
+    const contentPrompt = `Generate a JSON response for a landing page content based on this business: ${businessIdea?.description}. 
+    Target audience: ${targetAudience?.description}. 
+    The response should be a valid JSON object with these exact properties:
     {
-      "hero": { "title": "compelling headline", "description": "engaging subheadline" },
-      "valueProposition": { "title": "", "description": "", "cards": [] },
-      "features": { "title": "", "description": "", "items": [] }
+      "hero": {
+        "title": "compelling headline",
+        "description": "engaging subheadline"
+      },
+      "valueProposition": {
+        "title": "section title",
+        "description": "section description",
+        "cards": [
+          {
+            "title": "benefit 1",
+            "description": "description 1"
+          }
+        ]
+      },
+      "features": {
+        "title": "section title",
+        "description": "section description",
+        "items": [
+          {
+            "title": "feature 1",
+            "description": "description 1"
+          }
+        ]
+      }
     }`;
 
     const contentResponse = await fetch("https://api.deepseek.com/v1/chat/completions", {
@@ -106,8 +154,9 @@ serve(async (req) => {
     });
 
     const contentData = await contentResponse.json();
-    console.log('Content generation response:', contentData);
-    const content = JSON.parse(contentData.choices[0].message.content);
+    console.log('Content API response:', contentData);
+    const content = extractJsonFromResponse(contentData.choices[0].message.content);
+    console.log('Parsed content:', content);
 
     // 4. Combine everything into the landing page content structure
     const landingPageContent = {
@@ -162,8 +211,14 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in generate-landing-page:', error);
     return new Response(
-      JSON.stringify({ error: error.message }), 
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      JSON.stringify({ 
+        error: error.message,
+        details: error instanceof Error ? error.stack : undefined
+      }), 
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+        status: 400 
+      }
     )
   }
 })
