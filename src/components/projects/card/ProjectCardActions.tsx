@@ -42,7 +42,7 @@ const ProjectCardActions = ({
     }
 
     // Show loading toast with landing page loading state
-    toast({
+    const loadingToast = toast({
       title: "Creating landing page",
       description: <LoadingStateLandingPage />,
       duration: 100000, // Long duration since we'll dismiss it manually
@@ -101,8 +101,8 @@ const ProjectCardActions = ({
           user_id: userData.user.id,
           title: `${project.title} Landing Page`,
           content: generatedContent,
-          image_placements: generatedContent.imagePlacements,
-          layout_style: generatedContent.layout,
+          image_placements: generatedContent.imagePlacements || [],
+          layout_style: generatedContent.layout || 'default',
           template_version: 2,
           section_order: [
             "hero",
@@ -125,16 +125,25 @@ const ProjectCardActions = ({
 
       if (saveError) throw saveError;
 
+      // Dismiss loading toast
+      toast.dismiss(loadingToast);
+
       // Show success message
       toast({
         title: "Success",
         description: "Your landing page has been generated successfully!",
       });
 
+      // Invalidate landing pages query to refetch latest data
+      await queryClient.invalidateQueries(['landing-page', projectId]);
+
       // Navigate to the landing page editor
       navigate(`/projects/${projectId}/landing-page`);
     } catch (error) {
       console.error('Error creating landing page:', error);
+      // Dismiss loading toast
+      toast.dismiss(loadingToast);
+      
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to create landing page",
