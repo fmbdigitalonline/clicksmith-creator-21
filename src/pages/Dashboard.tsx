@@ -12,6 +12,7 @@ import CreditsCard from "@/components/dashboard/CreditsCard";
 import { OnboardingDialog } from "@/components/onboarding/OnboardingDialog";
 import { formatDistanceToNow } from "date-fns";
 import { CheckCircle } from "lucide-react";
+import { Users, UsersRound, DollarSign, Share2 } from 'lucide-react';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -455,8 +456,8 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Resources & Help with Enhanced Visual Design */}
-        <div className="grid gap-4 md:grid-cols-2">
+        {/* Resources, Help & Share */}
+        <div className="grid gap-4 md:grid-cols-3">
           <Card className="bg-gradient-to-br from-background to-muted/50">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -497,6 +498,29 @@ const Dashboard = () => {
                   <Star className="h-4 w-4 mr-2" />
                   Rate Us on Trustpilot
                 </a>
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-background to-muted/50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5 text-primary" />
+                Share & Earn
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Button variant="link" className="w-full justify-start" onClick={() => navigate("/referral")}>
+                <UsersRound className="h-4 w-4 mr-2" />
+                Refer a Friend
+              </Button>
+              <Button variant="link" className="w-full justify-start" onClick={() => navigate("/affiliate")}>
+                <DollarSign className="h-4 w-4 mr-2" />
+                Affiliate Program
+              </Button>
+              <Button variant="link" className="w-full justify-start" onClick={() => navigate("/share")}>
+                <Share2 className="h-4 w-4 mr-2" />
+                Share on Social Media
               </Button>
             </CardContent>
           </Card>
