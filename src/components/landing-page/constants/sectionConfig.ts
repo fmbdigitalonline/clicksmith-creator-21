@@ -4,10 +4,6 @@ import ValuePropositionSection from "../sections/ValuePropositionSection";
 import FeaturesSection from "../sections/FeaturesSection";
 import TestimonialsSection from "../sections/TestimonialsSection";
 import CtaSection from "../sections/CtaSection";
-import HowItWorksSection from "../sections/HowItWorksSection";
-import MarketAnalysisSection from "../sections/MarketAnalysisSection";
-import ObjectionsSection from "../sections/ObjectionsSection";
-import FaqSection from "../sections/FaqSection";
 import FooterSection from "../sections/FooterSection";
 
 // Map section keys to their corresponding components
@@ -17,23 +13,15 @@ export const sectionComponents = {
   features: FeaturesSection,
   testimonials: TestimonialsSection,
   cta: CtaSection,
-  how_it_works: HowItWorksSection,
-  market_analysis: MarketAnalysisSection,
-  objections: ObjectionsSection,
-  faq: FaqSection,
   footer: FooterSection,
 } as const;
 
-// Default section order if none is provided
+// Default section order
 export const defaultSectionOrder = [
   "hero",
-  "how_it_works",
-  "market_analysis",
   "value_proposition",
   "features",
   "testimonials",
-  "objections",
-  "faq",
   "cta",
   "footer"
 ];

@@ -7,10 +7,10 @@ export const generateInitialContent = (project: any) => {
   return {
     hero: {
       content: {
-        title: businessIdea?.valueProposition || project.title || "Welcome to Our Platform",
+        title: businessIdea?.valueProposition || project?.title || "Welcome to Our Platform",
         description: businessIdea?.description || "Discover the best solution for your needs",
         cta: "Get Started Now",
-        image: savedImages[0] || "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b"
+        image: savedImages[0] || ""
       },
       layout: "centered"
     },
@@ -50,71 +50,42 @@ export const generateInitialContent = (project: any) => {
           title: feature.split(':')[0] || feature,
           description: feature.split(':')[1] || feature,
           icon: "🎯",
-          image: savedImages[index % savedImages.length] || "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d"
+          image: savedImages[index % savedImages.length] || ""
         })) || [
           {
             title: "Intuitive Platform",
             description: "Our user-friendly interface ensures you can get started immediately",
-            image: savedImages[0] || "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d",
             icon: "🎯"
           },
           {
             title: "Advanced Analytics",
             description: "Get detailed insights into your performance",
-            image: savedImages[1] || "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158",
             icon: "📊"
           }
         ]
       },
       layout: "grid"
     },
-    proof: {
+    testimonials: {
       content: {
         title: "What Our Clients Say",
-        description: "Success stories from businesses like yours",
-        items: [
-          {
-            quote: "This platform has revolutionized our operations!",
-            author: "Sarah Chen",
-            role: "Marketing Director",
-            company: "Growth Dynamics"
-          }
-        ]
+        items: []
       },
       layout: "grid"
     },
-    pricing: {
-      content: {
-        title: "Simple, Transparent Pricing",
-        description: "Choose the plan that's right for you",
-        items: [
-          {
-            name: "Starter",
-            price: "Free",
-            features: ["Basic features", "Community support", "1 project"]
-          },
-          {
-            name: "Pro",
-            price: "$49/mo",
-            features: ["All features", "Priority support", "Unlimited projects"]
-          }
-        ]
-      },
-      layout: "grid"
-    },
-    finalCta: {
+    cta: {
       content: {
         title: "Ready to Transform Your Business?",
         description: "Join thousands of satisfied customers today.",
-        cta: "Get Started Now",
+        buttonText: "Get Started Now",
       },
       layout: "centered"
     },
     footer: {
       content: {
         links: {
-          company: ["About", "Contact", "Careers"],
-          resources: ["Blog", "Help Center", "Support"]
+          company: ["About", "Contact"],
+          resources: ["Documentation", "Support"]
         },
         copyright: `© ${new Date().getFullYear()} All rights reserved.`
       },
