@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,43 +18,51 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
   // Initialize content from landing page data or generate initial content
   const [currentContent, setCurrentContent] = useState<SectionContentMap>(
     landingPage?.content ? {
-      hero: { content: landingPage.content.hero, layout: "centered" },
+      hero: { 
+        content: landingPage.content.hero || {
+          title: "",
+          description: "",
+          cta: "Get Started",
+          image: ""
+        }, 
+        layout: "centered" 
+      },
       value_proposition: { 
-        content: {
-          title: landingPage.content.valueProposition?.title,
-          description: landingPage.content.valueProposition?.description,
-          cards: landingPage.content.valueProposition?.cards
+        content: landingPage.content.valueProposition || {
+          title: "",
+          description: "",
+          cards: []
         }, 
         layout: "grid" 
       },
       features: { 
-        content: {
-          title: landingPage.content.features?.title,
-          description: landingPage.content.features?.description,
-          items: landingPage.content.features?.items
+        content: landingPage.content.features || {
+          title: "",
+          description: "",
+          items: []
         }, 
         layout: "grid" 
       },
       testimonials: { 
-        content: {
-          title: landingPage.content.testimonials?.title,
-          items: landingPage.content.testimonials?.items || []
+        content: landingPage.content.testimonials || {
+          title: "What Our Clients Say",
+          items: []
         }, 
         layout: "grid" 
       },
       pricing: { 
-        content: {
-          title: landingPage.content.pricing?.title,
-          description: landingPage.content.pricing?.description,
-          items: landingPage.content.pricing?.items || []
+        content: landingPage.content.pricing || {
+          title: "Simple Pricing",
+          description: "Choose the plan that works for you",
+          items: []
         }, 
         layout: "grid" 
       },
       cta: { 
-        content: {
-          title: landingPage.content.cta?.title || "Ready to Get Started?",
-          description: landingPage.content.cta?.description || "Join us today",
-          buttonText: landingPage.content.cta?.buttonText || "Get Started"
+        content: landingPage.content.cta || {
+          title: "Ready to Get Started?",
+          description: "Join us today",
+          buttonText: "Get Started"
         }, 
         layout: "centered" 
       },
@@ -119,16 +126,14 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      // Transform business idea and target audience data
-      const businessDescription = project.business_idea?.description || project.business_idea?.valueProposition || '';
-      const targetAudienceDescription = project.target_audience?.description || project.target_audience?.coreMessage || '';
+      console.log("Sending request with project:", project);
 
       const { data, error } = await supabase.functions.invoke('generate-landing-page', {
         body: {
           projectId: project.id,
           businessName: project.name,
-          businessIdea: businessDescription,
-          targetAudience: targetAudienceDescription,
+          businessIdea: project.business_idea?.description || '',
+          targetAudience: project.target_audience?.description || '',
           template: template?.structure,
           existingContent: currentContent,
           layoutStyle: currentLayoutStyle
@@ -140,9 +145,9 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
         throw error;
       }
 
-      console.log("Generated content:", data);
+      console.log("Generated content from edge function:", data);
 
-      // Map the generated content to the correct structure
+      // Update local state with new content
       const formattedContent = {
         hero: { content: data.hero, layout: "centered" },
         value_proposition: { content: data.valueProposition, layout: "grid" },
@@ -157,12 +162,14 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
         footer: { content: data.footer, layout: "grid" }
       };
 
-      // Update landing page content in database
+      console.log("Formatted content:", formattedContent);
+
+      // Store the raw response data in the database
       const { error: updateError } = await supabase
         .from('landing_pages')
         .upsert({
           title: project.name || "Landing Page",
-          content: data, // Store the raw data
+          content: data,
           project_id: project.id,
           user_id: user.id,
           layout_style: currentLayoutStyle,
@@ -172,10 +179,8 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
 
       if (updateError) throw updateError;
 
-      // Update local state with new content
       setCurrentContent(formattedContent);
-
-      // Invalidate queries to refetch latest data
+      
       await queryClient.invalidateQueries({
         queryKey: ['landing-page', project.id]
       });
