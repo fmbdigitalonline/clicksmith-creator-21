@@ -110,12 +110,21 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
         footer: { content: data.footer, layout: "grid" as const }
       };
 
+      // Convert the content to a plain object for database storage
+      const dbContent = Object.entries(formattedContent).reduce((acc, [key, value]) => {
+        acc[key] = {
+          content: value.content,
+          layout: value.layout
+        };
+        return acc;
+      }, {} as Record<string, any>);
+
       // Update landing page content in database
       const { error: updateError } = await supabase
         .from('landing_pages')
         .upsert({
           title: project.name || "Landing Page",
-          content: formattedContent,
+          content: dbContent,
           project_id: project.id,
           user_id: user.id,
           layout_style: currentLayoutStyle,
