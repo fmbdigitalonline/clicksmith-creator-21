@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { ArrowRight, CheckCircle, MessageCircle, BadgeCheck, Target, ArrowRight as ArrowRightIcon, Lightbulb, PieChart, DollarSign, Users, BarChart, Rocket, Globe } from "lucide-react";
 import { TextCycler } from "@/components/TextCycler";
 import LandingNav from "@/components/LandingNav";
+import FooterSection from "@/components/landing-page/sections/FooterSection";
 
 const Index = () => {
   const howItWorks = [
@@ -491,37 +492,17 @@ const Index = () => {
       </section>
 
       {/* Footer */}
-      <footer className="py-12 px-4 sm:px-6 lg:px-8 border-t">
-        <div className="max-w-5xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-            <div>
-              <h3 className="font-semibold mb-4">Contact Us</h3>
-              <p className="text-muted-foreground">📞 support@viable.com</p>
-              <p className="text-muted-foreground">📧 Subscribe to our newsletter for updates</p>
-            </div>
-            <div>
-              <h3 className="font-semibold mb-4">Quick Links</h3>
-              <div className="space-y-2">
-                <Link to="/pricing" className="block text-muted-foreground hover:text-primary">
-                  Pricing
-                </Link>
-                <Link to="/login" className="block text-muted-foreground hover:text-primary">
-                  Sign Up
-                </Link>
-                <Link to="/terms" className="block text-muted-foreground hover:text-primary">
-                  Terms of Service
-                </Link>
-                <Link to="/privacy" className="block text-muted-foreground hover:text-primary">
-                  Privacy Policy
-                </Link>
-              </div>
-            </div>
-          </div>
-          <div className="text-center text-muted-foreground border-t pt-8">
-            © {new Date().getFullYear()} Viable. All rights reserved.
-          </div>
-        </div>
-      </footer>
+      <FooterSection 
+        content={{
+          contact: {
+            email: "support@viable.com",
+            phone: "+1 (555) 123-4567",
+            address: "123 Business Avenue, Suite 100, San Francisco, CA 94107"
+          },
+          newsletter: "Subscribe to our newsletter for updates and insights",
+          copyright: `© ${new Date().getFullYear()} Viable. All rights reserved.`
+        }}
+      />
     </div>
   );
 };
