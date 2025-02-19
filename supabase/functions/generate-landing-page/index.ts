@@ -43,18 +43,24 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders })
   }
 
+  let requestData;
   try {
     console.log('Function started')
-    const { projectId, businessName, businessIdea, targetAudience } = await req.json()
+    requestData = await req.json()
+    const { projectId, businessName, businessIdea, targetAudience } = requestData
     console.log('Request payload:', { projectId, businessName })
 
+    if (!Deno.env.get('DEEPSEEK_API_KEY')) {
+      throw new Error('DEEPSEEK_API_KEY is not set')
+    }
+
     const prompt = generateDetailedPrompt(businessName, businessIdea, targetAudience)
-    console.log('Generated prompt')
+    console.log('Generated prompt:', prompt)
 
     // Initialize OpenAI client with DeepSeek configuration
     const openai = new OpenAI({
       baseURL: 'https://api.deepseek.com/v1',
-      apiKey: Deno.env.get('DEEPSEEK_API_KEY') || '',
+      apiKey: Deno.env.get('DEEPSEEK_API_KEY'),
     });
 
     console.log('Initialized OpenAI client with DeepSeek configuration')
@@ -76,10 +82,14 @@ serve(async (req) => {
         max_tokens: 4000,
       });
 
-      console.log('Received response from DeepSeek API')
+      console.log('Received response from DeepSeek API:', completion)
       
+      if (!completion.choices?.[0]?.message?.content) {
+        throw new Error('Invalid response from DeepSeek API')
+      }
+
       const content = completion.choices[0].message.content;
-      console.log('Successfully extracted content from response')
+      console.log('Raw content from API:', content)
 
       try {
         // Parse the AI response
@@ -90,12 +100,12 @@ serve(async (req) => {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         })
       } catch (parseError) {
-        console.error('Failed to parse AI response:', parseError)
-        throw new Error('Failed to parse AI response')
+        console.error('Failed to parse AI response:', parseError, 'Content:', content)
+        throw new Error('Failed to parse AI response: ' + parseError.message)
       }
     } catch (apiError) {
       console.error('DeepSeek API error:', apiError)
-      throw new Error('Failed to generate content from DeepSeek API')
+      throw new Error(`Failed to generate content from DeepSeek API: ${apiError.message}`)
     }
 
   } catch (error) {
@@ -104,7 +114,7 @@ serve(async (req) => {
     // Return default content structure on error
     const defaultContent = {
       hero: {
-        title: `Transform Your Business with ${businessName}`,
+        title: `Transform Your Business with ${requestData?.businessName || 'Your Business'}`,
         description: "Experience the next level of business growth with our innovative solutions",
         cta: "Get Started Now",
         image: "Professional business growth illustration"
