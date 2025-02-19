@@ -13,33 +13,36 @@ const generateDetailedPrompt = (businessIdea: any, targetAudience: any) => {
                       businessIdea?.description?.split(' ').slice(0, 3).join(' ') ||
                       'Your Business';
 
-  return `Create a landing page content structure with the following details:
+  return `Please generate landing page content in JSON format with the following structure:
 
-Business: ${businessName}
-Concept: ${businessIdea?.description || 'N/A'}
-Target: ${targetAudience?.name || 'N/A'}
-Message: ${targetAudience?.coreMessage || 'N/A'}
-
-Generate the following sections as JSON:
+EXAMPLE JSON OUTPUT:
 {
   "hero": {
-    "title": "Main headline focusing on ${targetAudience?.marketingAngle || 'value proposition'}",
-    "description": "Subtitle addressing ${targetAudience?.painPoints?.[0] || 'main pain point'}",
+    "title": "Main headline for ${businessName}",
+    "description": "Compelling subtitle about the value proposition",
     "cta": "Action-oriented button text",
-    "image": "Hero image description"
+    "image": "Description of hero image"
   },
   "value_proposition": {
-    "title": "Value-focused title",
-    "description": "Benefits overview",
+    "title": "Why Choose ${businessName}",
+    "description": "Overview of benefits",
     "cards": [
       {
-        "title": "Benefit 1",
-        "description": "Detailed benefit description",
-        "icon": "Relevant emoji"
+        "title": "Key Benefit",
+        "description": "Detailed explanation",
+        "icon": "📈"
       }
     ]
   }
-}`
+}
+
+Business Details:
+- Name: ${businessName}
+- Concept: ${businessIdea?.description || 'N/A'}
+- Target Audience: ${targetAudience?.name || 'N/A'}
+- Core Message: ${targetAudience?.coreMessage || 'N/A'}
+- Marketing Angle: ${targetAudience?.marketingAngle || 'N/A'}
+- Pain Points: ${targetAudience?.painPoints?.[0] || 'N/A'}`
 }
 
 serve(async (req) => {
@@ -73,13 +76,16 @@ serve(async (req) => {
           messages: [
             {
               role: "system",
-              content: "You are a landing page content creator. Return JSON responses only."
+              content: "You are a landing page content creator. You must return content in valid JSON format following the exact structure provided."
             },
             {
               role: "user",
               content: prompt
             }
           ],
+          response_format: {
+            type: 'json_object'
+          },
           temperature: 0.7,
           max_tokens: 4000,
         }),
@@ -101,17 +107,18 @@ serve(async (req) => {
       const content = data.choices[0].message.content;
       console.log('Content from API:', content);
 
+      // Since we're using response_format: json_object, the content should already be valid JSON
+      // But we'll still wrap it in a try-catch just to be safe
       try {
-        // Parse the AI response
-        const aiContent = JSON.parse(content.trim());
-        console.log('Successfully parsed AI content');
+        const parsedContent = typeof content === 'string' ? JSON.parse(content) : content;
+        console.log('Successfully parsed content');
 
-        return new Response(JSON.stringify(aiContent), {
+        return new Response(JSON.stringify(parsedContent), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       } catch (parseError) {
-        console.error('Failed to parse AI response:', parseError, 'Content:', content);
-        throw new Error(`Failed to parse AI response: ${parseError.message}`);
+        console.error('Failed to parse API response:', parseError, 'Content:', content);
+        throw new Error(`Failed to parse API response: ${parseError.message}`);
       }
     } catch (apiError) {
       console.error('API error:', apiError);
