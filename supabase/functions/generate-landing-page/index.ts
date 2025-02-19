@@ -17,32 +17,40 @@ serve(async (req) => {
       throw new Error('Missing required fields')
     }
 
-    // Extract core message for better title generation
     const businessDescription = typeof businessIdea === 'string' ? 
       businessIdea : 
       businessIdea?.description || businessIdea?.valueProposition || '';
 
-    const prompt = `Generate concise, compelling landing page content for "${businessName}".
+    // Enhanced prompt using AIDA formula
+    const prompt = `Generate concise, compelling landing page content for "${businessName}" using the AIDA formula:
 
 Business Description: ${businessDescription}
 Target Audience: ${targetAudience}
 
 Requirements:
-1. Hero section needs a SHORT, punchy title (max 10 words) that captures attention
-2. Each section should be brief but impactful
-3. Include specific benefits and features
-4. Use natural, persuasive language
+1. Generate 3 alternative hero section titles (max 10 words each)
+2. Follow AIDA formula:
+   - Attention: Hero section that grabs attention
+   - Interest: Value proposition that builds interest
+   - Desire: Features and benefits that create desire
+   - Action: Clear call to action that drives conversion
+3. Include style suggestions:
+   - Color scheme
+   - Typography recommendations
+   - Overall design mood
+4. For each section, suggest an appropriate image concept
 
 Format the response as clean JSON with these sections:
-- hero (title, description, cta)
+- hero (title options array, description, cta)
 - value_proposition (title, description, cards[])
 - features (title, description, items[])
 - proof (testimonials)
 - pricing (if applicable)
 - finalCta
 - footer
+- styleGuide (colors, typography, mood)
 
-IMPORTANT: Keep the hero title under 10 words and make it compelling.`;
+Keep all content concise and impactful.`;
 
     console.log("Sending request to DeepSeek");
     const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
@@ -84,11 +92,15 @@ IMPORTANT: Keep the hero title under 10 words and make it compelling.`;
         .replace(/\s*```$/, '');
       
       content = JSON.parse(cleanedResponse);
+      
+      // If we got title options, use the first one as the main title
+      if (Array.isArray(content.hero?.titleOptions)) {
+        content.hero.title = content.hero.titleOptions[0];
+      }
     } catch (error) {
       console.error("Parse error:", error);
       console.log("Raw content:", data.choices[0].message.content);
       
-      // Fallback content with shortened title
       content = {
         hero: {
           title: businessName,
@@ -108,13 +120,17 @@ IMPORTANT: Keep the hero title under 10 words and make it compelling.`;
       content.hero.title = businessName;
     }
 
+    // Maintain backward compatibility while adding new features
     const formattedContent = {
       hero: {
         content: {
           title: content.hero?.title || businessName,
           description: content.hero?.description || businessDescription.split('.')[0],
           cta: content.hero?.cta || "Get Started",
-          image: "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b"
+          image: "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b",
+          // Store additional data without breaking existing functionality
+          titleOptions: content.hero?.titleOptions || [],
+          imageDescription: content.hero?.imageDescription || ""
         },
         layout: "centered"
       },
@@ -128,7 +144,8 @@ IMPORTANT: Keep the hero title under 10 words and make it compelling.`;
               title: "Quality Solution",
               description: "Experience excellence in every aspect"
             }
-          ]
+          ],
+          imageDescription: content.value_proposition?.imageDescription || ""
         },
         layout: "grid"
       },
@@ -136,7 +153,8 @@ IMPORTANT: Keep the hero title under 10 words and make it compelling.`;
         content: {
           title: content.features?.title || "Key Features",
           description: content.features?.description || "Everything you need to succeed",
-          items: Array.isArray(content.features?.items) ? content.features.items : []
+          items: Array.isArray(content.features?.items) ? content.features.items : [],
+          imageDescription: content.features?.imageDescription || ""
         },
         layout: "grid"
       },
@@ -144,7 +162,8 @@ IMPORTANT: Keep the hero title under 10 words and make it compelling.`;
         content: {
           title: content.proof?.title || "What Our Clients Say",
           description: content.proof?.description || "Success stories from businesses like yours",
-          items: Array.isArray(content.proof?.items) ? content.proof.items : []
+          items: Array.isArray(content.proof?.items) ? content.proof.items : [],
+          imageDescription: content.proof?.imageDescription || ""
         },
         layout: "grid"
       },
@@ -152,7 +171,8 @@ IMPORTANT: Keep the hero title under 10 words and make it compelling.`;
         content: {
           title: content.pricing?.title || "Simple, Transparent Pricing",
           description: content.pricing?.description || "Choose the plan that's right for you",
-          items: Array.isArray(content.pricing?.items) ? content.pricing.items : []
+          items: Array.isArray(content.pricing?.items) ? content.pricing.items : [],
+          imageDescription: content.pricing?.imageDescription || ""
         },
         layout: "grid"
       },
@@ -160,7 +180,8 @@ IMPORTANT: Keep the hero title under 10 words and make it compelling.`;
         content: {
           title: content.finalCta?.title || `Ready to Transform Your Business?`,
           description: content.finalCta?.description || `Join thousands of satisfied customers today.`,
-          cta: content.finalCta?.cta || "Get Started Now"
+          cta: content.finalCta?.cta || "Get Started Now",
+          imageDescription: content.finalCta?.imageDescription || ""
         },
         layout: "centered"
       },
@@ -173,6 +194,19 @@ IMPORTANT: Keep the hero title under 10 words and make it compelling.`;
           copyright: `© ${new Date().getFullYear()} All rights reserved.`
         },
         layout: "grid"
+      },
+      // Add style guide without breaking existing functionality
+      styleGuide: content.styleGuide || {
+        colors: {
+          primary: "#3498DB",
+          secondary: "#2ECC71",
+          accent: "#E74C3C"
+        },
+        typography: {
+          headingFont: "Montserrat",
+          bodyFont: "Inter",
+          mood: "Modern and professional"
+        }
       }
     };
 
