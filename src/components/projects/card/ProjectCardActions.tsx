@@ -123,9 +123,10 @@ const ProjectCardActions = ({
         .from('landing_pages')
         .insert({
           project_id: projectId,
-          content: generatedContent,
           user_id: user.id,
-          version: 1
+          content: generatedContent,
+          title: typedProject.title,
+          is_published: false
         });
 
       if (insertError) {
