@@ -621,6 +621,7 @@ export type Database = {
           how_it_works: Json | null
           id: string
           image_placements: Json | null
+          is_published: boolean | null
           layout: Json | null
           layout_style: Json | null
           market_analysis: Json | null
@@ -650,6 +651,7 @@ export type Database = {
           how_it_works?: Json | null
           id?: string
           image_placements?: Json | null
+          is_published?: boolean | null
           layout?: Json | null
           layout_style?: Json | null
           market_analysis?: Json | null
@@ -679,6 +681,7 @@ export type Database = {
           how_it_works?: Json | null
           id?: string
           image_placements?: Json | null
+          is_published?: boolean | null
           layout?: Json | null
           layout_style?: Json | null
           market_analysis?: Json | null
