@@ -1,4 +1,3 @@
-
 import { CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Edit2, Trash2, Layout } from "lucide-react";
@@ -71,12 +70,12 @@ const ProjectCardActions = ({
       const { data: project, error: projectError } = await supabase
         .from('projects')
         .select(`
-          id,
-          title,
-          business_idea,
-          target_audience,
-          audience_analysis
-        `)
+        id,
+        title,
+        business_idea,
+        target_audience,
+        audience_analysis
+      `)
         .eq('id', projectId)
         .single();
 
@@ -94,23 +93,8 @@ const ProjectCardActions = ({
       // Format request payload
       const payload = {
         projectId,
-        businessName: typedProject.title,
-        businessIdea: {
-          description: typedProject.business_idea.description || "",
-          valueProposition: typedProject.business_idea.valueProposition || ""
-        },
-        targetAudience: {
-          name: typedProject.target_audience.name || "",
-          description: typedProject.target_audience.description || "",
-          demographics: typedProject.target_audience.demographics || "",
-          painPoints: typedProject.target_audience.painPoints || [],
-          icp: typedProject.target_audience.icp || "",
-          coreMessage: typedProject.target_audience.coreMessage || "",
-          positioning: typedProject.target_audience.positioning || "",
-          marketingAngle: typedProject.target_audience.marketingAngle || "",
-          messagingApproach: typedProject.target_audience.messagingApproach || "",
-          marketingChannels: typedProject.target_audience.marketingChannels || []
-        },
+        businessIdea: typedProject.business_idea,
+        targetAudience: typedProject.target_audience,
         userId: user.id,
       };
 
@@ -119,7 +103,7 @@ const ProjectCardActions = ({
       // Generate landing page content
       const { data: generatedContent, error } = await supabase.functions
         .invoke('generate-landing-page', {
-          body: JSON.stringify(payload)
+          body: payload
         });
 
       console.log("Edge function response:", generatedContent);
@@ -140,7 +124,7 @@ const ProjectCardActions = ({
         description: "Your landing page has been created.",
       });
 
-      // Invalidate queries with the correct type format
+      // Invalidate queries
       await queryClient.invalidateQueries({
         queryKey: ['landing-page', projectId]
       });

@@ -1,3 +1,4 @@
+
 project_id = "xorlfvflpihtafugltni"
 
 [api]
@@ -21,3 +22,7 @@ enabled = true
 
 [auth]
 enabled = true
+
+[functions]
+[functions.generate-landing-page]
+verify_jwt = false
