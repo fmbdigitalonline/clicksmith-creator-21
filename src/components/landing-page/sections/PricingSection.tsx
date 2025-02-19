@@ -23,25 +23,25 @@ const PricingSection = ({ content, className }: PricingSectionProps) => {
   const items = content?.items || [];
 
   return (
-    <section className={cn("py-16 bg-background", className)}>
+    <section className={cn("py-24 bg-gray-50", className)}>
       <div className="container mx-auto px-4">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold mb-4">{title}</h2>
-          <p className="text-muted-foreground">{description}</p>
+        <div className="text-center mb-16">
+          <h2 className="text-4xl font-bold mb-6">{title}</h2>
+          <p className="text-xl text-gray-600">{description}</p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-5xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
           {items.map((plan, index) => (
             <div
               key={index}
-              className="border rounded-lg p-8 bg-card shadow-sm hover:shadow-md transition-shadow"
+              className="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-shadow duration-300 border border-gray-100"
             >
-              <h3 className="text-xl font-bold mb-4">{plan.name}</h3>
-              <div className="text-3xl font-bold mb-6">{plan.price}</div>
+              <h3 className="text-2xl font-bold mb-4">{plan.name}</h3>
+              <div className="text-4xl font-bold mb-8">{plan.price}</div>
               <ul className="space-y-4 mb-8">
                 {plan.features.map((feature, featureIndex) => (
-                  <li key={featureIndex} className="flex items-center">
+                  <li key={featureIndex} className="flex items-center text-gray-600">
                     <svg
-                      className="w-5 h-5 text-green-500 mr-2"
+                      className="w-5 h-5 text-primary mr-2 flex-shrink-0"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -57,7 +57,9 @@ const PricingSection = ({ content, className }: PricingSectionProps) => {
                   </li>
                 ))}
               </ul>
-              <Button className="w-full">Choose {plan.name}</Button>
+              <Button className="w-full bg-primary hover:bg-primary/90">
+                Choose {plan.name}
+              </Button>
             </div>
           ))}
         </div>
@@ -67,4 +69,3 @@ const PricingSection = ({ content, className }: PricingSectionProps) => {
 };
 
 export default PricingSection;
-

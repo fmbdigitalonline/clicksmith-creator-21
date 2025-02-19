@@ -23,12 +23,18 @@ const CtaSection = ({ content = {}, className }: CtaSectionProps) => {
   const buttonText = content?.buttonText || defaultContent.buttonText;
 
   return (
-    <section className={cn("py-16 bg-background border-t border-gray-100", className)}>
-      <div className="container mx-auto px-4 text-center">
-        <div className="max-w-2xl mx-auto">
-          <h2 className="text-3xl font-bold mb-4">{title}</h2>
-          <p className="mb-8 text-muted-foreground">{description}</p>
-          <Button size="lg">
+    <section className={cn(
+      "py-24 bg-gradient-to-r from-primary/10 to-accent/10",
+      className
+    )}>
+      <div className="container mx-auto px-4">
+        <div className="max-w-3xl mx-auto text-center">
+          <h2 className="text-4xl font-bold mb-6">{title}</h2>
+          <p className="text-xl text-gray-600 mb-12">{description}</p>
+          <Button 
+            size="lg"
+            className="bg-primary hover:bg-primary/90 text-white px-12 py-6 text-lg"
+          >
             {buttonText}
           </Button>
         </div>

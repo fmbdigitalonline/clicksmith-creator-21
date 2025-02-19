@@ -1,142 +1,72 @@
 
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Link } from "react-router-dom";
-import { BookOpen, Star, Users, UsersRound, DollarSign, Share2, MessageSquare } from "lucide-react";
-
-interface Contact {
-  email?: string;
-  phone?: string;
-  address?: string;
-}
 
 interface FooterSectionProps {
   content?: {
-    contact?: string | Contact;
-    newsletter?: string;
+    links?: {
+      company?: string[];
+      resources?: string[];
+    };
     copyright?: string;
   };
   className?: string;
 }
 
-const FooterSection = ({ content, className }: FooterSectionProps) => {
-  if (!content) return null;
-
-  const renderContact = (contact: string | Contact) => {
-    if (typeof contact === 'string') {
-      return <p className="text-muted-foreground">{contact}</p>;
-    }
-
-    return (
-      <div className="space-y-2">
-        {contact.email && (
-          <p className="text-muted-foreground">Email: {contact.email}</p>
-        )}
-        {contact.phone && (
-          <p className="text-muted-foreground">Phone: {contact.phone}</p>
-        )}
-        {contact.address && (
-          <p className="text-muted-foreground">Address: {contact.address}</p>
-        )}
-      </div>
-    );
+const FooterSection = ({ content = {}, className }: FooterSectionProps) => {
+  const links = content?.links || {
+    company: ["About", "Contact", "Careers"],
+    resources: ["Blog", "Help Center", "Support"]
   };
+  const copyright = content?.copyright || `© ${new Date().getFullYear()} All rights reserved.`;
 
   return (
-    <footer className={cn("py-16 bg-background border-t border-gray-100", className)}>
+    <footer className={cn("py-16 bg-gray-900 text-white", className)}>
       <div className="container mx-auto px-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-12 mb-12">
-          {content.contact && (
-            <div>
-              <h3 className="text-lg font-semibold mb-6">Contact Us</h3>
-              {renderContact(content.contact)}
-            </div>
-          )}
-          
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
           <div>
-            <h3 className="text-lg font-semibold mb-6">Resources</h3>
-            <div className="flex flex-col gap-4">
-              <Button variant="link" asChild className="p-0 h-auto text-muted-foreground hover:text-primary justify-start">
-                <Link to="/faq" className="flex items-center gap-2">
-                  <BookOpen className="h-4 w-4" />
-                  Getting Started
-                </Link>
-              </Button>
-              <Button variant="link" asChild className="p-0 h-auto text-muted-foreground hover:text-primary justify-start">
-                <Link to="/faq" className="flex items-center gap-2">
-                  <BookOpen className="h-4 w-4" />
-                  FAQs and Support
-                </Link>
-              </Button>
-              <Button variant="link" asChild className="p-0 h-auto text-muted-foreground hover:text-primary justify-start">
-                <Link to="/contact" className="flex items-center gap-2">
-                  <MessageSquare className="h-4 w-4" />
-                  Contact Support
-                </Link>
-              </Button>
-            </div>
+            <h3 className="text-lg font-semibold mb-4">Company</h3>
+            <ul className="space-y-2">
+              {links.company?.map((link, index) => (
+                <li key={index}>
+                  <a href="#" className="text-gray-400 hover:text-white transition-colors">
+                    {link}
+                  </a>
+                </li>
+              ))}
+            </ul>
           </div>
-
           <div>
-            <h3 className="text-lg font-semibold mb-6">Help Us Improve</h3>
-            <div className="flex flex-col gap-4">
-              <Button variant="link" asChild className="p-0 h-auto text-muted-foreground hover:text-primary justify-start">
-                <Link to="/contact" className="flex items-center gap-2">
-                  <MessageSquare className="h-4 w-4" />
-                  Share Your Feedback
-                </Link>
-              </Button>
-              <Button variant="link" asChild className="p-0 h-auto text-muted-foreground hover:text-primary justify-start">
-                <a href="https://trustpilot.com" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
-                  <Star className="h-4 w-4" />
-                  Rate Us on Trustpilot
-                </a>
-              </Button>
-            </div>
+            <h3 className="text-lg font-semibold mb-4">Resources</h3>
+            <ul className="space-y-2">
+              {links.resources?.map((link, index) => (
+                <li key={index}>
+                  <a href="#" className="text-gray-400 hover:text-white transition-colors">
+                    {link}
+                  </a>
+                </li>
+              ))}
+            </ul>
           </div>
-
           <div>
-            <h3 className="text-lg font-semibold mb-6">Share & Earn</h3>
-            <div className="flex flex-col gap-4">
-              <Button variant="link" asChild className="p-0 h-auto text-muted-foreground hover:text-primary justify-start">
-                <Link to="/referral" className="flex items-center gap-2">
-                  <UsersRound className="h-4 w-4" />
-                  Refer a Friend
-                </Link>
-              </Button>
-              <Button variant="link" asChild className="p-0 h-auto text-muted-foreground hover:text-primary justify-start">
-                <Link to="/affiliate" className="flex items-center gap-2">
-                  <DollarSign className="h-4 w-4" />
-                  Affiliate Program
-                </Link>
-              </Button>
-              <Button variant="link" asChild className="p-0 h-auto text-muted-foreground hover:text-primary justify-start">
-                <Link to="/share" className="flex items-center gap-2">
-                  <Share2 className="h-4 w-4" />
-                  Share on Social Media
-                </Link>
-              </Button>
-            </div>
+            <h3 className="text-lg font-semibold mb-4">Newsletter</h3>
+            <p className="text-gray-400 mb-4">
+              Subscribe to our newsletter for updates and exclusive content.
+            </p>
+            <form className="flex gap-2">
+              <input
+                type="email"
+                placeholder="Enter your email"
+                className="bg-gray-800 text-white px-4 py-2 rounded-lg flex-1"
+              />
+              <button className="bg-primary hover:bg-primary/90 text-white px-6 py-2 rounded-lg">
+                Subscribe
+              </button>
+            </form>
           </div>
-          
-          {content.newsletter && (
-            <div className="sm:col-span-2 lg:col-span-4">
-              <h3 className="text-lg font-semibold mb-6">Stay Updated</h3>
-              <p className="text-muted-foreground mb-4">{content.newsletter}</p>
-              <div className="flex gap-2 max-w-md">
-                <Input type="email" placeholder="Enter your email" />
-                <Button>Subscribe</Button>
-              </div>
-            </div>
-          )}
         </div>
-
-        {content.copyright && (
-          <div className="text-center text-muted-foreground text-sm border-t border-gray-100 pt-8">
-            {content.copyright}
-          </div>
-        )}
+        <div className="border-t border-gray-800 pt-8 text-center text-gray-400">
+          {copyright}
+        </div>
       </div>
     </footer>
   );

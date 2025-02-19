@@ -20,24 +20,27 @@ const FeaturesSection = ({ content, className }: FeaturesSectionProps) => {
   const description = content?.description;
 
   return (
-    <section className={cn("py-16 bg-background border-t border-b border-gray-100", className)}>
+    <section className={cn("py-24 bg-gray-50", className)}>
       <div className="container mx-auto px-4">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold mb-4">{title}</h2>
+        <div className="text-center mb-16">
+          <h2 className="text-4xl font-bold mb-6">{title}</h2>
           {description && (
-            <p className="text-muted-foreground max-w-2xl mx-auto">
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
               {description}
             </p>
           )}
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {items.map((feature, index) => (
-            <div key={index} className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+            <div 
+              key={index} 
+              className="bg-white p-8 rounded-xl shadow-sm hover:shadow-lg transition-shadow duration-300"
+            >
               {feature.icon && (
-                <div className="text-2xl mb-4">{feature.icon}</div>
+                <div className="text-3xl mb-6 text-primary">{feature.icon}</div>
               )}
-              <h3 className="text-xl font-semibold mb-3">{feature.title}</h3>
-              <p className="text-muted-foreground">{feature.description}</p>
+              <h3 className="text-2xl font-semibold mb-4">{feature.title}</h3>
+              <p className="text-gray-600 leading-relaxed">{feature.description}</p>
             </div>
           ))}
         </div>
