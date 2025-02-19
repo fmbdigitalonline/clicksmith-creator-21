@@ -493,6 +493,92 @@ export type Database = {
           },
         ]
       }
+      landing_page_cache: {
+        Row: {
+          business_type: string | null
+          content: Json | null
+          created_at: string | null
+          id: string
+          last_used_at: string | null
+          metadata: Json | null
+          success_rate: number | null
+          target_audience: Json | null
+          used_count: number | null
+          value_proposition: string | null
+        }
+        Insert: {
+          business_type?: string | null
+          content?: Json | null
+          created_at?: string | null
+          id?: string
+          last_used_at?: string | null
+          metadata?: Json | null
+          success_rate?: number | null
+          target_audience?: Json | null
+          used_count?: number | null
+          value_proposition?: string | null
+        }
+        Update: {
+          business_type?: string | null
+          content?: Json | null
+          created_at?: string | null
+          id?: string
+          last_used_at?: string | null
+          metadata?: Json | null
+          success_rate?: number | null
+          target_audience?: Json | null
+          used_count?: number | null
+          value_proposition?: string | null
+        }
+        Relationships: []
+      }
+      landing_page_generation_logs: {
+        Row: {
+          api_status_code: number | null
+          cache_hit: boolean | null
+          created_at: string | null
+          error_message: string | null
+          generation_time: number | null
+          id: string
+          project_id: string | null
+          request_payload: Json | null
+          response_payload: Json | null
+          success: boolean | null
+        }
+        Insert: {
+          api_status_code?: number | null
+          cache_hit?: boolean | null
+          created_at?: string | null
+          error_message?: string | null
+          generation_time?: number | null
+          id?: string
+          project_id?: string | null
+          request_payload?: Json | null
+          response_payload?: Json | null
+          success?: boolean | null
+        }
+        Update: {
+          api_status_code?: number | null
+          cache_hit?: boolean | null
+          created_at?: string | null
+          error_message?: string | null
+          generation_time?: number | null
+          id?: string
+          project_id?: string | null
+          request_payload?: Json | null
+          response_payload?: Json | null
+          success?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "landing_page_generation_logs_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       landing_page_section_analytics: {
         Row: {
           click_through_rate: number | null

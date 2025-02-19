@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -11,12 +11,16 @@ import { sectionComponents } from "./constants/sectionConfig";
 import type { LandingPageContentProps, SectionContentMap } from "./types/landingPageTypes";
 import LoadingStateLandingPage from "./LoadingStateLandingPage";
 import { cn } from "@/lib/utils";
+import { Loader2 } from "lucide-react";
 
 const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) => {
   const [activeView, setActiveView] = useState<"edit" | "preview">("preview");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [generationProgress, setGenerationProgress] = useState<{
+    status: string;
+    progress: number;
+  }>({ status: "", progress: 0 });
   
-  // Initialize currentContent directly from landingPage.content if it exists
   const [currentContent, setCurrentContent] = useState<SectionContentMap>(() => {
     if (landingPage?.content) {
       console.log("Using landing page content:", landingPage.content);
@@ -40,19 +44,46 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { data: template, isLoading: isTemplateLoading } = useLandingPageTemplate();
-  const currentLayout = currentLayoutStyle || (template?.structure?.sections || {});
-  const sectionOrder = [
-    "hero",
-    "value_proposition",
-    "features",
-    "proof",
-    "pricing",
-    "finalCta",
-    "footer"
-  ];
+
+  // Monitor generation logs
+  useEffect(() => {
+    if (isGenerating && project?.id) {
+      const interval = setInterval(async () => {
+        const { data: logs } = await supabase
+          .from('landing_page_generation_logs')
+          .select('*')
+          .eq('project_id', project.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+
+        if (logs) {
+          if (logs.success) {
+            setGenerationProgress({ status: "Success!", progress: 100 });
+            clearInterval(interval);
+          } else if (logs.error_message) {
+            setGenerationProgress({ 
+              status: `Error: ${logs.error_message}`, 
+              progress: 0 
+            });
+            clearInterval(interval);
+          } else {
+            setGenerationProgress({ 
+              status: "Generating content...", 
+              progress: 50 
+            });
+          }
+        }
+      }, 1000);
+
+      return () => clearInterval(interval);
+    }
+  }, [isGenerating, project?.id]);
 
   const generateLandingPageContent = async () => {
     setIsGenerating(true);
+    setGenerationProgress({ status: "Starting generation...", progress: 0 });
+    
     try {
       const { data, error } = await supabase.functions.invoke('generate-landing-page', {
         body: {
@@ -63,9 +94,7 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
         }
       });
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
       if (data) {
         setCurrentContent({
@@ -77,6 +106,7 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
           finalCta: { content: data.finalCta, layout: "centered" },
           footer: { content: data.footer, layout: "grid" }
         });
+
         toast({
           title: "Content Generated",
           description: "Your landing page content has been updated."
@@ -91,8 +121,20 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
       });
     } finally {
       setIsGenerating(false);
+      setGenerationProgress({ status: "", progress: 0 });
     }
   };
+
+  const currentLayout = currentLayoutStyle || (template?.structure?.sections || {});
+  const sectionOrder = [
+    "hero",
+    "value_proposition",
+    "features",
+    "proof",
+    "pricing",
+    "finalCta",
+    "footer"
+  ];
 
   const renderSection = (sectionKey: string) => {
     const sectionData = currentContent[sectionKey];
@@ -145,9 +187,24 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
               onClick={generateLandingPageContent}
               disabled={isGenerating}
             >
-              {isGenerating ? "Generating..." : "Generate Content"}
+              {isGenerating ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {generationProgress.status}
+                </>
+              ) : (
+                "Generate Content"
+              )}
             </Button>
           </div>
+          {generationProgress.progress > 0 && generationProgress.progress < 100 && (
+            <div className="w-full bg-gray-200 rounded-full h-2.5 mb-4">
+              <div 
+                className="bg-blue-600 h-2.5 rounded-full transition-all duration-500"
+                style={{ width: `${generationProgress.progress}%` }}
+              ></div>
+            </div>
+          )}
         </div>
 
         <TabsContent value="preview" className="mt-0">

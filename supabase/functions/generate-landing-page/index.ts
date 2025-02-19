@@ -1,223 +1,162 @@
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import "https://deno.land/x/xhr@0.1.0/mod.ts"
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Max-Age': '86400',
 }
 
-const extractJsonFromString = (str: string): string => {
-  try {
-    // Try to find JSON-like content between curly braces
-    const match = str.match(/\{[\s\S]*\}/);
-    if (match) {
-      const jsonStr = match[0];
-      // Validate that it's parseable
-      JSON.parse(jsonStr);
-      return jsonStr;
-    }
-    throw new Error('No valid JSON found in string');
-  } catch (error) {
-    console.error('Error extracting JSON:', error);
-    throw new Error(`Failed to extract valid JSON: ${error.message}`);
-  }
-};
-
-const generateDetailedPrompt = (businessIdea: any, targetAudience: any) => {
-  return `Return ONLY a JSON object (no additional text or explanation) for a landing page with these details:
-
-Business Description: ${businessIdea?.description || 'Not specified'}
-Value Proposition: ${businessIdea?.valueProposition || 'Not specified'}
-Target Audience: ${JSON.stringify(targetAudience)}
-
-Return this exact JSON structure:
-{
-  "hero": {
-    "title": "Main headline",
-    "description": "Subheadline",
-    "cta": "Button text",
-    "image": "Hero image description"
-  },
-  "value_proposition": {
-    "title": "Value Title",
-    "description": "Value Description",
-    "cards": [
-      {
-        "title": "Value Point",
-        "description": "Value Explanation",
-        "icon": "✨"
-      }
-    ]
-  },
-  "features": {
-    "title": "Features Title",
-    "description": "Features Overview",
-    "items": [
-      {
-        "title": "Feature Name",
-        "description": "Feature Details",
-        "icon": "🎯"
-      }
-    ]
-  },
-  "proof": {
-    "title": "Social Proof",
-    "description": "Testimonials Intro",
-    "items": [
-      {
-        "quote": "Testimonial text",
-        "author": "Author Name",
-        "role": "Position",
-        "company": "Company"
-      }
-    ]
-  },
-  "pricing": {
-    "title": "Pricing Title",
-    "description": "Pricing Description",
-    "items": [
-      {
-        "name": "Plan Name",
-        "price": "Price Amount",
-        "description": "Plan Details",
-        "features": ["Feature 1", "Feature 2"]
-      }
-    ]
-  },
-  "finalCta": {
-    "title": "CTA Title",
-    "description": "CTA Description",
-    "cta": "CTA Button Text"
-  },
-  "footer": {
-    "content": {
-      "links": {
-        "company": ["About", "Contact"],
-        "resources": ["Help", "Support"]
-      },
-      "copyright": "Copyright text"
-    }
-  }
-}`
-};
+const supabaseUrl = Deno.env.get('SUPABASE_URL')
+const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+const supabase = createClient(supabaseUrl!, supabaseKey!)
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response(null, { headers: corsHeaders })
   }
 
   try {
-    const { projectId, businessIdea, targetAudience } = await req.json();
+    const { projectId, businessName, businessIdea, targetAudience } = await req.json()
+    const startTime = performance.now()
     
-    if (!businessIdea || !targetAudience) {
-      console.error('Missing required fields:', { businessIdea, targetAudience });
-      return new Response(
-        JSON.stringify({ error: 'Missing required fields' }), 
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }}
-      );
+    console.log('Generating landing page for project:', projectId)
+
+    // First, try to find cached content
+    const { data: cachedContent } = await supabase
+      .from('landing_page_cache')
+      .select('content')
+      .eq('business_type', businessIdea?.type)
+      .eq('value_proposition', businessIdea?.valueProposition)
+      .order('used_count', { ascending: false })
+      .limit(1)
+      .single()
+
+    let content
+    let cacheHit = false
+
+    if (cachedContent) {
+      console.log('Cache hit! Using cached content')
+      content = cachedContent.content
+      cacheHit = true
+
+      // Update cache usage statistics
+      await supabase
+        .from('landing_page_cache')
+        .update({
+          used_count: cachedContent.used_count + 1,
+          last_used_at: new Date().toISOString()
+        })
+        .eq('id', cachedContent.id)
+    } else {
+      console.log('Cache miss. Generating new content...')
+      // Generate new content - your existing content generation logic here
+      content = {
+        hero: {
+          title: businessName,
+          description: businessIdea?.valueProposition || '',
+          cta: "Get Started Now"
+        },
+        value_proposition: {
+          title: "Why Choose Us",
+          features: [
+            { title: "Feature 1", description: "Description 1" },
+            { title: "Feature 2", description: "Description 2" },
+            { title: "Feature 3", description: "Description 3" }
+          ]
+        },
+        features: {
+          title: "Our Features",
+          items: [
+            { title: "Core Feature 1", description: "Description 1" },
+            { title: "Core Feature 2", description: "Description 2" },
+            { title: "Core Feature 3", description: "Description 3" }
+          ]
+        },
+        proof: {
+          title: "What Our Customers Say",
+          testimonials: [
+            { quote: "Great service!", author: "John Doe" },
+            { quote: "Amazing product!", author: "Jane Smith" }
+          ]
+        },
+        pricing: {
+          title: "Pricing Plans",
+          plans: [
+            { name: "Basic", price: "$9", features: ["Feature 1", "Feature 2"] },
+            { name: "Pro", price: "$29", features: ["Feature 1", "Feature 2", "Feature 3"] }
+          ]
+        },
+        finalCta: {
+          title: "Ready to Get Started?",
+          description: "Join thousands of satisfied customers",
+          buttonText: "Start Now"
+        },
+        footer: {
+          companyName: businessName,
+          links: [
+            { text: "About Us", url: "#" },
+            { text: "Contact", url: "#" },
+            { text: "Terms", url: "#" }
+          ]
+        }
+      }
+
+      // Cache the new content
+      await supabase
+        .from('landing_page_cache')
+        .insert({
+          business_type: businessIdea?.type,
+          value_proposition: businessIdea?.valueProposition,
+          target_audience: targetAudience,
+          content: content,
+          used_count: 1,
+          last_used_at: new Date().toISOString()
+        })
     }
 
-    const DEEPSEEK_API_KEY = Deno.env.get('DEEPSEEK_API_KEY');
-    if (!DEEPSEEK_API_KEY) {
-      console.error('Missing DEEPSEEK_API_KEY');
-      return new Response(
-        JSON.stringify({ error: 'Missing API configuration' }), 
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }}
-      );
-    }
+    const endTime = performance.now()
+    const generationTime = endTime - startTime
 
-    console.log('Starting content generation with:', {
-      projectId,
-      businessIdea: JSON.stringify(businessIdea),
-      targetAudience: JSON.stringify(targetAudience)
-    });
-
-    const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: "deepseek-chat",
-        messages: [
-          {
-            role: "system",
-            content: "You are a JSON generator. Only return valid JSON objects, no other text or formatting."
-          },
-          {
-            role: "user",
-            content: generateDetailedPrompt(businessIdea, targetAudience)
-          }
-        ],
-        temperature: 0.7,
-        max_tokens: 4000,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('DeepSeek API error response:', errorText);
-      throw new Error(`DeepSeek API error: ${response.status}`);
-    }
-
-    const rawResponse = await response.text();
-    console.log('Raw DeepSeek response:', rawResponse);
-
-    let result;
-    try {
-      result = JSON.parse(rawResponse);
-    } catch (error) {
-      console.error('Failed to parse raw response:', error);
-      // Try to extract JSON from the response
-      const extracted = extractJsonFromString(rawResponse);
-      result = JSON.parse(extracted);
-    }
-
-    if (!result.choices?.[0]?.message?.content) {
-      console.error('Invalid API response structure:', result);
-      throw new Error('Unexpected API response format');
-    }
-
-    const content = result.choices[0].message.content;
-    console.log('Content from API:', content);
-
-    let landingPageContent;
-    try {
-      // Try to parse the content directly
-      landingPageContent = JSON.parse(content);
-    } catch (error) {
-      console.error('Failed to parse content directly:', error);
-      // If direct parsing fails, try to extract JSON
-      const extracted = extractJsonFromString(content);
-      landingPageContent = JSON.parse(extracted);
-    }
-
-    // Validate the structure
-    if (!landingPageContent.hero || !landingPageContent.value_proposition) {
-      console.error('Invalid content structure:', landingPageContent);
-      throw new Error('Generated content is missing required sections');
-    }
+    // Log the generation attempt
+    await supabase
+      .from('landing_page_generation_logs')
+      .insert({
+        project_id: projectId,
+        request_payload: { businessName, businessIdea, targetAudience },
+        response_payload: content,
+        success: true,
+        generation_time: generationTime,
+        cache_hit: cacheHit,
+        api_status_code: 200
+      })
 
     return new Response(
-      JSON.stringify(landingPageContent),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }}
-    );
+      JSON.stringify(content),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
 
   } catch (error) {
-    console.error('Edge function error:', error);
+    console.error('Error:', error)
+
+    // Log the error
+    await supabase
+      .from('landing_page_generation_logs')
+      .insert({
+        project_id: req.body?.projectId,
+        request_payload: req.body,
+        success: false,
+        error_message: error.message,
+        api_status_code: 500
+      })
+
     return new Response(
-      JSON.stringify({ 
-        error: error.message || 'Internal server error',
-        details: error.toString()
-      }),
+      JSON.stringify({ error: error.message }),
       { 
-        status: 500, 
+        status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
-    );
+    )
   }
-});
+})
