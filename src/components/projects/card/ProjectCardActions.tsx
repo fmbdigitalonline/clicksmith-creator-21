@@ -119,17 +119,18 @@ const ProjectCardActions = ({
       }
 
       // Save the generated content to the landing_pages table
+      // Only include the essential fields that we know exist in the table
       const { error: insertError } = await supabase
         .from('landing_pages')
         .insert({
           project_id: projectId,
           user_id: user.id,
           content: generatedContent,
-          title: typedProject.title,
-          is_published: false
+          title: typedProject.title
         });
 
       if (insertError) {
+        console.error("Insert error:", insertError);
         throw insertError;
       }
 
