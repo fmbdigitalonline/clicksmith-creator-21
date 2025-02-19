@@ -8,23 +8,18 @@ const corsHeaders = {
 }
 
 const generateDetailedPrompt = (businessIdea: any, targetAudience: any) => {
-  // Extract business name from value proposition or description
-  const businessName = businessIdea?.valueProposition?.split(':')[1]?.trim() || 
-                      businessIdea?.description?.split(' ').slice(0, 3).join(' ') ||
-                      'Your Business';
-
   return `Please generate landing page content in JSON format with the following structure:
 
 EXAMPLE JSON OUTPUT:
 {
   "hero": {
-    "title": "Main headline for ${businessName}",
+    "title": "Turn Your Business Idea Into Reality",
     "description": "Compelling subtitle about the value proposition",
     "cta": "Action-oriented button text",
     "image": "Description of hero image"
   },
   "value_proposition": {
-    "title": "Why Choose ${businessName}",
+    "title": "Transform Your Vision",
     "description": "Overview of benefits",
     "cards": [
       {
@@ -37,7 +32,6 @@ EXAMPLE JSON OUTPUT:
 }
 
 Business Details:
-- Name: ${businessName}
 - Concept: ${businessIdea?.description || 'N/A'}
 - Target Audience: ${targetAudience?.name || 'N/A'}
 - Core Message: ${targetAudience?.coreMessage || 'N/A'}
@@ -107,8 +101,6 @@ serve(async (req) => {
       const content = data.choices[0].message.content;
       console.log('Content from API:', content);
 
-      // Since we're using response_format: json_object, the content should already be valid JSON
-      // But we'll still wrap it in a try-catch just to be safe
       try {
         const parsedContent = typeof content === 'string' ? JSON.parse(content) : content;
         console.log('Successfully parsed content');
@@ -128,21 +120,16 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in edge function:', error);
     
-    // Get business name from business idea for fallback content
-    const businessName = requestData?.businessIdea?.valueProposition?.split(':')[1]?.trim() || 
-                        requestData?.businessIdea?.description?.split(' ').slice(0, 3).join(' ') ||
-                        'Your Business';
-    
     // Return default content structure on error
     const defaultContent = {
       hero: {
-        title: `Transform Your Business with ${businessName}`,
+        title: "Transform Your Vision Into Reality",
         description: "Experience the next level of business growth with our innovative solutions",
         cta: "Get Started Now",
         image: "Professional business growth illustration"
       },
       value_proposition: {
-        title: "Why Choose Us",
+        title: "Why Choose Our Solution",
         description: "We deliver exceptional results through proven strategies",
         cards: [
           {
