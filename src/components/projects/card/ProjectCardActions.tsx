@@ -1,3 +1,4 @@
+
 import { CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Edit2, Trash2, Layout } from "lucide-react";
@@ -70,12 +71,12 @@ const ProjectCardActions = ({
       const { data: project, error: projectError } = await supabase
         .from('projects')
         .select(`
-        id,
-        title,
-        business_idea,
-        target_audience,
-        audience_analysis
-      `)
+          id,
+          title,
+          business_idea,
+          target_audience,
+          audience_analysis
+        `)
         .eq('id', projectId)
         .single();
 
@@ -115,6 +116,20 @@ const ProjectCardActions = ({
 
       if (!generatedContent) {
         throw new Error('No content generated from edge function');
+      }
+
+      // Save the generated content to the landing_pages table
+      const { error: insertError } = await supabase
+        .from('landing_pages')
+        .insert({
+          project_id: projectId,
+          content: generatedContent,
+          user_id: user.id,
+          version: 1
+        });
+
+      if (insertError) {
+        throw insertError;
       }
 
       // Dismiss loading toast and show success
