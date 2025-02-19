@@ -7,74 +7,115 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-const generatePrompt = (businessName: string, businessIdea: any, targetAudience: any) => {
-  return `Generate a complete landing page content structure following the format below. Create compelling copy for a business named "${businessName}".
+const generateDetailedPrompt = (businessName: string, businessIdea: any, targetAudience: any) => {
+  return `Act as an expert copywriter and landing page content strategist. Create highly detailed, persuasive content for a landing page. The content should be comprehensive and conversion-focused.
 
-Business Concept: ${businessIdea?.description || "A new innovative business"}
-Target Audience: ${targetAudience?.demographics || "General audience"}
-Core Message: ${targetAudience?.coreMessage || "Delivering value to customers"}
+BUSINESS CONTEXT:
+Business Name: "${businessName}"
+Business Concept: ${businessIdea?.description}
+Value Proposition: ${businessIdea?.valueProposition}
+Target Audience Name: ${targetAudience?.name}
+Target Demographics: ${targetAudience?.demographics}
+Core Message: ${targetAudience?.coreMessage}
+Pain Points: ${targetAudience?.painPoints?.join(', ')}
+Marketing Angle: ${targetAudience?.marketingAngle}
+Messaging Approach: ${targetAudience?.messagingApproach}
 
-Generate the following sections:
+DETAILED REQUIREMENTS:
+Generate a complete landing page content structure in JSON format with the following sections. Use persuasive, emotionally engaging language that speaks directly to the audience's pain points and desires.
 
-1. Hero Section:
-- Create a powerful headline that captures attention
-- Write a compelling subtitle that explains the value proposition
-- Include a clear call-to-action button text
-- Suggest an image concept that represents the business visually
+{
+  "hero": {
+    "title": "Write a powerful, attention-grabbing headline that emphasizes the main value proposition",
+    "description": "Create a compelling 2-3 sentence subtitle that elaborates on the value proposition and addresses key pain points",
+    "cta": "Write an action-oriented button text",
+    "image": "Describe an ideal hero image that represents success and resonates with ${targetAudience?.name}"
+  },
+  "value_proposition": {
+    "title": "Create a benefit-focused section title",
+    "description": "Write a persuasive paragraph about the unique benefits",
+    "cards": [
+      {
+        "title": "Write benefit-focused card titles",
+        "description": "Create detailed 2-3 sentence descriptions for each value proposition",
+        "icon": "Suggest an appropriate emoji icon"
+      }
+      // Generate 3 cards total
+    ]
+  },
+  "features": {
+    "title": "Write a features section title that emphasizes solutions",
+    "description": "Create a paragraph describing how the features solve specific problems",
+    "items": [
+      {
+        "title": "Write feature titles that emphasize benefits",
+        "description": "Create detailed 2-3 sentence descriptions for each feature, focusing on problem-solution",
+        "icon": "Suggest an appropriate emoji icon"
+      }
+      // Generate 4-5 feature items
+    ]
+  },
+  "proof": {
+    "title": "Write a social proof section title",
+    "description": "Create a paragraph about customer success stories",
+    "items": [
+      {
+        "quote": "Write detailed, specific testimonial quotes that address pain points and solutions",
+        "author": "Create realistic customer names",
+        "role": "Add relevant job titles",
+        "company": "Add company names"
+      }
+      // Generate 3-4 testimonials
+    ]
+  },
+  "pricing": {
+    "title": "Write a pricing section title that emphasizes value",
+    "description": "Create a paragraph about pricing benefits",
+    "items": [
+      {
+        "name": "Create tier names",
+        "price": "Set appropriate price points",
+        "features": ["List 6-8 detailed features per tier"]
+      }
+      // Generate 3 pricing tiers
+    ]
+  },
+  "finalCta": {
+    "title": "Write an urgent, compelling call to action headline",
+    "description": "Create a persuasive paragraph that overcomes final objections",
+    "buttonText": "Write action-oriented button text"
+  },
+  "footer": {
+    "links": {
+      "company": ["Add 4-5 company-related links"],
+      "resources": ["Add 4-5 resource-related links"]
+    },
+    "copyright": "Add copyright text with business name"
+  }
+}
 
-2. Value Proposition Section:
-- Create a section title
-- Write a brief section description
-- Generate 3 value proposition cards, each with:
-  * A benefit title
-  * A detailed description
-  * An appropriate icon suggestion
+Make content detailed, specific, and highly relevant to target audience profile: ${targetAudience?.description}. Use their awareness level: ${targetAudience?.awarenessLevel} and sophistication level: ${targetAudience?.sophisticationLevel} to adjust messaging tone and complexity.
 
-3. Features Section:
-- Create a section title
-- Write a section description
-- Generate 3 key features, each with:
-  * Feature name
-  * Detailed explanation
-  * Visual representation suggestion
+Address these key pain points in the copy:
+${targetAudience?.painPoints?.map((point: string) => `- ${point}`).join('\n')}
 
-4. Proof Section (Testimonials):
-- Create 2-3 compelling testimonials with:
-  * The testimonial quote
-  * Customer name
-  * Role/Position
-  * Company name
+And overcome these objections:
+${targetAudience?.potentialObjections?.map((obj: string) => `- ${obj}`).join('\n')}
 
-5. Pricing Section:
-- Create 2-3 pricing tiers, each with:
-  * Plan name
-  * Price point
-  * 4-5 key features/benefits
-  * Recommended tier indicator
-
-6. Final Call-to-Action:
-- Create a compelling headline
-- Write a persuasive description
-- Suggest an action-oriented button text
-
-7. Footer:
-- List 3-4 company links
-- List 3-4 resource links
-- Include a copyright notice
-
-Use modern, engaging language that resonates with ${targetAudience?.demographics || "the target audience"}. Focus on addressing their pain points and desires.`
+Return the response in valid JSON format exactly matching the structure shown above.`
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
 
   try {
     const { projectId, businessName, businessIdea, targetAudience } = await req.json()
+    console.log('Received request payload:', { projectId, businessName, businessIdea, targetAudience })
     
-    const prompt = generatePrompt(businessName, businessIdea, targetAudience)
+    const prompt = generateDetailedPrompt(businessName, businessIdea, targetAudience)
+    console.log('Generated prompt:', prompt)
     
     const response = await fetch("https://api.deepseek.com/v1/chat/completions", {
       method: "POST",
@@ -87,130 +128,44 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: "You are a landing page content generator. You create compelling, conversion-focused content structured in JSON format."
+            content: "You are an expert landing page copywriter specializing in creating detailed, persuasive content that converts. Always return responses in perfect JSON format."
           },
           {
             role: "user",
             content: prompt
           }
         ],
-        max_tokens: 4000,
-        temperature: 0.7
+        max_tokens: 8000,
+        temperature: 0.7,
+        top_p: 0.95,
+        frequency_penalty: 0.3,
+        presence_penalty: 0.3
       })
     });
 
     const data = await response.json()
     console.log('DeepSeek API response:', data)
 
-    // Parse and structure the response
-    const content = data.choices[0].message.content
-    
+    let content
     try {
-      // Try to parse as JSON first
-      const parsedContent = JSON.parse(content)
-      return new Response(JSON.stringify(parsedContent), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      })
+      // Try to parse the AI response as JSON
+      content = JSON.parse(data.choices[0].message.content.trim())
+      console.log('Successfully parsed AI response as JSON:', content)
     } catch (e) {
-      // If not JSON, structure it ourselves
-      const structured = {
-        hero: {
-          title: "Welcome to " + businessName,
-          description: "Transform your business with our innovative solution",
-          cta: "Get Started",
-          image: "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b"
-        },
-        value_proposition: {
-          title: "Why Choose Us",
-          description: "We deliver comprehensive solutions that drive real results",
-          cards: [
-            {
-              title: "Quality Service",
-              description: "Best-in-class service tailored to your needs",
-              icon: "✨"
-            },
-            {
-              title: "Innovative Solutions",
-              description: "Cutting-edge technology for optimal results",
-              icon: "🚀"
-            },
-            {
-              title: "Expert Support",
-              description: "24/7 dedicated support from our team of experts",
-              icon: "👥"
-            }
-          ]
-        },
-        features: {
-          title: "Powerful Features",
-          description: "Everything you need to succeed",
-          items: [
-            {
-              title: "Easy Integration",
-              description: "Seamlessly integrate with your existing workflow",
-              icon: "🔄"
-            },
-            {
-              title: "Advanced Analytics",
-              description: "Get detailed insights into your performance",
-              icon: "📊"
-            },
-            {
-              title: "Secure Platform",
-              description: "Enterprise-grade security for your peace of mind",
-              icon: "🔒"
-            }
-          ]
-        },
-        proof: {
-          title: "What Our Clients Say",
-          description: "Success stories from businesses like yours",
-          items: [
-            {
-              quote: "This solution has transformed how we operate",
-              author: "Sarah Chen",
-              role: "CEO",
-              company: "Tech Innovations"
-            }
-          ]
-        },
-        pricing: {
-          title: "Simple, Transparent Pricing",
-          description: "Choose the plan that fits your needs",
-          items: [
-            {
-              name: "Starter",
-              price: "Free",
-              features: ["Basic features", "Community support", "1 project"]
-            },
-            {
-              name: "Pro",
-              price: "$49/mo",
-              features: ["All features", "Priority support", "Unlimited projects"]
-            }
-          ]
-        },
-        finalCta: {
-          title: "Ready to Get Started?",
-          description: "Join thousands of satisfied customers today",
-          buttonText: "Start Now"
-        },
-        footer: {
-          links: {
-            company: ["About", "Contact", "Careers"],
-            resources: ["Blog", "Help Center", "Support"]
-          },
-          copyright: `© ${new Date().getFullYear()} ${businessName}. All rights reserved.`
-        }
-      }
-      
-      return new Response(JSON.stringify(structured), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      })
+      console.error('Failed to parse AI response as JSON:', e)
+      console.log('Raw AI response:', data.choices[0].message.content)
+      throw new Error('Failed to parse AI response')
     }
+
+    return new Response(JSON.stringify(content), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    })
   } catch (error) {
-    console.error('Error:', error)
-    return new Response(JSON.stringify({ error: error.message }), {
+    console.error('Error in edge function:', error)
+    return new Response(JSON.stringify({ 
+      error: error.message,
+      details: 'Error generating landing page content'
+    }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
