@@ -17,6 +17,23 @@ const cleanJsonString = (str: string) => {
   return str;
 };
 
+const validateApiResponse = (response: any) => {
+  if (!response || typeof response !== 'object') {
+    throw new Error('Invalid response format');
+  }
+  
+  if (!response.choices || !Array.isArray(response.choices) || response.choices.length === 0) {
+    throw new Error('No choices in response');
+  }
+  
+  const choice = response.choices[0];
+  if (!choice.message || !choice.message.content) {
+    throw new Error('No content in response');
+  }
+  
+  return choice.message.content;
+};
+
 const generateDetailedPrompt = (businessIdea: any, targetAudience: any) => {
   return `Generate ONLY the JSON content with NO markdown formatting, following this structure:
 {
@@ -60,10 +77,16 @@ serve(async (req) => {
     try {
       const bodyText = await req.text();
       console.log('Raw request body:', bodyText);
+      if (!bodyText) {
+        throw new Error('Empty request body');
+      }
       requestData = JSON.parse(bodyText);
     } catch (parseError) {
       console.error('Failed to parse request body:', parseError);
-      return new Response(JSON.stringify({ error: 'Invalid JSON in request body' }), {
+      return new Response(JSON.stringify({ 
+        error: 'Invalid JSON in request body',
+        details: parseError.message
+      }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
@@ -115,7 +138,10 @@ serve(async (req) => {
     if (!apiResponse.ok) {
       const errorText = await apiResponse.text();
       console.error('DeepSeek API error response:', errorText);
-      return new Response(JSON.stringify({ error: `DeepSeek API error: ${apiResponse.status} ${apiResponse.statusText}` }), {
+      return new Response(JSON.stringify({ 
+        error: `DeepSeek API error: ${apiResponse.status} ${apiResponse.statusText}`,
+        details: errorText
+      }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
@@ -124,19 +150,39 @@ serve(async (req) => {
     const apiResponseText = await apiResponse.text();
     console.log('Raw API response text:', apiResponseText);
 
-    let data;
-    try {
-      data = JSON.parse(apiResponseText);
-    } catch (parseError) {
-      console.error('Failed to parse DeepSeek API response:', parseError);
-      return new Response(JSON.stringify({ error: 'Invalid JSON response from DeepSeek API' }), {
+    if (!apiResponseText) {
+      return new Response(JSON.stringify({ error: 'Empty response from DeepSeek API' }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    if (!data.choices?.[0]?.message?.content) {
-      return new Response(JSON.stringify({ error: 'Invalid response format from DeepSeek API' }), {
+    let data;
+    try {
+      data = JSON.parse(apiResponseText);
+    } catch (parseError) {
+      console.error('Failed to parse DeepSeek API response:', parseError);
+      return new Response(JSON.stringify({ 
+        error: 'Invalid JSON response from DeepSeek API',
+        details: parseError.message,
+        raw_response: apiResponseText
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    let content;
+    try {
+      content = validateApiResponse(data);
+      console.log('Validated API response content:', content);
+    } catch (validationError) {
+      console.error('API response validation failed:', validationError);
+      return new Response(JSON.stringify({ 
+        error: 'Invalid API response format',
+        details: validationError.message,
+        response: data
+      }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
@@ -144,10 +190,8 @@ serve(async (req) => {
 
     let parsedContent;
     try {
-      const content = data.choices[0].message.content;
       console.log('Content from API before cleaning:', content);
       
-      // Clean the content string before parsing
       const cleanedContent = cleanJsonString(content);
       console.log('Cleaned content:', cleanedContent);
       
@@ -162,7 +206,8 @@ serve(async (req) => {
       return new Response(JSON.stringify({ 
         error: 'Failed to parse generated content',
         details: parseError.message,
-        raw_content: data.choices[0].message.content 
+        raw_content: content,
+        cleaned_content: cleanedContent
       }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -175,7 +220,10 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error in edge function:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ 
+      error: 'Internal server error',
+      details: error.message 
+    }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
