@@ -8,29 +8,32 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { sectionComponents } from "./constants/sectionConfig";
-import { generateInitialContent } from "./utils/contentUtils";
 import type { LandingPageContentProps, SectionContentMap } from "./types/landingPageTypes";
-import LoadingState from "@/components/steps/complete/LoadingState";
 import LoadingStateLandingPage from "./LoadingStateLandingPage";
 import { cn } from "@/lib/utils";
 
 const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) => {
   const [activeView, setActiveView] = useState<"edit" | "preview">("preview");
   const [isGenerating, setIsGenerating] = useState(false);
+  
+  // Initialize currentContent directly from landingPage.content if it exists
   const [currentContent, setCurrentContent] = useState<SectionContentMap>(() => {
     if (landingPage?.content) {
-      const content = landingPage.content;
+      console.log("Using landing page content:", landingPage.content);
       return {
-        hero: { content: content.hero, layout: "centered" },
-        value_proposition: { content: content.value_proposition || content.valueProposition, layout: "grid" },
-        features: { content: content.features, layout: "grid" },
-        proof: { content: content.proof || content.testimonials, layout: "grid" },
-        pricing: { content: content.pricing || content.pricing_section, layout: "grid" },
-        finalCta: { content: content.finalCta || content.cta, layout: "centered" },
-        footer: { content: content.footer, layout: "grid" }
+        hero: { content: landingPage.content.hero, layout: "centered" },
+        value_proposition: { 
+          content: landingPage.content.value_proposition, 
+          layout: "grid" 
+        },
+        features: { content: landingPage.content.features, layout: "grid" },
+        proof: { content: landingPage.content.proof, layout: "grid" },
+        pricing: { content: landingPage.content.pricing, layout: "grid" },
+        finalCta: { content: landingPage.content.finalCta, layout: "centered" },
+        footer: { content: landingPage.content.footer, layout: "grid" }
       };
     }
-    return generateInitialContent(project);
+    return {};
   });
   
   const [currentLayoutStyle, setCurrentLayoutStyle] = useState(landingPage?.layout_style);
@@ -38,7 +41,7 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
   const queryClient = useQueryClient();
   const { data: template, isLoading: isTemplateLoading } = useLandingPageTemplate();
   const currentLayout = currentLayoutStyle || (template?.structure?.sections || {});
-  const sectionOrder = landingPage?.section_order || [
+  const sectionOrder = [
     "hero",
     "value_proposition",
     "features",
@@ -65,7 +68,15 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
       }
 
       if (data) {
-        setCurrentContent(data);
+        setCurrentContent({
+          hero: { content: data.hero, layout: "centered" },
+          value_proposition: { content: data.value_proposition, layout: "grid" },
+          features: { content: data.features, layout: "grid" },
+          proof: { content: data.proof, layout: "grid" },
+          pricing: { content: data.pricing, layout: "grid" },
+          finalCta: { content: data.finalCta, layout: "centered" },
+          footer: { content: data.footer, layout: "grid" }
+        });
         toast({
           title: "Content Generated",
           description: "Your landing page content has been updated."
@@ -85,6 +96,8 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
 
   const renderSection = (sectionKey: string) => {
     const sectionData = currentContent[sectionKey];
+    console.log(`Rendering section ${sectionKey}:`, sectionData);
+    
     if (!sectionData?.content) {
       console.log(`No content for section: ${sectionKey}`);
       return null;
