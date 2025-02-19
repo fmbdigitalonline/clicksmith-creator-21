@@ -1,6 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import "https://deno.land/x/xhr@0.1.0/mod.ts"
+import { OpenAI } from "https://deno.land/x/openai@v4.24.0/mod.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -50,13 +51,16 @@ serve(async (req) => {
     const prompt = generateDetailedPrompt(businessName, businessIdea, targetAudience)
     console.log('Generated prompt')
 
-    const apiResponse = await fetch("https://api.deepseek.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${Deno.env.get('DEEPSEEK_API_KEY')}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
+    // Initialize OpenAI client with DeepSeek configuration
+    const openai = new OpenAI({
+      baseURL: 'https://api.deepseek.com/v1',
+      apiKey: Deno.env.get('DEEPSEEK_API_KEY') || '',
+    });
+
+    console.log('Initialized OpenAI client with DeepSeek configuration')
+
+    try {
+      const completion = await openai.chat.completions.create({
         model: "deepseek-chat",
         messages: [
           {
@@ -68,101 +72,69 @@ serve(async (req) => {
             content: prompt
           }
         ],
+        temperature: 0.7,
         max_tokens: 4000,
-        temperature: 0.7
-      })
-    });
+      });
 
-    console.log('API Status:', apiResponse.status)
-    const data = await apiResponse.json()
-    console.log('API Response received')
-
-    if (!data || !data.choices || !data.choices[0]?.message?.content) {
-      console.error('Invalid API response:', data)
-      throw new Error('Invalid API response structure')
-    }
-
-    // Default content structure
-    const defaultContent = {
-      hero: {
-        title: `Transform Your Career with ${businessName}`,
-        description: `Ready to turn your corporate experience into entrepreneurial success? ${businessName} helps you make the transition seamlessly.`,
-        cta: "Start Your Journey",
-        image: "Professional transitioning from corporate to entrepreneur"
-      },
-      value_proposition: {
-        title: "Why Choose Us",
-        description: "We understand the challenges of transitioning from corporate life to entrepreneurship.",
-        cards: [
-          {
-            title: "Quick Start",
-            description: "Transform your business idea into a comprehensive plan in minutes, not months.",
-            icon: "🚀"
-          },
-          {
-            title: "Expert Guidance",
-            description: "Built-in best practices from successful corporate-to-entrepreneur transitions.",
-            icon: "💡"
-          },
-          {
-            title: "Time-Saving Tools",
-            description: "All the tools and resources you need in one place, designed for busy professionals.",
-            icon: "⏰"
-          }
-        ]
-      },
-      features: {
-        title: "Features Built for Your Success",
-        description: "Everything you need to make your transition smooth and successful.",
-        items: [
-          {
-            title: "One-Click Business Planning",
-            description: "Generate comprehensive business plans instantly, tailored to your industry and goals.",
-            icon: "📝"
-          },
-          {
-            title: "Risk Assessment Tools",
-            description: "Evaluate and minimize risks in your transition from corporate to entrepreneurship.",
-            icon: "🎯"
-          },
-          {
-            title: "Time Management Solutions",
-            description: "Efficiently balance your current job with your entrepreneurial journey.",
-            icon: "⚡"
-          }
-        ]
-      }
-    }
-
-    try {
-      // Attempt to parse AI response
-      const aiContent = JSON.parse(data.choices[0].message.content.trim())
-      console.log('Successfully parsed AI content')
+      console.log('Received response from DeepSeek API')
       
-      // Merge AI content with default content for missing sections
-      const finalContent = {
-        ...defaultContent,
-        ...aiContent
-      }
+      const content = completion.choices[0].message.content;
+      console.log('Successfully extracted content from response')
 
-      return new Response(JSON.stringify(finalContent), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      })
-    } catch (parseError) {
-      console.error('Failed to parse AI response:', parseError)
-      // Fall back to default content
-      return new Response(JSON.stringify(defaultContent), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      })
+      try {
+        // Parse the AI response
+        const aiContent = JSON.parse(content.trim())
+        console.log('Successfully parsed AI content')
+
+        return new Response(JSON.stringify(aiContent), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
+      } catch (parseError) {
+        console.error('Failed to parse AI response:', parseError)
+        throw new Error('Failed to parse AI response')
+      }
+    } catch (apiError) {
+      console.error('DeepSeek API error:', apiError)
+      throw new Error('Failed to generate content from DeepSeek API')
     }
 
   } catch (error) {
     console.error('Error in edge function:', error)
     
-    // Return a proper error response with CORS headers
+    // Return default content structure on error
+    const defaultContent = {
+      hero: {
+        title: `Transform Your Business with ${businessName}`,
+        description: "Experience the next level of business growth with our innovative solutions",
+        cta: "Get Started Now",
+        image: "Professional business growth illustration"
+      },
+      value_proposition: {
+        title: "Why Choose Us",
+        description: "We deliver exceptional results through proven strategies",
+        cards: [
+          {
+            title: "Expert Solutions",
+            description: "Tailored approaches for your unique business needs",
+            icon: "💡"
+          },
+          {
+            title: "Proven Results",
+            description: "Track record of successful implementations",
+            icon: "📈"
+          },
+          {
+            title: "Dedicated Support",
+            description: "24/7 assistance for your business growth",
+            icon: "🤝"
+          }
+        ]
+      }
+    }
+
     return new Response(JSON.stringify({
-      error: error.message,
-      details: 'Error generating landing page content'
+      content: defaultContent,
+      error: error.message
     }), {
       status: 200, // Return 200 even for errors to avoid CORS issues
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
