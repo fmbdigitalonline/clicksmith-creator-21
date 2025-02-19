@@ -1,7 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import "https://deno.land/x/xhr@0.1.0/mod.ts"
-import { OpenAI } from "https://deno.land/x/openai@v4.24.0/mod.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -62,59 +61,65 @@ serve(async (req) => {
     const prompt = generateDetailedPrompt(businessIdea, targetAudience)
     console.log('Generated prompt:', prompt)
 
-    // Initialize OpenAI client with DeepSeek configuration
-    const openai = new OpenAI({
-      baseURL: 'https://api.deepseek.com/v1',
-      apiKey: Deno.env.get('DEEPSEEK_API_KEY'),
-    });
-
-    console.log('Initialized OpenAI client with DeepSeek configuration')
-
     try {
-      const completion = await openai.chat.completions.create({
-        model: "deepseek-chat",
-        messages: [
-          {
-            role: "system",
-            content: "You are a landing page content creator. Return JSON responses only."
-          },
-          {
-            role: "user",
-            content: prompt
-          }
-        ],
-        temperature: 0.7,
-        max_tokens: 4000,
+      const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${Deno.env.get('DEEPSEEK_API_KEY')}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: "deepseek-chat",
+          messages: [
+            {
+              role: "system",
+              content: "You are a landing page content creator. Return JSON responses only."
+            },
+            {
+              role: "user",
+              content: prompt
+            }
+          ],
+          temperature: 0.7,
+          max_tokens: 4000,
+        }),
       });
 
-      console.log('Received response from DeepSeek API:', completion)
-      
-      if (!completion.choices?.[0]?.message?.content) {
-        throw new Error('Invalid response from DeepSeek API')
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error('DeepSeek API error response:', errorData);
+        throw new Error(`DeepSeek API error: ${response.status} ${response.statusText}`);
       }
 
-      const content = completion.choices[0].message.content;
-      console.log('Raw content from API:', content)
+      const data = await response.json();
+      console.log('Raw API response:', data);
+
+      if (!data.choices?.[0]?.message?.content) {
+        throw new Error('Invalid response format from DeepSeek API');
+      }
+
+      const content = data.choices[0].message.content;
+      console.log('Content from API:', content);
 
       try {
         // Parse the AI response
-        const aiContent = JSON.parse(content.trim())
-        console.log('Successfully parsed AI content')
+        const aiContent = JSON.parse(content.trim());
+        console.log('Successfully parsed AI content');
 
         return new Response(JSON.stringify(aiContent), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        })
+        });
       } catch (parseError) {
-        console.error('Failed to parse AI response:', parseError, 'Content:', content)
-        throw new Error('Failed to parse AI response: ' + parseError.message)
+        console.error('Failed to parse AI response:', parseError, 'Content:', content);
+        throw new Error(`Failed to parse AI response: ${parseError.message}`);
       }
     } catch (apiError) {
-      console.error('DeepSeek API error:', apiError)
-      throw new Error(`Failed to generate content from DeepSeek API: ${apiError.message}`)
+      console.error('API error:', apiError);
+      throw apiError;
     }
 
   } catch (error) {
-    console.error('Error in edge function:', error)
+    console.error('Error in edge function:', error);
     
     // Get business name from business idea for fallback content
     const businessName = requestData?.businessIdea?.valueProposition?.split(':')[1]?.trim() || 
@@ -150,7 +155,7 @@ serve(async (req) => {
           }
         ]
       }
-    }
+    };
 
     return new Response(JSON.stringify({
       content: defaultContent,
@@ -158,6 +163,6 @@ serve(async (req) => {
     }), {
       status: 200, // Return 200 even for errors to avoid CORS issues
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    })
+    });
   }
-})
+});
