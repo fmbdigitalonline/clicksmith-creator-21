@@ -51,26 +51,26 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
   const generateLandingPageContent = async () => {
     setIsGenerating(true);
     try {
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-landing-page`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
-        },
-        body: JSON.stringify({
+      const { data, error } = await supabase.functions.invoke('generate-landing-page', {
+        body: {
           projectId: project.id,
           businessName: project.title,
           businessIdea: project.business_idea,
           targetAudience: project.target_audience
-        })
+        }
       });
 
-      const newContent = await response.json();
-      setCurrentContent(newContent);
-      toast({
-        title: "Content Generated",
-        description: "Your landing page content has been updated."
-      });
+      if (error) {
+        throw error;
+      }
+
+      if (data) {
+        setCurrentContent(data);
+        toast({
+          title: "Content Generated",
+          description: "Your landing page content has been updated."
+        });
+      }
     } catch (error) {
       console.error('Error generating content:', error);
       toast({
