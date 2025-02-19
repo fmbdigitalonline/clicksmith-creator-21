@@ -9,10 +9,16 @@ const corsHeaders = {
   'Access-Control-Max-Age': '86400',
 }
 
-const generateDetailedPrompt = (businessIdea: any, targetAudience: any) => {
-  return `Please generate landing page content in JSON format with the following structure:
+const cleanJsonString = (str: string) => {
+  // Remove markdown code block syntax
+  str = str.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+  // Remove any leading/trailing whitespace
+  str = str.trim();
+  return str;
+};
 
-EXAMPLE JSON OUTPUT:
+const generateDetailedPrompt = (businessIdea: any, targetAudience: any) => {
+  return `Generate ONLY the JSON content with NO markdown formatting, following this structure:
 {
   "hero": {
     "title": "Transform Your Vision Into Reality",
@@ -50,7 +56,6 @@ serve(async (req) => {
   try {
     console.log('Function started');
     
-    // Validate request body
     let requestData;
     try {
       const bodyText = await req.text();
@@ -95,7 +100,7 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: "You are a landing page content creator. Generate engaging and compelling content based on the business details provided. Return content in valid JSON format following the exact structure provided."
+            content: "You are a landing page content creator. Generate ONLY the JSON content with NO markdown formatting. The response should be pure JSON that can be parsed directly."
           },
           {
             role: "user",
@@ -140,9 +145,13 @@ serve(async (req) => {
     let parsedContent;
     try {
       const content = data.choices[0].message.content;
-      console.log('Content from API:', content);
+      console.log('Content from API before cleaning:', content);
       
-      parsedContent = typeof content === 'string' ? JSON.parse(content) : content;
+      // Clean the content string before parsing
+      const cleanedContent = cleanJsonString(content);
+      console.log('Cleaned content:', cleanedContent);
+      
+      parsedContent = JSON.parse(cleanedContent);
       console.log('Successfully parsed content:', parsedContent);
 
       if (!parsedContent.hero || !parsedContent.value_proposition) {
@@ -150,7 +159,11 @@ serve(async (req) => {
       }
     } catch (parseError) {
       console.error('Failed to parse content:', parseError);
-      return new Response(JSON.stringify({ error: 'Failed to parse generated content' }), {
+      return new Response(JSON.stringify({ 
+        error: 'Failed to parse generated content',
+        details: parseError.message,
+        raw_content: data.choices[0].message.content 
+      }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
