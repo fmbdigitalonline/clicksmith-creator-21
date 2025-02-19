@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,13 +12,13 @@ import { generateInitialContent } from "./utils/contentUtils";
 import type { LandingPageContentProps, SectionContentMap } from "./types/landingPageTypes";
 import LoadingState from "@/components/steps/complete/LoadingState";
 import LoadingStateLandingPage from "./LoadingStateLandingPage";
+import { cn } from "@/lib/utils";
 
 const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) => {
   const [activeView, setActiveView] = useState<"edit" | "preview">("preview");
   const [isGenerating, setIsGenerating] = useState(false);
   const [currentContent, setCurrentContent] = useState<SectionContentMap>(() => {
     if (landingPage?.content) {
-      // Convert legacy section names to new format if needed
       const content = landingPage.content;
       return {
         hero: { content: content.hero, layout: "centered" },
@@ -33,10 +34,8 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
   });
   
   const [currentLayoutStyle, setCurrentLayoutStyle] = useState(landingPage?.layout_style);
-  
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
   const { data: template, isLoading: isTemplateLoading } = useLandingPageTemplate();
   const currentLayout = currentLayoutStyle || (template?.structure?.sections || {});
   const sectionOrder = landingPage?.section_order || [
@@ -49,8 +48,40 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
     "footer"
   ];
 
-  console.log("Current content:", currentContent);
-  console.log("Landing page data:", landingPage);
+  const generateLandingPageContent = async () => {
+    setIsGenerating(true);
+    try {
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-landing-page`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+        },
+        body: JSON.stringify({
+          projectId: project.id,
+          businessName: project.title,
+          businessIdea: project.business_idea,
+          targetAudience: project.target_audience
+        })
+      });
+
+      const newContent = await response.json();
+      setCurrentContent(newContent);
+      toast({
+        title: "Content Generated",
+        description: "Your landing page content has been updated."
+      });
+    } catch (error) {
+      console.error('Error generating content:', error);
+      toast({
+        title: "Error",
+        description: "Failed to generate landing page content. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   const renderSection = (sectionKey: string) => {
     const sectionData = currentContent[sectionKey];

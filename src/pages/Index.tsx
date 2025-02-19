@@ -494,10 +494,10 @@ const Index = () => {
       {/* Footer */}
       <FooterSection 
         content={{
-          contact: {
-            email: "info@fmbonline.nl"
+          links: {
+            company: ["About", "Contact", "Careers"],
+            resources: ["Blog", "Help Center", "Support"]
           },
-          newsletter: "Subscribe to our newsletter for updates and insights",
           copyright: `© ${new Date().getFullYear()} Viable. All rights reserved.`
         }}
       />
