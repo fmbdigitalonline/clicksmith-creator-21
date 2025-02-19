@@ -8,7 +8,12 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-const generateDetailedPrompt = (businessName: string, businessIdea: any, targetAudience: any) => {
+const generateDetailedPrompt = (businessIdea: any, targetAudience: any) => {
+  // Extract business name from value proposition or description
+  const businessName = businessIdea?.valueProposition?.split(':')[1]?.trim() || 
+                      businessIdea?.description?.split(' ').slice(0, 3).join(' ') ||
+                      'Your Business';
+
   return `Create a landing page content structure with the following details:
 
 Business: ${businessName}
@@ -47,14 +52,14 @@ serve(async (req) => {
   try {
     console.log('Function started')
     requestData = await req.json()
-    const { projectId, businessName, businessIdea, targetAudience } = requestData
-    console.log('Request payload:', { projectId, businessName })
+    const { projectId, businessIdea, targetAudience } = requestData
+    console.log('Request payload:', { projectId, businessIdea })
 
     if (!Deno.env.get('DEEPSEEK_API_KEY')) {
       throw new Error('DEEPSEEK_API_KEY is not set')
     }
 
-    const prompt = generateDetailedPrompt(businessName, businessIdea, targetAudience)
+    const prompt = generateDetailedPrompt(businessIdea, targetAudience)
     console.log('Generated prompt:', prompt)
 
     // Initialize OpenAI client with DeepSeek configuration
@@ -111,10 +116,15 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in edge function:', error)
     
+    // Get business name from business idea for fallback content
+    const businessName = requestData?.businessIdea?.valueProposition?.split(':')[1]?.trim() || 
+                        requestData?.businessIdea?.description?.split(' ').slice(0, 3).join(' ') ||
+                        'Your Business';
+    
     // Return default content structure on error
     const defaultContent = {
       hero: {
-        title: `Transform Your Business with ${requestData?.businessName || 'Your Business'}`,
+        title: `Transform Your Business with ${businessName}`,
         description: "Experience the next level of business growth with our innovative solutions",
         cta: "Get Started Now",
         image: "Professional business growth illustration"
