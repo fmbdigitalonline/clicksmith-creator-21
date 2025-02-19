@@ -43,25 +43,48 @@ Business Details:
 }
 
 serve(async (req) => {
-  // Always respond to OPTIONS requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
     console.log('Function started');
-    const requestData = await req.json();
+    
+    // Validate request body
+    let requestData;
+    try {
+      const bodyText = await req.text();
+      console.log('Raw request body:', bodyText);
+      requestData = JSON.parse(bodyText);
+    } catch (parseError) {
+      console.error('Failed to parse request body:', parseError);
+      return new Response(JSON.stringify({ error: 'Invalid JSON in request body' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
     const { projectId, businessIdea, targetAudience } = requestData;
-    console.log('Request payload:', { projectId, businessIdea, targetAudience });
+    console.log('Parsed request payload:', { projectId, businessIdea, targetAudience });
+
+    if (!businessIdea || !targetAudience) {
+      return new Response(JSON.stringify({ error: 'Missing required fields in request body' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
 
     if (!Deno.env.get('DEEPSEEK_API_KEY')) {
-      throw new Error('DEEPSEEK_API_KEY is not set');
+      return new Response(JSON.stringify({ error: 'DEEPSEEK_API_KEY is not set' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     }
 
     const prompt = generateDetailedPrompt(businessIdea, targetAudience);
     console.log('Generated prompt:', prompt);
 
-    const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
+    const apiResponse = await fetch('https://api.deepseek.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${Deno.env.get('DEEPSEEK_API_KEY')}`,
@@ -84,41 +107,58 @@ serve(async (req) => {
       }),
     });
 
-    if (!response.ok) {
-      const errorData = await response.text();
-      console.error('DeepSeek API error response:', errorData);
-      throw new Error(`DeepSeek API error: ${response.status} ${response.statusText}`);
+    if (!apiResponse.ok) {
+      const errorText = await apiResponse.text();
+      console.error('DeepSeek API error response:', errorText);
+      return new Response(JSON.stringify({ error: `DeepSeek API error: ${apiResponse.status} ${apiResponse.statusText}` }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     }
 
-    const data = await response.json();
-    console.log('Raw API response:', data);
+    const apiResponseText = await apiResponse.text();
+    console.log('Raw API response text:', apiResponseText);
+
+    let data;
+    try {
+      data = JSON.parse(apiResponseText);
+    } catch (parseError) {
+      console.error('Failed to parse DeepSeek API response:', parseError);
+      return new Response(JSON.stringify({ error: 'Invalid JSON response from DeepSeek API' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
 
     if (!data.choices?.[0]?.message?.content) {
-      throw new Error('Invalid response format from DeepSeek API');
+      return new Response(JSON.stringify({ error: 'Invalid response format from DeepSeek API' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     }
 
+    let parsedContent;
     try {
       const content = data.choices[0].message.content;
       console.log('Content from API:', content);
       
-      const parsedContent = typeof content === 'string' ? JSON.parse(content) : content;
+      parsedContent = typeof content === 'string' ? JSON.parse(content) : content;
       console.log('Successfully parsed content:', parsedContent);
 
       if (!parsedContent.hero || !parsedContent.value_proposition) {
         throw new Error('Generated content missing required sections');
       }
-
-      return new Response(JSON.stringify(parsedContent), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-
     } catch (parseError) {
-      console.error('Failed to parse API response:', parseError);
-      return new Response(JSON.stringify({ error: parseError.message }), {
+      console.error('Failed to parse content:', parseError);
+      return new Response(JSON.stringify({ error: 'Failed to parse generated content' }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
+
+    return new Response(JSON.stringify(parsedContent), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
 
   } catch (error) {
     console.error('Error in edge function:', error);
