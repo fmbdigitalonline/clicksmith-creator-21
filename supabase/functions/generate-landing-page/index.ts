@@ -10,77 +10,84 @@ const corsHeaders = {
 }
 
 const cleanJsonString = (str: string) => {
-  // Remove markdown code block syntax
-  str = str.replace(/```json\n?/g, '').replace(/```\n?/g, '');
-  // Remove any leading/trailing whitespace
-  str = str.trim();
-  return str;
+  try {
+    // Remove markdown code block syntax
+    str = str.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+    // Remove any leading/trailing whitespace
+    str = str.trim();
+    // Try parsing and stringifying to validate and format JSON
+    const parsed = JSON.parse(str);
+    return JSON.stringify(parsed);
+  } catch (error) {
+    console.error('Error cleaning JSON string:', error);
+    throw new Error('Invalid JSON format in API response');
+  }
 };
 
 const generateDetailedPrompt = (businessIdea: any, targetAudience: any) => {
-  return `Generate a complete JSON structure for a landing page with these requirements:
+  return `You are a landing page content generator. Create a JSON structure (and ONLY JSON, no other text) for a landing page. Use this business context:
 
-Business Context:
-${JSON.stringify({ businessIdea, targetAudience }, null, 2)}
+Business Idea: ${JSON.stringify(businessIdea)}
+Target Audience: ${JSON.stringify(targetAudience)}
 
-Generate a JSON response with this exact structure (no markdown, pure JSON):
+The response must be valid JSON with this structure:
 {
   "hero": {
-    "title": "A compelling headline that captures the value proposition",
-    "description": "A clear, engaging subtitle that expands on the main benefit",
+    "title": "A compelling headline for ${businessIdea.name || 'the business'}",
+    "description": "A clear, engaging subtitle",
     "cta": "Action-oriented button text",
     "image": "Description of ideal hero image"
   },
   "value_proposition": {
-    "title": "Why Choose [Business]",
-    "description": "Overview of key benefits",
+    "title": "Why Choose Us",
+    "description": "Overview of benefits",
     "cards": [
       {
-        "title": "Key Benefit 1",
-        "description": "Detailed explanation",
+        "title": "Benefit 1",
+        "description": "Explanation",
         "icon": "✨"
       }
     ]
   },
   "features": {
-    "title": "Our Features",
-    "description": "What makes us unique",
+    "title": "Features",
+    "description": "What we offer",
     "items": [
       {
         "title": "Feature 1",
-        "description": "Detailed feature description",
+        "description": "Description",
         "icon": "🎯"
       }
     ]
   },
   "proof": {
-    "title": "What Our Clients Say",
-    "description": "Real results from real clients",
+    "title": "Testimonials",
+    "description": "What clients say",
     "items": [
       {
-        "quote": "A testimonial that addresses key pain points",
-        "author": "Client Name",
+        "quote": "A testimonial",
+        "author": "Name",
         "role": "Position",
-        "company": "Company Name"
+        "company": "Company"
       }
     ]
   },
   "pricing": {
-    "title": "Simple, Transparent Pricing",
-    "description": "Choose the plan that works for you",
+    "title": "Pricing",
+    "description": "Choose your plan",
     "items": [
       {
-        "name": "Plan Name",
-        "price": "Price",
-        "description": "Plan description",
+        "name": "Basic",
+        "price": "$X/month",
+        "description": "Description",
         "features": ["Feature 1", "Feature 2"]
       }
     ]
   },
   "finalCta": {
-    "title": "Ready to Get Started?",
-    "description": "Take the next step",
-    "cta": "Get Started Now"
+    "title": "Get Started",
+    "description": "Take action now",
+    "cta": "Start Now"
   },
   "footer": {
     "content": {
@@ -104,6 +111,7 @@ serve(async (req) => {
     const { projectId, businessIdea, targetAudience } = await req.json();
     
     if (!businessIdea || !targetAudience) {
+      console.error('Missing required fields:', { businessIdea, targetAudience });
       return new Response(
         JSON.stringify({ error: 'Missing required fields' }), 
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }}
@@ -112,14 +120,20 @@ serve(async (req) => {
 
     const DEEPSEEK_API_KEY = Deno.env.get('DEEPSEEK_API_KEY');
     if (!DEEPSEEK_API_KEY) {
+      console.error('Missing DEEPSEEK_API_KEY');
       return new Response(
         JSON.stringify({ error: 'Missing API configuration' }), 
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }}
       );
     }
 
-    console.log('Generating content with prompt...');
+    console.log('Generating content with business context:', {
+      businessIdea,
+      targetAudience
+    });
+
     const prompt = generateDetailedPrompt(businessIdea, targetAudience);
+    console.log('Generated prompt:', prompt);
 
     const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
       method: 'POST',
@@ -132,7 +146,7 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: "You are a landing page content creator. Generate ONLY valid JSON content with NO markdown formatting."
+            content: "You are a landing page content creator. Generate ONLY valid JSON content with NO markdown formatting or additional text."
           },
           {
             role: "user",
@@ -145,31 +159,42 @@ serve(async (req) => {
     });
 
     if (!response.ok) {
-      console.error('DeepSeek API error:', await response.text());
-      throw new Error(`DeepSeek API returned ${response.status}`);
+      const errorText = await response.text();
+      console.error('DeepSeek API error:', errorText);
+      throw new Error(`DeepSeek API returned ${response.status}: ${errorText}`);
     }
 
-    const result = await response.json();
-    console.log('DeepSeek API response:', JSON.stringify(result, null, 2));
+    const rawResponse = await response.text();
+    console.log('Raw DeepSeek API response:', rawResponse);
+
+    let result;
+    try {
+      result = JSON.parse(rawResponse);
+    } catch (error) {
+      console.error('Failed to parse DeepSeek API response:', error);
+      throw new Error('Invalid JSON response from DeepSeek API');
+    }
 
     if (!result.choices?.[0]?.message?.content) {
+      console.error('Unexpected API response structure:', result);
       throw new Error('Invalid response format from DeepSeek API');
     }
 
     const content = result.choices[0].message.content;
+    console.log('API response content:', content);
+
     const cleanedContent = cleanJsonString(content);
-    
     console.log('Cleaned content:', cleanedContent);
     
-    // Validate the JSON structure
     const parsedContent = JSON.parse(cleanedContent);
     
     if (!parsedContent.hero || !parsedContent.value_proposition) {
+      console.error('Missing required sections in generated content:', parsedContent);
       throw new Error('Generated content missing required sections');
     }
 
     return new Response(
-      JSON.stringify(parsedContent),
+      cleanedContent,
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }}
     );
 
