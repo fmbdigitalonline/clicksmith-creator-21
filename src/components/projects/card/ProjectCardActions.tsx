@@ -86,7 +86,7 @@ const ProjectCardActions = ({
       const typedProject = project as ProjectData;
       console.log("Project data retrieved:", typedProject);
 
-      // Call the edge function
+      // Call the edge function with the correct parameters
       const { data: landingPage, error } = await supabase.functions
         .invoke('generate-landing-page', {
           body: {
@@ -155,3 +155,4 @@ const ProjectCardActions = ({
 };
 
 export default ProjectCardActions;
+
