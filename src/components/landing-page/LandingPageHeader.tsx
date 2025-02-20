@@ -63,7 +63,7 @@ const LandingPageHeader = ({ project, landingPage }: LandingPageHeaderProps) => 
         .insert({
           project_id: project.id,
           user_id: user.id,
-          title: project.title,
+          title: project.title || "Untitled Landing Page", // Ensure we always have a title
           content,
           slug,
         });
@@ -102,7 +102,7 @@ const LandingPageHeader = ({ project, landingPage }: LandingPageHeaderProps) => 
         >
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <h1 className="text-2xl font-bold">{project.title} - Landing Page</h1>
+        <h1 className="text-2xl font-bold">{project.title || "Untitled Project"} - Landing Page</h1>
       </div>
       <div className="flex items-center gap-2">
         {landingPage?.published && (
@@ -158,7 +158,7 @@ const generateSlug = (title: string): string => {
 };
 
 const generateUniqueSlug = (title: string): string => {
-  const baseSlug = generateSlug(title);
+  const baseSlug = generateSlug(title || "untitled");
   // Add a random 6-character suffix
   const randomSuffix = Math.random().toString(36).substring(2, 8);
   return `${baseSlug}-${randomSuffix}`;
@@ -169,7 +169,7 @@ const generateLandingPageContent = (project: any) => {
   
   return {
     hero: {
-      title: business_idea?.valueProposition || project.title,
+      title: business_idea?.valueProposition || project.title || "Welcome",
       description: business_idea?.description || "",
       cta: "Get Started Now",
     },
