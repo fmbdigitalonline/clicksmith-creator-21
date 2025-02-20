@@ -19,9 +19,14 @@ interface GenerationProgress {
   progress: number;
 }
 
-interface StepDetails {
-  stage: 'started' | 'content_generated' | 'images_generated' | string;
-  [key: string]: any;
+interface GenerationLog {
+  status: string | null;
+  success: boolean;
+  error_message: string | null;
+  step_details: {
+    stage?: 'started' | 'content_generated' | 'images_generated' | 'completed' | 'failed';
+    timestamp?: string;
+  };
 }
 
 interface LandingPageResponse {
@@ -70,9 +75,10 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
         }
 
         if (logs) {
-          console.log('Generation log status:', logs.status, 'Step details:', logs.step_details);
+          const generationLog = logs as GenerationLog;
+          console.log('Generation log status:', generationLog.status, 'Step details:', generationLog.step_details);
           
-          if (logs.success) {
+          if (generationLog.success) {
             setGenerationProgress({ status: "Success!", progress: 100 });
             clearInterval(intervalId);
             setIsGenerating(false);
@@ -89,26 +95,28 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
               queryKey: ['landing-page', project.id],
               type: 'active'
             });
-          } else if (logs.error_message) {
+          } else if (generationLog.error_message) {
             setGenerationProgress({ 
-              status: `Error: ${logs.error_message}`, 
+              status: `Error: ${generationLog.error_message}`, 
               progress: 0 
             });
             clearInterval(intervalId);
             setIsGenerating(false);
             setIsRefining(false);
           } else {
-            const stepDetails = logs.step_details;
+            const stepDetails = generationLog.step_details;
             let progress = 0;
 
-            if (stepDetails) {
-              progress = stepDetails.stage === 'started' ? 25 :
-                        stepDetails.stage === 'content_generated' ? 50 :
-                        stepDetails.stage === 'images_generated' ? 75 : 0;
+            if (stepDetails && stepDetails.stage) {
+              progress = 
+                stepDetails.stage === 'started' ? 25 :
+                stepDetails.stage === 'content_generated' ? 50 :
+                stepDetails.stage === 'images_generated' ? 75 :
+                stepDetails.stage === 'completed' ? 100 : 0;
             }
             
             setGenerationProgress({ 
-              status: `${logs.status?.replace(/_/g, ' ') || 'Processing'}...`, 
+              status: `${generationLog.status?.replace(/_/g, ' ') || 'Processing'}...`, 
               progress 
             });
           }
