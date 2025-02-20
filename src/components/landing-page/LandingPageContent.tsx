@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -44,34 +44,48 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
   const navigate = useNavigate();
   const { isLoading: isTemplateLoading } = useLandingPageTemplate();
 
+  // Track generation progress with cleanup
   useEffect(() => {
-    if ((isGenerating || isRefining) && project?.id) {
-      const interval = setInterval(async () => {
+    let intervalId: number | undefined;
+
+    const checkProgress = async () => {
+      if (!project?.id || (!isGenerating && !isRefining)) return;
+
+      try {
         const { data: logs, error } = await supabase
           .from('landing_page_generation_logs')
           .select('*')
           .eq('project_id', project.id)
           .order('created_at', { ascending: false })
           .limit(1)
-          .single();
+          .maybeSingle();
 
-        if (error) {
+        if (error && error.code !== 'PGRST116') {
           console.error('Error fetching generation logs:', error);
           return;
         }
 
         if (logs) {
-          const logData = logs as unknown as GenerationLog;
+          const logData = logs as GenerationLog;
           
           if (logData.success) {
             setGenerationProgress({ status: "Success!", progress: 100 });
-            clearInterval(interval);
+            clearInterval(intervalId);
+            setIsGenerating(false);
+            setIsRefining(false);
+
+            // Invalidate queries after successful generation
+            await queryClient.invalidateQueries({ queryKey: ['subscription'] });
+            await queryClient.invalidateQueries({ queryKey: ['free_tier_usage'] });
+            await queryClient.invalidateQueries({ queryKey: ['landing-page', project.id] });
           } else if (logData.error_message) {
             setGenerationProgress({ 
               status: `Error: ${logData.error_message}`, 
               progress: 0 
             });
-            clearInterval(interval);
+            clearInterval(intervalId);
+            setIsGenerating(false);
+            setIsRefining(false);
           } else {
             const stepDetails = logData.step_details;
             let progress = 0;
@@ -88,13 +102,33 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
             });
           }
         }
-      }, 1000);
+      } catch (error) {
+        console.error('Error in progress check:', error);
+      }
+    };
 
-      return () => clearInterval(interval);
+    if (isGenerating || isRefining) {
+      void checkProgress();
+      intervalId = setInterval(checkProgress, 1000);
     }
-  }, [isGenerating, isRefining, project?.id]);
+
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
+  }, [isGenerating, isRefining, project?.id, queryClient]);
 
   const generateLandingPageContent = async () => {
+    if (!project?.id) {
+      toast({
+        title: "Error",
+        description: "No project found",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsGenerating(true);
     setGenerationProgress({ status: "Starting generation...", progress: 0 });
     
@@ -111,36 +145,33 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
           businessIdea: project.business_idea,
           targetAudience: project.target_audience,
           userId: user.id,
-          iterationNumber: landingPage?.content_iterations || 1
+          iterationNumber: (landingPage?.content_iterations || 0) + 1
         }
       });
 
-      if (error) throw error;
-
-      // Handle credit-related errors
-      if (error?.status === 402) {
-        toast({
-          title: "Insufficient Credits",
-          description: "Please upgrade your plan to generate more landing pages.",
-          variant: "destructive"
-        });
-        navigate('/pricing');
-        return;
+      if (error) {
+        if (error.status === 402) {
+          toast({
+            title: "Insufficient Credits",
+            description: "Please upgrade your plan to generate more landing pages.",
+            variant: "destructive"
+          });
+          navigate('/pricing');
+          return;
+        }
+        throw error;
       }
 
-      if (data && data.content) {
-        console.log("Received new content:", data);
-        toast({
-          title: "Content Generated",
-          description: "Your landing page content has been updated."
-        });
-
-        // Invalidate credits query to refresh the display
-        queryClient.invalidateQueries({ queryKey: ['subscription'] });
-        queryClient.invalidateQueries({ queryKey: ['free_tier_usage'] });
-        queryClient.invalidateQueries({ queryKey: ['landing-page', project.id] });
-        window.location.reload();
+      if (!data || !data.content) {
+        throw new Error('Invalid response from generation service');
       }
+
+      console.log("Received new content:", data);
+      toast({
+        title: "Content Generated",
+        description: "Your landing page content has been updated."
+      });
+
     } catch (error) {
       console.error('Error generating content:', error);
       toast({
