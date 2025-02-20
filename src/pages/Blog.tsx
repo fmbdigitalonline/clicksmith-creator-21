@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Helmet } from "react-helmet";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,7 +8,8 @@ import { Search, ChevronLeft, ChevronRight, Mail } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Link } from "react-router-dom";
 import { Card } from "@/components/ui/card";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
+import Navigation from "@/components/Navigation";
 
 const Blog = () => {
   const [posts, setPosts] = useState<any[]>([]);
@@ -87,17 +87,14 @@ const Blog = () => {
         <meta name="description" content="Stay up to date with our latest product updates, marketing tips, and industry insights." />
       </Helmet>
 
-      {/* Header */}
-      <header className="bg-white border-b sticky top-0 z-50">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between h-16">
-            <nav className="hidden md:flex items-center space-x-8">
-              <Link to="/" className="text-gray-700 hover:text-primary">Home</Link>
-              <Link to="/about" className="text-gray-700 hover:text-primary">About</Link>
-              <Link to="/blog" className="text-primary font-medium">Blog</Link>
-              <Link to="/contact" className="text-gray-700 hover:text-primary">Contact</Link>
-            </nav>
-            <div className="flex items-center">
+      <Navigation />
+
+      <main className="container mx-auto px-4 py-8 mt-16">
+        <div className="flex flex-col md:flex-row gap-8">
+          {/* Main Content */}
+          <div className="md:w-2/3">
+            <div className="flex justify-between items-center mb-8">
+              <h1 className="text-4xl font-bold text-gray-900">Latest Articles</h1>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
@@ -109,15 +106,6 @@ const Blog = () => {
                 />
               </div>
             </div>
-          </div>
-        </div>
-      </header>
-
-      <main className="container mx-auto px-4 py-8">
-        <div className="flex flex-col md:flex-row gap-8">
-          {/* Main Content */}
-          <div className="md:w-2/3">
-            <h1 className="text-4xl font-bold text-gray-900 mb-8">Latest Articles</h1>
             
             {loading ? (
               <div className="grid gap-8">
