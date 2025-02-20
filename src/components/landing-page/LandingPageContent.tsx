@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import LoadingStateLandingPage from "./LoadingStateLandingPage";
 import { cn } from "@/lib/utils";
-import { Loader2, RotateCw } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 interface GenerationLog {
   api_status_code: number;
@@ -140,15 +140,15 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
     if (!paragraphs?.length) return null;
 
     return (
-      <div className="space-y-6">
+      <div className="space-y-8 max-w-3xl mx-auto">
         {paragraphs.map((paragraph, index) => (
-          <div key={index} className="space-y-2">
+          <div key={index} className="space-y-3">
             {paragraph.heading && (
-              <h3 className="text-xl font-semibold">{paragraph.heading}</h3>
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-white">{paragraph.heading}</h3>
             )}
             <p className={cn(
-              "text-gray-600 dark:text-gray-300 leading-relaxed",
-              paragraph.emphasis && "font-medium text-gray-900 dark:text-white"
+              "text-lg text-gray-600 dark:text-gray-300 leading-relaxed",
+              paragraph.emphasis && "text-xl font-medium text-gray-900 dark:text-white"
             )}>
               {paragraph.text}
             </p>
@@ -162,11 +162,16 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
     if (!points?.length) return null;
 
     return (
-      <ul className="space-y-2 list-disc list-inside text-gray-600 dark:text-gray-300">
-        {points.map((point, index) => (
-          <li key={index} className="leading-relaxed">{point}</li>
-        ))}
-      </ul>
+      <div className="max-w-3xl mx-auto">
+        <ul className="space-y-4 list-none">
+          {points.map((point, index) => (
+            <li key={index} className="flex items-start space-x-3">
+              <span className="flex-shrink-0 w-1.5 h-1.5 mt-2 rounded-full bg-primary" />
+              <span className="text-lg text-gray-600 dark:text-gray-300">{point}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
     );
   };
 
@@ -175,19 +180,26 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
 
     return (
       <div className={cn(
-        "grid gap-6",
+        "grid gap-8",
         layout?.style === 'grid' && "grid-cols-1 md:grid-cols-3",
-        layout?.style === 'columns' && "columns-1 md:columns-2"
+        layout?.style === 'columns' && "grid-cols-1 md:grid-cols-2",
+        "max-w-7xl mx-auto"
       )}>
         {items.map((item, index) => (
-          <div key={index} className="space-y-4">
-            <h3 className="text-xl font-semibold">{item.title}</h3>
-            <p className="text-gray-600 dark:text-gray-300">{item.description}</p>
-            {item.details && renderBulletPoints(item.details)}
+          <div key={index} className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow duration-200">
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">{item.title}</h3>
+            <p className="text-gray-600 dark:text-gray-300 mb-4">{item.description}</p>
+            {item.details && (
+              <div className="mt-4 space-y-2">
+                {item.details.map((detail: string, dIndex: number) => (
+                  <p key={dIndex} className="text-gray-500 dark:text-gray-400 text-sm">{detail}</p>
+                ))}
+              </div>
+            )}
             {item.highlights && (
-              <div className="mt-4">
+              <div className="mt-4 flex flex-wrap gap-2">
                 {item.highlights.map((highlight: string, hIndex: number) => (
-                  <span key={hIndex} className="inline-block bg-primary/10 text-primary px-3 py-1 rounded-full text-sm mr-2 mb-2">
+                  <span key={hIndex} className="inline-block bg-primary/10 text-primary px-3 py-1 rounded-full text-sm">
                     {highlight}
                   </span>
                 ))}
@@ -203,80 +215,60 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
     if (!section) return null;
 
     const containerClass = cn(
-      "w-full py-12 md:py-16",
-      section.layout?.width === 'contained' && "container mx-auto px-4",
+      "w-full py-16 md:py-24",
+      section.layout?.width === 'contained' && "px-4 md:px-6",
       section.layout?.width === 'narrow' && "max-w-4xl mx-auto px-4",
-      section.layout?.spacing === 'compact' && "py-8 md:py-12",
-      section.layout?.spacing === 'spacious' && "py-16 md:py-24",
-      section.layout?.background === 'gradient' && "bg-gradient-to-r from-primary/10 to-secondary/10",
+      section.layout?.spacing === 'compact' && "py-12 md:py-16",
+      section.layout?.spacing === 'spacious' && "py-20 md:py-32",
+      section.layout?.background === 'gradient' && "bg-gradient-to-r from-primary/5 via-primary/10 to-secondary/5",
       section.style?.colorScheme === 'dark' && "bg-gray-900 text-white",
       section.style?.colorScheme === 'light' && "bg-white text-gray-900"
     );
 
     const contentClass = cn(
-      "space-y-8",
-      section.layout?.style === 'grid' && "grid grid-cols-1 md:grid-cols-3 gap-8",
-      section.layout?.style === 'columns' && "columns-1 md:columns-2 gap-8",
+      "container mx-auto space-y-12",
       section.style?.textAlign === 'center' && "text-center",
       section.layout?.style === 'split' && "grid grid-cols-1 md:grid-cols-2 gap-12 items-center"
     );
 
     const headingClass = cn(
-      "font-bold leading-tight",
-      section.style?.typography?.headingSize === 'large' && "text-4xl md:text-5xl",
-      section.style?.typography?.headingSize === 'xlarge' && "text-5xl md:text-6xl",
-      "text-3xl md:text-4xl"
-    );
-
-    const bodyClass = cn(
-      "leading-relaxed",
-      section.style?.typography?.bodySize === 'large' && "text-lg",
-      section.style?.typography?.lineHeight === 'relaxed' && "leading-relaxed",
-      section.style?.typography?.lineHeight === 'loose' && "leading-loose"
+      "font-bold leading-tight max-w-4xl mx-auto",
+      section.style?.typography?.headingSize === 'large' && "text-4xl md:text-5xl lg:text-6xl",
+      section.style?.typography?.headingSize === 'xlarge' && "text-5xl md:text-6xl lg:text-7xl",
+      "text-3xl md:text-4xl lg:text-5xl"
     );
 
     return (
-      <div key={section.type} className={containerClass}>
+      <section key={section.type} className={containerClass}>
         <div className={contentClass}>
           {section.content?.title && (
-            <h2 className={headingClass}>{section.content.title}</h2>
-          )}
-          
-          {section.content?.subtitle && (
-            <p className="text-xl text-gray-600 dark:text-gray-300">
-              {section.content.subtitle}
-            </p>
+            <div className="space-y-4 text-center mb-12">
+              <h2 className={headingClass}>{section.content.title}</h2>
+              {section.content?.subtitle && (
+                <p className="text-xl md:text-2xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
+                  {section.content.subtitle}
+                </p>
+              )}
+            </div>
           )}
           
           {section.content?.mainDescription && (
-            <p className={cn(bodyClass, "text-gray-600 dark:text-gray-300")}>
-              {section.content.mainDescription}
-            </p>
-          )}
-
-          {section.content?.detailedDescription && (
-            <p className={cn(bodyClass, "text-gray-600 dark:text-gray-300")}>
-              {section.content.detailedDescription}
-            </p>
-          )}
-
-          {section.content?.summary && (
-            <p className="text-lg font-medium text-gray-900 dark:text-white">
-              {section.content.summary}
-            </p>
+            <div className="max-w-3xl mx-auto">
+              <p className="text-xl text-gray-600 dark:text-gray-300 leading-relaxed">
+                {section.content.mainDescription}
+              </p>
+            </div>
           )}
 
           {section.content?.bulletPoints && renderBulletPoints(section.content.bulletPoints)}
-          
           {section.content?.paragraphs && renderParagraphs(section.content.paragraphs)}
-          
           {section.content?.items && renderItems(section.content.items, section.layout)}
           
           {(section.content?.primaryCta || section.content?.secondaryCta) && (
-            <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center mt-12">
               {section.content.primaryCta && (
-                <div className="text-center sm:text-left">
-                  <Button size="lg" className="w-full sm:w-auto">
+                <div className="text-center">
+                  <Button size="lg" className="min-w-[200px] text-lg py-6">
                     {section.content.primaryCta.text}
                   </Button>
                   {section.content.primaryCta.description && (
@@ -287,8 +279,8 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
                 </div>
               )}
               {section.content.secondaryCta && (
-                <div className="text-center sm:text-left">
-                  <Button variant="outline" size="lg" className="w-full sm:w-auto">
+                <div className="text-center">
+                  <Button variant="outline" size="lg" className="min-w-[200px] text-lg py-6">
                     {section.content.secondaryCta.text}
                   </Button>
                   {section.content.secondaryCta.description && (
@@ -301,7 +293,7 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
             </div>
           )}
         </div>
-      </div>
+      </section>
     );
   };
 
