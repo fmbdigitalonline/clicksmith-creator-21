@@ -3,7 +3,7 @@ import { Auth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate, Link } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -13,6 +13,7 @@ import LandingNav from "@/components/LandingNav";
 const Login = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [authView, setAuthView] = useState<'sign_in' | 'sign_up'>('sign_in');
 
   useEffect(() => {
     // Check if user is already logged in
@@ -61,18 +62,23 @@ const Login = () => {
           <div className="mb-6 space-y-4">
             <div className="flex items-center gap-2 justify-center text-primary">
               <BadgeCheck className="h-6 w-6" />
-              <span className="font-semibold">Free Credits Included!</span>
+              <span className="font-semibold">
+                {authView === 'sign_up' ? 'Create Your Account' : 'Welcome Back!'}
+              </span>
             </div>
             <Alert className="bg-primary/5 border-primary/10">
               <AlertDescription className="text-sm text-center">
-                Start validating your ideas today with free credits. No credit card required.
+                {authView === 'sign_up' 
+                  ? 'Start validating your ideas today with free credits. No credit card required.'
+                  : 'Sign in to access your account and continue building.'
+                }
               </AlertDescription>
             </Alert>
           </div>
           
           <Auth
             supabaseClient={supabase}
-            view="sign_in"
+            view={authView}
             appearance={{
               theme: ThemeSupa,
               style: {
@@ -97,12 +103,12 @@ const Login = () => {
               variables: {
                 sign_in: {
                   email_label: 'Email address',
-                  password_label: 'Your password',
+                  password_label: 'Password',
                   email_input_placeholder: 'Your email address',
-                  password_input_placeholder: 'Password (minimum 6 characters)',
+                  password_input_placeholder: 'Enter your password',
                   button_label: 'Sign in',
                   loading_button_label: 'Signing in ...',
-                  link_text: "Don't have an account? Sign up and get free credits"
+                  link_text: "Don't have an account? Sign up"
                 },
                 sign_up: {
                   email_label: 'Email address',
@@ -115,6 +121,9 @@ const Login = () => {
                   confirmation_text: 'Check your email for the confirmation link'
                 }
               }
+            }}
+            onViewChange={(newView) => {
+              setAuthView(newView as 'sign_in' | 'sign_up');
             }}
           />
           
