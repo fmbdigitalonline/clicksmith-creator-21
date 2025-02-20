@@ -71,6 +71,12 @@ const BlogPost = () => {
     );
   }
 
+  const getImageUrl = (url: string) => {
+    if (!url) return null;
+    if (url.startsWith('http')) return url;
+    return `${window.location.origin}/${url}`;
+  };
+
   return (
     <div className="min-h-screen">
       <Navigation />
@@ -84,7 +90,7 @@ const BlogPost = () => {
           <meta property="og:type" content="article" />
           <meta property="og:title" content={post.title} />
           <meta property="og:description" content={post.meta_description || post.description} />
-          {post.image_url && <meta property="og:image" content={post.image_url} />}
+          {post.image_url && <meta property="og:image" content={getImageUrl(post.image_url)} />}
           <meta property="article:published_time" content={post.published_at} />
         </Helmet>
 
@@ -104,15 +110,23 @@ const BlogPost = () => {
 
             {post.image_url && (
               <img
-                src={post.image_url}
+                src={getImageUrl(post.image_url)}
                 alt={post.title}
-                className="w-full rounded-lg mb-8"
+                className="w-full rounded-lg mb-8 object-cover h-[400px]"
               />
             )}
 
             <div 
               className="prose prose-lg max-w-none"
-              dangerouslySetInnerHTML={{ __html: post.content }}
+              dangerouslySetInnerHTML={{ 
+                __html: post.content.replace(
+                  /!\[(.*?)\]\((.*?)\)/g, 
+                  (match: string, alt: string, src: string) => {
+                    const fullUrl = getImageUrl(src);
+                    return `<img src="${fullUrl}" alt="${alt}" class="w-full rounded-lg my-4" />`;
+                  }
+                ) 
+              }}
             />
 
             {post.blog_posts_categories && (
