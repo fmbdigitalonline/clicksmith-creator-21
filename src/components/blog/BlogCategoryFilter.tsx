@@ -19,18 +19,20 @@ const BlogCategoryFilter = ({
   onSelectCategory 
 }: BlogCategoryFilterProps) => {
   return (
-    <div className="flex flex-wrap gap-2 py-4">
+    <div className="flex flex-wrap gap-2">
       <Button
         variant={selectedCategory === null ? "default" : "outline"}
         onClick={() => onSelectCategory(null)}
+        className="rounded-full"
       >
-        All
+        All Posts
       </Button>
       {categories.map((category) => (
         <Button
           key={category.id}
           variant={selectedCategory === category.slug ? "default" : "outline"}
           onClick={() => onSelectCategory(category.slug)}
+          className="rounded-full"
         >
           {category.name}
         </Button>
