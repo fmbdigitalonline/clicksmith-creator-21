@@ -1,32 +1,88 @@
-
 import { corsHeaders } from "../_shared/cors.ts";
-import { generateContent } from "./deepeek.ts";
+import OpenAI from "openai";
 
-const generateWithDeepeek = async (prompt: string) => {
-  const apiKey = Deno.env.get("DEEPEEK_API_KEY");
+const generateWithDeepseek = async (prompt: string) => {
+  const apiKey = Deno.env.get("DEEPSEEK_API_KEY");
   if (!apiKey) {
-    throw new Error("Missing DEEPEEK_API_KEY");
+    throw new Error("Missing DEEPSEEK_API_KEY");
   }
 
-  const response = await fetch("https://api.deepeek.com/v1/generate", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      prompt,
-      max_tokens: 1000,
-      temperature: 0.7,
-    }),
+  const client = new OpenAI({
+    apiKey: apiKey,
+    baseURL: 'https://api.deepseek.com',
   });
 
-  if (!response.ok) {
-    throw new Error(`Deepeek API returned ${response.status}: ${await response.text()}`);
-  }
+  const system_prompt = `
+    You are a landing page content generator. Generate content in JSON format following this structure:
+    {
+      "hero": {
+        "title": "string",
+        "description": "string",
+        "ctaText": "string"
+      },
+      "features": [
+        {
+          "title": "string",
+          "description": "string"
+        }
+      ],
+      "benefits": [
+        {
+          "title": "string",
+          "description": "string"
+        }
+      ],
+      "testimonials": [
+        {
+          "quote": "string",
+          "author": "string",
+          "title": "string"
+        }
+      ],
+      "pricing": {
+        "plans": [
+          {
+            "name": "string",
+            "price": "string",
+            "features": ["string"]
+          }
+        ]
+      },
+      "faq": {
+        "items": [
+          {
+            "question": "string",
+            "answer": "string"
+          }
+        ]
+      }
+    }
+  `;
 
-  const data = await response.json();
-  return data.choices[0].text;
+  try {
+    const completion = await client.chat.completions.create({
+      model: "deepseek-chat",
+      messages: [
+        { role: "system", content: system_prompt },
+        { role: "user", content: prompt }
+      ],
+      response_format: {
+        type: 'json_object'
+      },
+      max_tokens: 2000,
+      temperature: 0.7,
+    });
+
+    const content = completion.choices[0].message.content;
+    if (!content) {
+      throw new Error("Empty response from Deepseek API");
+    }
+
+    return JSON.parse(content);
+  } catch (error) {
+    console.error("Error calling Deepseek API:", error);
+    throw error;
+  }
 };
 
 const generateBasicContent = (businessIdea: string, targetAudience: string) => {
@@ -101,18 +157,22 @@ const generateIterativeContent = async (
   isRefinement = false
 ) => {
   try {
-    console.log("Attempting to generate content with Deepeek...");
-    const content = await generateWithDeepeek(`
+    console.log("Attempting to generate content with Deepseek...");
+    const prompt = `
       Create landing page content for a business named "${businessName}".
       Business idea: ${businessIdea}
       Target audience: ${targetAudience}
       ${isRefinement && currentContent ? `Current content to improve: ${JSON.stringify(currentContent)}` : ""}
-    `);
-
-    console.log("Successfully generated content with Deepeek");
-    return JSON.parse(content);
+      
+      Please ensure the content is engaging, persuasive, and tailored to the target audience.
+      Focus on the unique value proposition and benefits for the specified target audience.
+    `;
+    
+    const content = await generateWithDeepseek(prompt);
+    console.log("Successfully generated content with Deepseek");
+    return content;
   } catch (error) {
-    console.error("❌ Deepeek API error:", error);
+    console.error("❌ Deepseek API error:", error);
     console.error("❌ Error in Deepeek generation, falling back to basic content:", error);
     return generateBasicContent(businessIdea, targetAudience);
   }
