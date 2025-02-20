@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,26 +19,36 @@ interface GenerationProgress {
   progress: number;
 }
 
-interface GenerationLog {
-  status: string | null;
-  success: boolean;
-  error_message: string | null;
-  step_details: {
-    stage?: 'started' | 'content_generated' | 'images_generated' | 'completed' | 'failed';
-    timestamp?: string;
-  };
+interface StepDetails {
+  stage: 'started' | 'content_generated' | 'images_generated' | string;
+  [key: string]: any;
 }
 
-interface LandingPageSection {
-  type: string;
-  order?: number;
-  content: any;
+interface DatabaseLog {
+  api_status_code: number;
+  cache_hit: boolean;
+  created_at: string;
+  error_message: string | null;
+  generation_time: number;
+  id: string;
+  project_id: string;
+  request_payload: any;
+  response_payload: any;
+  status: string | null;
+  step_details: any;
+  success: boolean;
+  user_id: string;
+}
+
+interface GenerationLog {
+  success: boolean;
+  error_message?: string;
+  status?: string;
+  step_details?: StepDetails;
 }
 
 interface LandingPageResponse {
-  content: {
-    sections?: LandingPageSection[];
-  };
+  content: any;
   project_id: string;
   id: string;
 }
@@ -55,6 +66,7 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
   const navigate = useNavigate();
   const { isLoading: isTemplateLoading } = useLandingPageTemplate();
 
+  // Track generation progress with cleanup
   useEffect(() => {
     let intervalId: NodeJS.Timeout | undefined;
 
@@ -76,48 +88,59 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
         }
 
         if (logs) {
-          const generationLog = logs as GenerationLog;
-          console.log('Generation log status:', generationLog.status, 'Step details:', generationLog.step_details);
+          const dbLog = logs as DatabaseLog;
+          const logData: GenerationLog = {
+            success: dbLog.success,
+            error_message: dbLog.error_message || undefined,
+            status: dbLog.status || undefined,
+            step_details: dbLog.step_details ? {
+              stage: dbLog.step_details.stage || 'unknown',
+              ...dbLog.step_details
+            } : undefined
+          };
           
-          if (generationLog.success) {
+          if (logData.success) {
             setGenerationProgress({ status: "Success!", progress: 100 });
-            clearInterval(intervalId);
+            if (intervalId) {
+              clearInterval(intervalId);
+            }
             setIsGenerating(false);
             setIsRefining(false);
 
+            // Invalidate and wait for queries after successful generation
             await Promise.all([
               queryClient.invalidateQueries({ queryKey: ['subscription'] }),
               queryClient.invalidateQueries({ queryKey: ['free_tier_usage'] }),
               queryClient.invalidateQueries({ queryKey: ['landing-page', project.id] })
             ]);
 
-            // Force a refetch
+            // Force an immediate refetch
             await queryClient.refetchQueries({ 
               queryKey: ['landing-page', project.id],
               type: 'active'
             });
-          } else if (generationLog.error_message) {
+          } else if (logData.error_message) {
             setGenerationProgress({ 
-              status: `Error: ${generationLog.error_message}`, 
+              status: `Error: ${logData.error_message}`, 
               progress: 0 
             });
-            clearInterval(intervalId);
+            if (intervalId) {
+              clearInterval(intervalId);
+            }
             setIsGenerating(false);
             setIsRefining(false);
           } else {
-            const stepDetails = generationLog.step_details;
+            const stepDetails = logData.step_details;
             let progress = 0;
 
-            if (stepDetails && stepDetails.stage) {
-              progress = 
-                stepDetails.stage === 'started' ? 25 :
-                stepDetails.stage === 'content_generated' ? 50 :
-                stepDetails.stage === 'images_generated' ? 75 :
-                stepDetails.stage === 'completed' ? 100 : 0;
+            if (stepDetails) {
+              progress = stepDetails.stage === 'started' ? 25 :
+                        stepDetails.stage === 'content_generated' ? 50 :
+                        stepDetails.stage === 'images_generated' ? 75 : 0;
             }
             
             setGenerationProgress({ 
-              status: `${generationLog.status?.replace(/_/g, ' ') || 'Processing'}...`, 
+              status: `${logData.status?.replace(/_/g, ' ') || 'Processing'}...`, 
               progress 
             });
           }
@@ -159,8 +182,6 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
         throw new Error('Authentication required');
       }
 
-      console.log('Starting landing page generation for project:', project.id);
-
       const { data, error } = await supabase.functions.invoke('generate-landing-page', {
         body: {
           projectId: project.id,
@@ -172,7 +193,6 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
       });
 
       if (error) {
-        console.error('Generation error:', error);
         if (error.status === 402) {
           toast({
             title: "Insufficient Credits",
@@ -185,12 +205,11 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
         throw error;
       }
 
-      console.log('Generated content:', data);
-
       if (!data || !data.content) {
         throw new Error('Invalid response from generation service');
       }
 
+      // Verify the returned content matches our project
       if (data.project_id !== project.id) {
         console.error('Project ID mismatch:', { 
           expected: project.id, 
@@ -199,6 +218,7 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
         throw new Error('Generated content does not match the current project');
       }
 
+      console.log("Received new content:", data);
       toast({
         title: "Content Generated",
         description: "Your landing page content has been updated."
@@ -217,35 +237,16 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
     }
   };
 
-  const renderSections = () => {
-    const sections = landingPage?.content?.sections;
-    if (!Array.isArray(sections) || sections.length === 0) {
-      return (
-        <div className="text-center py-16">
-          <h2 className="text-2xl font-semibold mb-4">No Content Generated Yet</h2>
-          <p className="text-gray-600 mb-8">Click the "Generate Content" button to create your landing page.</p>
-        </div>
-      );
+  // Verify that the displayed landing page matches the current project
+  useEffect(() => {
+    if (landingPage && project && landingPage.project_id !== project.id) {
+      console.error('Landing page project ID mismatch');
+      // Force a refetch of the correct landing page
+      void queryClient.invalidateQueries({ 
+        queryKey: ['landing-page', project.id] 
+      });
     }
-
-    return (
-      <div className="divide-y divide-gray-200">
-        {sections
-          .sort((a, b) => (a.order || 0) - (b.order || 0))
-          .map((section, index) => {
-            console.log('Rendering section:', section);
-            switch (section.type) {
-              case 'hero':
-                return <HeroSection key={`${section.type}-${index}`} content={section.content} />;
-              case 'social-proof':
-                return <SocialProofSection key={`${section.type}-${index}`} content={section.content} />;
-              default:
-                return <DynamicSection key={`${section.type}-${index}`} section={section} />;
-            }
-          })}
-      </div>
-    );
-  };
+  }, [landingPage, project, queryClient]);
 
   if (isTemplateLoading) {
     return <LoadingStateLandingPage />;
@@ -288,7 +289,27 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
         </div>
 
         <TabsContent value="preview" className="mt-0">
-          {renderSections()}
+          {landingPage?.content?.sections ? (
+            <div className="divide-y divide-gray-200">
+              {landingPage.content.sections
+                .sort((a: any, b: any) => a.order - b.order)
+                .map((section: any) => {
+                  switch (section.type) {
+                    case 'hero':
+                      return <HeroSection key={section.type} content={section.content} />;
+                    case 'social-proof':
+                      return <SocialProofSection key={section.type} content={section.content} />;
+                    default:
+                      return <DynamicSection key={section.type} section={section} />;
+                  }
+                })}
+            </div>
+          ) : (
+            <div className="text-center py-16">
+              <h2 className="text-2xl font-semibold mb-4">No Content Generated Yet</h2>
+              <p className="text-gray-600 mb-8">Click the "Generate Content" button to create your landing page.</p>
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="edit" className="mt-0">
@@ -307,3 +328,4 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
 };
 
 export default LandingPageContent;
+

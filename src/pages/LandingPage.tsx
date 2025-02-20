@@ -42,6 +42,7 @@ const LandingPage = () => {
         throw new Error("Project not found");
       }
 
+      console.log("Project data retrieved:", data);
       return data;
     },
     retry: false,
@@ -57,15 +58,14 @@ const LandingPage = () => {
           throw new Error('No authenticated session');
         }
 
-        // Query existing landing page, prioritizing ones with content
-        const { data: existingPages, error: pageError } = await supabase
+        // First, check for any existing landing page specific to this project
+        const { data: existingPage, error: pageError } = await supabase
           .from("landing_pages")
           .select("*")
           .eq("project_id", projectId)
-          .order('content_iterations', { ascending: false })
-          .order('created_at', { ascending: false });
+          .maybeSingle();
 
-        if (pageError) {
+        if (pageError && pageError.code !== "PGRST116") {
           toast({
             title: "Error loading landing page",
             description: pageError.message,
@@ -74,13 +74,8 @@ const LandingPage = () => {
           throw pageError;
         }
 
-        // Find the first landing page with content, or the most recent one
-        const validLandingPage = existingPages?.find(page => 
-          page.content && Object.keys(page.content).length > 0
-        ) || existingPages?.[0];
-
-        if (!validLandingPage) {
-          // Only create a new landing page if none exists
+        if (!existingPage) {
+          // If no landing page exists for this project, create one with required fields
           const { data: newPage, error: createError } = await supabase
             .from("landing_pages")
             .insert({
@@ -103,10 +98,12 @@ const LandingPage = () => {
             throw createError;
           }
 
+          console.log("New landing page created:", newPage);
           return newPage;
         }
 
-        return validLandingPage;
+        console.log("Existing landing page retrieved:", existingPage);
+        return existingPage;
       } catch (error) {
         console.error("Error fetching/creating landing page:", error);
         return null;
