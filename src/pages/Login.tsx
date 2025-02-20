@@ -122,9 +122,6 @@ const Login = () => {
                 }
               }
             }}
-            onChange={({ view }) => {
-              setAuthView(view as 'sign_in' | 'sign_up');
-            }}
           />
           
           <div className="mt-6">
