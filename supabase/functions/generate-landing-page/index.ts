@@ -18,12 +18,9 @@ serve(async (req) => {
     const { projectId, businessIdea, targetAudience, userId } = await req.json();
 
     // Validate required parameters
-    if (!projectId || !businessIdea) {
-      console.error('Missing required parameters:', { projectId, businessIdea });
-      throw new Error('Missing required parameters: projectId and businessIdea are required');
+    if (!projectId || !businessIdea || !userId) {
+      throw new Error('Missing required parameters: projectId, businessIdea, and userId are required');
     }
-
-    console.log('Parameters received:', { projectId, businessIdea: JSON.stringify(businessIdea) });
 
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
@@ -35,26 +32,21 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Log the generation start
-    const { data: log, error: logError } = await supabase
-      .from('landing_page_generation_logs')
-      .insert({
-        project_id: projectId,
-        request_payload: { businessIdea, targetAudience },
-        status: 'started',
-        step_details: { stage: 'started', timestamp: new Date().toISOString() }
-      })
-      .select()
+    // Get project title first
+    const { data: project, error: projectError } = await supabase
+      .from('projects')
+      .select('title')
+      .eq('id', projectId)
       .single();
 
-    if (logError) {
-      console.error('Error creating generation log:', logError);
+    if (projectError) {
+      throw projectError;
     }
 
-    // Generate content
+    // Generate the landing page content
     const content = {
       hero: {
-        title: businessIdea.title || "Transform Your Business",
+        title: businessIdea.valueProposition || project.title || "Untitled Landing Page",
         description: businessIdea.description || "Experience innovation and excellence",
         cta: "Get Started Today",
         image: "/placeholder.svg"
@@ -93,88 +85,35 @@ serve(async (req) => {
           }
         ]
       },
-      testimonials: {
+      testimonials: targetAudience ? {
         title: "What Our Clients Say",
         items: [
           {
             quote: "A game-changing solution that transformed our business.",
             author: "Jane Smith",
-            role: "CEO, Tech Solutions Inc."
+            role: targetAudience.demographics || "CEO"
           }
         ]
-      },
-      pricing: {
-        title: "Simple, Transparent Pricing",
-        description: "Choose the plan that's right for you",
-        plans: [
-          {
-            name: "Starter",
-            price: "$99/month",
-            features: ["Basic Features", "Email Support", "5 Users"]
-          },
-          {
-            name: "Professional",
-            price: "$199/month",
-            features: ["Advanced Features", "Priority Support", "Unlimited Users"]
-          }
-        ]
-      },
-      faq: {
-        title: "Frequently Asked Questions",
-        description: "Find answers to common questions about our solutions",
-        items: [
-          {
-            question: "What makes your solution unique?",
-            answer: `Our solution stands out through its innovative approach to ${businessIdea.description || 'business challenges'}.`
-          },
-          {
-            question: "How long does implementation take?",
-            answer: "Our streamlined process typically enables implementation within 2-4 weeks."
-          }
-        ]
-      }
+      } : null
     };
 
-    // Update log with content generation status
-    await supabase
-      .from('landing_page_generation_logs')
-      .update({
-        status: 'completed',
-        step_details: { stage: 'completed', timestamp: new Date().toISOString() },
-        success: true,
-        response_payload: { content }
-      })
-      .eq('id', log?.id);
+    // Generate a unique slug based on the project title
+    const baseSlug = (project.title || "untitled")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "");
+    const randomSuffix = Math.random().toString(36).substring(2, 8);
+    const slug = `${baseSlug}-${randomSuffix}`;
 
-    // Create or update landing page in database
-    const { error: upsertError } = await supabase
+    // Create the landing page
+    const { data: landingPage, error: createError } = await supabase
       .from('landing_pages')
-      .upsert({
+      .insert({
         project_id: projectId,
+        user_id: userId,
+        title: project.title || "Untitled Landing Page", // Ensure we always have a title
         content,
-        theme_settings: {
-          colorScheme: "light",
-          typography: {
-            headingFont: "Inter",
-            bodyFont: "Inter"
-          },
-          spacing: {
-            sectionPadding: "py-16",
-            componentGap: "gap-8"
-          }
-        },
-        user_id: userId
-      });
-
-    if (upsertError) {
-      console.error('Error upserting landing page:', upsertError);
-      throw upsertError;
-    }
-
-    // Return the generated content
-    return new Response(
-      JSON.stringify({
-        content,
+        slug,
         theme_settings: {
           colorScheme: "light",
           typography: {
@@ -186,6 +125,21 @@ serve(async (req) => {
             componentGap: "gap-8"
           }
         }
+      })
+      .select()
+      .single();
+
+    if (createError) {
+      console.error('Error creating landing page:', createError);
+      throw createError;
+    }
+
+    // Return the generated content
+    return new Response(
+      JSON.stringify({
+        content,
+        theme_settings: landingPage.theme_settings,
+        landingPageId: landingPage.id
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -196,25 +150,6 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in generate-landing-page function:', error);
     
-    // Attempt to log the error to Supabase if we can
-    try {
-      const supabaseUrl = Deno.env.get('SUPABASE_URL');
-      const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-      
-      if (supabaseUrl && supabaseKey) {
-        const supabase = createClient(supabaseUrl, supabaseKey);
-        await supabase
-          .from('landing_page_generation_logs')
-          .insert({
-            status: 'error',
-            error_message: error.message,
-            step_details: { stage: 'error', timestamp: new Date().toISOString() }
-          });
-      }
-    } catch (logError) {
-      console.error('Error logging to Supabase:', logError);
-    }
-
     return new Response(
       JSON.stringify({ 
         error: error.message,
