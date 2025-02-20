@@ -66,7 +66,7 @@ serve(async (req) => {
       throw new Error('Failed to generate hero image');
     }
 
-    // Generate complete landing page content with all sections
+    // Generate complete landing page content with expanded sections
     const landingPageContent = {
       sections: [
         {
@@ -121,17 +121,17 @@ serve(async (req) => {
               {
                 title: "Quick Market Testing",
                 description: "Test your business ideas, products, or services in minutes instead of months",
-                highlights: ["Instant Feedback", "Real Market Data"]
+                highlights: ["Instant Feedback", "Real Market Data", "AI-Powered Analysis"]
               },
               {
                 title: "AI-Powered Analysis",
                 description: "Understand your target audience with deep market insights and behavior analysis",
-                highlights: ["Audience Insights", "Behavior Patterns"]
+                highlights: ["Audience Insights", "Behavior Patterns", "Predictive Analytics"]
               },
               {
                 title: "Social Media Integration",
                 description: "Create and test social media ads to find what resonates with your audience",
-                highlights: ["Multi-Platform", "Performance Tracking"]
+                highlights: ["Multi-Platform", "Performance Tracking", "A/B Testing"]
               }
             ]
           }
@@ -140,24 +140,127 @@ serve(async (req) => {
           type: 'dynamic',
           order: 3,
           layout: {
-            style: 'columns',
+            style: 'split',
             background: 'light'
           },
           content: {
-            title: "Your Path to Market Success",
-            subtitle: "Four simple steps to validate your business idea",
-            mainDescription: "Stop guessing what your market wants. Use our proven process to test, learn, and adapt your business ideas with real market feedback.",
+            title: "Comprehensive Market Analysis",
+            subtitle: "Get Deep Insights Into Your Market",
+            mainDescription: "Our AI-powered platform analyzes multiple data sources to give you a complete picture of your market opportunity.",
             bulletPoints: [
-              "Input your business idea or service concept",
-              "Get AI-powered market analysis and audience insights",
-              "Test your messaging with real social media ads",
-              "Receive detailed feedback and actionable recommendations"
+              "Detailed competitor analysis and market positioning",
+              "Customer sentiment analysis across social platforms",
+              "Trend identification and growth opportunity spotting",
+              "Real-time market demand assessment"
+            ]
+          }
+        },
+        {
+          type: 'features',
+          order: 4,
+          layout: {
+            style: 'columns',
+            background: 'white'
+          },
+          content: {
+            title: "Advanced Features for Deep Insights",
+            subtitle: "Everything you need to validate and launch successfully",
+            items: [
+              {
+                title: "Real-Time Testing",
+                description: "Launch quick market tests and get results within hours",
+                details: ["Instant feedback loops", "Real user responses", "Quick iterations"]
+              },
+              {
+                title: "Audience Analysis",
+                description: "Understand exactly who your customers are and what they want",
+                details: ["Demographic insights", "Behavior patterns", "Purchase intent"]
+              },
+              {
+                title: "Competition Tracking",
+                description: "Stay ahead of market trends and competitor movements",
+                details: ["Market positioning", "Competitor strategies", "Gap analysis"]
+              }
             ]
           }
         },
         {
           type: 'dynamic',
-          order: 4,
+          order: 5,
+          layout: {
+            style: 'columns',
+            background: 'gradient'
+          },
+          content: {
+            title: "How It Works",
+            subtitle: "Your Journey to Market Success",
+            mainDescription: "Our proven four-step process helps you validate your ideas and launch with confidence.",
+            bulletPoints: [
+              "1. Input your business concept and target market",
+              "2. Receive AI-generated market analysis and insights",
+              "3. Test your messaging with real audience feedback",
+              "4. Get actionable recommendations for success"
+            ]
+          }
+        },
+        {
+          type: 'dynamic',
+          order: 6,
+          layout: {
+            width: 'contained',
+            spacing: 'spacious'
+          },
+          content: {
+            title: "Common Questions About Market Testing",
+            subtitle: "Get answers to frequently asked questions",
+            items: [
+              {
+                title: "How long does market testing take?",
+                description: "Most tests can be completed within 24-48 hours, giving you quick insights to make informed decisions."
+              },
+              {
+                title: "What kind of results can I expect?",
+                description: "You'll receive detailed audience insights, market demand metrics, and actionable recommendations."
+              },
+              {
+                title: "Is this suitable for my industry?",
+                description: "Our platform works across all industries, from tech to retail, services to products."
+              }
+            ]
+          }
+        },
+        {
+          type: 'features',
+          order: 7,
+          layout: {
+            style: 'grid',
+            background: 'light'
+          },
+          content: {
+            title: "Success Stories",
+            subtitle: "See how others have validated their ideas",
+            items: [
+              {
+                title: "Tech Startup",
+                description: "Validated product-market fit in 2 weeks instead of 6 months",
+                highlights: ["90% time saved", "50K in saved development costs"]
+              },
+              {
+                title: "Service Business",
+                description: "Found perfect target audience and messaging in first attempt",
+                highlights: ["3x conversion rate", "Perfect market fit"]
+              },
+              {
+                title: "E-commerce Brand",
+                description: "Identified winning products before launch",
+                highlights: ["Zero inventory waste", "145% ROI"]
+              }
+            ]
+          }
+        },
+        {
+          type: 'dynamic',
+          order: 8,
           layout: {
             width: 'contained',
             spacing: 'spacious',
