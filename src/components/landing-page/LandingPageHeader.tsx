@@ -73,6 +73,7 @@ const LandingPageHeader = ({ project, landingPage }: LandingPageHeaderProps) => 
             title,
             content,
             slug,
+            published: false, // Add this to ensure new pages start unpublished
             theme_settings: {
               colorScheme: "light",
               typography: {
@@ -98,8 +99,13 @@ const LandingPageHeader = ({ project, landingPage }: LandingPageHeaderProps) => 
           description: "Your landing page has been created successfully.",
         });
 
-        // Redirect to the newly created landing page's URL
-        navigate(`/projects/${project.id}/landing-page/${data.id}`);
+        // Redirect to the new landing page URL
+        if (data) {
+          // Small delay to ensure the toast is visible
+          setTimeout(() => {
+            navigate(`/projects/${project.id}/landing-page/${data.id}`);
+          }, 500);
+        }
       }
     } catch (error: any) {
       console.error('Error saving landing page:', error);
