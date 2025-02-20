@@ -1,3 +1,4 @@
+
 import { BusinessIdea, TargetAudience, AdHook } from "@/types/adWizard";
 import { TabsContent } from "@/components/ui/tabs";
 import LoadingState from "./complete/LoadingState";
@@ -9,6 +10,7 @@ import { useAdGeneration } from "./gallery/useAdGeneration";
 import AdGenerationControls from "./gallery/AdGenerationControls";
 import { useEffect, useState } from "react";
 import { AdSizeSelector, AD_FORMATS } from "./gallery/components/AdSizeSelector";
+import { useToast } from "@/hooks/use-toast";
 
 interface AdGalleryStepProps {
   businessIdea: BusinessIdea;
@@ -30,6 +32,8 @@ const AdGalleryStep = ({
   videoAdsEnabled = false,
 }: AdGalleryStepProps) => {
   const [selectedFormat, setSelectedFormat] = useState(AD_FORMATS[0]);
+  const { toast } = useToast();
+  
   const {
     platform,
     showPlatformChangeDialog,
@@ -47,18 +51,49 @@ const AdGalleryStep = ({
   } = useAdGeneration(businessIdea, targetAudience, adHooks);
 
   useEffect(() => {
-    if (adVariants.length === 0) {
-      generateAds(platform);
-    }
-  }, [videoAdsEnabled]);
+    const initializeAds = async () => {
+      if (adVariants.length === 0) {
+        try {
+          await generateAds(platform);
+        } catch (error) {
+          console.error("Error generating initial ads:", error);
+          toast({
+            title: "Error generating ads",
+            description: "There was an error generating your ads. Please try again.",
+            variant: "destructive",
+          });
+        }
+      }
+    };
 
-  const onPlatformChange = (newPlatform: "facebook" | "google" | "linkedin" | "tiktok") => {
-    handlePlatformChange(newPlatform, adVariants.length > 0);
+    initializeAds();
+  }, [platform, videoAdsEnabled]);
+
+  const onPlatformChange = async (newPlatform: "facebook" | "google" | "linkedin" | "tiktok") => {
+    try {
+      handlePlatformChange(newPlatform, adVariants.length > 0);
+    } catch (error) {
+      console.error("Error changing platform:", error);
+      toast({
+        title: "Error changing platform",
+        description: "There was an error changing the platform. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const onConfirmPlatformChange = () => {
-    const newPlatform = confirmPlatformChange();
-    generateAds(newPlatform);
+  const onConfirmPlatformChange = async () => {
+    try {
+      const newPlatform = confirmPlatformChange();
+      await generateAds(newPlatform);
+    } catch (error) {
+      console.error("Error confirming platform change:", error);
+      toast({
+        title: "Error generating ads",
+        description: "There was an error generating ads for the new platform. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const onCancelPlatformChange = () => {
@@ -72,6 +107,19 @@ const AdGalleryStep = ({
 
   const handleFormatChange = (format: typeof AD_FORMATS[0]) => {
     setSelectedFormat(format);
+  };
+
+  const handleRegenerate = async () => {
+    try {
+      await generateAds(platform);
+    } catch (error) {
+      console.error("Error regenerating ads:", error);
+      toast({
+        title: "Error regenerating ads",
+        description: "There was an error regenerating your ads. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const renderPlatformContent = (platformName: string) => (
@@ -97,7 +145,7 @@ const AdGalleryStep = ({
       <AdGenerationControls
         onBack={onBack}
         onStartOver={onStartOver}
-        onRegenerate={() => generateAds(platform)}
+        onRegenerate={handleRegenerate}
         isGenerating={isGenerating}
         generationStatus={generationStatus}
       />
