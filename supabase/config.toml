@@ -1,10 +1,6 @@
 
 project_id = "xorlfvflpihtafugltni"
 
-[api]
-enabled = true
-url = "https://xorlfvflpihtafugltni.supabase.co"
-
 [functions.generate-landing-page]
 verify_jwt = false
 
