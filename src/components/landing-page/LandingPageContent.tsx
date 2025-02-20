@@ -282,21 +282,16 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
 
   const renderSection = (sectionKey: string) => {
     if (!currentContent[sectionKey]) {
-      console.log(`Section ${sectionKey} not found in currentContent`);
       return null;
     }
 
     const sectionData = currentContent[sectionKey];
-    console.log(`Rendering section ${sectionKey}:`, sectionData);
-    
     if (!sectionData?.content) {
-      console.log(`No content for section: ${sectionKey}`);
       return null;
     }
 
     const Component = sectionComponents[sectionKey];
     if (!Component) {
-      console.warn(`No component found for section: ${sectionKey}`);
       return null;
     }
 
@@ -317,7 +312,7 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
     };
 
     return (
-      <div key={sectionKey} {...themeProps}>
+      <div key={`${sectionKey}-${landingPage?.id}`} {...themeProps}>
         <Component
           content={sectionData.content}
           layout={sectionData.layout || "default"}
