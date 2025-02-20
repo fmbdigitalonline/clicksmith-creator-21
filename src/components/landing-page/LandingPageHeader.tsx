@@ -61,8 +61,10 @@ const LandingPageHeader = ({ project, landingPage }: LandingPageHeaderProps) => 
           description: "Your landing page has been updated successfully.",
         });
       } else {
+        console.log('Creating new landing page for project:', project.id);
+        
         // Create new landing page
-        const { data: generatedContent, error: generationError } = await supabase.functions
+        const { data: newLandingPage, error: generationError } = await supabase.functions
           .invoke('generate-landing-page', {
             body: {
               projectId: project.id,
@@ -74,15 +76,22 @@ const LandingPageHeader = ({ project, landingPage }: LandingPageHeaderProps) => 
 
         if (generationError) throw generationError;
 
+        console.log('New landing page created:', newLandingPage);
+
+        if (!newLandingPage?.id) {
+          throw new Error('No landing page ID returned from creation');
+        }
+
         toast({
           title: "Landing page created",
           description: "Your landing page has been created successfully.",
         });
 
-        // Navigate to the new landing page
-        setTimeout(() => {
-          navigate(`/projects/${project.id}/landing-page/${generatedContent.id}`);
-        }, 500);
+        // Navigate to the new landing page using the correct route structure
+        navigate(`/projects/${project.id}/landing-page`);
+        
+        // Reload the page to ensure fresh data
+        window.location.reload();
       }
     } catch (error: any) {
       console.error('Error saving landing page:', error);
