@@ -39,28 +39,58 @@ export const DynamicSection = ({ section }: DynamicSectionProps) => {
   return (
     <section className={containerClass}>
       <div className={contentClass}>
-        {section.content?.title && (
-          <div className="space-y-4 text-center mb-12">
+        {/* Title and Subtitle */}
+        <div className="space-y-4 text-center mb-12">
+          {section.content?.title && (
             <h2 className={headingClass}>{section.content.title}</h2>
-            {section.content?.subtitle && (
-              <p className="text-xl md:text-2xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto animate-fade-in [animation-delay:200ms]">
-                {section.content.subtitle}
-              </p>
+          )}
+          {section.content?.subtitle && (
+            <p className="text-xl md:text-2xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto animate-fade-in [animation-delay:200ms]">
+              {section.content.subtitle}
+            </p>
+          )}
+        </div>
+        
+        {/* Content with Image Support */}
+        <div className={cn(
+          "grid gap-8",
+          section.layout?.style === 'split' ? "grid-cols-1 md:grid-cols-2" : "grid-cols-1"
+        )}>
+          {/* Text Content */}
+          <div className="space-y-6">
+            {section.content?.mainDescription && (
+              <div className="max-w-3xl mx-auto animate-fade-in">
+                <p className="text-xl text-gray-600 dark:text-gray-300 leading-relaxed">
+                  {section.content.mainDescription}
+                </p>
+              </div>
+            )}
+            {section.content?.bulletPoints && (
+              <BulletPointsList points={section.content.bulletPoints} />
             )}
           </div>
-        )}
-        
-        {section.content?.mainDescription && (
-          <div className="max-w-3xl mx-auto animate-fade-in">
-            <p className="text-xl text-gray-600 dark:text-gray-300 leading-relaxed">
-              {section.content.mainDescription}
-            </p>
-          </div>
-        )}
 
-        {section.content?.bulletPoints && <BulletPointsList points={section.content.bulletPoints} />}
-        {section.content?.items && <FeatureGrid items={section.content.items} layout={section.layout} />}
+          {/* Image Content */}
+          {section.content?.imageUrl && (
+            <div className={cn(
+              "relative overflow-hidden rounded-xl shadow-xl",
+              section.layout?.style === 'split' ? "h-full" : "aspect-video max-w-3xl mx-auto"
+            )}>
+              <img 
+                src={section.content.imageUrl} 
+                alt={section.content.title || "Section image"}
+                className="w-full h-full object-cover"
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Feature Grid */}
+        {section.content?.items && (
+          <FeatureGrid items={section.content.items} layout={section.layout} />
+        )}
         
+        {/* Call to Action Buttons */}
         {(section.content?.primaryCta || section.content?.secondaryCta) && (
           <div className="flex flex-col sm:flex-row gap-4 justify-center mt-12 animate-fade-in [animation-delay:400ms]">
             {section.content.primaryCta && (
