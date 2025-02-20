@@ -6,19 +6,11 @@ const openAI = new OpenAI({
   apiKey: Deno.env.get("OPENAI_API_KEY"),
 });
 
-const cleanJsonResponse = (content: string): string => {
-  const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-  if (jsonMatch) {
-    return jsonMatch[1];
-  }
-  return content;
-};
-
 const generateLandingPageContent = async (prompt: string) => {
   try {
-    console.log("Generating content with GPT-4...");
+    console.log("Generating content with GPT-4-mini...");
     const chatCompletion = await openAI.chat.completions.create({
-      model: "gpt-4",  // Changed from gpt-4o-mini to gpt-4
+      model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
@@ -32,11 +24,7 @@ const generateLandingPageContent = async (prompt: string) => {
     
     const content = chatCompletion.choices[0].message.content;
     console.log("Raw content from GPT:", content);
-    
-    const cleanedContent = cleanJsonResponse(content);
-    console.log("Cleaned content:", cleanedContent);
-    
-    return cleanedContent;
+    return content;
   } catch (error) {
     console.error("❌ OpenAI API error:", error);
     throw error;

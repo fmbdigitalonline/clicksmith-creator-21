@@ -48,11 +48,7 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
       console.log("Initializing landing page content with:", landingPage.content);
       return {
         hero: { 
-          content: landingPage.content.hero || {
-            title: "Welcome",
-            description: "Click 'Generate Content' to create your landing page.",
-            ctaText: "Get Started"
-          }, 
+          content: landingPage.content.hero, 
           layout: landingPage.theme_settings?.heroLayout || "centered" 
         },
         value_proposition: { 
@@ -92,9 +88,9 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
         },
         finalCta: { 
           content: {
-            title: landingPage.content.cta?.title || "Ready to Get Started?",
-            description: landingPage.content.cta?.description || "Generate your landing page content to get started.",
-            ctaText: landingPage.content.cta?.buttonText || "Generate Content"
+            title: landingPage.content.cta?.title,
+            description: landingPage.content.cta?.description,
+            ctaText: landingPage.content.cta?.buttonText
           }, 
           layout: "centered" 
         },
@@ -110,25 +106,8 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
       };
     }
     
-    // Return minimal initial content
-    return {
-      hero: { 
-        content: {
-          title: "Welcome",
-          description: "Click 'Generate Content' to create your landing page.",
-          ctaText: "Get Started"
-        }, 
-        layout: "centered" 
-      },
-      finalCta: { 
-        content: {
-          title: "Ready to Create Your Landing Page?",
-          description: "Click the 'Generate Content' button above to create your custom landing page.",
-          ctaText: "Generate Content"
-        }, 
-        layout: "centered" 
-      }
-    };
+    // Return empty content
+    return {};
   });
 
   // Monitor generation progress
@@ -197,7 +176,6 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
       if (data) {
         console.log("Received new content:", data);
         
-        // Save the current version before updating
         if (landingPage?.id) {
           const { error: updateError } = await supabase
             .from('landing_pages')
@@ -246,7 +224,7 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
           pricing: { 
             content: {
               title: "Our Pricing",
-              plans: data.content.pricing?.plans || []
+              plans: []
             },
             layout: "grid" 
           },
@@ -259,17 +237,17 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
           },
           finalCta: { 
             content: {
-              title: data.content.cta?.title || "Ready to Get Started?",
-              description: data.content.cta?.description || "Join us today and experience the difference.",
-              ctaText: data.content.cta?.buttonText || "Get Started Now"
+              title: data.content.cta?.title,
+              description: data.content.cta?.description,
+              ctaText: data.content.cta?.buttonText
             },
             layout: "centered" 
           },
           footer: { 
             content: {
-              links: data.content.footer || {
-                company: ["About", "Contact", "Careers"],
-                resources: ["Help Center", "Terms", "Privacy"]
+              links: {
+                company: [],
+                resources: []
               }
             },
             layout: "grid" 
@@ -283,7 +261,6 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
           description: "Your landing page content has been updated."
         });
 
-        // Invalidate queries to refresh the data
         queryClient.invalidateQueries({ queryKey: ['landing-page', project.id] });
       }
     } catch (error) {
@@ -319,7 +296,6 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
       if (error) throw error;
 
       if (data) {
-        // Update with refined content
         setCurrentContent({
           ...currentContent,
           ...data.content
