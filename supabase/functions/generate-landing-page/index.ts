@@ -14,12 +14,15 @@ interface GenerateLandingPageRequest {
 }
 
 const generateContent = async (businessIdea: any, targetAudience: any, iterationNumber: number = 1) => {
-  const prompt = `Generate a landing page content in JSON format for a business with the following details:
-Business Idea: ${JSON.stringify(businessIdea)}
-Target Audience: ${JSON.stringify(targetAudience)}
-Iteration: ${iterationNumber}
+  const prompt = `Create a landing page content object for a business. Focus on being specific and compelling.
 
-The response should strictly follow this structure:
+Business Details:
+- Business Idea: ${JSON.stringify(businessIdea)}
+- Target Audience: ${JSON.stringify(targetAudience)}
+- Iteration: ${iterationNumber}
+
+Please provide the response in the following JSON format (DO NOT include any markdown formatting or backticks, just the raw JSON):
+
 {
   "hero": {
     "title": "compelling headline",
@@ -58,9 +61,7 @@ The response should strictly follow this structure:
     "description": "urgency-driven description",
     "buttonText": "final call to action"
   }
-}
-
-Make content highly converting, emotional, and specific to the business and target audience.`;
+}`;
 
   try {
     console.log('Sending request to OpenAI...');
@@ -72,11 +73,11 @@ Make content highly converting, emotional, and specific to the business and targ
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',  // Changed from 'gpt-4' to 'gpt-4o-mini'
+        model: 'gpt-4',
         messages: [
           {
             role: "system",
-            content: "You are an expert landing page copywriter focused on conversion."
+            content: "You are an expert landing page copywriter focused on conversion. Provide responses in clean JSON format without any markdown formatting or code blocks."
           },
           {
             role: "user",
@@ -100,8 +101,22 @@ Make content highly converting, emotional, and specific to the business and targ
       throw new Error('Invalid response format from OpenAI');
     }
 
-    const content = JSON.parse(data.choices[0].message.content);
-    return content;
+    // Clean up the response content to ensure it's valid JSON
+    const cleanContent = data.choices[0].message.content.trim()
+      .replace(/^```json\s*/, '') // Remove starting ```json if present
+      .replace(/```$/, '')        // Remove ending ``` if present
+      .trim();                    // Remove any extra whitespace
+
+    console.log('Cleaned content:', cleanContent);
+
+    try {
+      const content = JSON.parse(cleanContent);
+      return content;
+    } catch (parseError) {
+      console.error('JSON parse error:', parseError);
+      console.error('Content that failed to parse:', cleanContent);
+      throw new Error('Failed to parse OpenAI response as JSON');
+    }
   } catch (error) {
     console.error('Error in generateContent:', error);
     throw error;
