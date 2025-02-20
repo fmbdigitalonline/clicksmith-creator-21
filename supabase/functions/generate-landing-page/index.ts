@@ -16,7 +16,7 @@ interface GenerateLandingPageRequest {
 const generateContent = async (businessIdea: any, targetAudience: any, iterationNumber: number = 1) => {
   const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
   
-  const prompt = `Create a dynamic landing page content structure for this business:
+  const prompt = `Create a detailed, text-rich landing page content structure for this business:
 
 Business Details:
 ${JSON.stringify(businessIdea, null, 2)}
@@ -24,7 +24,7 @@ ${JSON.stringify(businessIdea, null, 2)}
 Target Audience:
 ${JSON.stringify(targetAudience, null, 2)}
 
-Design a unique landing page structure that best converts this target audience. You have complete creative freedom.
+Design a unique, content-rich landing page structure that effectively communicates value to this target audience. Focus on detailed explanations, compelling copy, and thorough content in each section.
 
 IMPORTANT: Return ONLY the raw JSON object, no markdown formatting or code block syntax.
 
@@ -32,42 +32,81 @@ The JSON structure should follow this format:
 {
   "sections": [
     {
-      "type": string (any section type that makes sense for this business),
-      "order": number (position in the page),
+      "type": string (choose from: hero, story, features, valueProposition, marketingCopy, industryInsights, benefits, testimonials, callToAction),
+      "order": number,
       "layout": {
-        "style": string (grid, columns, carousel, split, centered, etc),
+        "style": string (grid, columns, carousel, split, centered),
         "background": string (solid, gradient, pattern, image),
         "spacing": string (compact, normal, spacious),
         "width": string (contained, full, narrow)
       },
       "content": {
-        "title": string,
-        "subtitle"?: string,
-        "description"?: string,
-        "items"?: array of content items,
-        "primaryCta"?: { text: string, action: string },
-        "secondaryCta"?: { text: string, action: string },
-        "media"?: { type: string, url?: string, alt?: string }
+        "title": string (compelling headline),
+        "subtitle": string (supporting subheadline),
+        "mainDescription": string (primary content paragraph),
+        "detailedDescription": string (in-depth explanation),
+        "summary": string (brief overview),
+        "bulletPoints": string[] (key points or features),
+        "paragraphs": [
+          {
+            "heading": string,
+            "text": string (detailed paragraph),
+            "emphasis": boolean
+          }
+        ],
+        "items": [
+          {
+            "title": string,
+            "description": string (detailed item description),
+            "details": string[] (additional bullet points),
+            "highlights": string[] (key benefits or features)
+          }
+        ],
+        "primaryCta": { 
+          "text": string,
+          "action": string,
+          "description": string
+        },
+        "secondaryCta": { 
+          "text": string,
+          "action": string,
+          "description": string
+        }
       },
       "style": {
         "textAlign": string (left, center, right),
         "colorScheme": string (light, dark, custom),
-        "accentColor"?: string,
-        "animation"?: string
+        "accentColor": string,
+        "typography": {
+          "headingSize": string (normal, large, xlarge),
+          "bodySize": string (normal, large),
+          "lineHeight": string (normal, relaxed, loose)
+        }
       }
     }
   ],
   "theme": {
-    "primary": string (color),
-    "secondary": string (color),
-    "background": string (color),
-    "text": string (color),
+    "primary": string,
+    "secondary": string,
+    "background": string,
+    "text": string,
     "fonts": {
       "heading": string,
       "body": string
     }
   }
-}`;
+}
+
+Instructions for content generation:
+1. Create multiple paragraphs of detailed content for each section
+2. Use industry-specific terminology and examples
+3. Include persuasive marketing copy that resonates with the target audience
+4. Provide thorough explanations of features and benefits
+5. Use a mix of short and long-form content
+6. Ensure each section has a clear purpose and message
+7. Include relevant statistics and data points where appropriate
+8. Write in a tone that matches the business and audience
+9. Include clear calls-to-action with supporting text`;
 
   try {
     console.log('Sending request to OpenAI...');
@@ -79,18 +118,18 @@ The JSON structure should follow this format:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4o',
         messages: [
           {
             role: "system",
-            content: "You are an expert landing page designer. Always return ONLY raw JSON without any markdown formatting or code blocks."
+            content: "You are an expert landing page designer and copywriter. Create detailed, persuasive content that converts. Focus on thorough explanations and compelling copy. Always return ONLY raw JSON without any markdown formatting or code blocks."
           },
           {
             role: "user",
             content: prompt
           }
         ],
-        temperature: 0.7,
+        temperature: 0.8,
       }),
     });
 
@@ -107,10 +146,7 @@ The JSON structure should follow this format:
       throw new Error('Invalid response format from OpenAI');
     }
 
-    // Clean up the response content before parsing
     let contentString = data.choices[0].message.content.trim();
-    
-    // Remove any markdown code block syntax if present
     contentString = contentString.replace(/^```json\n?/, '').replace(/\n?```$/, '');
     
     try {
