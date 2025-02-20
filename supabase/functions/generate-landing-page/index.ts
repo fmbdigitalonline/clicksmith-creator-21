@@ -72,7 +72,7 @@ Make content highly converting, emotional, and specific to the business and targ
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4',
+        model: 'gpt-4o-mini',  // Changed from 'gpt-4' to 'gpt-4o-mini'
         messages: [
           {
             role: "system",
