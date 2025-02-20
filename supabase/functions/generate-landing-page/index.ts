@@ -10,7 +10,6 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -44,7 +43,6 @@ serve(async (req) => {
     High quality, suitable for website hero section with text overlay.
     No text, no watermarks, no logos.`;
 
-    // Generate hero image using Replicate
     console.log('Generating hero image with prompt:', heroImagePrompt);
     const imageOutput = await replicate.run(
       "black-forest-labs/flux-1.1-pro-ultra",
@@ -55,7 +53,7 @@ serve(async (req) => {
           num_inference_steps: 50,
           guidance_scale: 7.5,
           width: 1024,
-          height: 576, // 16:9 aspect ratio for hero image
+          height: 576,
           style_preset: "photographic",
           num_outputs: 1
         }
@@ -69,27 +67,120 @@ serve(async (req) => {
       throw new Error('Failed to generate hero image');
     }
 
-    // Generate landing page sections with the hero image
+    // Generate content based on business idea and target audience
+    const businessName = businessIdea?.name || "Our Business";
+    const targetDescription = targetAudience?.description || "our customers";
+    const businessDescription = businessIdea?.description || "our products and services";
+
+    // Generate complete landing page content with all sections
     const landingPageContent = {
       sections: [
         {
           type: 'hero',
           order: 0,
           content: {
-            title: "Transform Your Business Vision into Reality",
-            subtitle: "Innovative solutions tailored for your success",
+            title: `${businessName}: ${businessIdea?.value_proposition || 'Innovative Solutions for Your Needs'}`,
+            subtitle: `${businessDescription} - Designed for ${targetDescription}`,
             imageUrl: heroImageUrl,
             primaryCta: {
-              text: "Get Started",
-              description: "Begin your journey"
+              text: "Get Started Now",
+              description: "Begin your journey with us"
             },
             secondaryCta: {
               text: "Learn More",
-              description: "Discover our solutions"
+              description: "Discover how we can help"
+            }
+          }
+        },
+        {
+          type: 'social-proof',
+          order: 1,
+          content: {
+            title: "Why People Trust Us",
+            items: [
+              {
+                title: "5★ Rating",
+                description: "Customer Satisfaction"
+              },
+              {
+                title: "100%",
+                description: "Quality Guaranteed"
+              },
+              {
+                title: "24/7",
+                description: "Customer Support"
+              }
+            ]
+          }
+        },
+        {
+          type: 'features',
+          order: 2,
+          layout: {
+            style: 'grid',
+            background: 'gradient'
+          },
+          content: {
+            title: "Why Choose " + businessName,
+            subtitle: "Discover the features that make us unique",
+            items: [
+              {
+                title: "Premium Quality",
+                description: "We use only the finest materials and processes",
+                highlights: ["Quality Guaranteed", "Premium Materials"]
+              },
+              {
+                title: "Customer-Focused",
+                description: `Designed specifically for ${targetDescription}`,
+                highlights: ["Personalized Service", "Customer Support"]
+              },
+              {
+                title: "Innovative Solution",
+                description: businessIdea?.value_proposition || "Leading-edge solutions",
+                highlights: ["Innovation", "Excellence"]
+              }
+            ]
+          }
+        },
+        {
+          type: 'dynamic',
+          order: 3,
+          layout: {
+            style: 'columns',
+            background: 'light'
+          },
+          content: {
+            title: "How It Works",
+            subtitle: "Simple steps to get started",
+            mainDescription: `Experience the difference with ${businessName}. We make it easy to get started and ensure your complete satisfaction.`,
+            bulletPoints: [
+              "Browse our selection and choose what works for you",
+              "Place your order with our secure checkout",
+              "Receive your items and enjoy the quality"
+            ]
+          }
+        },
+        {
+          type: 'dynamic',
+          order: 4,
+          layout: {
+            width: 'contained',
+            spacing: 'spacious',
+            style: 'center'
+          },
+          content: {
+            title: "Ready to Get Started?",
+            subtitle: "Join our satisfied customers today",
+            primaryCta: {
+              text: "Start Now",
+              description: "Begin your journey"
+            },
+            secondaryCta: {
+              text: "Contact Us",
+              description: "Have questions? We're here to help"
             }
           }
         }
-        // ... Additional sections would go here
       ]
     };
 
@@ -113,7 +204,6 @@ serve(async (req) => {
 
     if (upsertError) throw upsertError;
 
-    // Log success
     console.log('Landing page content generated and stored successfully');
 
     return new Response(JSON.stringify({ content: landingPageContent }), {
