@@ -38,56 +38,60 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
     status: string;
     progress: number;
   }>({ status: "", progress: 0 });
+  const [currentLayoutStyle, setCurrentLayoutStyle] = useState(landingPage?.theme_settings || {});
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const { data: template, isLoading: isTemplateLoading } = useLandingPageTemplate();
   
   const [currentContent, setCurrentContent] = useState<SectionContentMap>(() => {
     if (landingPage?.content) {
       console.log("Using landing page content:", landingPage.content);
       return {
         hero: { 
-          content: landingPage.content.hero || {
-            title: "Welcome",
-            description: "Your landing page content is being generated.",
-            ctaText: "Get Started"
+          content: {
+            title: landingPage.content.hero?.title || "Welcome",
+            description: landingPage.content.hero?.description || "Your landing page content is being generated.",
+            ctaText: landingPage.content.hero?.ctaText || "Get Started"
           }, 
           layout: landingPage.theme_settings?.heroLayout || "centered" 
         },
         value_proposition: { 
-          content: landingPage.content.value_proposition || {
+          content: {
             title: "Our Value Proposition",
-            items: []
+            items: landingPage.content.features || []
           }, 
           layout: landingPage.theme_settings?.featuresLayout || "grid" 
         },
         features: { 
-          content: landingPage.content.features || {
+          content: {
             title: "Features",
-            items: []
+            items: landingPage.content.benefits || []
           }, 
           layout: landingPage.theme_settings?.benefitsLayout || "grid" 
         },
         proof: { 
-          content: landingPage.content.proof || {
+          content: {
             title: "What Our Customers Say",
-            testimonials: []
+            testimonials: landingPage.content.testimonials || []
           }, 
           layout: landingPage.theme_settings?.testimonialsLayout || "grid" 
         },
         pricing: { 
-          content: landingPage.content.pricing || {
-            title: "Pricing",
-            plans: []
+          content: {
+            title: "Pricing Plans",
+            plans: landingPage.content.pricing?.plans || []
           }, 
           layout: landingPage.theme_settings?.pricingLayout || "grid" 
         },
         faq: {
-          content: landingPage.content.faq || {
+          content: {
             title: "Frequently Asked Questions",
-            items: []
+            items: landingPage.content.faq?.items || []
           },
           layout: "default"
         },
         finalCta: { 
-          content: landingPage.content.finalCta || {
+          content: {
             title: "Ready to Get Started?",
             description: "Join us today and experience the difference.",
             ctaText: "Get Started Now"
@@ -95,7 +99,7 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
           layout: "centered" 
         },
         footer: { 
-          content: landingPage.content.footer || {
+          content: {
             links: {
               company: ["About", "Contact", "Careers"],
               resources: ["Help Center", "Terms", "Privacy"]
@@ -107,11 +111,6 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
     }
     return {};
   });
-  
-  const [currentLayoutStyle, setCurrentLayoutStyle] = useState(landingPage?.theme_settings || {});
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const { data: template, isLoading: isTemplateLoading } = useLandingPageTemplate();
 
   // Monitor generation progress
   useEffect(() => {
@@ -281,19 +280,12 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
     }
   };
 
-  const currentLayout = currentLayoutStyle || (template?.structure?.sections || {});
-  const sectionOrder = [
-    "hero",
-    "value_proposition",
-    "features",
-    "proof",
-    "pricing",
-    "faq",
-    "finalCta",
-    "footer"
-  ];
-
   const renderSection = (sectionKey: string) => {
+    if (!currentContent[sectionKey]) {
+      console.log(`Section ${sectionKey} not found in currentContent`);
+      return null;
+    }
+
     const sectionData = currentContent[sectionKey];
     console.log(`Rendering section ${sectionKey}:`, sectionData);
     
@@ -338,6 +330,17 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
   if (isTemplateLoading) {
     return <LoadingStateLandingPage />;
   }
+
+  const sectionOrder = [
+    "hero",
+    "value_proposition",
+    "features",
+    "proof",
+    "pricing",
+    "faq",
+    "finalCta",
+    "footer"
+  ];
 
   return (
     <div className="min-h-screen">
@@ -396,7 +399,7 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
 
         <TabsContent value="preview" className="mt-0">
           <div className="divide-y divide-gray-200">
-            {Object.keys(sectionComponents).map((sectionKey) => renderSection(sectionKey))}
+            {sectionOrder.map((sectionKey) => renderSection(sectionKey))}
           </div>
         </TabsContent>
 
