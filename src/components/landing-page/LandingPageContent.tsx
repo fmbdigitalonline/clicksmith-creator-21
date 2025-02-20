@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -43,86 +44,91 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
   const queryClient = useQueryClient();
   const { data: template, isLoading: isTemplateLoading } = useLandingPageTemplate();
   
-  // Initialize with empty content by default
   const [currentContent, setCurrentContent] = useState<SectionContentMap>({});
 
   useEffect(() => {
     if (landingPage?.content) {
-      const hasValidContent = 
-        landingPage.content.hero ||
-        landingPage.content.features?.length ||
-        landingPage.content.benefits?.length ||
-        landingPage.content.testimonials?.length ||
-        landingPage.content.faq?.items?.length ||
-        landingPage.content.cta;
+      const content = landingPage.content;
+      const newContent: SectionContentMap = {};
+      
+      if (content.hero) {
+        newContent.hero = {
+          content: {
+            title: content.hero.title,
+            description: content.hero.description,
+            buttonText: content.hero.buttonText || content.hero.cta,
+          },
+          layout: "centered"
+        };
+      }
+      
+      if (content.features?.length > 0) {
+        newContent.value_proposition = {
+          content: {
+            title: "Why Choose Us",
+            items: content.features.map(f => ({
+              title: f.title,
+              description: f.description
+            }))
+          },
+          layout: "grid"
+        };
+      }
+      
+      if (content.benefits?.length > 0) {
+        newContent.features = {
+          content: {
+            title: "Our Features",
+            items: content.benefits.map(b => ({
+              title: b.title,
+              description: b.description
+            }))
+          },
+          layout: "grid"
+        };
+      }
+      
+      if (content.testimonials?.length > 0) {
+        newContent.proof = {
+          content: {
+            title: "Customer Testimonials",
+            testimonials: content.testimonials.map(t => ({
+              quote: t.quote,
+              author: t.author,
+              role: t.role
+            }))
+          },
+          layout: "grid"
+        };
+      }
+      
+      if (content.faq?.items?.length > 0) {
+        newContent.faq = {
+          content: {
+            title: "Frequently Asked Questions",
+            items: content.faq.items
+          },
+          layout: "default"
+        };
+      }
+      
+      if (content.cta) {
+        newContent.finalCta = {
+          content: {
+            title: content.cta.title,
+            description: content.cta.description,
+            buttonText: content.cta.buttonText
+          },
+          layout: "centered"
+        };
+      }
 
-      if (hasValidContent) {
-        const newContent: SectionContentMap = {};
-        
-        if (landingPage.content.hero) {
-          newContent.hero = {
-            content: landingPage.content.hero,
-            layout: landingPage.theme_settings?.heroLayout || "centered"
-          };
-        }
-        
-        if (landingPage.content.features?.length > 0) {
-          newContent.value_proposition = {
-            content: {
-              title: "Why Choose Us",
-              items: landingPage.content.features
-            },
-            layout: landingPage.theme_settings?.featuresLayout || "grid"
-          };
-        }
-        
-        if (landingPage.content.benefits?.length > 0) {
-          newContent.features = {
-            content: {
-              title: "Our Features",
-              items: landingPage.content.benefits
-            },
-            layout: landingPage.theme_settings?.benefitsLayout || "grid"
-          };
-        }
-        
-        if (landingPage.content.testimonials?.length > 0) {
-          newContent.proof = {
-            content: {
-              title: "Customer Testimonials",
-              testimonials: landingPage.content.testimonials
-            },
-            layout: landingPage.theme_settings?.testimonialsLayout || "grid"
-          };
-        }
-        
-        if (landingPage.content.faq?.items?.length > 0) {
-          newContent.faq = {
-            content: {
-              title: "Frequently Asked Questions",
-              items: landingPage.content.faq.items
-            },
-            layout: "default"
-          };
-        }
-        
-        if (landingPage.content.cta) {
-          newContent.finalCta = {
-            content: {
-              title: landingPage.content.cta.title,
-              description: landingPage.content.cta.description,
-              ctaText: landingPage.content.cta.buttonText
-            },
-            layout: "centered"
-          };
-        }
-
+      if (Object.keys(newContent).length > 0) {
         setCurrentContent(newContent);
       }
     }
   }, [landingPage]);
 
-  // Monitor generation progress
   useEffect(() => {
     if ((isGenerating || isRefining) && project?.id) {
       const interval = setInterval(async () => {
@@ -192,12 +198,8 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
           const { error: updateError } = await supabase
             .from('landing_pages')
             .update({
-              content_versions: [...(landingPage.content_versions || []), currentContent],
-              current_version: (landingPage.current_version || 1) + 1,
-              content_iterations: (landingPage.content_iterations || 1) + 1,
               content: data.content,
-              theme_settings: data.theme_settings,
-              statistics: data.statistics || { metrics: [], data_points: [] }
+              content_iterations: (landingPage.content_iterations || 1) + 1,
             })
             .eq('id', landingPage.id);
 
@@ -211,7 +213,11 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
         
         if (data.content.hero) {
           newContent.hero = {
-            content: data.content.hero,
+            content: {
+              title: data.content.hero.title,
+              description: data.content.hero.description,
+              buttonText: data.content.hero.buttonText,
+            },
             layout: "centered"
           };
         }
@@ -261,14 +267,13 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
             content: {
               title: data.content.cta.title,
               description: data.content.cta.description,
-              ctaText: data.content.cta.buttonText
+              buttonText: data.content.cta.buttonText
             },
             layout: "centered"
           };
         }
 
         setCurrentContent(newContent);
-        setCurrentLayoutStyle(data.theme_settings || {});
 
         toast({
           title: "Content Generated",
@@ -309,16 +314,46 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
 
       if (error) throw error;
 
-      if (data) {
-        setCurrentContent({
-          ...currentContent,
-          ...data.content
-        });
+      if (data && data.content) {
+        const newContent: SectionContentMap = {};
+        
+        // Map the new content using the same structure as generateLandingPageContent
+        if (data.content.hero) {
+          newContent.hero = {
+            content: {
+              title: data.content.hero.title,
+              description: data.content.hero.description,
+              buttonText: data.content.hero.buttonText,
+            },
+            layout: "centered"
+          };
+        }
+        
+        // ... Apply the same mapping for other sections
+        
+        setCurrentContent(newContent);
 
         toast({
           title: "Content Refined",
           description: "Your landing page content has been improved."
         });
+
+        // Update the database
+        if (landingPage?.id) {
+          const { error: updateError } = await supabase
+            .from('landing_pages')
+            .update({
+              content: data.content,
+              content_iterations: (landingPage.content_iterations || 1) + 1,
+            })
+            .eq('id', landingPage.id);
+
+          if (updateError) {
+            throw updateError;
+          }
+        }
+
+        queryClient.invalidateQueries({ queryKey: ['landing-page', project.id] });
       }
     } catch (error) {
       console.error('Error refining content:', error);
@@ -470,3 +505,4 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
 };
 
 export default LandingPageContent;
+
