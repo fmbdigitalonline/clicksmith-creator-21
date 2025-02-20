@@ -13,6 +13,24 @@ import LoadingStateLandingPage from "./LoadingStateLandingPage";
 import { cn } from "@/lib/utils";
 import { Loader2 } from "lucide-react";
 
+interface GenerationLog {
+  api_status_code: number;
+  cache_hit: boolean;
+  created_at: string;
+  error_message: string | null;
+  generation_time: number;
+  id: string;
+  project_id: string;
+  request_payload: any;
+  response_payload: any;
+  success: boolean;
+  status: string;
+  step_details: {
+    stage: string;
+    timestamp?: string;
+  };
+}
+
 const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) => {
   const [activeView, setActiveView] = useState<"edit" | "preview">("preview");
   const [isGenerating, setIsGenerating] = useState(false);
@@ -76,7 +94,7 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
   useEffect(() => {
     if (isGenerating && project?.id) {
       const interval = setInterval(async () => {
-        const { data: logs } = await supabase
+        const { data: logs, error } = await supabase
           .from('landing_page_generation_logs')
           .select('*')
           .eq('project_id', project.id)
@@ -84,23 +102,30 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
           .limit(1)
           .single();
 
-        if (logs) {
-          if (logs.success) {
+        if (error) {
+          console.error('Error fetching generation logs:', error);
+          return;
+        }
+
+        const log = logs as GenerationLog;
+
+        if (log) {
+          if (log.success) {
             setGenerationProgress({ status: "Success!", progress: 100 });
             clearInterval(interval);
-          } else if (logs.error_message) {
+          } else if (log.error_message) {
             setGenerationProgress({ 
-              status: `Error: ${logs.error_message}`, 
+              status: `Error: ${log.error_message}`, 
               progress: 0 
             });
             clearInterval(interval);
           } else {
-            const progress = logs.step_details?.stage === 'started' ? 25 :
-                           logs.step_details?.stage === 'content_generated' ? 50 :
-                           logs.step_details?.stage === 'images_generated' ? 75 : 0;
+            const progress = log.step_details?.stage === 'started' ? 25 :
+                           log.step_details?.stage === 'content_generated' ? 50 :
+                           log.step_details?.stage === 'images_generated' ? 75 : 0;
             
             setGenerationProgress({ 
-              status: `${logs.status.replace(/_/g, ' ')}...`, 
+              status: `${log.status?.replace(/_/g, ' ') || 'Processing'}...`, 
               progress 
             });
           }
