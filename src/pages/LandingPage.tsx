@@ -42,6 +42,7 @@ const LandingPage = () => {
         throw new Error("Project not found");
       }
 
+      console.log("Project data retrieved:", data);
       return data;
     },
     retry: false,
@@ -61,6 +62,8 @@ const LandingPage = () => {
           .from("landing_pages")
           .select("*")
           .eq("project_id", projectId)
+          .order('created_at', { ascending: false })
+          .limit(1)
           .maybeSingle();
 
         if (error && error.code !== "PGRST116") {
@@ -72,6 +75,7 @@ const LandingPage = () => {
           throw error;
         }
 
+        console.log("Landing page data retrieved:", data);
         return data;
       } catch (error) {
         console.error("Error fetching landing page:", error);
