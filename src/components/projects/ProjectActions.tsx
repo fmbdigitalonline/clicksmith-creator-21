@@ -1,36 +1,23 @@
+
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Rocket } from "lucide-react";
+import { Wand2 } from "lucide-react";
 
 interface ProjectActionsProps {
-  onGenerateAds: () => void;
-  onBackToProjects: () => void;
+  onStartAdWizard: () => void;
+  disabled?: boolean;
 }
 
-const ProjectActions = ({ onGenerateAds, onBackToProjects }: ProjectActionsProps) => {
+const ProjectActions = ({ onStartAdWizard, disabled }: ProjectActionsProps) => {
   return (
-    <div className="space-y-4">
-      <p className="text-center text-muted-foreground">
-        What would you like to do next?
-      </p>
-      <div className="flex flex-col gap-3">
-        <Button
-          onClick={onGenerateAds}
-          className="w-full"
-          size="lg"
-        >
-          <Rocket className="mr-2" />
-          Generate Ads
-        </Button>
-        <Button
-          onClick={onBackToProjects}
-          variant="outline"
-          className="w-full"
-          size="lg"
-        >
-          <ArrowLeft className="mr-2" />
-          Back to Projects
-        </Button>
-      </div>
+    <div className="flex flex-col gap-2">
+      <Button
+        onClick={onStartAdWizard}
+        disabled={disabled}
+        className="w-full"
+      >
+        <Wand2 className="mr-2 h-4 w-4" />
+        Generate Ads
+      </Button>
     </div>
   );
 };
