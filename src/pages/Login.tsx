@@ -122,8 +122,8 @@ const Login = () => {
                 }
               }
             }}
-            onViewChange={(newView) => {
-              setAuthView(newView as 'sign_in' | 'sign_up');
+            viewChange={(view) => {
+              setAuthView(view as 'sign_in' | 'sign_up');
             }}
           />
           
