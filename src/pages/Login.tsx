@@ -122,7 +122,7 @@ const Login = () => {
                 }
               }
             }}
-            viewChange={(view) => {
+            onChange={({ view }) => {
               setAuthView(view as 'sign_in' | 'sign_up');
             }}
           />
