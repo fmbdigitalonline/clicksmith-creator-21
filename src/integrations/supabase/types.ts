@@ -342,6 +342,7 @@ export type Database = {
       blog_posts: {
         Row: {
           author_id: string | null
+          canonical_url: string | null
           content: string
           created_at: string
           description: string
@@ -360,6 +361,7 @@ export type Database = {
         }
         Insert: {
           author_id?: string | null
+          canonical_url?: string | null
           content: string
           created_at?: string
           description: string
@@ -378,6 +380,7 @@ export type Database = {
         }
         Update: {
           author_id?: string | null
+          canonical_url?: string | null
           content?: string
           created_at?: string
           description?: string

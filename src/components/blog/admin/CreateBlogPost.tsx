@@ -59,12 +59,25 @@ export function CreateBlogPost({ editMode, initialData, onSuccess }: CreateBlogP
     // Generate the canonical URL if not provided
     const canonical_url = data.canonical_url || `${window.location.origin}/blog/${data.slug}`;
 
+    // Prepare the data object without canonical_url (we'll add it separately)
+    const postData = {
+      title: data.title,
+      slug: data.slug,
+      description: data.description,
+      content: data.content,
+      meta_description: data.meta_description,
+      published: data.published,
+      image_url: data.image_url || null,
+      meta_keywords: data.meta_keywords || [],
+      featured: data.featured,
+      canonical_url
+    };
+
     if (editMode && initialData) {
       const { error } = await supabase
         .from("blog_posts")
         .update({
-          ...data,
-          canonical_url,
+          ...postData,
           updated_at: new Date().toISOString(),
         })
         .eq("id", initialData.id);
@@ -86,8 +99,7 @@ export function CreateBlogPost({ editMode, initialData, onSuccess }: CreateBlogP
       const { error } = await supabase
         .from("blog_posts")
         .insert({
-          ...data,
-          canonical_url,
+          ...postData,
           published_at: data.published ? new Date().toISOString() : null,
         });
 
