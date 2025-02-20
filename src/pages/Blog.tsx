@@ -3,31 +3,21 @@ import { useEffect, useState } from "react";
 import { Helmet } from "react-helmet";
 import { supabase } from "@/integrations/supabase/client";
 import BlogCard from "@/components/blog/BlogCard";
-import BlogCategoryFilter from "@/components/blog/BlogCategoryFilter";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const Blog = () => {
   const [posts, setPosts] = useState<any[]>([]);
-  const [categories, setCategories] = useState<any[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchCategories();
     fetchPosts();
-  }, [selectedCategory]);
-
-  const fetchCategories = async () => {
-    const { data } = await supabase
-      .from('blog_categories')
-      .select('*')
-      .order('name');
-    if (data) setCategories(data);
-  };
+  }, []);
 
   const fetchPosts = async () => {
     setLoading(true);
-    let query = supabase
+    const { data, error } = await supabase
       .from('blog_posts')
       .select(`
         *,
@@ -39,11 +29,6 @@ const Blog = () => {
       .eq('published', true)
       .order('published_at', { ascending: false });
 
-    if (selectedCategory) {
-      query = query.eq('blog_posts_categories.blog_categories.slug', selectedCategory);
-    }
-
-    const { data, error } = await query;
     console.log('Fetched blog posts:', data);
     if (error) {
       console.error('Error fetching posts:', error);
@@ -52,76 +37,125 @@ const Blog = () => {
     setLoading(false);
   };
 
+  const scrollContainer = (containerId: string, direction: 'left' | 'right') => {
+    const container = document.getElementById(containerId);
+    if (container) {
+      const scrollAmount = 400;
+      const targetScroll = container.scrollLeft + (direction === 'left' ? -scrollAmount : scrollAmount);
+      container.scrollTo({
+        left: targetScroll,
+        behavior: 'smooth'
+      });
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+    <div className="min-h-screen bg-white">
       <Helmet>
-        <title>Blog - Latest Updates and Insights</title>
+        <title>Our Blogs - Latest Updates and Insights</title>
         <meta name="description" content="Stay up to date with our latest product updates, marketing tips, and industry insights." />
-        <meta name="keywords" content="blog, marketing, product updates, digital marketing, industry news" />
-        <meta property="og:type" content="blog" />
-        <meta property="og:title" content="Blog - Latest Updates and Insights" />
-        <meta property="og:description" content="Stay up to date with our latest product updates, marketing tips, and industry insights." />
       </Helmet>
 
       {/* Hero Section */}
-      <div className="w-full bg-gradient-to-r from-blue-50 to-indigo-50 py-16 mb-12">
+      <div className="w-full bg-[url('/lovable-uploads/04be54da-e368-4cf6-bda0-6011079a95f2.png')] bg-cover bg-center py-16">
         <div className="container mx-auto px-4">
-          <div className="max-w-3xl mx-auto text-center">
-            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-              Our Blog
-            </h1>
-            <p className="text-xl text-gray-600 mb-8">
-              Insights, updates, and stories from the world of digital marketing
-            </p>
-          </div>
+          <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
+            Our Blogs
+          </h1>
         </div>
       </div>
 
-      <div className="container mx-auto px-4 max-w-7xl">
-        {/* Category Filter */}
-        <div className="mb-12">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Browse by Category</h2>
-          <BlogCategoryFilter
-            categories={categories}
-            selectedCategory={selectedCategory}
-            onSelectCategory={setSelectedCategory}
-          />
-        </div>
-
+      <div className="container mx-auto px-4 py-12 max-w-7xl">
         {/* Featured Post */}
         {!loading && posts.length > 0 && (
-          <div className="mb-16">
+          <section className="mb-16">
+            <h2 className="text-xl font-semibold mb-6">Read our latest blog</h2>
             <BlogCard post={posts[0]} featured={true} />
-          </div>
+          </section>
         )}
 
-        {/* Posts Grid */}
-        {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="space-y-4">
-                <Skeleton className="h-48 w-full" />
-                <Skeleton className="h-4 w-3/4" />
-                <Skeleton className="h-4 w-1/2" />
+        {/* Trending Posts */}
+        {!loading && posts.length > 1 && (
+          <section className="mb-16">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-semibold">Trending</h2>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => scrollContainer('trending-container', 'left')}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => scrollContainer('trending-container', 'right')}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
               </div>
-            ))}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {posts.slice(1).map((post) => (
-              <BlogCard key={post.id} post={post} />
-            ))}
-          </div>
+            </div>
+            <div 
+              id="trending-container"
+              className="flex gap-6 overflow-x-auto scrollbar-hide pb-4"
+              style={{ scrollBehavior: 'smooth' }}
+            >
+              {posts.slice(1, 4).map((post) => (
+                <div key={post.id} className="min-w-[350px] max-w-[350px]">
+                  <BlogCard post={post} compact={true} />
+                </div>
+              ))}
+            </div>
+          </section>
         )}
 
-        {!loading && posts.length === 0 && (
-          <div className="text-center py-16 bg-gray-50 rounded-lg">
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">No posts found</h3>
-            <p className="text-gray-600">
-              {selectedCategory 
-                ? "No posts available in this category yet."
-                : "Check back soon for new content!"}
-            </p>
+        {/* Popular Posts */}
+        {!loading && posts.length > 4 && (
+          <section>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-semibold">Popular</h2>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => scrollContainer('popular-container', 'left')}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => scrollContainer('popular-container', 'right')}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+            <div 
+              id="popular-container"
+              className="flex gap-6 overflow-x-auto scrollbar-hide pb-4"
+              style={{ scrollBehavior: 'smooth' }}
+            >
+              {posts.slice(4).map((post) => (
+                <div key={post.id} className="min-w-[350px] max-w-[350px]">
+                  <BlogCard post={post} compact={true} />
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {loading && (
+          <div className="space-y-8">
+            <Skeleton className="h-[400px] w-full" />
+            <div className="flex gap-6">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="w-[350px]">
+                  <Skeleton className="h-[250px]" />
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>
