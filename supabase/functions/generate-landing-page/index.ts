@@ -9,8 +9,13 @@ const corsHeaders = {
 
 async function generateWithDeepeek(prompt: string, context: any) {
   const DEEPEEK_API_KEY = Deno.env.get('DEEPEEK_API_KEY');
+  console.log('🔑 Checking for Deepeek API key:', DEEPEEK_API_KEY ? 'Present' : 'Missing');
+  
+  // List all available environment variables for debugging
+  console.log('📝 Available environment variables:', Object.keys(Deno.env.toObject()));
+  
   if (!DEEPEEK_API_KEY) {
-    throw new Error('DEEPEEK_API_KEY is not set');
+    throw new Error('DEEPEEK_API_KEY is not set in environment variables');
   }
 
   try {
@@ -30,7 +35,9 @@ async function generateWithDeepeek(prompt: string, context: any) {
     });
 
     if (!response.ok) {
-      throw new Error(`Deepeek API error: ${response.statusText}`);
+      const errorText = await response.text();
+      console.error('❌ Deepeek API response error:', errorText);
+      throw new Error(`Deepeek API error: ${response.statusText}. Details: ${errorText}`);
     }
 
     const data = await response.json();
@@ -42,59 +49,69 @@ async function generateWithDeepeek(prompt: string, context: any) {
   }
 }
 
+async function generateBasicContent(businessIdea: any, targetAudience: any) {
+  // Fallback content generation without Deepeek
+  console.log('📝 Generating basic content without Deepeek');
+  
+  return {
+    hero: {
+      title: businessIdea?.valueProposition || businessIdea?.title || "Welcome",
+      description: businessIdea?.description || "",
+      cta: "Get Started Now"
+    },
+    features: businessIdea?.keyFeatures || [],
+    benefits: targetAudience?.benefits || [],
+    proof: {
+      testimonials: [
+        {
+          content: `As ${targetAudience?.demographics || 'a customer'}, I found this solution incredibly helpful.`,
+          author: "John Doe",
+          role: targetAudience?.demographics || "Customer"
+        }
+      ]
+    },
+    faq: {
+      questions: [
+        {
+          question: "How does it work?",
+          answer: businessIdea?.description || "Contact us to learn more."
+        }
+      ]
+    }
+  };
+}
+
 async function generateIterativeContent(businessIdea: any, targetAudience: any) {
-  console.log('📝 Starting iterative content generation...');
+  console.log('📝 Starting content generation...');
   
   try {
-    // Step 1: Generate core messaging
-    const heroContent = await generateWithDeepeek(
-      `Create a compelling hero section for a landing page about: ${businessIdea.description}. 
-       Target audience: ${targetAudience.demographics}.
-       Include a headline, subheadline, and call to action.`,
-      { type: 'hero', businessIdea, targetAudience }
-    );
-
-    // Step 2: Generate value propositions
-    const valueProps = await generateWithDeepeek(
-      `List 3 key value propositions for: ${businessIdea.description}.
-       Make them specific to ${targetAudience.demographics}.
-       Include a title and description for each.`,
-      { type: 'features', previousContent: heroContent }
-    );
-
-    // Step 3: Generate features with examples
-    const features = await generateWithDeepeek(
-      `Describe 3 main features of the solution: ${businessIdea.description}.
-       Include specific benefits for ${targetAudience.demographics}.
-       Add real-world examples or use cases.`,
-      { type: 'features', previousContent: valueProps }
-    );
-
-    // Step 4: Generate social proof
-    const testimonials = await generateWithDeepeek(
-      `Create 2 testimonials from ${targetAudience.demographics} about: ${businessIdea.description}.
-       Include specific results and benefits they experienced.`,
-      { type: 'testimonials', previousContent: features }
-    );
-
-    // Step 5: Generate FAQ content
-    const faq = await generateWithDeepeek(
-      `Create 4 frequently asked questions about: ${businessIdea.description}.
-       Address common concerns of ${targetAudience.demographics}.
-       Provide detailed, reassuring answers.`,
-      { type: 'faq', previousContent: testimonials }
-    );
-
+    // First try with Deepeek
     return {
-      hero: JSON.parse(heroContent),
-      value_proposition: JSON.parse(valueProps),
-      features: JSON.parse(features),
-      proof: JSON.parse(testimonials),
-      faq: JSON.parse(faq)
+      hero: JSON.parse(await generateWithDeepeek(
+        `Create a compelling hero section for: ${businessIdea.description}`,
+        { type: 'hero', businessIdea, targetAudience }
+      )),
+      value_proposition: JSON.parse(await generateWithDeepeek(
+        `List 3 key value propositions for: ${businessIdea.description}`,
+        { type: 'features', businessIdea }
+      )),
+      features: JSON.parse(await generateWithDeepeek(
+        `Describe 3 main features of: ${businessIdea.description}`,
+        { type: 'features', businessIdea }
+      )),
+      proof: JSON.parse(await generateWithDeepeek(
+        `Create 2 testimonials about: ${businessIdea.description}`,
+        { type: 'testimonials', targetAudience }
+      )),
+      faq: JSON.parse(await generateWithDeepeek(
+        `Create 4 FAQs about: ${businessIdea.description}`,
+        { type: 'faq', businessIdea }
+      ))
     };
   } catch (error) {
-    console.error('❌ Error in iterative content generation:', error);
-    throw error;
+    console.error('❌ Error in Deepeek generation, falling back to basic content:', error);
+    // If Deepeek fails, fall back to basic content
+    return generateBasicContent(businessIdea, targetAudience);
   }
 }
 
@@ -118,7 +135,7 @@ serve(async (req) => {
     );
 
     // Generate content iteratively
-    console.log('🔄 Starting iterative content generation...');
+    console.log('🔄 Starting content generation...');
     const generatedContent = await generateIterativeContent(businessIdea, targetAudience);
 
     // Create the full landing page content structure
