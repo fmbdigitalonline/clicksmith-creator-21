@@ -15,7 +15,7 @@ const LandingPage = () => {
     queryFn: async () => {
       const { data: session } = await supabase.auth.getSession();
       if (!session.session) {
-        throw new Error("No authenticated session");
+        throw new Error('No authenticated session');
       }
 
       const { data, error } = await supabase
@@ -50,15 +50,16 @@ const LandingPage = () => {
 
   const { data: landingPage, isLoading: landingPageLoading } = useQuery({
     queryKey: ["landing-page", projectId],
-    enabled: !!project, // Only run this query if we have a project
+    enabled: !!project,
     queryFn: async () => {
       try {
         const { data: session } = await supabase.auth.getSession();
         if (!session.session) {
-          throw new Error("No authenticated session");
+          throw new Error('No authenticated session');
         }
 
-        const { data, error } = await supabase
+        // First, check for any existing landing page
+        const { data: existingPage, error: pageError } = await supabase
           .from("landing_pages")
           .select("*")
           .eq("project_id", projectId)
@@ -66,19 +67,47 @@ const LandingPage = () => {
           .limit(1)
           .maybeSingle();
 
-        if (error && error.code !== "PGRST116") {
+        if (pageError && pageError.code !== "PGRST116") {
           toast({
             title: "Error loading landing page",
-            description: error.message,
+            description: pageError.message,
             variant: "destructive",
           });
-          throw error;
+          throw pageError;
         }
 
-        console.log("Landing page data retrieved:", data);
-        return data;
+        if (!existingPage) {
+          // If no landing page exists, create one
+          const { data: newPage, error: createError } = await supabase
+            .from("landing_pages")
+            .insert([
+              {
+                project_id: projectId,
+                content: {},
+                theme_settings: {},
+                content_iterations: 0
+              }
+            ])
+            .select()
+            .single();
+
+          if (createError) {
+            toast({
+              title: "Error creating landing page",
+              description: createError.message,
+              variant: "destructive",
+            });
+            throw createError;
+          }
+
+          console.log("New landing page created:", newPage);
+          return newPage;
+        }
+
+        console.log("Existing landing page retrieved:", existingPage);
+        return existingPage;
       } catch (error) {
-        console.error("Error fetching landing page:", error);
+        console.error("Error fetching/creating landing page:", error);
         return null;
       }
     },
