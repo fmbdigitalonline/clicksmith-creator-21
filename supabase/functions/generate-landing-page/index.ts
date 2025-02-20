@@ -8,46 +8,81 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS
+  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
     const { projectId, businessIdea, targetAudience, userId } = await req.json();
-    console.log('Received request:', { projectId, businessIdea, targetAudience, userId });
+    console.log('📝 Request payload:', { projectId, userId });
+    console.log('📝 Business idea:', businessIdea);
+    console.log('📝 Target audience:', targetAudience);
 
-    // Validate required parameters
     if (!projectId || !userId) {
-      throw new Error('Missing required parameters: projectId and userId are required');
+      throw new Error('Missing required parameters: projectId and userId');
     }
 
-    // Initialize Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
+    );
 
-    if (!supabaseUrl || !supabaseKey) {
-      throw new Error('Missing Supabase configuration');
-    }
+    console.log('🔄 Generating landing page content...');
+    const landingPageContent = {
+      hero: {
+        title: businessIdea?.valueProposition || "Welcome",
+        description: businessIdea?.description || "",
+        cta: "Get Started Now"
+      },
+      features: [
+        {
+          title: "Easy to Use",
+          description: "Our platform makes it simple to get started"
+        },
+        {
+          title: "Professional Results",
+          description: "Get high-quality outputs every time"
+        }
+      ],
+      benefits: [
+        "Save time and effort",
+        "Professional quality results",
+        "Customizable solutions"
+      ],
+      testimonials: [
+        {
+          name: "John Doe",
+          role: targetAudience?.demographics || "Professional",
+          content: `As a ${targetAudience?.demographics || 'professional'}, I found this solution incredibly helpful.`
+        }
+      ],
+      callToAction: {
+        title: "Ready to Get Started?",
+        description: "Join thousands of satisfied customers and transform your business today.",
+        buttonText: "Start Now"
+      }
+    };
 
-    const supabase = createClient(supabaseUrl, supabaseKey);
-    console.log('Supabase client initialized');
+    console.log('📝 Generated content:', landingPageContent);
 
-    // Generate content
-    const content = generateLandingPageContent(businessIdea, targetAudience);
-    console.log('Generated content:', content);
+    // Create a unique slug
+    const slug = `landing-page-${Math.random().toString(36).substring(2, 8)}`;
 
-    // Generate unique slug
-    const slug = generateUniqueSlug(businessIdea?.title || 'landing-page');
-
-    // Create landing page
-    const { data: landingPage, error: createError } = await supabase
+    // Insert the landing page
+    const { data: landingPage, error: insertError } = await supabaseAdmin
       .from('landing_pages')
       .insert({
         project_id: projectId,
         user_id: userId,
         title: businessIdea?.title || "Untitled Landing Page",
-        content,
+        content: landingPageContent,
         slug,
         published: false,
         theme_settings: {
@@ -62,28 +97,28 @@ serve(async (req) => {
           }
         }
       })
-      .select()
+      .select('*')
       .single();
 
-    if (createError) {
-      console.error('Error creating landing page:', createError);
-      throw createError;
+    if (insertError) {
+      console.error('❌ Error inserting landing page:', insertError);
+      throw insertError;
     }
 
-    console.log('Landing page created successfully:', landingPage);
+    console.log('✅ Landing page created successfully:', landingPage);
 
     return new Response(
       JSON.stringify(landingPage),
       { 
         headers: { 
-          ...corsHeaders, 
-          'Content-Type': 'application/json' 
-        } 
+          ...corsHeaders,
+          'Content-Type': 'application/json'
+        }
       }
     );
 
   } catch (error) {
-    console.error('Error in generate-landing-page function:', error);
+    console.error('❌ Error in generate-landing-page function:', error);
     
     return new Response(
       JSON.stringify({
@@ -91,55 +126,12 @@ serve(async (req) => {
         details: error.toString()
       }),
       { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500
+        status: 500,
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json'
+        }
       }
     );
   }
 });
-
-function generateUniqueSlug(title: string): string {
-  const baseSlug = (title || "untitled")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "");
-  const randomSuffix = Math.random().toString(36).substring(2, 8);
-  return `${baseSlug}-${randomSuffix}`;
-}
-
-function generateLandingPageContent(businessIdea: any, targetAudience: any) {
-  return {
-    hero: {
-      title: businessIdea?.valueProposition || "Welcome",
-      description: businessIdea?.description || "",
-      cta: "Get Started Now",
-    },
-    features: [
-      {
-        title: "Easy to Use",
-        description: "Our platform makes it simple to get started"
-      },
-      {
-        title: "Professional Results",
-        description: "Get high-quality outputs every time"
-      }
-    ],
-    benefits: [
-      "Save time and effort",
-      "Professional quality results",
-      "Customizable solutions"
-    ],
-    testimonials: [
-      {
-        name: "John Doe",
-        role: targetAudience?.demographics || "Professional",
-        content: `As a ${targetAudience?.demographics || 'user'}, I found this solution incredibly helpful.`
-      }
-    ],
-    callToAction: {
-      title: "Ready to Get Started?",
-      description: "Join thousands of satisfied customers and transform your business today.",
-      buttonText: "Start Now",
-    }
-  };
-}
