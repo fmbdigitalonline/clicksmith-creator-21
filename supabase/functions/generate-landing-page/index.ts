@@ -185,11 +185,29 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { projectId, businessName, businessIdea, targetAudience, currentContent, isRefinement } = await req.json();
+    const body = await req.json();
+    console.log("Received request body:", body);
 
-    if (!projectId || !businessName || !businessIdea || !targetAudience) {
-      throw new Error("Missing required fields");
+    const { projectId, businessName, businessIdea, targetAudience, currentContent, isRefinement } = body;
+
+    // Validate required fields
+    const missingFields = [];
+    if (!projectId) missingFields.push('projectId');
+    if (!businessName) missingFields.push('businessName');
+    if (!businessIdea) missingFields.push('businessIdea');
+    if (!targetAudience) missingFields.push('targetAudience');
+
+    if (missingFields.length > 0) {
+      throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
     }
+
+    console.log("Generating content with parameters:", {
+      projectId,
+      businessName,
+      businessIdea,
+      targetAudience,
+      isRefinement: !!isRefinement
+    });
 
     const content = await generateIterativeContent(
       projectId,
@@ -226,12 +244,14 @@ Deno.serve(async (req) => {
     );
   } catch (error) {
     console.error("Error processing request:", error);
+    
     return new Response(
       JSON.stringify({
-        error: error.message
+        error: error.message,
+        details: error.stack
       }),
       {
-        status: 500,
+        status: 400,
         headers: {
           ...corsHeaders,
           "Content-Type": "application/json",
