@@ -64,6 +64,13 @@ const BlogPost = () => {
     );
   }
 
+  // Get image URL from Supabase Storage if it's a storage URL
+  const getImageUrl = (url: string) => {
+    if (!url) return null;
+    if (url.startsWith('http')) return url;
+    return supabase.storage.from('blog-media').getPublicUrl(url).data.publicUrl;
+  };
+
   return (
     <article className="min-h-screen bg-white">
       <Helmet>
@@ -75,7 +82,7 @@ const BlogPost = () => {
         <meta property="og:type" content="article" />
         <meta property="og:title" content={post.title} />
         <meta property="og:description" content={post.meta_description || post.description} />
-        {post.image_url && <meta property="og:image" content={post.image_url} />}
+        {post.image_url && <meta property="og:image" content={getImageUrl(post.image_url)} />}
         <meta property="article:published_time" content={post.published_at} />
       </Helmet>
 
@@ -95,15 +102,24 @@ const BlogPost = () => {
 
           {post.image_url && (
             <img
-              src={post.image_url}
+              src={getImageUrl(post.image_url)}
               alt={post.title}
-              className="w-full rounded-lg mb-8"
+              className="w-full rounded-lg mb-8 object-cover"
+              style={{ maxHeight: '500px' }}
             />
           )}
 
           <div 
             className="prose prose-lg max-w-none"
-            dangerouslySetInnerHTML={{ __html: post.content }}
+            dangerouslySetInnerHTML={{ 
+              __html: post.content.replace(
+                /!\[(.*?)\]\((.*?)\)/g, 
+                (match: string, alt: string, url: string) => {
+                  const imageUrl = getImageUrl(url);
+                  return `<img src="${imageUrl}" alt="${alt}" class="rounded-lg my-4" />`;
+                }
+              ) 
+            }}
           />
 
           {post.blog_posts_categories && (
@@ -128,3 +144,4 @@ const BlogPost = () => {
 };
 
 export default BlogPost;
+
