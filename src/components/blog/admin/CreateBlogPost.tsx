@@ -17,6 +17,7 @@ import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
+// Updated schema to match database requirements
 const blogPostSchema = z.object({
   title: z.string().min(1, "Title is required"),
   slug: z.string().min(1, "Slug is required"),
@@ -24,6 +25,9 @@ const blogPostSchema = z.object({
   content: z.string().min(1, "Content is required"),
   meta_description: z.string().optional(),
   published: z.boolean().default(false),
+  image_url: z.string().optional(),
+  meta_keywords: z.array(z.string()).optional(),
+  featured: z.boolean().default(false)
 });
 
 type BlogPostFormValues = z.infer<typeof blogPostSchema>;
@@ -34,11 +38,27 @@ export function CreateBlogPost() {
     resolver: zodResolver(blogPostSchema),
     defaultValues: {
       published: false,
+      featured: false,
+      meta_keywords: [],
+      image_url: "",
     },
   });
 
   const onSubmit = async (data: BlogPostFormValues) => {
-    const { error } = await supabase.from("blog_posts").insert([data]);
+    const { error } = await supabase
+      .from("blog_posts")
+      .insert({
+        title: data.title,
+        slug: data.slug,
+        description: data.description,
+        content: data.content,
+        meta_description: data.meta_description,
+        published: data.published,
+        image_url: data.image_url || null,
+        meta_keywords: data.meta_keywords || [],
+        featured: data.featured,
+        published_at: data.published ? new Date().toISOString() : null,
+      });
 
     if (error) {
       toast({
@@ -139,24 +159,61 @@ export function CreateBlogPost() {
 
         <FormField
           control={form.control}
-          name="published"
+          name="image_url"
           render={({ field }) => (
-            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-              <div className="space-y-0.5">
-                <FormLabel className="text-base">Published</FormLabel>
-                <div className="text-sm text-muted-foreground">
-                  Make this post publicly visible
-                </div>
-              </div>
+            <FormItem>
+              <FormLabel>Image URL</FormLabel>
               <FormControl>
-                <Switch
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                />
+                <Input placeholder="Image URL for the blog post" {...field} />
               </FormControl>
+              <FormMessage />
             </FormItem>
           )}
         />
+
+        <div className="flex gap-4">
+          <FormField
+            control={form.control}
+            name="published"
+            render={({ field }) => (
+              <FormItem className="flex-1 flex flex-row items-center justify-between rounded-lg border p-4">
+                <div className="space-y-0.5">
+                  <FormLabel className="text-base">Published</FormLabel>
+                  <div className="text-sm text-muted-foreground">
+                    Make this post publicly visible
+                  </div>
+                </div>
+                <FormControl>
+                  <Switch
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                </FormControl>
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="featured"
+            render={({ field }) => (
+              <FormItem className="flex-1 flex flex-row items-center justify-between rounded-lg border p-4">
+                <div className="space-y-0.5">
+                  <FormLabel className="text-base">Featured</FormLabel>
+                  <div className="text-sm text-muted-foreground">
+                    Show this post in featured sections
+                  </div>
+                </div>
+                <FormControl>
+                  <Switch
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                </FormControl>
+              </FormItem>
+            )}
+          />
+        </div>
 
         <Button type="submit" className="w-full">
           Create Post
