@@ -66,7 +66,6 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
   const navigate = useNavigate();
   const { isLoading: isTemplateLoading } = useLandingPageTemplate();
 
-  // Track generation progress with cleanup
   useEffect(() => {
     let intervalId: NodeJS.Timeout | undefined;
 
@@ -328,4 +327,3 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
 };
 
 export default LandingPageContent;
-

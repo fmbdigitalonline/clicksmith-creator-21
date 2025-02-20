@@ -15,26 +15,21 @@ serve(async (req) => {
   }
 
   try {
-    const { projectId, businessIdea, targetAudience, userId } = await req.json();
+    const { projectId, businessIdea, targetAudience, userId, iterationNumber = 1 } = await req.json();
     console.log('Starting landing page generation for project:', projectId);
-
-    // Verify Replicate API key is available
-    const REPLICATE_API_KEY = Deno.env.get('REPLICATE_API_KEY');
-    if (!REPLICATE_API_KEY) {
-      console.error('REPLICATE_API_KEY is not set');
-      throw new Error('Image generation service configuration is missing');
-    }
-
-    // Initialize Replicate client
-    const replicate = new Replicate({
-      auth: REPLICATE_API_KEY,
-    });
 
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     if (!supabaseUrl || !supabaseKey) throw new Error('Missing Supabase environment variables');
     const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // First, check if a landing page already exists for this project
+    const { data: existingPage } = await supabase
+      .from('landing_pages')
+      .select('*')
+      .eq('project_id', projectId)
+      .maybeSingle();
 
     // Log generation start
     const { error: logError } = await supabase
@@ -109,40 +104,48 @@ serve(async (req) => {
 
     // Generate hero image using Replicate
     console.log('Generating hero image...');
-    try {
-      const imagePrompt = `Create a professional, modern hero image for a ${businessIdea.industry} business targeting ${targetAudience.name}. The image should be clean, minimal, and suitable for a landing page.`;
-      
-      const imageOutput = await replicate.run(
-        "stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b",
-        {
-          input: {
-            prompt: imagePrompt,
-            num_outputs: 1,
-            scheduler: "K_EULER",
-            num_inference_steps: 50
-          }
-        }
-      );
+    const REPLICATE_API_KEY = Deno.env.get('REPLICATE_API_KEY');
+    if (REPLICATE_API_KEY) {
+      try {
+        const replicate = new Replicate({
+          auth: REPLICATE_API_KEY,
+        });
 
-      if (imageOutput && Array.isArray(imageOutput) && imageOutput[0]) {
-        landingPageContent.sections[0].content.imageUrl = imageOutput[0];
-        console.log('Hero image generated successfully:', imageOutput[0]);
+        const imagePrompt = `Create a professional, modern hero image for a ${businessIdea.industry} business targeting ${targetAudience.name}. The image should be clean, minimal, and suitable for a landing page.`;
+        
+        const imageOutput = await replicate.run(
+          "stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b",
+          {
+            input: {
+              prompt: imagePrompt,
+              num_outputs: 1,
+              scheduler: "K_EULER",
+              num_inference_steps: 50
+            }
+          }
+        );
+
+        if (imageOutput && Array.isArray(imageOutput) && imageOutput[0]) {
+          landingPageContent.sections[0].content.imageUrl = imageOutput[0];
+          console.log('Hero image generated successfully:', imageOutput[0]);
+        }
+      } catch (imageError) {
+        console.error('Error generating hero image:', imageError);
+        // Continue without image if generation fails
       }
-    } catch (imageError) {
-      console.error('Error generating hero image:', imageError);
-      // Continue without image if generation fails
     }
 
-    // Store the landing page content
+    // Update or create the landing page
     const { data: landingPage, error: upsertError } = await supabase
       .from('landing_pages')
       .upsert({
+        id: existingPage?.id, // Keep the same ID if it exists
         project_id: projectId,
         user_id: userId,
         content: landingPageContent,
-        title: "Market Testing & Validation Platform",
+        title: existingPage?.title || "Market Testing & Validation Platform",
         updated_at: new Date().toISOString(),
-        content_iterations: 1
+        content_iterations: iterationNumber || 1
       })
       .select()
       .single();
@@ -178,10 +181,6 @@ serve(async (req) => {
 
     if (deductionError) {
       console.error('Error deducting credits:', deductionError);
-    }
-
-    if (!deductionResult?.[0]?.success) {
-      console.error('Failed to deduct credits:', deductionResult?.[0]?.error_message);
     }
 
     console.log('Landing page generated successfully for project:', projectId);
