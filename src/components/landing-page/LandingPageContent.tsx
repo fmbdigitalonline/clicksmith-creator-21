@@ -28,14 +28,19 @@ interface GenerationLog {
   };
 }
 
+interface GenerationProgress {
+  status: string;
+  progress: number;
+}
+
 const LandingPageContent = ({ project, landingPage }: { project: any; landingPage: any }) => {
   const [activeView, setActiveView] = useState<"edit" | "preview">("preview");
   const [isGenerating, setIsGenerating] = useState(false);
   const [isRefining, setIsRefining] = useState(false);
-  const [generationProgress, setGenerationProgress<{
-    status: string;
-    progress: number;
-  }>({ status: "", progress: 0 });
+  const [generationProgress, setGenerationProgress] = useState<GenerationProgress>({ 
+    status: "", 
+    progress: 0 
+  });
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { isLoading: isTemplateLoading } = useLandingPageTemplate();
