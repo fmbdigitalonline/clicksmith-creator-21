@@ -1,11 +1,22 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0';
+import { DeepeekClient } from './deepeek.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+interface GenerationRequest {
+  projectId: string;
+  businessIdea: any;
+  targetAudience: any;
+  userId: string;
+  iterationNumber?: number;
+  currentContent?: any;
+  isRefinement?: boolean;
+}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -30,12 +41,14 @@ serve(async (req) => {
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    const deepeekApiKey = Deno.env.get('DEEPSEEK_API_KEY');
 
-    if (!supabaseUrl || !supabaseKey) {
-      throw new Error('Missing Supabase configuration');
+    if (!supabaseUrl || !supabaseKey || !deepeekApiKey) {
+      throw new Error('Missing configuration');
     }
 
     const supabase = createClient(supabaseUrl, supabaseKey);
+    const deepeek = new DeepeekClient(deepeekApiKey);
 
     // Get project data
     const { data: project, error: projectError } = await supabase
@@ -50,8 +63,8 @@ serve(async (req) => {
 
     // Generate or refine content based on mode
     const content = isRefinement && currentContent ? 
-      await refineContent(currentContent, project, iterationNumber) :
-      await generateInitialContent(project, businessIdea, targetAudience);
+      await refineContent(currentContent, project, iterationNumber, deepeek) :
+      await generateInitialContent(project, businessIdea, targetAudience, deepeek);
 
     // Generate a unique slug
     const baseSlug = (project.title || "untitled")
@@ -148,85 +161,78 @@ function generateInitialStatistics() {
   };
 }
 
-async function generateInitialContent(project: any, businessIdea: any, targetAudience: any) {
+async function generateInitialContent(project: any, businessIdea: any, targetAudience: any, deepeek: any) {
+  // First iteration: Core content
+  const heroContent = await deepeek.generate({
+    prompt: `Generate a compelling hero section for a landing page about ${businessIdea.description}. 
+    Target audience: ${targetAudience.demographics}. 
+    Include a headline, subheadline, and call-to-action button text.`,
+    max_tokens: 500
+  });
+
+  // Second iteration: Features and Benefits
+  const featuresContent = await deepeek.generate({
+    prompt: `Generate 3-5 key features and benefits for ${businessIdea.description}, 
+    specifically addressing the pain points of ${targetAudience.demographics}.`,
+    max_tokens: 800
+  });
+
+  // Third iteration: Social Proof
+  const testimonialsContent = await deepeek.generate({
+    prompt: `Generate 2 realistic testimonials from ${targetAudience.demographics} 
+    about how ${businessIdea.description} helped them. Include their role and specific benefits they experienced.`,
+    max_tokens: 600
+  });
+
   return {
     hero: {
-      title: businessIdea.valueProposition || project.title || "Untitled Landing Page",
-      description: businessIdea.description || "Experience innovation and excellence",
-      cta: "Get Started Today",
-      image: "/placeholder.svg"
+      title: heroContent.choices[0]?.message?.content?.title || businessIdea.valueProposition || project.title || "Welcome",
+      description: heroContent.choices[0]?.message?.content?.description || businessIdea.description || "",
+      cta: heroContent.choices[0]?.message?.content?.cta || "Get Started Now",
     },
-    features: {
-      title: "Why Choose Us",
-      cards: generateFeatureCards(project)
-    },
-    benefits: {
-      title: "Our Features",
-      items: generateBenefitItems(project)
-    },
-    testimonials: targetAudience ? {
-      title: "What Our Clients Say",
-      items: generateTestimonials(targetAudience)
-    } : null,
+    features: featuresContent.choices[0]?.message?.content?.features || [],
+    benefits: featuresContent.choices[0]?.message?.content?.benefits || [],
+    testimonials: testimonialsContent.choices[0]?.message?.content?.testimonials || generateTestimonials(targetAudience),
     callToAction: {
       title: "Ready to Get Started?",
       description: "Join thousands of satisfied customers and transform your business today.",
-      buttonText: "Start Now"
+      buttonText: "Start Now",
     }
   };
 }
 
-async function refineContent(currentContent: any, project: any, iterationNumber: number) {
+async function refineContent(currentContent: any, project: any, iterationNumber: number, deepeek: any) {
   // Enhance existing content while maintaining structure
   const refinedContent = { ...currentContent };
   
   // Enhance hero section
   if (refinedContent.hero) {
+    const enhancedHero = await deepeek.generate({
+      prompt: `Enhance this hero section while maintaining its core message: ${JSON.stringify(refinedContent.hero)}`,
+      max_tokens: 500
+    });
     refinedContent.hero = {
       ...refinedContent.hero,
-      description: await enhanceDescription(refinedContent.hero.description, iterationNumber)
+      description: enhancedHero.choices[0]?.message?.content?.description || refinedContent.hero.description
     };
   }
 
   // Enhance features
-  if (refinedContent.features?.cards) {
-    refinedContent.features.cards = await Promise.all(
-      refinedContent.features.cards.map(async (card: any) => ({
-        ...card,
-        description: await enhanceDescription(card.description, iterationNumber)
-      }))
-    );
+  if (refinedContent.features?.length > 0) {
+    const enhancedFeatures = await deepeek.generate({
+      prompt: `Enhance these features with more specific details: ${JSON.stringify(refinedContent.features)}`,
+      max_tokens: 800
+    });
+    refinedContent.features = enhancedFeatures.choices[0]?.message?.content?.features || refinedContent.features;
   }
 
   return refinedContent;
 }
 
-function generateFeatureCards(project: any) {
-  const features = project.audience_analysis?.keyFeatures || [];
-  return features.slice(0, 3).map((feature: string) => ({
-    title: feature,
-    description: "Industry-leading solutions tailored to your needs"
-  }));
-}
-
-function generateBenefitItems(project: any) {
-  const benefits = project.audience_analysis?.benefits || [];
-  return benefits.slice(0, 3).map((benefit: string) => ({
-    title: benefit,
-    description: "Proven results for your business"
-  }));
-}
-
 function generateTestimonials(targetAudience: any) {
   return [{
-    quote: "A game-changing solution that transformed our business.",
-    author: "Jane Smith",
-    role: targetAudience.demographics || "CEO"
+    name: "John Smith",
+    role: targetAudience.demographics || "Professional",
+    content: "This solution transformed how we work. Highly recommended!"
   }];
-}
-
-async function enhanceDescription(description: string, iterationNumber: number) {
-  // In a real implementation, this would use AI to enhance the description
-  // For now, we'll just add an indicator that it's been refined
-  return `${description} (Refined v${iterationNumber})`;
 }

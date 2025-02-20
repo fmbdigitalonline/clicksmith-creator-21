@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -40,72 +39,50 @@ const LandingPageHeader = ({ project, landingPage }: LandingPageHeaderProps) => 
         return;
       }
 
-      const content = generateLandingPageContent(project);
-      console.log('Generated content:', content); // Debug log
-      
       if (landingPage?.id) {
-        console.log('Updating existing landing page:', landingPage.id); // Debug log
-        const { error } = await supabase
-          .from("landing_pages")
-          .update({ 
-            content,
-            updated_at: new Date().toISOString()
-          })
-          .eq("id", landingPage.id);
+        // Update existing page
+        const { data: generatedContent, error: generationError } = await supabase.functions
+          .invoke('generate-landing-page', {
+            body: {
+              projectId: project.id,
+              businessIdea: project.business_idea,
+              targetAudience: project.target_audience,
+              userId: user.id,
+              currentContent: landingPage.content,
+              iterationNumber: (landingPage.content_iterations || 1) + 1,
+              isRefinement: true
+            }
+          });
 
-        if (error) throw error;
+        if (generationError) throw generationError;
 
         toast({
           title: "Landing page updated",
           description: "Your landing page has been updated successfully.",
         });
       } else {
-        console.log('Creating new landing page for project:', project.id); // Debug log
         // Create new landing page
-        const slug = generateUniqueSlug(project.title);
-        const title = project.title || "Untitled Landing Page";
-        
-        const { data, error } = await supabase
-          .from("landing_pages")
-          .insert({
-            project_id: project.id,
-            user_id: user.id,
-            title,
-            content,
-            slug,
-            published: false, // Add this to ensure new pages start unpublished
-            theme_settings: {
-              colorScheme: "light",
-              typography: {
-                headingFont: "Inter",
-                bodyFont: "Inter"
-              },
-              spacing: {
-                sectionPadding: "py-16",
-                componentGap: "gap-8"
-              }
+        const { data: generatedContent, error: generationError } = await supabase.functions
+          .invoke('generate-landing-page', {
+            body: {
+              projectId: project.id,
+              businessIdea: project.business_idea,
+              targetAudience: project.target_audience,
+              userId: user.id
             }
-          })
-          .select()
-          .single();
+          });
 
-        if (error) throw error;
+        if (generationError) throw generationError;
 
-        console.log('Created new landing page:', data); // Debug log
-
-        // Successfully created
         toast({
           title: "Landing page created",
           description: "Your landing page has been created successfully.",
         });
 
-        // Redirect to the new landing page URL
-        if (data) {
-          // Small delay to ensure the toast is visible
-          setTimeout(() => {
-            navigate(`/projects/${project.id}/landing-page/${data.id}`);
-          }, 500);
-        }
+        // Navigate to the new landing page
+        setTimeout(() => {
+          navigate(`/projects/${project.id}/landing-page/${generatedContent.id}`);
+        }, 500);
       }
     } catch (error: any) {
       console.error('Error saving landing page:', error);
