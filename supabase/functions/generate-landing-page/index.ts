@@ -304,6 +304,17 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
+    // First, get the project title
+    const { data: project, error: projectError } = await supabase
+      .from('projects')
+      .select('title')
+      .eq('id', projectId)
+      .single();
+
+    if (projectError) {
+      throw new Error(`Error fetching project: ${projectError.message}`);
+    }
+
     // Log the generation start
     const { data: logData, error: logError } = await supabase
       .from('landing_page_generation_logs')
@@ -323,7 +334,7 @@ serve(async (req) => {
     // Generate the content
     const content = await generateContent(businessIdea, targetAudience, iterationNumber);
 
-    // Update or create the landing page
+    // Update or create the landing page with the project title
     const { data: landingPage, error: upsertError } = await supabase
       .from('landing_pages')
       .upsert({
@@ -331,6 +342,7 @@ serve(async (req) => {
         user_id: userId,
         content,
         content_iterations: iterationNumber,
+        title: project.title || `Landing Page for ${businessIdea.industry || 'Business'}`, // Use project title or fallback
         updated_at: new Date().toISOString()
       })
       .select()
