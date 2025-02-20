@@ -36,10 +36,9 @@ serve(async (req) => {
     console.log('Generating landing page content for project:', projectId);
 
     // Generate hero image prompt
-    const heroImagePrompt = `Professional website hero image for:
-    ${businessIdea?.description || 'A modern business'}. 
-    Target audience: ${targetAudience?.description || 'professionals'}.
-    Style: Clean, modern, corporate, professional photography style.
+    const heroImagePrompt = `Professional website hero image showcasing:
+    A modern professional using digital tools for market research and business validation.
+    Style: Clean, modern, bright workspace environment with data visualizations and social media elements.
     High quality, suitable for website hero section with text overlay.
     No text, no watermarks, no logos.`;
 
@@ -67,11 +66,6 @@ serve(async (req) => {
       throw new Error('Failed to generate hero image');
     }
 
-    // Generate content based on business idea and target audience
-    const businessName = businessIdea?.name || "Our Business";
-    const targetDescription = targetAudience?.description || "our customers";
-    const businessDescription = businessIdea?.description || "our products and services";
-
     // Generate complete landing page content with all sections
     const landingPageContent = {
       sections: [
@@ -79,16 +73,16 @@ serve(async (req) => {
           type: 'hero',
           order: 0,
           content: {
-            title: `${businessName}: ${businessIdea?.value_proposition || 'Innovative Solutions for Your Needs'}`,
-            subtitle: `${businessDescription} - Designed for ${targetDescription}`,
+            title: "Validate Your Business Ideas with Real Market Data",
+            subtitle: "Transform your products, services, and marketing campaigns into validated successes through quick market testing and real audience feedback.",
             imageUrl: heroImageUrl,
             primaryCta: {
-              text: "Get Started Now",
-              description: "Begin your journey with us"
+              text: "Start Testing Your Idea",
+              description: "Get market insights in minutes"
             },
             secondaryCta: {
-              text: "Learn More",
-              description: "Discover how we can help"
+              text: "See How It Works",
+              description: "Learn about our testing process"
             }
           }
         },
@@ -96,19 +90,19 @@ serve(async (req) => {
           type: 'social-proof',
           order: 1,
           content: {
-            title: "Why People Trust Us",
+            title: "Trusted by Forward-Thinking Entrepreneurs",
             items: [
               {
-                title: "5★ Rating",
-                description: "Customer Satisfaction"
+                title: "83%",
+                description: "Faster Market Validation"
               },
               {
-                title: "100%",
-                description: "Quality Guaranteed"
+                title: "2.5x",
+                description: "Better Client Targeting"
               },
               {
-                title: "24/7",
-                description: "Customer Support"
+                title: "95%",
+                description: "User Satisfaction"
               }
             ]
           }
@@ -121,23 +115,23 @@ serve(async (req) => {
             background: 'gradient'
           },
           content: {
-            title: "Why Choose " + businessName,
-            subtitle: "Discover the features that make us unique",
+            title: "Market Testing Made Simple",
+            subtitle: "Get the insights you need to make confident business decisions",
             items: [
               {
-                title: "Premium Quality",
-                description: "We use only the finest materials and processes",
-                highlights: ["Quality Guaranteed", "Premium Materials"]
+                title: "Quick Market Testing",
+                description: "Test your business ideas, products, or services in minutes instead of months",
+                highlights: ["Instant Feedback", "Real Market Data"]
               },
               {
-                title: "Customer-Focused",
-                description: `Designed specifically for ${targetDescription}`,
-                highlights: ["Personalized Service", "Customer Support"]
+                title: "AI-Powered Analysis",
+                description: "Understand your target audience with deep market insights and behavior analysis",
+                highlights: ["Audience Insights", "Behavior Patterns"]
               },
               {
-                title: "Innovative Solution",
-                description: businessIdea?.value_proposition || "Leading-edge solutions",
-                highlights: ["Innovation", "Excellence"]
+                title: "Social Media Integration",
+                description: "Create and test social media ads to find what resonates with your audience",
+                highlights: ["Multi-Platform", "Performance Tracking"]
               }
             ]
           }
@@ -150,13 +144,14 @@ serve(async (req) => {
             background: 'light'
           },
           content: {
-            title: "How It Works",
-            subtitle: "Simple steps to get started",
-            mainDescription: `Experience the difference with ${businessName}. We make it easy to get started and ensure your complete satisfaction.`,
+            title: "Your Path to Market Success",
+            subtitle: "Four simple steps to validate your business idea",
+            mainDescription: "Stop guessing what your market wants. Use our proven process to test, learn, and adapt your business ideas with real market feedback.",
             bulletPoints: [
-              "Browse our selection and choose what works for you",
-              "Place your order with our secure checkout",
-              "Receive your items and enjoy the quality"
+              "Input your business idea or service concept",
+              "Get AI-powered market analysis and audience insights",
+              "Test your messaging with real social media ads",
+              "Receive detailed feedback and actionable recommendations"
             ]
           }
         },
@@ -169,25 +164,23 @@ serve(async (req) => {
             style: 'center'
           },
           content: {
-            title: "Ready to Get Started?",
-            subtitle: "Join our satisfied customers today",
+            title: "Ready to Validate Your Idea?",
+            subtitle: "Join successful entrepreneurs who've already transformed their businesses with market insights",
             primaryCta: {
-              text: "Start Now",
-              description: "Begin your journey"
+              text: "Start Your Market Test",
+              description: "Begin with a free trial"
             },
             secondaryCta: {
-              text: "Contact Us",
-              description: "Have questions? We're here to help"
+              text: "Schedule a Demo",
+              description: "See how it works live"
             }
           }
         }
       ]
     };
 
-    // Generate a title based on business idea or use default
-    const landingPageTitle = businessIdea?.name 
-      ? `${businessIdea.name} - Landing Page`
-      : "My Business Landing Page";
+    // Generate a title based on business idea
+    const landingPageTitle = "Market Testing & Validation Platform";
 
     // Store the landing page content
     const { data: landingPage, error: upsertError } = await supabase
