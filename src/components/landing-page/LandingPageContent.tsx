@@ -45,62 +45,82 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
   
   const [currentContent, setCurrentContent] = useState<SectionContentMap>(() => {
     if (landingPage?.content) {
-      console.log("Using landing page content:", landingPage.content);
+      console.log("Initializing landing page content with:", landingPage.content);
       return {
         hero: { 
-          content: {
-            title: landingPage.content.hero?.title || "Welcome",
-            description: landingPage.content.hero?.description || "Your landing page content is being generated.",
-            ctaText: landingPage.content.hero?.ctaText || "Get Started"
+          content: landingPage.content.hero || {
+            title: "Welcome",
+            description: "Your landing page content is being generated.",
+            ctaText: "Get Started"
           }, 
           layout: landingPage.theme_settings?.heroLayout || "centered" 
         },
         value_proposition: { 
           content: {
-            title: "Our Value Proposition",
+            title: "Why Choose Us",
             items: landingPage.content.features || []
           }, 
           layout: landingPage.theme_settings?.featuresLayout || "grid" 
         },
         features: { 
           content: {
-            title: "Features",
+            title: "Our Features",
             items: landingPage.content.benefits || []
           }, 
           layout: landingPage.theme_settings?.benefitsLayout || "grid" 
         },
         proof: { 
           content: {
-            title: "What Our Customers Say",
+            title: "Customer Testimonials",
             testimonials: landingPage.content.testimonials || []
           }, 
           layout: landingPage.theme_settings?.testimonialsLayout || "grid" 
         },
         pricing: { 
           content: {
-            title: "Pricing Plans",
-            plans: landingPage.content.pricing?.plans || []
+            title: "Our Pricing",
+            plans: [
+              {
+                name: "Starter",
+                price: "Free",
+                features: ["Basic features", "Community support", "Up to 1000 users"]
+              },
+              {
+                name: "Pro",
+                price: "$49/mo",
+                features: ["All Starter features", "Priority support", "Unlimited users"]
+              }
+            ]
           }, 
           layout: landingPage.theme_settings?.pricingLayout || "grid" 
         },
         faq: {
           content: {
             title: "Frequently Asked Questions",
-            items: landingPage.content.faq?.items || []
+            items: landingPage.content.faq?.items || [
+              {
+                question: "How do I get started?",
+                answer: "Getting started is easy! Simply sign up for an account and follow our quick setup guide."
+              },
+              {
+                question: "What payment methods do you accept?",
+                answer: "We accept all major credit cards, PayPal, and bank transfers."
+              }
+            ]
           },
           layout: "default"
         },
         finalCta: { 
           content: {
-            title: "Ready to Get Started?",
-            description: "Join us today and experience the difference.",
-            ctaText: "Get Started Now"
+            title: landingPage.content.cta?.title || "Ready to Get Started?",
+            description: landingPage.content.cta?.description || "Join us today and experience the difference.",
+            ctaText: landingPage.content.cta?.buttonText || "Get Started Now"
           }, 
           layout: "centered" 
         },
         footer: { 
           content: {
-            links: {
+            links: landingPage.content.footer || {
               company: ["About", "Contact", "Careers"],
               resources: ["Help Center", "Terms", "Privacy"]
             }
@@ -109,7 +129,70 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
         }
       };
     }
-    return {};
+    
+    // Return default content if no landing page content exists
+    return {
+      hero: { 
+        content: {
+          title: "Welcome",
+          description: "Your landing page content is being generated.",
+          ctaText: "Get Started"
+        }, 
+        layout: "centered" 
+      },
+      value_proposition: { 
+        content: {
+          title: "Why Choose Us",
+          items: []
+        }, 
+        layout: "grid" 
+      },
+      features: { 
+        content: {
+          title: "Our Features",
+          items: []
+        }, 
+        layout: "grid" 
+      },
+      proof: { 
+        content: {
+          title: "Customer Testimonials",
+          testimonials: []
+        }, 
+        layout: "grid" 
+      },
+      pricing: { 
+        content: {
+          title: "Our Pricing",
+          plans: []
+        }, 
+        layout: "grid" 
+      },
+      faq: {
+        content: {
+          title: "Frequently Asked Questions",
+          items: []
+        },
+        layout: "default"
+      },
+      finalCta: { 
+        content: {
+          title: "Ready to Get Started?",
+          description: "Join us today and experience the difference.",
+          ctaText: "Get Started Now"
+        }, 
+        layout: "centered" 
+      },
+      footer: { 
+        content: {
+          links: {
+            company: ["About", "Contact", "Careers"],
+            resources: ["Help Center", "Terms", "Privacy"]
+          }
+        }, 
+        layout: "grid" 
+      }
+    };
   });
 
   // Monitor generation progress
@@ -176,6 +259,8 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
       if (error) throw error;
 
       if (data) {
+        console.log("Received new content:", data);
+        
         // Save the current version before updating
         if (landingPage?.id) {
           const { error: updateError } = await supabase
@@ -197,20 +282,62 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
         }
 
         setCurrentContent({
-          hero: { content: data.content.hero, layout: "centered" },
-          value_proposition: { content: data.content.features, layout: "grid" },
-          features: { content: data.content.benefits, layout: "grid" },
-          proof: { content: data.content.testimonials, layout: "grid" },
-          pricing: { content: data.content.pricing, layout: "grid" },
+          hero: { 
+            content: data.content.hero,
+            layout: "centered" 
+          },
+          value_proposition: { 
+            content: {
+              title: "Why Choose Us",
+              items: data.content.features || []
+            },
+            layout: "grid" 
+          },
+          features: { 
+            content: {
+              title: "Our Features",
+              items: data.content.benefits || []
+            },
+            layout: "grid" 
+          },
+          proof: { 
+            content: {
+              title: "Customer Testimonials",
+              testimonials: data.content.testimonials || []
+            },
+            layout: "grid" 
+          },
+          pricing: { 
+            content: {
+              title: "Our Pricing",
+              plans: data.content.pricing?.plans || []
+            },
+            layout: "grid" 
+          },
           faq: {
-            content: data.content.faq || {
+            content: {
               title: "Frequently Asked Questions",
-              items: []
+              items: data.content.faq?.items || []
             },
             layout: "default"
           },
-          finalCta: { content: data.content.finalCta, layout: "centered" },
-          footer: { content: data.content.footer, layout: "grid" }
+          finalCta: { 
+            content: {
+              title: data.content.cta?.title || "Ready to Get Started?",
+              description: data.content.cta?.description || "Join us today and experience the difference.",
+              ctaText: data.content.cta?.buttonText || "Get Started Now"
+            },
+            layout: "centered" 
+          },
+          footer: { 
+            content: {
+              links: data.content.footer || {
+                company: ["About", "Contact", "Careers"],
+                resources: ["Help Center", "Terms", "Privacy"]
+              }
+            },
+            layout: "grid" 
+          }
         });
 
         setCurrentLayoutStyle(data.theme_settings);
