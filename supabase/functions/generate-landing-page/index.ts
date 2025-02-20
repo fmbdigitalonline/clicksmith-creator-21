@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import Replicate from "https://esm.sh/replicate@0.25.2";
@@ -35,7 +34,7 @@ serve(async (req) => {
 
     console.log('Generating landing page content for project:', projectId);
 
-    // Generate hero image prompt
+    // Generate hero image
     const heroImagePrompt = `Professional website hero image showcasing:
     A modern professional using digital tools for market research and business validation.
     Style: Clean, modern, bright workspace environment with data visualizations and social media elements.
@@ -43,7 +42,7 @@ serve(async (req) => {
     No text, no watermarks, no logos.`;
 
     console.log('Generating hero image with prompt:', heroImagePrompt);
-    const imageOutput = await replicate.run(
+    const heroImageOutput = await replicate.run(
       "black-forest-labs/flux-1.1-pro-ultra",
       {
         input: {
@@ -59,11 +58,60 @@ serve(async (req) => {
       }
     );
 
-    console.log('Image generation response:', imageOutput);
-    const heroImageUrl = Array.isArray(imageOutput) ? imageOutput[0] : imageOutput;
+    // Generate analysis section image
+    const analysisImagePrompt = `Professional data visualization and market analysis dashboard:
+    Modern interface showing business analytics, charts, and market insights.
+    Clean, minimal design with blue and white color scheme.
+    High quality, perfect for business website.
+    No text overlays or watermarks.`;
 
-    if (!heroImageUrl) {
-      throw new Error('Failed to generate hero image');
+    console.log('Generating analysis image with prompt:', analysisImagePrompt);
+    const analysisImageOutput = await replicate.run(
+      "black-forest-labs/flux-1.1-pro-ultra",
+      {
+        input: {
+          prompt: analysisImagePrompt,
+          negative_prompt: "blur, watermark, text, logo, signature, low quality",
+          num_inference_steps: 50,
+          guidance_scale: 7.5,
+          width: 800,
+          height: 600,
+          style_preset: "photographic",
+          num_outputs: 1
+        }
+      }
+    );
+
+    // Generate workflow image
+    const workflowImagePrompt = `Professional business workflow visualization:
+    Step-by-step process diagram showing market testing and validation workflow.
+    Modern, clean design with icons and flow arrows.
+    Perfect for business website process section.
+    No text overlays or watermarks.`;
+
+    console.log('Generating workflow image with prompt:', workflowImagePrompt);
+    const workflowImageOutput = await replicate.run(
+      "black-forest-labs/flux-1.1-pro-ultra",
+      {
+        input: {
+          prompt: workflowImagePrompt,
+          negative_prompt: "blur, watermark, text, logo, signature, low quality",
+          num_inference_steps: 50,
+          guidance_scale: 7.5,
+          width: 800,
+          height: 600,
+          style_preset: "photographic",
+          num_outputs: 1
+        }
+      }
+    );
+
+    const heroImageUrl = Array.isArray(heroImageOutput) ? heroImageOutput[0] : heroImageOutput;
+    const analysisImageUrl = Array.isArray(analysisImageOutput) ? analysisImageOutput[0] : analysisImageOutput;
+    const workflowImageUrl = Array.isArray(workflowImageOutput) ? workflowImageOutput[0] : workflowImageOutput;
+
+    if (!heroImageUrl || !analysisImageUrl || !workflowImageUrl) {
+      throw new Error('Failed to generate one or more images');
     }
 
     // Generate complete landing page content with expanded sections
@@ -152,7 +200,8 @@ serve(async (req) => {
               "Customer sentiment analysis across social platforms",
               "Trend identification and growth opportunity spotting",
               "Real-time market demand assessment"
-            ]
+            ],
+            imageUrl: analysisImageUrl
           }
         },
         {
@@ -200,7 +249,8 @@ serve(async (req) => {
               "2. Receive AI-generated market analysis and insights",
               "3. Test your messaging with real audience feedback",
               "4. Get actionable recommendations for success"
-            ]
+            ],
+            imageUrl: workflowImageUrl
           }
         },
         {
