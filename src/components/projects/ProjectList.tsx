@@ -27,22 +27,30 @@ const ProjectList = ({ onStartAdWizard }: ProjectListProps) => {
   const { data: projects, refetch, error, isLoading } = useQuery({
     queryKey: ["projects"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("projects")
-        .select("*")
-        .order("created_at", { ascending: false });
+      try {
+        const { data: session } = await supabase.auth.getSession();
+        if (!session.session) {
+          throw new Error("No authenticated session");
+        }
 
-      if (error) {
-        toast({
-          title: "Error fetching projects",
-          description: error.message,
-          variant: "destructive",
-        });
+        const { data, error } = await supabase
+          .from("projects")
+          .select("*")
+          .order("created_at", { ascending: false });
+
+        if (error) {
+          console.error("Error fetching projects:", error);
+          throw error;
+        }
+
+        // Return only the data, not the entire response
+        return data as Project[];
+      } catch (error) {
+        console.error("Error in queryFn:", error);
         throw error;
       }
-
-      return data as Project[];
     },
+    retry: false,
   });
 
   const handleCreateProject = () => {
