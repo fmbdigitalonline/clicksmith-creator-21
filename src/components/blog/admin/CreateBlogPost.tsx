@@ -10,6 +10,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -17,8 +18,10 @@ import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
+import { uploadMedia } from "@/utils/uploadUtils";
+import { useState } from "react";
+import { Loader2 } from "lucide-react";
 
-// Updated schema to match database requirements
 const blogPostSchema = z.object({
   title: z.string().min(1, "Title is required"),
   slug: z.string().min(1, "Slug is required"),
@@ -43,6 +46,7 @@ interface CreateBlogPostProps {
 export function CreateBlogPost({ editMode, initialData, onSuccess }: CreateBlogPostProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [isUploading, setIsUploading] = useState(false);
 
   const form = useForm<BlogPostFormValues>({
     resolver: zodResolver(blogPostSchema),
@@ -55,11 +59,41 @@ export function CreateBlogPost({ editMode, initialData, onSuccess }: CreateBlogP
     },
   });
 
+  const handleMediaUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsUploading(true);
+      const publicUrl = await uploadMedia(file);
+      
+      // Insert the media URL at the cursor position in the content field
+      const contentField = form.getValues('content');
+      const isImage = file.type.startsWith('image/');
+      const mediaTag = isImage 
+        ? `\n![${file.name}](${publicUrl})\n`
+        : `\n<video controls src="${publicUrl}"></video>\n`;
+      
+      form.setValue('content', contentField + mediaTag);
+      
+      toast({
+        title: "Media uploaded",
+        description: "You can now reference it in your content.",
+      });
+    } catch (error) {
+      toast({
+        title: "Upload failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const onSubmit = async (data: BlogPostFormValues) => {
-    // Generate the canonical URL if not provided
     const canonical_url = data.canonical_url || `${window.location.origin}/blog/${data.slug}`;
 
-    // Prepare the data object without canonical_url (we'll add it separately)
     const postData = {
       title: data.title,
       slug: data.slug,
@@ -120,7 +154,6 @@ export function CreateBlogPost({ editMode, initialData, onSuccess }: CreateBlogP
       form.reset();
     }
 
-    // Invalidate the posts query to refresh the list
     queryClient.invalidateQueries({ queryKey: ["blog-posts"] });
     
     if (onSuccess) {
@@ -176,6 +209,26 @@ export function CreateBlogPost({ editMode, initialData, onSuccess }: CreateBlogP
           )}
         />
 
+        <div>
+          <FormLabel>Media Upload</FormLabel>
+          <Input
+            type="file"
+            accept="image/*,video/*"
+            onChange={handleMediaUpload}
+            disabled={isUploading}
+            className="mb-2"
+          />
+          <FormDescription>
+            Upload images or videos to include in your post. They will be inserted at the end of your content.
+          </FormDescription>
+          {isUploading && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Uploading media...
+            </div>
+          )}
+        </div>
+
         <FormField
           control={form.control}
           name="content"
@@ -184,11 +237,14 @@ export function CreateBlogPost({ editMode, initialData, onSuccess }: CreateBlogP
               <FormLabel>Content</FormLabel>
               <FormControl>
                 <Textarea
-                  placeholder="Write your post content here"
+                  placeholder="Write your post content here. You can use Markdown!"
                   className="min-h-[200px]"
                   {...field}
                 />
               </FormControl>
+              <FormDescription>
+                Use Markdown for formatting. Images and videos will be inserted as Markdown/HTML tags.
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -233,9 +289,9 @@ export function CreateBlogPost({ editMode, initialData, onSuccess }: CreateBlogP
           name="image_url"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Image URL</FormLabel>
+              <FormLabel>Featured Image URL</FormLabel>
               <FormControl>
-                <Input placeholder="Image URL for the blog post" {...field} />
+                <Input placeholder="Featured image URL for the blog post" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
