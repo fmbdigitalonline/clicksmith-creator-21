@@ -1,73 +1,95 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from '@supabase/supabase-js';
-import { Configuration, OpenAIApi } from 'npm:openai@3.2.1';
-import { corsHeaders } from '../_shared/cors.ts';
 
-const openAiConfig = new Configuration({
-  apiKey: Deno.env.get('OPENAI_API_KEY'),
-});
-
-const openai = new OpenAIApi(openAiConfig);
-
-const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
-const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { projectId, businessName, businessIdea, targetAudience, currentContent, isRefinement, iterationNumber = 1 } = await req.json();
+    console.log('Starting landing page generation...');
+    const { projectId, businessIdea, targetAudience, userId } = await req.json();
 
+    // Validate required parameters
     if (!projectId || !businessIdea) {
-      throw new Error('Missing required parameters');
+      console.error('Missing required parameters:', { projectId, businessIdea });
+      throw new Error('Missing required parameters: projectId and businessIdea are required');
     }
 
-    // Determine content expansion mode based on iteration
-    const expansionMode = iterationNumber <= 2 ? 'core_content' :
-                         iterationNumber <= 4 ? 'detailed_expansion' :
-                         'final_polish';
+    console.log('Parameters received:', { projectId, businessIdea: JSON.stringify(businessIdea) });
 
+    // Initialize Supabase client
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error('Missing Supabase configuration');
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Log the generation start
+    const { data: log, error: logError } = await supabase
+      .from('landing_page_generation_logs')
+      .insert({
+        project_id: projectId,
+        request_payload: { businessIdea, targetAudience },
+        status: 'started',
+        step_details: { stage: 'started', timestamp: new Date().toISOString() }
+      })
+      .select()
+      .single();
+
+    if (logError) {
+      console.error('Error creating generation log:', logError);
+    }
+
+    // Generate content
     const content = {
       hero: {
-        title: `Transform Your ${businessName} with Innovative Solutions`,
-        description: `We help businesses like yours achieve remarkable results through ${businessIdea}.`,
-        ctaText: "Get Started Today",
-        image: "hero-image.jpg"
+        title: businessIdea.title || "Transform Your Business",
+        description: businessIdea.description || "Experience innovation and excellence",
+        cta: "Get Started Today",
+        image: "/placeholder.svg"
       },
       features: {
         title: "Why Choose Us",
         cards: [
           {
-            title: "Innovative Solutions",
-            description: "Cutting-edge technology tailored to your needs"
+            title: "Expert Solutions",
+            description: "Industry-leading expertise and proven results"
           },
           {
-            title: "Expert Support",
-            description: "24/7 dedicated customer service"
+            title: "Customer Focus",
+            description: "Dedicated to your success with personalized support"
           },
           {
-            title: "Proven Results",
-            description: "Track record of success with businesses like yours"
+            title: "Innovation",
+            description: "Cutting-edge technology and forward-thinking approaches"
           }
         ]
       },
       benefits: {
-        title: "Benefits That Matter",
+        title: "Our Features",
         items: [
           {
-            title: "Increased Efficiency",
-            description: "Streamline your operations and save valuable time"
+            title: "Comprehensive Solutions",
+            description: "End-to-end services tailored to your needs"
           },
           {
-            title: "Cost Savings",
-            description: "Reduce operational costs and improve ROI"
+            title: "Expert Support",
+            description: "24/7 assistance from our dedicated team"
           },
           {
-            title: "Better Outcomes",
-            description: "Achieve superior results with our proven solutions"
+            title: "Proven Results",
+            description: "Track record of success with satisfied clients"
           }
         ]
       },
@@ -75,20 +97,15 @@ serve(async (req) => {
         title: "What Our Clients Say",
         items: [
           {
-            quote: "The results exceeded our expectations",
-            author: "John Smith",
-            company: "Tech Solutions Inc"
-          },
-          {
-            quote: "A game-changer for our business",
-            author: "Sarah Johnson",
-            company: "Growth Ventures"
+            quote: "A game-changing solution that transformed our business.",
+            author: "Jane Smith",
+            role: "CEO, Tech Solutions Inc."
           }
         ]
       },
       pricing: {
         title: "Simple, Transparent Pricing",
-        description: "Choose the plan that's right for your business",
+        description: "Choose the plan that's right for you",
         plans: [
           {
             name: "Starter",
@@ -105,137 +122,107 @@ serve(async (req) => {
       faq: {
         title: "Frequently Asked Questions",
         description: "Find answers to common questions about our solutions",
-        items: expansionMode === 'core_content' ? [
+        items: [
           {
             question: "What makes your solution unique?",
-            answer: `Our ${businessName} solution stands out through its innovative approach to ${businessIdea}.`
+            answer: `Our solution stands out through its innovative approach to ${businessIdea.description || 'business challenges'}.`
           },
           {
             question: "How long does implementation take?",
             answer: "Our streamlined process typically enables implementation within 2-4 weeks."
-          },
-          {
-            question: "What kind of support do you offer?",
-            answer: "We provide comprehensive 24/7 support to ensure your success."
-          }
-        ] : expansionMode === 'detailed_expansion' ? [
-          {
-            question: "What makes your solution unique?",
-            answer: `Our ${businessName} solution stands out through its innovative approach to ${businessIdea}. We combine cutting-edge technology with industry expertise to deliver superior results. Our solution has been proven to increase efficiency by up to 45% for our clients.`
-          },
-          {
-            question: "How long does implementation take?",
-            answer: "Our streamlined process typically enables implementation within 2-4 weeks. This includes initial setup, team training, and system integration. We provide dedicated support throughout the entire process to ensure a smooth transition."
-          },
-          {
-            question: "What kind of support do you offer?",
-            answer: "We provide comprehensive 24/7 support through multiple channels including phone, email, and live chat. Our support team has an average response time of under 2 hours and a 98% satisfaction rate."
-          },
-          {
-            question: "Can your solution scale with my business?",
-            answer: "Absolutely! Our platform is designed to scale seamlessly as your business grows. We regularly handle clients from small businesses to enterprise-level organizations."
-          },
-          {
-            question: "What ROI can I expect?",
-            answer: "While results vary by implementation, our clients typically see positive ROI within the first 3-6 months. Many report efficiency improvements of 30-50% in their operations."
-          }
-        ] : [
-          {
-            question: "What makes your solution unique?",
-            answer: `Our ${businessName} solution stands out through its innovative approach to ${businessIdea}. We combine cutting-edge technology with industry expertise to deliver superior results. Our solution has been proven to increase efficiency by up to 45% for our clients. For example, one recent client achieved a 52% reduction in processing time within the first month.`
-          },
-          {
-            question: "How long does implementation take?",
-            answer: "Our streamlined process typically enables implementation within 2-4 weeks. This includes initial setup, team training, and system integration. We provide dedicated support throughout the entire process to ensure a smooth transition. Our implementation team has successfully completed over 500 deployments across various industries."
-          },
-          {
-            question: "What kind of support do you offer?",
-            answer: "We provide comprehensive 24/7 support through multiple channels including phone, email, and live chat. Our support team has an average response time of under 2 hours and a 98% satisfaction rate. We also offer regular training sessions and a knowledge base with over 200 detailed articles."
-          },
-          {
-            question: "Can your solution scale with my business?",
-            answer: "Absolutely! Our platform is designed to scale seamlessly as your business grows. We regularly handle clients from small businesses to enterprise-level organizations. Our largest client processes over 1 million transactions monthly without any performance impact."
-          },
-          {
-            question: "What ROI can I expect?",
-            answer: "While results vary by implementation, our clients typically see positive ROI within the first 3-6 months. Many report efficiency improvements of 30-50% in their operations. One mid-sized client saved $150,000 in operational costs within their first year of implementation."
           }
         ]
       }
     };
 
-    const theme_settings = {
-      colorScheme: "light",
-      typography: {
-        headingFont: "Inter",
-        bodyFont: "Inter"
-      },
-      spacing: {
-        sectionPadding: "py-16",
-        componentGap: "gap-8"
-      },
-      layout: {
-        heroLayout: "centered",
-        featuresLayout: "grid",
-        benefitsLayout: "grid",
-        testimonialsLayout: "grid",
-        pricingLayout: "grid"
-      }
-    };
-
-    const statistics = {
-      metrics: [
-        { label: "Customers", value: "1000+" },
-        { label: "Success Rate", value: "98%" },
-        { label: "ROI", value: "3x" }
-      ],
-      data_points: [
-        { label: "Average Implementation Time", value: "2 weeks" },
-        { label: "Customer Satisfaction", value: "4.8/5" }
-      ]
-    };
-
-    // Log the generation
-    const { error: logError } = await supabase
+    // Update log with content generation status
+    await supabase
       .from('landing_page_generation_logs')
-      .insert({
-        project_id: projectId,
-        request_payload: { businessName, businessIdea, targetAudience, isRefinement },
-        response_payload: { content, theme_settings, statistics },
-        success: true,
+      .update({
         status: 'completed',
-        step_details: { stage: 'completed', timestamp: new Date().toISOString() }
+        step_details: { stage: 'completed', timestamp: new Date().toISOString() },
+        success: true,
+        response_payload: { content }
+      })
+      .eq('id', log?.id);
+
+    // Create or update landing page in database
+    const { error: upsertError } = await supabase
+      .from('landing_pages')
+      .upsert({
+        project_id: projectId,
+        content,
+        theme_settings: {
+          colorScheme: "light",
+          typography: {
+            headingFont: "Inter",
+            bodyFont: "Inter"
+          },
+          spacing: {
+            sectionPadding: "py-16",
+            componentGap: "gap-8"
+          }
+        },
+        user_id: userId
       });
 
-    if (logError) {
-      console.error('Error logging generation:', logError);
+    if (upsertError) {
+      console.error('Error upserting landing page:', upsertError);
+      throw upsertError;
     }
 
+    // Return the generated content
     return new Response(
       JSON.stringify({
         content,
-        theme_settings,
-        statistics
+        theme_settings: {
+          colorScheme: "light",
+          typography: {
+            headingFont: "Inter",
+            bodyFont: "Inter"
+          },
+          spacing: {
+            sectionPadding: "py-16",
+            componentGap: "gap-8"
+          }
+        }
       }),
       {
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
       },
     );
 
   } catch (error) {
-    console.error('Error:', error);
+    console.error('Error in generate-landing-page function:', error);
+    
+    // Attempt to log the error to Supabase if we can
+    try {
+      const supabaseUrl = Deno.env.get('SUPABASE_URL');
+      const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+      
+      if (supabaseUrl && supabaseKey) {
+        const supabase = createClient(supabaseUrl, supabaseKey);
+        await supabase
+          .from('landing_page_generation_logs')
+          .insert({
+            status: 'error',
+            error_message: error.message,
+            step_details: { stage: 'error', timestamp: new Date().toISOString() }
+          });
+      }
+    } catch (logError) {
+      console.error('Error logging to Supabase:', logError);
+    }
+
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        details: 'Check function logs for more information'
+      }),
       {
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
-        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500,
       },
     );
   }
