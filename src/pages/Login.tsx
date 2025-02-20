@@ -3,7 +3,7 @@ import { Auth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate, Link } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -13,7 +13,6 @@ import LandingNav from "@/components/LandingNav";
 const Login = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [authView, setAuthView] = useState<'sign_in' | 'sign_up'>('sign_in');
 
   useEffect(() => {
     // Check if user is already logged in
@@ -59,26 +58,21 @@ const Login = () => {
       <LandingNav />
       <div className="container mx-auto flex items-center justify-center min-h-screen py-8">
         <Card className="w-full max-w-md p-8">
-          <div className="mb-6 space-y-4">
-            <div className="flex items-center gap-2 justify-center text-primary">
+          <div className="mb-6 text-center">
+            <div className="flex items-center gap-2 justify-center text-primary mb-4">
               <BadgeCheck className="h-6 w-6" />
-              <span className="font-semibold">
-                {authView === 'sign_up' ? 'Create Your Account' : 'Welcome Back!'}
-              </span>
+              <span className="font-semibold">Welcome to Our Platform</span>
             </div>
             <Alert className="bg-primary/5 border-primary/10">
-              <AlertDescription className="text-sm text-center">
-                {authView === 'sign_up' 
-                  ? 'Start validating your ideas today with free credits. No credit card required.'
-                  : 'Sign in to access your account and continue building.'
-                }
+              <AlertDescription className="text-sm">
+                Sign in to your account or create a new one to get started.
               </AlertDescription>
             </Alert>
           </div>
           
           <Auth
             supabaseClient={supabase}
-            view={authView}
+            defaultView="sign_in"
             appearance={{
               theme: ThemeSupa,
               style: {
@@ -115,7 +109,7 @@ const Login = () => {
                   password_label: 'Create a Password',
                   email_input_placeholder: 'Your email address',
                   password_input_placeholder: 'Password (minimum 6 characters)',
-                  button_label: 'Sign up and get free credits',
+                  button_label: 'Create account',
                   loading_button_label: 'Creating account ...',
                   link_text: "Already have an account? Sign in",
                   confirmation_text: 'Check your email for the confirmation link'
