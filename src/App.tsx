@@ -25,6 +25,7 @@ import Affiliate from "@/pages/Affiliate";
 import Share from "@/pages/Share";
 import BlogAdmin from "@/pages/BlogAdmin";
 import Blog from "@/pages/Blog";
+import BlogPost from "@/pages/BlogPost";
 
 const queryClient = new QueryClient();
 
@@ -42,6 +43,8 @@ function App() {
             <Route path="/contact" element={<Contact />} />
             <Route path="/faq" element={<FAQ />} />
             <Route path="/blog" element={<Blog />} />
+            <Route path="/blog/:slug" element={<BlogPost />} />
+            <Route path="/blog/category/:categorySlug" element={<Blog />} />
             <Route path="/" element={<Index />} />
 
             {/* Protected routes */}
