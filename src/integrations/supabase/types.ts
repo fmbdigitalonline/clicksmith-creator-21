@@ -646,6 +646,36 @@ export type Database = {
         }
         Relationships: []
       }
+      landing_page_documentation: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          metadata: Json | null
+          section_name: string
+          updated_at: string
+          version: number | null
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          section_name: string
+          updated_at?: string
+          version?: number | null
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          section_name?: string
+          updated_at?: string
+          version?: number | null
+        }
+        Relationships: []
+      }
       landing_page_generation_logs: {
         Row: {
           api_status_code: number | null
@@ -819,9 +849,12 @@ export type Database = {
           analytics_config: Json | null
           bounce_rate: number | null
           content: Json
+          content_iterations: number | null
+          content_versions: Json[] | null
           conversion_goals: Json | null
           conversion_rate: number | null
           created_at: string
+          current_version: number | null
           faq: Json | null
           footer_content: Json | null
           generation_version: number | null
@@ -839,6 +872,7 @@ export type Database = {
           published: boolean | null
           section_order: Json | null
           slug: string | null
+          statistics: Json | null
           styling: Json | null
           template_version: number | null
           theme_settings: Json | null
@@ -852,9 +886,12 @@ export type Database = {
           analytics_config?: Json | null
           bounce_rate?: number | null
           content: Json
+          content_iterations?: number | null
+          content_versions?: Json[] | null
           conversion_goals?: Json | null
           conversion_rate?: number | null
           created_at?: string
+          current_version?: number | null
           faq?: Json | null
           footer_content?: Json | null
           generation_version?: number | null
@@ -872,6 +909,7 @@ export type Database = {
           published?: boolean | null
           section_order?: Json | null
           slug?: string | null
+          statistics?: Json | null
           styling?: Json | null
           template_version?: number | null
           theme_settings?: Json | null
@@ -885,9 +923,12 @@ export type Database = {
           analytics_config?: Json | null
           bounce_rate?: number | null
           content?: Json
+          content_iterations?: number | null
+          content_versions?: Json[] | null
           conversion_goals?: Json | null
           conversion_rate?: number | null
           created_at?: string
+          current_version?: number | null
           faq?: Json | null
           footer_content?: Json | null
           generation_version?: number | null
@@ -905,6 +946,7 @@ export type Database = {
           published?: boolean | null
           section_order?: Json | null
           slug?: string | null
+          statistics?: Json | null
           styling?: Json | null
           template_version?: number | null
           theme_settings?: Json | null

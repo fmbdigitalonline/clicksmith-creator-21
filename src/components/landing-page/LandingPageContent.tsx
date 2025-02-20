@@ -11,7 +11,7 @@ import { sectionComponents } from "./constants/sectionConfig";
 import type { LandingPageContentProps, SectionContentMap } from "./types/landingPageTypes";
 import LoadingStateLandingPage from "./LoadingStateLandingPage";
 import { cn } from "@/lib/utils";
-import { Loader2 } from "lucide-react";
+import { Loader2, RotateCw } from "lucide-react";
 
 interface GenerationLog {
   api_status_code: number;
@@ -34,6 +34,7 @@ interface GenerationLog {
 const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) => {
   const [activeView, setActiveView] = useState<"edit" | "preview">("preview");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isRefining, setIsRefining] = useState(false);
   const [generationProgress, setGenerationProgress] = useState<{
     status: string;
     progress: number;
@@ -92,7 +93,7 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
 
   // Monitor generation progress
   useEffect(() => {
-    if (isGenerating && project?.id) {
+    if ((isGenerating || isRefining) && project?.id) {
       const interval = setInterval(async () => {
         const { data: logs, error } = await supabase
           .from('landing_page_generation_logs')
@@ -134,7 +135,7 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
 
       return () => clearInterval(interval);
     }
-  }, [isGenerating, project?.id]);
+  }, [isGenerating, isRefining, project?.id]);
 
   const generateLandingPageContent = async () => {
     setIsGenerating(true);
@@ -146,13 +147,34 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
           projectId: project.id,
           businessName: project.title,
           businessIdea: project.business_idea,
-          targetAudience: project.target_audience
+          targetAudience: project.target_audience,
+          iterationNumber: landingPage?.content_iterations || 1
         }
       });
 
       if (error) throw error;
 
       if (data) {
+        // Save the current version before updating
+        if (landingPage?.id) {
+          const { error: updateError } = await supabase
+            .from('landing_pages')
+            .update({
+              content_versions: [...(landingPage.content_versions || []), currentContent],
+              current_version: (landingPage.current_version || 1) + 1,
+              content_iterations: (landingPage.content_iterations || 1) + 1,
+              content: data.content,
+              theme_settings: data.theme_settings,
+              statistics: data.statistics || { metrics: [], data_points: [] }
+            })
+            .eq('id', landingPage.id);
+
+          if (updateError) {
+            console.error('Error updating landing page:', updateError);
+            throw updateError;
+          }
+        }
+
         setCurrentContent({
           hero: { content: data.content.hero, layout: "centered" },
           value_proposition: { content: data.content.features, layout: "grid" },
@@ -169,6 +191,9 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
           title: "Content Generated",
           description: "Your landing page content has been updated."
         });
+
+        // Invalidate queries to refresh the data
+        queryClient.invalidateQueries({ queryKey: ['landing-page', project.id] });
       }
     } catch (error) {
       console.error('Error generating content:', error);
@@ -179,6 +204,50 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
       });
     } finally {
       setIsGenerating(false);
+      setGenerationProgress({ status: "", progress: 0 });
+    }
+  };
+
+  const refineLandingPageContent = async () => {
+    setIsRefining(true);
+    setGenerationProgress({ status: "Refining content...", progress: 0 });
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-landing-page', {
+        body: {
+          projectId: project.id,
+          businessName: project.title,
+          businessIdea: project.business_idea,
+          targetAudience: project.target_audience,
+          currentContent: currentContent,
+          isRefinement: true,
+          iterationNumber: (landingPage?.content_iterations || 1) + 1
+        }
+      });
+
+      if (error) throw error;
+
+      if (data) {
+        // Update with refined content
+        setCurrentContent({
+          ...currentContent,
+          ...data.content
+        });
+
+        toast({
+          title: "Content Refined",
+          description: "Your landing page content has been improved."
+        });
+      }
+    } catch (error) {
+      console.error('Error refining content:', error);
+      toast({
+        title: "Error",
+        description: "Failed to refine landing page content. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsRefining(false);
       setGenerationProgress({ status: "", progress: 0 });
     }
   };
@@ -248,19 +317,40 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
               <TabsTrigger value="preview">Preview</TabsTrigger>
               <TabsTrigger value="edit">Edit</TabsTrigger>
             </TabsList>
-            <Button 
-              onClick={generateLandingPageContent}
-              disabled={isGenerating}
-            >
-              {isGenerating ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {generationProgress.status}
-                </>
-              ) : (
-                "Generate Content"
+            <div className="flex gap-2">
+              <Button 
+                onClick={generateLandingPageContent}
+                disabled={isGenerating || isRefining}
+              >
+                {isGenerating ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {generationProgress.status}
+                  </>
+                ) : (
+                  "Generate Content"
+                )}
+              </Button>
+              {landingPage?.content && (
+                <Button
+                  variant="outline"
+                  onClick={refineLandingPageContent}
+                  disabled={isGenerating || isRefining}
+                >
+                  {isRefining ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Refining...
+                    </>
+                  ) : (
+                    <>
+                      <RotateCw className="mr-2 h-4 w-4" />
+                      Refine Content
+                    </>
+                  )}
+                </Button>
               )}
-            </Button>
+            </div>
           </div>
 
           {generationProgress.progress > 0 && generationProgress.progress < 100 && (
