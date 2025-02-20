@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -63,6 +62,13 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
         pricing: { 
           content: landingPage.content.pricing, 
           layout: landingPage.theme_settings?.pricingLayout || "grid" 
+        },
+        faq: {
+          content: landingPage.content.faq || {
+            title: "Frequently Asked Questions",
+            items: []
+          },
+          layout: "default"
         },
         finalCta: { 
           content: {
@@ -181,6 +187,13 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
           features: { content: data.content.benefits, layout: "grid" },
           proof: { content: data.content.testimonials, layout: "grid" },
           pricing: { content: data.content.pricing, layout: "grid" },
+          faq: {
+            content: data.content.faq || {
+              title: "Frequently Asked Questions",
+              items: []
+            },
+            layout: "default"
+          },
           finalCta: { content: data.content.finalCta, layout: "centered" },
           footer: { content: data.content.footer, layout: "grid" }
         });
@@ -259,6 +272,7 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
     "features",
     "proof",
     "pricing",
+    "faq",
     "finalCta",
     "footer"
   ];
@@ -288,6 +302,7 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
         sectionKey === 'features' && "bg-gray-50",
         sectionKey === 'proof' && "bg-white",
         sectionKey === 'pricing' && "bg-gray-50",
+        sectionKey === 'faq' && "bg-white",
         sectionKey === 'finalCta' && "bg-gradient-to-r from-primary/10 to-accent/10",
         sectionKey === 'footer' && "bg-gray-900 text-white"
       )

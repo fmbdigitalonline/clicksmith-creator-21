@@ -6,6 +6,7 @@ import TestimonialsSection from "../sections/TestimonialsSection";
 import CtaSection from "../sections/CtaSection";
 import FooterSection from "../sections/FooterSection";
 import PricingSection from "../sections/PricingSection";
+import FaqSection from "../sections/FaqSection";
 
 export const sectionComponents = {
   hero: HeroSection,
@@ -13,6 +14,7 @@ export const sectionComponents = {
   features: FeaturesSection,
   proof: TestimonialsSection,
   pricing: PricingSection,
+  faq: FaqSection,
   finalCta: CtaSection,
   footer: FooterSection,
 } as const;
@@ -23,6 +25,7 @@ export const defaultSectionOrder = [
   "features",
   "proof",
   "pricing",
+  "faq",
   "finalCta",
   "footer"
 ];

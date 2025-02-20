@@ -1,310 +1,242 @@
-
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
+import { createClient } from '@supabase/supabase-js';
+import { Configuration, OpenAIApi } from 'npm:openai@3.2.1';
+import { corsHeaders } from '../_shared/cors.ts';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+const openAiConfig = new Configuration({
+  apiKey: Deno.env.get('OPENAI_API_KEY'),
+});
 
-const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+const openai = new OpenAIApi(openAiConfig);
+
+const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response('ok', { headers: corsHeaders });
   }
 
   try {
-    const { 
-      projectId, 
-      businessName, 
-      businessIdea, 
-      targetAudience,
-      currentContent,
-      isRefinement,
-      iterationNumber = 1
-    } = await req.json();
+    const { projectId, businessName, businessIdea, targetAudience, currentContent, isRefinement, iterationNumber = 1 } = await req.json();
 
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    if (!projectId || !businessIdea) {
+      throw new Error('Missing required parameters');
+    }
 
-    // Create a log entry
-    const { data: log } = await supabase
-      .from('landing_page_generation_logs')
-      .insert({
-        project_id: projectId,
-        status: 'started',
-        step_details: { stage: 'started' },
-        success: false
-      })
-      .select()
-      .single();
-
-    if (!log) throw new Error('Failed to create generation log');
-
-    // Determine the expansion mode based on iteration number
+    // Determine content expansion mode based on iteration
     const expansionMode = iterationNumber <= 2 ? 'core_content' :
                          iterationNumber <= 4 ? 'detailed_expansion' :
                          'final_polish';
 
-    // Generate content with progressive detail
     const content = {
       hero: {
-        title: `${businessName} - Innovation Meets Excellence`,
-        description: isRefinement ? 
-          `${currentContent.hero.content.description}\n\nFurther refined: ${businessIdea}` :
-          `Transform your experience with our cutting-edge solutions. ${businessIdea}`,
-        cta: "Get Started Today",
+        title: `Transform Your ${businessName} with Innovative Solutions`,
+        description: `We help businesses like yours achieve remarkable results through ${businessIdea}.`,
+        ctaText: "Get Started Today",
+        image: "hero-image.jpg"
       },
       features: {
         title: "Why Choose Us",
-        cards: expansionMode === 'core_content' ? [
+        cards: [
           {
-            title: "Expert Solutions",
-            description: "Industry-leading expertise and proven results",
-          },
-          {
-            title: "Customer Focus",
-            description: "Dedicated to your success with personalized support",
-          },
-          {
-            title: "Innovation",
-            description: "Cutting-edge technology and forward-thinking approaches",
-          }
-        ] : expansionMode === 'detailed_expansion' ? [
-          {
-            title: "Expert Solutions",
-            description: "Industry-leading expertise with proven results backed by years of experience. Our solutions are tailored to your specific needs.",
-            bulletPoints: [
-              "Customized approaches for your unique challenges",
-              "Data-driven decision making",
-              "Continuous improvement methodology"
-            ]
-          },
-          {
-            title: "Customer Focus",
-            description: "We put your success at the heart of everything we do. Our dedicated support team ensures you get the most value from our partnership.",
-            bulletPoints: [
-              "24/7 dedicated support",
-              "Personalized onboarding process",
-              "Regular check-ins and updates"
-            ]
-          },
-          {
-            title: "Innovation",
-            description: "Stay ahead of the curve with our cutting-edge technology and forward-thinking approaches that drive real results.",
-            bulletPoints: [
-              "Latest technology adoption",
-              "Continuous feature updates",
-              "Industry-leading practices"
-            ]
-          }
-        ] : [
-          // Final polish adds concrete examples and metrics
-          {
-            title: "Expert Solutions",
-            description: `Industry-leading expertise with proven results backed by ${iterationNumber} years of experience. Our solutions have helped businesses achieve an average of 45% improvement in efficiency.`,
-            bulletPoints: [
-              "Customized approaches with 98% client satisfaction rate",
-              "Data-driven decisions backed by advanced analytics",
-              "ISO-certified improvement methodology"
-            ],
-            metrics: {
-              improvement: "45%",
-              satisfaction: "98%",
-              implementation: "< 2 weeks"
-            }
-          },
-          // ... similar expansions for other cards
-        ]
-      },
-      benefits: {
-        title: "Our Features",
-        items: expansionMode === 'core_content' ? [
-          {
-            title: "Comprehensive Solutions",
-            description: "End-to-end services tailored to your needs"
+            title: "Innovative Solutions",
+            description: "Cutting-edge technology tailored to your needs"
           },
           {
             title: "Expert Support",
-            description: "24/7 assistance from our dedicated team"
+            description: "24/7 dedicated customer service"
           },
           {
             title: "Proven Results",
-            description: "Track record of success with satisfied clients"
+            description: "Track record of success with businesses like yours"
           }
-        ] : expansionMode === 'detailed_expansion' ? [
+        ]
+      },
+      benefits: {
+        title: "Benefits That Matter",
+        items: [
           {
-            title: "Comprehensive Solutions",
-            description: "Our end-to-end services are meticulously tailored to address your specific challenges and goals.",
-            details: [
-              "Custom implementation plans",
-              "Integrated workflows",
-              "Scalable architecture"
-            ]
+            title: "Increased Efficiency",
+            description: "Streamline your operations and save valuable time"
           },
-          // ... expanded benefits
-        ] : [
-          // Final polish with concrete examples
           {
-            title: "Comprehensive Solutions",
-            description: "Our end-to-end services have helped over 500 businesses achieve their goals with measurable results.",
-            details: [
-              "Custom implementation plans with 99.9% uptime",
-              "Integrated workflows reducing manual work by 75%",
-              "Scalable architecture supporting 10x growth"
-            ],
-            caseStudy: {
-              metric: "75%",
-              description: "Average reduction in manual workflows"
-            }
+            title: "Cost Savings",
+            description: "Reduce operational costs and improve ROI"
           },
-          // ... similar expansions for other items
+          {
+            title: "Better Outcomes",
+            description: "Achieve superior results with our proven solutions"
+          }
         ]
       },
       testimonials: {
         title: "What Our Clients Say",
-        items: expansionMode === 'final_polish' ? [
+        items: [
           {
-            quote: "A game-changing solution that transformed our business operations and improved efficiency by 40%.",
-            author: "Jane Smith",
-            role: "CEO, Tech Solutions Inc.",
-            metrics: {
-              improvement: "40%",
-              timeframe: "6 months"
-            }
+            quote: "The results exceeded our expectations",
+            author: "John Smith",
+            company: "Tech Solutions Inc"
           },
           {
-            quote: "The level of support and expertise we received was exceptional. Our ROI exceeded expectations.",
-            author: "John Doe",
-            role: "CTO, Innovation Corp",
-            metrics: {
-              roi: "250%",
-              satisfaction: "5/5"
-            }
-          }
-        ] : [
-          {
-            quote: "A game-changing solution that transformed our business.",
-            author: "Jane Smith",
-            role: "CEO, Tech Solutions Inc."
+            quote: "A game-changer for our business",
+            author: "Sarah Johnson",
+            company: "Growth Ventures"
           }
         ]
       },
       pricing: {
         title: "Simple, Transparent Pricing",
-        description: "Choose the plan that's right for you",
-        items: [
+        description: "Choose the plan that's right for your business",
+        plans: [
           {
-            title: "Starter",
-            price: "$49/mo",
-            features: expansionMode === 'core_content' ? 
-              ["Basic features", "Email support", "1 user"] :
-              ["All basic features", "Priority email support", "Up to 5 users", "99.9% uptime SLA", "Basic analytics"]
+            name: "Starter",
+            price: "$99/month",
+            features: ["Basic Features", "Email Support", "5 Users"]
           },
           {
-            title: "Professional",
-            price: "$99/mo",
-            features: expansionMode === 'core_content' ?
-              ["Advanced features", "Priority support", "5 users"] :
-              ["All Starter features", "24/7 phone support", "Up to 20 users", "Advanced analytics", "Custom integrations"]
+            name: "Professional",
+            price: "$199/month",
+            features: ["Advanced Features", "Priority Support", "Unlimited Users"]
+          }
+        ]
+      },
+      faq: {
+        title: "Frequently Asked Questions",
+        description: "Find answers to common questions about our solutions",
+        items: expansionMode === 'core_content' ? [
+          {
+            question: "What makes your solution unique?",
+            answer: `Our ${businessName} solution stands out through its innovative approach to ${businessIdea}.`
+          },
+          {
+            question: "How long does implementation take?",
+            answer: "Our streamlined process typically enables implementation within 2-4 weeks."
+          },
+          {
+            question: "What kind of support do you offer?",
+            answer: "We provide comprehensive 24/7 support to ensure your success."
+          }
+        ] : expansionMode === 'detailed_expansion' ? [
+          {
+            question: "What makes your solution unique?",
+            answer: `Our ${businessName} solution stands out through its innovative approach to ${businessIdea}. We combine cutting-edge technology with industry expertise to deliver superior results. Our solution has been proven to increase efficiency by up to 45% for our clients.`
+          },
+          {
+            question: "How long does implementation take?",
+            answer: "Our streamlined process typically enables implementation within 2-4 weeks. This includes initial setup, team training, and system integration. We provide dedicated support throughout the entire process to ensure a smooth transition."
+          },
+          {
+            question: "What kind of support do you offer?",
+            answer: "We provide comprehensive 24/7 support through multiple channels including phone, email, and live chat. Our support team has an average response time of under 2 hours and a 98% satisfaction rate."
+          },
+          {
+            question: "Can your solution scale with my business?",
+            answer: "Absolutely! Our platform is designed to scale seamlessly as your business grows. We regularly handle clients from small businesses to enterprise-level organizations."
+          },
+          {
+            question: "What ROI can I expect?",
+            answer: "While results vary by implementation, our clients typically see positive ROI within the first 3-6 months. Many report efficiency improvements of 30-50% in their operations."
+          }
+        ] : [
+          {
+            question: "What makes your solution unique?",
+            answer: `Our ${businessName} solution stands out through its innovative approach to ${businessIdea}. We combine cutting-edge technology with industry expertise to deliver superior results. Our solution has been proven to increase efficiency by up to 45% for our clients. For example, one recent client achieved a 52% reduction in processing time within the first month.`
+          },
+          {
+            question: "How long does implementation take?",
+            answer: "Our streamlined process typically enables implementation within 2-4 weeks. This includes initial setup, team training, and system integration. We provide dedicated support throughout the entire process to ensure a smooth transition. Our implementation team has successfully completed over 500 deployments across various industries."
+          },
+          {
+            question: "What kind of support do you offer?",
+            answer: "We provide comprehensive 24/7 support through multiple channels including phone, email, and live chat. Our support team has an average response time of under 2 hours and a 98% satisfaction rate. We also offer regular training sessions and a knowledge base with over 200 detailed articles."
+          },
+          {
+            question: "Can your solution scale with my business?",
+            answer: "Absolutely! Our platform is designed to scale seamlessly as your business grows. We regularly handle clients from small businesses to enterprise-level organizations. Our largest client processes over 1 million transactions monthly without any performance impact."
+          },
+          {
+            question: "What ROI can I expect?",
+            answer: "While results vary by implementation, our clients typically see positive ROI within the first 3-6 months. Many report efficiency improvements of 30-50% in their operations. One mid-sized client saved $150,000 in operational costs within their first year of implementation."
           }
         ]
       }
     };
 
-    // Update log for content generation
-    await supabase
-      .from('landing_page_generation_logs')
-      .update({
-        step_details: { stage: 'content_generated' },
-        status: 'generating_images'
-      })
-      .eq('id', log.id);
-
-    // Generate hero image
-    const imagePrompt = `Create a professional, modern hero image for ${businessName}. ${businessIdea}. Style: clean, corporate, professional.`;
-    
-    const imageResponse = await fetch(`${supabaseUrl}/functions/v1/generate-images`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${supabaseServiceKey}`,
-        'Content-Type': 'application/json',
+    const theme_settings = {
+      colorScheme: "light",
+      typography: {
+        headingFont: "Inter",
+        bodyFont: "Inter"
       },
-      body: JSON.stringify({
-        prompt: imagePrompt,
-        style: "1-1",
-        width: 1024,
-        height: 1024,
-      }),
-    });
-
-    if (!imageResponse.ok) {
-      throw new Error('Failed to generate image');
-    }
-
-    const imageData = await imageResponse.json();
-    content.hero.image = imageData.images[0];
-
-    // Calculate statistics based on the content
-    const statistics = {
-      metrics: [
-        {
-          label: "Content Sections",
-          value: Object.keys(content).length
-        },
-        {
-          label: "Iteration",
-          value: iterationNumber
-        },
-        {
-          label: "Detail Level",
-          value: expansionMode.replace('_', ' ')
-        }
-      ],
-      data_points: [
-        {
-          category: "Content",
-          metrics: {
-            sections: Object.keys(content).length,
-            features: content.features.cards.length,
-            testimonials: content.testimonials.items.length
-          }
-        }
-      ]
-    };
-
-    // Update log for completion
-    await supabase
-      .from('landing_page_generation_logs')
-      .update({
-        status: 'completed',
-        step_details: { stage: 'images_generated' },
-        success: true,
-        response_payload: { content, statistics }
-      })
-      .eq('id', log.id);
-
-    // Return the generated content
-    return new Response(JSON.stringify({ 
-      content,
-      theme_settings: {
+      spacing: {
+        sectionPadding: "py-16",
+        componentGap: "gap-8"
+      },
+      layout: {
         heroLayout: "centered",
         featuresLayout: "grid",
         benefitsLayout: "grid",
         testimonialsLayout: "grid",
         pricingLayout: "grid"
+      }
+    };
+
+    const statistics = {
+      metrics: [
+        { label: "Customers", value: "1000+" },
+        { label: "Success Rate", value: "98%" },
+        { label: "ROI", value: "3x" }
+      ],
+      data_points: [
+        { label: "Average Implementation Time", value: "2 weeks" },
+        { label: "Customer Satisfaction", value: "4.8/5" }
+      ]
+    };
+
+    // Log the generation
+    const { error: logError } = await supabase
+      .from('landing_page_generation_logs')
+      .insert({
+        project_id: projectId,
+        request_payload: { businessName, businessIdea, targetAudience, isRefinement },
+        response_payload: { content, theme_settings, statistics },
+        success: true,
+        status: 'completed',
+        step_details: { stage: 'completed', timestamp: new Date().toISOString() }
+      });
+
+    if (logError) {
+      console.error('Error logging generation:', logError);
+    }
+
+    return new Response(
+      JSON.stringify({
+        content,
+        theme_settings,
+        statistics
+      }),
+      {
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json',
+        },
+        status: 200,
       },
-      statistics
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    );
+
   } catch (error) {
     console.error('Error:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      {
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json',
+        },
+        status: 400,
+      },
+    );
   }
 });
