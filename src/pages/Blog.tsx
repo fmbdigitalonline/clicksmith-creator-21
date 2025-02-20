@@ -44,6 +44,10 @@ const Blog = () => {
     }
 
     const { data, error } = await query;
+    console.log('Fetched blog posts:', data); // Debug log
+    if (error) {
+      console.error('Error fetching posts:', error);
+    }
     if (data) setPosts(data);
     setLoading(false);
   };
