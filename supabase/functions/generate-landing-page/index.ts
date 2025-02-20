@@ -73,7 +73,7 @@ Please provide the response in the following JSON format (DO NOT include any mar
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4',
+        model: 'gpt-4o-mini-2024-07-18', // Updated to use the specific model version
         messages: [
           {
             role: "system",
