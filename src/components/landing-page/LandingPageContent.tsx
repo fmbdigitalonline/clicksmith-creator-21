@@ -43,35 +43,36 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
   const queryClient = useQueryClient();
   const { data: template, isLoading: isTemplateLoading } = useLandingPageTemplate();
   
+  // Only initialize content if landingPage.content exists and has actual data
   const [currentContent, setCurrentContent] = useState<SectionContentMap>(() => {
-    if (landingPage?.content) {
-      console.log("Initializing landing page content with:", landingPage.content);
+    if (landingPage?.content && Object.keys(landingPage.content).length > 0) {
+      console.log("Initializing with existing landing page content:", landingPage.content);
       return {
-        hero: { 
+        hero: landingPage.content.hero ? { 
           content: landingPage.content.hero, 
           layout: landingPage.theme_settings?.heroLayout || "centered" 
-        },
-        value_proposition: { 
+        } : null,
+        value_proposition: landingPage.content.features ? { 
           content: {
             title: "Why Choose Us",
-            items: landingPage.content.features || []
+            items: landingPage.content.features
           }, 
           layout: landingPage.theme_settings?.featuresLayout || "grid" 
-        },
-        features: { 
+        } : null,
+        features: landingPage.content.benefits ? { 
           content: {
             title: "Our Features",
-            items: landingPage.content.benefits || []
+            items: landingPage.content.benefits
           }, 
           layout: landingPage.theme_settings?.benefitsLayout || "grid" 
-        },
-        proof: { 
+        } : null,
+        proof: landingPage.content.testimonials ? { 
           content: {
             title: "Customer Testimonials",
-            testimonials: landingPage.content.testimonials || []
+            testimonials: landingPage.content.testimonials
           }, 
           layout: landingPage.theme_settings?.testimonialsLayout || "grid" 
-        },
+        } : null,
         pricing: { 
           content: {
             title: "Our Pricing",
@@ -79,34 +80,29 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
           }, 
           layout: landingPage.theme_settings?.pricingLayout || "grid" 
         },
-        faq: {
+        faq: landingPage.content.faq?.items ? {
           content: {
             title: "Frequently Asked Questions",
-            items: landingPage.content.faq?.items || []
+            items: landingPage.content.faq.items
           },
           layout: "default"
-        },
-        finalCta: { 
+        } : null,
+        finalCta: landingPage.content.cta ? { 
           content: {
-            title: landingPage.content.cta?.title,
-            description: landingPage.content.cta?.description,
-            ctaText: landingPage.content.cta?.buttonText
+            title: landingPage.content.cta.title,
+            description: landingPage.content.cta.description,
+            ctaText: landingPage.content.cta.buttonText
           }, 
           layout: "centered" 
-        },
-        footer: { 
+        } : null,
+        footer: landingPage.content.footer ? { 
           content: {
-            links: landingPage.content.footer || {
-              company: [],
-              resources: []
-            }
+            links: landingPage.content.footer
           }, 
           layout: "grid" 
-        }
+        } : null
       };
     }
-    
-    // Return empty content
     return {};
   });
 
@@ -173,7 +169,7 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
 
       if (error) throw error;
 
-      if (data) {
+      if (data && data.content) {
         console.log("Received new content:", data);
         
         if (landingPage?.id) {
@@ -195,66 +191,68 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
           }
         }
 
-        setCurrentContent({
-          hero: { 
+        const newContent: SectionContentMap = {};
+        
+        if (data.content.hero) {
+          newContent.hero = {
             content: data.content.hero,
-            layout: "centered" 
-          },
-          value_proposition: { 
+            layout: "centered"
+          };
+        }
+        
+        if (data.content.features) {
+          newContent.value_proposition = {
             content: {
               title: "Why Choose Us",
-              items: data.content.features || []
+              items: data.content.features
             },
-            layout: "grid" 
-          },
-          features: { 
+            layout: "grid"
+          };
+        }
+        
+        if (data.content.benefits) {
+          newContent.features = {
             content: {
               title: "Our Features",
-              items: data.content.benefits || []
+              items: data.content.benefits
             },
-            layout: "grid" 
-          },
-          proof: { 
+            layout: "grid"
+          };
+        }
+        
+        if (data.content.testimonials) {
+          newContent.proof = {
             content: {
               title: "Customer Testimonials",
-              testimonials: data.content.testimonials || []
+              testimonials: data.content.testimonials
             },
-            layout: "grid" 
-          },
-          pricing: { 
-            content: {
-              title: "Our Pricing",
-              plans: []
-            },
-            layout: "grid" 
-          },
-          faq: {
+            layout: "grid"
+          };
+        }
+        
+        if (data.content.faq?.items) {
+          newContent.faq = {
             content: {
               title: "Frequently Asked Questions",
-              items: data.content.faq?.items || []
+              items: data.content.faq.items
             },
             layout: "default"
-          },
-          finalCta: { 
+          };
+        }
+        
+        if (data.content.cta) {
+          newContent.finalCta = {
             content: {
-              title: data.content.cta?.title,
-              description: data.content.cta?.description,
-              ctaText: data.content.cta?.buttonText
+              title: data.content.cta.title,
+              description: data.content.cta.description,
+              ctaText: data.content.cta.buttonText
             },
-            layout: "centered" 
-          },
-          footer: { 
-            content: {
-              links: {
-                company: [],
-                resources: []
-              }
-            },
-            layout: "grid" 
-          }
-        });
+            layout: "centered"
+          };
+        }
 
-        setCurrentLayoutStyle(data.theme_settings);
+        setCurrentContent(newContent);
+        setCurrentLayoutStyle(data.theme_settings || {});
 
         toast({
           title: "Content Generated",
@@ -334,7 +332,6 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
       return null;
     }
 
-    // Apply theme settings
     const themeProps = {
       ...currentLayoutStyle,
       className: cn(
@@ -399,7 +396,7 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
                   "Generate Content"
                 )}
               </Button>
-              {landingPage?.content && (
+              {Object.keys(currentContent).length > 0 && (
                 <Button
                   variant="outline"
                   onClick={refineLandingPageContent}
@@ -432,9 +429,16 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
         </div>
 
         <TabsContent value="preview" className="mt-0">
-          <div className="divide-y divide-gray-200">
-            {sectionOrder.map((sectionKey) => renderSection(sectionKey))}
-          </div>
+          {Object.keys(currentContent).length === 0 ? (
+            <div className="text-center py-16">
+              <h2 className="text-2xl font-semibold mb-4">No Content Generated Yet</h2>
+              <p className="text-gray-600 mb-8">Click the "Generate Content" button to create your landing page.</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-200">
+              {sectionOrder.map((sectionKey) => renderSection(sectionKey))}
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="edit" className="mt-0">
