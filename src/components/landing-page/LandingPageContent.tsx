@@ -25,27 +25,54 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
     if (landingPage?.content) {
       console.log("Using landing page content:", landingPage.content);
       return {
-        hero: { content: landingPage.content.hero, layout: "centered" },
-        value_proposition: { 
-          content: landingPage.content.value_proposition, 
-          layout: "grid" 
+        hero: { 
+          content: landingPage.content.hero, 
+          layout: landingPage.theme_settings?.heroLayout || "centered" 
         },
-        features: { content: landingPage.content.features, layout: "grid" },
-        proof: { content: landingPage.content.proof, layout: "grid" },
-        pricing: { content: landingPage.content.pricing, layout: "grid" },
-        finalCta: { content: landingPage.content.finalCta, layout: "centered" },
-        footer: { content: landingPage.content.footer, layout: "grid" }
+        value_proposition: { 
+          content: landingPage.content.features, 
+          layout: landingPage.theme_settings?.featuresLayout || "grid" 
+        },
+        features: { 
+          content: landingPage.content.benefits, 
+          layout: landingPage.theme_settings?.benefitsLayout || "grid" 
+        },
+        proof: { 
+          content: landingPage.content.testimonials, 
+          layout: landingPage.theme_settings?.testimonialsLayout || "grid" 
+        },
+        pricing: { 
+          content: landingPage.content.pricing, 
+          layout: landingPage.theme_settings?.pricingLayout || "grid" 
+        },
+        finalCta: { 
+          content: {
+            title: "Ready to Get Started?",
+            description: "Join us today and experience the difference.",
+            ctaText: "Get Started Now"
+          }, 
+          layout: "centered" 
+        },
+        footer: { 
+          content: {
+            links: {
+              company: ["About", "Contact", "Careers"],
+              resources: ["Help Center", "Terms", "Privacy"]
+            }
+          }, 
+          layout: "grid" 
+        }
       };
     }
     return {};
   });
   
-  const [currentLayoutStyle, setCurrentLayoutStyle] = useState(landingPage?.layout_style);
+  const [currentLayoutStyle, setCurrentLayoutStyle] = useState(landingPage?.theme_settings || {});
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { data: template, isLoading: isTemplateLoading } = useLandingPageTemplate();
 
-  // Monitor generation logs
+  // Monitor generation progress
   useEffect(() => {
     if (isGenerating && project?.id) {
       const interval = setInterval(async () => {
@@ -68,9 +95,13 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
             });
             clearInterval(interval);
           } else {
+            const progress = logs.step_details?.stage === 'started' ? 25 :
+                           logs.step_details?.stage === 'content_generated' ? 50 :
+                           logs.step_details?.stage === 'images_generated' ? 75 : 0;
+            
             setGenerationProgress({ 
-              status: "Generating content...", 
-              progress: 50 
+              status: `${logs.status.replace(/_/g, ' ')}...`, 
+              progress 
             });
           }
         }
@@ -98,14 +129,16 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
 
       if (data) {
         setCurrentContent({
-          hero: { content: data.hero, layout: "centered" },
-          value_proposition: { content: data.value_proposition, layout: "grid" },
-          features: { content: data.features, layout: "grid" },
-          proof: { content: data.proof, layout: "grid" },
-          pricing: { content: data.pricing, layout: "grid" },
-          finalCta: { content: data.finalCta, layout: "centered" },
-          footer: { content: data.footer, layout: "grid" }
+          hero: { content: data.content.hero, layout: "centered" },
+          value_proposition: { content: data.content.features, layout: "grid" },
+          features: { content: data.content.benefits, layout: "grid" },
+          proof: { content: data.content.testimonials, layout: "grid" },
+          pricing: { content: data.content.pricing, layout: "grid" },
+          finalCta: { content: data.content.finalCta, layout: "centered" },
+          footer: { content: data.content.footer, layout: "grid" }
         });
+
+        setCurrentLayoutStyle(data.theme_settings);
 
         toast({
           title: "Content Generated",
@@ -151,8 +184,10 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
       return null;
     }
 
-    return (
-      <div key={sectionKey} className={cn(
+    // Apply theme settings
+    const themeProps = {
+      ...currentLayoutStyle,
+      className: cn(
         "w-full",
         sectionKey === 'hero' && "bg-gradient-to-r from-blue-50 to-indigo-50",
         sectionKey === 'value_proposition' && "bg-white",
@@ -161,10 +196,15 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
         sectionKey === 'pricing' && "bg-gray-50",
         sectionKey === 'finalCta' && "bg-gradient-to-r from-primary/10 to-accent/10",
         sectionKey === 'footer' && "bg-gray-900 text-white"
-      )}>
+      )
+    };
+
+    return (
+      <div key={sectionKey} {...themeProps}>
         <Component
           content={sectionData.content}
           layout={sectionData.layout || "default"}
+          theme={currentLayoutStyle}
         />
       </div>
     );
@@ -197,6 +237,7 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
               )}
             </Button>
           </div>
+
           {generationProgress.progress > 0 && generationProgress.progress < 100 && (
             <div className="w-full bg-gray-200 rounded-full h-2.5 mb-4">
               <div 
