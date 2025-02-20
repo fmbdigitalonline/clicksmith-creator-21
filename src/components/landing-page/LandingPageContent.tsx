@@ -44,23 +44,39 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
       console.log("Using landing page content:", landingPage.content);
       return {
         hero: { 
-          content: landingPage.content.hero, 
+          content: landingPage.content.hero || {
+            title: "Welcome",
+            description: "Your landing page content is being generated.",
+            ctaText: "Get Started"
+          }, 
           layout: landingPage.theme_settings?.heroLayout || "centered" 
         },
         value_proposition: { 
-          content: landingPage.content.features, 
+          content: landingPage.content.value_proposition || {
+            title: "Our Value Proposition",
+            items: []
+          }, 
           layout: landingPage.theme_settings?.featuresLayout || "grid" 
         },
         features: { 
-          content: landingPage.content.benefits, 
+          content: landingPage.content.features || {
+            title: "Features",
+            items: []
+          }, 
           layout: landingPage.theme_settings?.benefitsLayout || "grid" 
         },
         proof: { 
-          content: landingPage.content.testimonials, 
+          content: landingPage.content.proof || {
+            title: "What Our Customers Say",
+            testimonials: []
+          }, 
           layout: landingPage.theme_settings?.testimonialsLayout || "grid" 
         },
         pricing: { 
-          content: landingPage.content.pricing, 
+          content: landingPage.content.pricing || {
+            title: "Pricing",
+            plans: []
+          }, 
           layout: landingPage.theme_settings?.pricingLayout || "grid" 
         },
         faq: {
@@ -71,7 +87,7 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
           layout: "default"
         },
         finalCta: { 
-          content: {
+          content: landingPage.content.finalCta || {
             title: "Ready to Get Started?",
             description: "Join us today and experience the difference.",
             ctaText: "Get Started Now"
@@ -79,7 +95,7 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
           layout: "centered" 
         },
         footer: { 
-          content: {
+          content: landingPage.content.footer || {
             links: {
               company: ["About", "Contact", "Careers"],
               resources: ["Help Center", "Terms", "Privacy"]
@@ -380,7 +396,7 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
 
         <TabsContent value="preview" className="mt-0">
           <div className="divide-y divide-gray-200">
-            {sectionOrder.map((sectionKey) => renderSection(sectionKey))}
+            {Object.keys(sectionComponents).map((sectionKey) => renderSection(sectionKey))}
           </div>
         </TabsContent>
 
