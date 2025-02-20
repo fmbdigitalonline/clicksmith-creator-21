@@ -23,10 +23,8 @@ interface BlogCardProps {
 
 const BlogCard = ({ post, featured = false, compact = false }: BlogCardProps) => {
   const categories = post.blog_posts_categories
-    ?.map(pc => pc.blog_categories)
-    .filter((category): category is { name: string; slug: string } => 
-      category !== null && category !== undefined
-    ) || [];
+    ?.filter(pc => pc.blog_categories !== null)
+    .map(pc => pc.blog_categories) || [];
 
   if (featured) {
     return (

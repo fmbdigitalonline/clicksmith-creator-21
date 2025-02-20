@@ -21,7 +21,7 @@ const Blog = () => {
       .from('blog_posts')
       .select(`
         *,
-        blog_posts_categories!inner(
+        blog_posts_categories(
           category_id,
           blog_categories(*)
         )
