@@ -818,10 +818,12 @@ export type Database = {
           created_at: string
           faq: Json | null
           footer_content: Json | null
+          generation_version: number | null
           how_it_works: Json | null
           id: string
           image_placements: Json | null
           is_published: boolean | null
+          last_generated_at: string | null
           layout: Json | null
           layout_style: Json | null
           market_analysis: Json | null
@@ -833,6 +835,7 @@ export type Database = {
           slug: string | null
           styling: Json | null
           template_version: number | null
+          theme_settings: Json | null
           title: string
           unique_visitors: number | null
           updated_at: string
@@ -848,10 +851,12 @@ export type Database = {
           created_at?: string
           faq?: Json | null
           footer_content?: Json | null
+          generation_version?: number | null
           how_it_works?: Json | null
           id?: string
           image_placements?: Json | null
           is_published?: boolean | null
+          last_generated_at?: string | null
           layout?: Json | null
           layout_style?: Json | null
           market_analysis?: Json | null
@@ -863,6 +868,7 @@ export type Database = {
           slug?: string | null
           styling?: Json | null
           template_version?: number | null
+          theme_settings?: Json | null
           title: string
           unique_visitors?: number | null
           updated_at?: string
@@ -878,10 +884,12 @@ export type Database = {
           created_at?: string
           faq?: Json | null
           footer_content?: Json | null
+          generation_version?: number | null
           how_it_works?: Json | null
           id?: string
           image_placements?: Json | null
           is_published?: boolean | null
+          last_generated_at?: string | null
           layout?: Json | null
           layout_style?: Json | null
           market_analysis?: Json | null
@@ -893,6 +901,7 @@ export type Database = {
           slug?: string | null
           styling?: Json | null
           template_version?: number | null
+          theme_settings?: Json | null
           title?: string
           unique_visitors?: number | null
           updated_at?: string
@@ -1523,6 +1532,13 @@ export type Database = {
       backup_type: "auto" | "manual"
       credit_operation_type: "credit_add" | "credit_deduct" | "credit_refund"
       image_generation_status: "pending" | "completed" | "failed"
+      landing_page_generation_status:
+        | "queued"
+        | "generating_content"
+        | "generating_images"
+        | "applying_styles"
+        | "completed"
+        | "failed"
       update_type: "feature" | "update" | "incident" | "announcement"
     }
     CompositeTypes: {

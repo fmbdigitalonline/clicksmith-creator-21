@@ -1,162 +1,227 @@
 
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
+import { corsHeaders } from '../_shared/cors.ts'
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+const DEEPSEEK_API_KEY = Deno.env.get('DEEPSEEK_API_KEY')
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL')
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+
+interface ProjectInput {
+  projectId: string
+  businessIdea: {
+    description: string
+    valueProposition: string
+  }
+  targetAudience: {
+    demographics: string
+    painPoints: string[]
+    preferences: string[]
+  }
+  userId: string
 }
 
-const supabaseUrl = Deno.env.get('SUPABASE_URL')
-const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-const supabase = createClient(supabaseUrl!, supabaseKey!)
+async function generateHeroSection(input: ProjectInput) {
+  try {
+    const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: "deepseek-chat",
+        messages: [
+          {
+            role: "system",
+            content: "You are an expert in creating compelling landing page content."
+          },
+          {
+            role: "user",
+            content: `Create a hero section for a landing page about: ${input.businessIdea.description}. 
+            Target audience: ${JSON.stringify(input.targetAudience)}
+            Value proposition: ${input.businessIdea.valueProposition}
+            
+            Return a JSON object with:
+            - headline (compelling main headline)
+            - subheadline (supporting text)
+            - ctaText (call to action button text)
+            - imagePrompt (detailed prompt for image generation)`
+          }
+        ],
+        temperature: 0.7,
+        max_tokens: 500
+      })
+    });
+
+    const data = await response.json();
+    return JSON.parse(data.choices[0].message.content);
+  } catch (error) {
+    console.error('Error generating hero section:', error);
+    throw error;
+  }
+}
+
+async function generateSections(input: ProjectInput) {
+  try {
+    const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: "deepseek-chat",
+        messages: [
+          {
+            role: "system",
+            content: "You are an expert in creating compelling landing page content."
+          },
+          {
+            role: "user",
+            content: `Create content sections for a landing page about: ${input.businessIdea.description}. 
+            Target audience: ${JSON.stringify(input.targetAudience)}
+            Value proposition: ${input.businessIdea.valueProposition}
+            
+            Return a JSON object with these sections:
+            - features (array of features with title and description)
+            - benefits (array of benefits with title and description)
+            - howItWorks (array of steps with title and description)
+            - testimonials (array of testimonial objects with quote, author, and role)
+            - faq (array of FAQ objects with question and answer)
+            - pricing (array of pricing tiers with name, price, and features array)
+            Each section should be detailed and compelling.`
+          }
+        ],
+        temperature: 0.7,
+        max_tokens: 2000
+      })
+    });
+
+    const data = await response.json();
+    return JSON.parse(data.choices[0].message.content);
+  } catch (error) {
+    console.error('Error generating sections:', error);
+    throw error;
+  }
+}
+
+async function generateTheme(input: ProjectInput) {
+  try {
+    const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: "deepseek-chat",
+        messages: [
+          {
+            role: "system",
+            content: "You are an expert in web design and branding."
+          },
+          {
+            role: "user",
+            content: `Create a theme for a landing page about: ${input.businessIdea.description}. 
+            Target audience: ${JSON.stringify(input.targetAudience)}
+            
+            Return a JSON object with:
+            - colors (object with primary, secondary, accent, text, background colors)
+            - typography (object with headingFont, bodyFont, fontSize scale)
+            - spacing (object with section padding, component gaps)
+            - borderRadius
+            - boxShadow`
+          }
+        ],
+        temperature: 0.7,
+        max_tokens: 500
+      })
+    });
+
+    const data = await response.json();
+    return JSON.parse(data.choices[0].message.content);
+  } catch (error) {
+    console.error('Error generating theme:', error);
+    throw error;
+  }
+}
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
+    return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    const { projectId, businessName, businessIdea, targetAudience } = await req.json()
-    const startTime = performance.now()
-    
-    console.log('Generating landing page for project:', projectId)
+    const input: ProjectInput = await req.json()
+    const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!)
 
-    // First, try to find cached content
-    const { data: cachedContent } = await supabase
-      .from('landing_page_cache')
-      .select('content')
-      .eq('business_type', businessIdea?.type)
-      .eq('value_proposition', businessIdea?.valueProposition)
-      .order('used_count', { ascending: false })
-      .limit(1)
+    // Create generation log
+    const { data: log, error: logError } = await supabase
+      .from('landing_page_generation_logs')
+      .insert({
+        project_id: input.projectId,
+        status: 'generating_content',
+        step_details: { stage: 'started' }
+      })
+      .select()
       .single()
 
-    let content
-    let cacheHit = false
+    if (logError) throw logError
 
-    if (cachedContent) {
-      console.log('Cache hit! Using cached content')
-      content = cachedContent.content
-      cacheHit = true
+    // Generate content
+    const [hero, sections, theme] = await Promise.all([
+      generateHeroSection(input),
+      generateSections(input),
+      generateTheme(input)
+    ])
 
-      // Update cache usage statistics
-      await supabase
-        .from('landing_page_cache')
-        .update({
-          used_count: cachedContent.used_count + 1,
-          last_used_at: new Date().toISOString()
-        })
-        .eq('id', cachedContent.id)
-    } else {
-      console.log('Cache miss. Generating new content...')
-      // Generate new content - your existing content generation logic here
-      content = {
-        hero: {
-          title: businessName,
-          description: businessIdea?.valueProposition || '',
-          cta: "Get Started Now"
-        },
-        value_proposition: {
-          title: "Why Choose Us",
-          features: [
-            { title: "Feature 1", description: "Description 1" },
-            { title: "Feature 2", description: "Description 2" },
-            { title: "Feature 3", description: "Description 3" }
-          ]
-        },
-        features: {
-          title: "Our Features",
-          items: [
-            { title: "Core Feature 1", description: "Description 1" },
-            { title: "Core Feature 2", description: "Description 2" },
-            { title: "Core Feature 3", description: "Description 3" }
-          ]
-        },
-        proof: {
-          title: "What Our Customers Say",
-          testimonials: [
-            { quote: "Great service!", author: "John Doe" },
-            { quote: "Amazing product!", author: "Jane Smith" }
-          ]
-        },
-        pricing: {
-          title: "Pricing Plans",
-          plans: [
-            { name: "Basic", price: "$9", features: ["Feature 1", "Feature 2"] },
-            { name: "Pro", price: "$29", features: ["Feature 1", "Feature 2", "Feature 3"] }
-          ]
-        },
-        finalCta: {
-          title: "Ready to Get Started?",
-          description: "Join thousands of satisfied customers",
-          buttonText: "Start Now"
-        },
-        footer: {
-          companyName: businessName,
-          links: [
-            { text: "About Us", url: "#" },
-            { text: "Contact", url: "#" },
-            { text: "Terms", url: "#" }
-          ]
-        }
-      }
+    // Update generation log
+    await supabase
+      .from('landing_page_generation_logs')
+      .update({
+        status: 'completed',
+        success: true,
+        step_details: { stage: 'completed', timestamp: new Date().toISOString() }
+      })
+      .eq('id', log.id)
 
-      // Cache the new content
-      await supabase
-        .from('landing_page_cache')
-        .insert({
-          business_type: businessIdea?.type,
-          value_proposition: businessIdea?.valueProposition,
-          target_audience: targetAudience,
-          content: content,
-          used_count: 1,
-          last_used_at: new Date().toISOString()
-        })
+    // Create or update landing page
+    const { data: existingPage } = await supabase
+      .from('landing_pages')
+      .select()
+      .eq('project_id', input.projectId)
+      .single()
+
+    const landingPageData = {
+      project_id: input.projectId,
+      user_id: input.userId,
+      content: {
+        hero,
+        ...sections
+      },
+      theme_settings: theme,
+      generation_version: existingPage ? existingPage.generation_version + 1 : 1,
+      last_generated_at: new Date().toISOString()
     }
 
-    const endTime = performance.now()
-    const generationTime = endTime - startTime
+    const { data: landingPage, error: saveError } = await supabase
+      .from('landing_pages')
+      .upsert(landingPageData)
+      .select()
+      .single()
 
-    // Log the generation attempt
-    await supabase
-      .from('landing_page_generation_logs')
-      .insert({
-        project_id: projectId,
-        request_payload: { businessName, businessIdea, targetAudience },
-        response_payload: content,
-        success: true,
-        generation_time: generationTime,
-        cache_hit: cacheHit,
-        api_status_code: 200
-      })
+    if (saveError) throw saveError
 
     return new Response(
-      JSON.stringify(content),
+      JSON.stringify(landingPage),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
-
   } catch (error) {
     console.error('Error:', error)
-
-    // Log the error
-    await supabase
-      .from('landing_page_generation_logs')
-      .insert({
-        project_id: req.body?.projectId,
-        request_payload: req.body,
-        success: false,
-        error_message: error.message,
-        api_status_code: 500
-      })
-
     return new Response(
       JSON.stringify({ error: error.message }),
-      { 
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     )
   }
 })

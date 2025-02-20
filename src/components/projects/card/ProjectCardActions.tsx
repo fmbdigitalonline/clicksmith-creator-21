@@ -86,62 +86,27 @@ const ProjectCardActions = ({
       const typedProject = project as ProjectData;
       console.log("Project data retrieved:", typedProject);
 
-      // Ensure we have the required data
-      if (!typedProject.business_idea || !typedProject.target_audience) {
-        throw new Error('Missing required project data');
-      }
-
-      // Format request payload
-      const payload = {
-        projectId,
-        businessIdea: typedProject.business_idea,
-        targetAudience: typedProject.target_audience,
-        userId: user.id,
-      };
-
-      console.log("Sending payload to edge function:", payload);
-
-      // Generate landing page content
-      const { data: generatedContent, error } = await supabase.functions
+      // Call the edge function
+      const { data: landingPage, error } = await supabase.functions
         .invoke('generate-landing-page', {
-          body: payload
+          body: {
+            projectId,
+            businessIdea: typedProject.business_idea,
+            targetAudience: typedProject.target_audience,
+            userId: user.id,
+          }
         });
 
-      console.log("Edge function response:", generatedContent);
-
-      if (error) {
-        console.error("Edge function error:", error);
-        throw error;
-      }
-
-      if (!generatedContent) {
-        throw new Error('No content generated from edge function');
-      }
-
-      // Save the generated content to the landing_pages table
-      // Only include the essential fields that we know exist in the table
-      const { error: insertError } = await supabase
-        .from('landing_pages')
-        .insert({
-          project_id: projectId,
-          user_id: user.id,
-          content: generatedContent,
-          title: typedProject.title
-        });
-
-      if (insertError) {
-        console.error("Insert error:", insertError);
-        throw insertError;
-      }
+      if (error) throw error;
 
       // Dismiss loading toast and show success
       loadingToast.dismiss();
       toast({
         title: "Success!",
-        description: "Your landing page has been created.",
+        description: "Your landing page has been created successfully.",
       });
 
-      // Invalidate queries
+      // Invalidate queries and navigate
       await queryClient.invalidateQueries({
         queryKey: ['landing-page', projectId]
       });
