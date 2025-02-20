@@ -1,5 +1,6 @@
+
 import { corsHeaders } from "../_shared/cors.ts";
-import OpenAI from "openai";
+import { OpenAI } from "https://deno.land/x/openai@v4.20.1/mod.ts";
 
 const generateWithDeepseek = async (prompt: string) => {
   const apiKey = Deno.env.get("DEEPSEEK_API_KEY");
@@ -173,7 +174,7 @@ const generateIterativeContent = async (
     return content;
   } catch (error) {
     console.error("❌ Deepseek API error:", error);
-    console.error("❌ Error in Deepeek generation, falling back to basic content:", error);
+    console.error("❌ Error in Deepseek generation, falling back to basic content:", error);
     return generateBasicContent(businessIdea, targetAudience);
   }
 };
