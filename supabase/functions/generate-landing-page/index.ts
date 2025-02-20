@@ -5,9 +5,9 @@ import { corsHeaders } from '../_shared/cors.ts';
 
 interface GenerateLandingPageRequest {
   projectId: string;
-  businessName: string;
   businessIdea: any;
   targetAudience: any;
+  userId: string;
   currentContent?: any;
   isRefinement?: boolean;
   iterationNumber?: number;
@@ -134,7 +134,7 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const { projectId, businessIdea, targetAudience, iterationNumber = 1 } = await req.json() as GenerateLandingPageRequest;
+    const { projectId, businessIdea, targetAudience, userId, iterationNumber = 1 } = await req.json() as GenerateLandingPageRequest;
 
     console.log('Generating content for project:', projectId);
     
@@ -143,6 +143,7 @@ serve(async (req) => {
       .from('landing_page_generation_logs')
       .insert({
         project_id: projectId,
+        user_id: userId,
         status: 'generation_started',
         step_details: { stage: 'started', timestamp: new Date().toISOString() },
         request_payload: { businessIdea, targetAudience, iterationNumber }
@@ -157,6 +158,23 @@ serve(async (req) => {
 
     const content = await generateContent(businessIdea, targetAudience, iterationNumber);
 
+    // Update the existing landing page with the new content
+    const { data: landingPage, error: updateError } = await supabaseClient
+      .from('landing_pages')
+      .update({ 
+        content,
+        content_iterations: iterationNumber,
+        updated_at: new Date().toISOString()
+      })
+      .eq('project_id', projectId)
+      .select()
+      .single();
+
+    if (updateError) {
+      console.error('Error updating landing page:', updateError);
+      throw updateError;
+    }
+
     // Update the log with success
     await supabaseClient
       .from('landing_page_generation_logs')
@@ -169,7 +187,7 @@ serve(async (req) => {
       .eq('id', logData.id);
 
     return new Response(
-      JSON.stringify({ content }),
+      JSON.stringify({ content, landingPage }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,

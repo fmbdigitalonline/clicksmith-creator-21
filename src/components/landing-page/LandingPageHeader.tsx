@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -39,60 +40,37 @@ const LandingPageHeader = ({ project, landingPage }: LandingPageHeaderProps) => 
         return;
       }
 
-      if (landingPage?.id) {
-        // Update existing page
-        const { data: generatedContent, error: generationError } = await supabase.functions
-          .invoke('generate-landing-page', {
-            body: {
-              projectId: project.id,
-              businessIdea: project.business_idea,
-              targetAudience: project.target_audience,
-              userId: user.id,
-              currentContent: landingPage.content,
-              iterationNumber: (landingPage.content_iterations || 1) + 1,
-              isRefinement: true
-            }
-          });
-
-        if (generationError) throw generationError;
-
-        toast({
-          title: "Landing page updated",
-          description: "Your landing page has been updated successfully.",
-        });
-      } else {
-        console.log('Creating new landing page for project:', project.id);
-        
-        // Create new landing page
-        const { data: newLandingPage, error: generationError } = await supabase.functions
-          .invoke('generate-landing-page', {
-            body: {
-              projectId: project.id,
-              businessIdea: project.business_idea,
-              targetAudience: project.target_audience,
-              userId: user.id
-            }
-          });
-
-        if (generationError) throw generationError;
-
-        console.log('New landing page created:', newLandingPage);
-
-        if (!newLandingPage?.id) {
-          throw new Error('No landing page ID returned from creation');
-        }
-
-        toast({
-          title: "Landing page created",
-          description: "Your landing page has been created successfully.",
+      // Generate new content
+      const { data: generatedContent, error: generationError } = await supabase.functions
+        .invoke('generate-landing-page', {
+          body: {
+            projectId: project.id,
+            businessIdea: project.business_idea,
+            targetAudience: project.target_audience,
+            userId: user.id,
+            currentContent: landingPage?.content,
+            iterationNumber: (landingPage?.content_iterations || 1) + 1,
+            isRefinement: true
+          }
         });
 
-        // Navigate to the new landing page using the correct route structure
-        navigate(`/projects/${project.id}/landing-page`);
-        
-        // Reload the page to ensure fresh data
-        window.location.reload();
+      if (generationError) {
+        console.error('Generation error:', generationError);
+        throw generationError;
       }
+
+      if (!generatedContent?.content) {
+        throw new Error('No content generated');
+      }
+
+      toast({
+        title: "Landing page updated",
+        description: "Your landing page has been updated successfully.",
+      });
+
+      // Force a reload to show the new content
+      window.location.reload();
+
     } catch (error: any) {
       console.error('Error saving landing page:', error);
       toast({
@@ -175,63 +153,6 @@ const LandingPageHeader = ({ project, landingPage }: LandingPageHeaderProps) => 
       </div>
     </div>
   );
-};
-
-const generateSlug = (title: string): string => {
-  return (title || "untitled")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "");
-};
-
-const generateUniqueSlug = (title: string): string => {
-  const baseSlug = generateSlug(title);
-  // Add a random 6-character suffix
-  const randomSuffix = Math.random().toString(36).substring(2, 8);
-  return `${baseSlug}-${randomSuffix}`;
-};
-
-const generateLandingPageContent = (project: any) => {
-  const { business_idea, target_audience, audience_analysis } = project;
-  
-  return {
-    hero: {
-      title: business_idea?.valueProposition || project.title || "Welcome",
-      description: business_idea?.description || "",
-      cta: "Get Started Now",
-    },
-    features: audience_analysis?.keyFeatures || [],
-    benefits: audience_analysis?.benefits || [],
-    painPoints: target_audience?.painPoints || [],
-    testimonials: generateTestimonials(target_audience, audience_analysis),
-    callToAction: {
-      title: "Ready to Get Started?",
-      description: "Join thousands of satisfied customers and transform your business today.",
-      buttonText: "Start Now",
-    },
-  };
-};
-
-const generateTestimonials = (targetAudience: any, audienceAnalysis: any) => {
-  const testimonials = [];
-  
-  if (targetAudience?.demographics) {
-    testimonials.push({
-      name: "John Doe",
-      role: targetAudience.demographics,
-      content: `As ${targetAudience.demographics}, I found this solution incredibly helpful. ${audienceAnalysis?.positiveOutcomes?.[0] || ""}`,
-    });
-  }
-
-  if (targetAudience?.painPoints?.[0]) {
-    testimonials.push({
-      name: "Jane Smith",
-      role: "Business Owner",
-      content: `I struggled with ${targetAudience.painPoints[0]}, but this solution changed everything. ${audienceAnalysis?.benefits?.[0] || ""}`,
-    });
-  }
-
-  return testimonials;
 };
 
 export default LandingPageHeader;
