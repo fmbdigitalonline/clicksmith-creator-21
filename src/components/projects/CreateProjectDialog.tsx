@@ -1,209 +1,113 @@
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { supabase } from "@/integrations/supabase/client";
-import { useEffect, useState } from "react";
-import { useToast } from "@/hooks/use-toast";
-import ProjectForm, { ProjectFormData } from "./ProjectForm";
-import ProjectActions from "./ProjectActions";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import ProjectActions from "./ProjectActions";
 
 interface CreateProjectDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSuccess: (projectId: string) => void;
-  onStartAdWizard?: (projectId?: string) => void;
-  initialBusinessIdea?: string;
+  onSuccess: () => void;
+  onStartAdWizard: (projectId?: string) => void;
 }
-
-const generateProjectName = (businessIdea: string): string => {
-  // Extract key terms from business idea
-  const keywords = businessIdea.toLowerCase().split(' ');
-  
-  // Common creative prefixes
-  const prefixes = [
-    "Project",
-    "Vision",
-    "Venture",
-    "Initiative",
-    "Launch",
-    "Innovation",
-    "Blueprint",
-  ];
-  
-  // Try to find meaningful words in the business idea
-  const meaningfulWords = keywords.filter(word => 
-    word.length > 3 && 
-    !['the', 'and', 'for', 'that', 'with'].includes(word)
-  );
-  
-  // Select a random prefix
-  const prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
-  
-  // Get a key term from the business idea
-  const keyTerm = meaningfulWords[0] || 'Venture';
-  
-  // Capitalize first letter of each word
-  const capitalizedTerm = keyTerm.charAt(0).toUpperCase() + keyTerm.slice(1);
-  
-  return `${prefix} ${capitalizedTerm}`;
-};
 
 const CreateProjectDialog = ({
   open,
   onOpenChange,
   onSuccess,
-  onStartAdWizard,
-  initialBusinessIdea,
+  onStartAdWizard
 }: CreateProjectDialogProps) => {
+  const [title, setTitle] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-  const [userId, setUserId] = useState<string | null>(null);
-  const [showActions, setShowActions] = useState(false);
-  const [createdProjectId, setCreatedProjectId] = useState<string | null>(null);
-  const [includeWizardProgress, setIncludeWizardProgress] = useState(true);
-  
-  useEffect(() => {
-    const getCurrentUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setUserId(user.id);
-      }
-    };
-    getCurrentUser();
-  }, []);
 
-  const handleSubmit = async (values: ProjectFormData) => {
-    if (!userId) {
+  const handleCreate = async () => {
+    if (!title.trim()) {
       toast({
-        title: "Error creating project",
-        description: "You must be logged in to create a project",
+        title: "Project name required",
+        description: "Please enter a name for your project",
         variant: "destructive",
       });
       return;
     }
 
-    const tags = values.tags
-      ? values.tags.split(",").map((tag) => tag.trim())
-      : [];
+    setIsLoading(true);
 
-    // Generate creative project name based on business idea
-    const projectTitle = generateProjectName(values.businessIdea);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
 
-    let projectData: any = {
-      title: projectTitle,
-      description: values.description || null,
-      tags,
-      user_id: userId,
-      status: "draft",
-      business_idea: {
-        description: values.businessIdea,
-        valueProposition: `Enhanced version of: ${values.businessIdea}`,
-      },
-    };
-
-    if (includeWizardProgress) {
-      // Fetch current wizard progress
-      const { data: wizardProgress } = await supabase
-        .from('wizard_progress')
-        .select('*')
-        .eq('user_id', userId)
+      const { data, error } = await supabase
+        .from("projects")
+        .insert({
+          title: title.trim(),
+          user_id: user.id
+        })
+        .select()
         .single();
 
-      if (wizardProgress) {
-        // Include wizard progress data in project
-        projectData = {
-          ...projectData,
-          target_audience: wizardProgress.target_audience,
-          audience_analysis: wizardProgress.audience_analysis,
-          selected_hooks: wizardProgress.selected_hooks,
-          ad_format: wizardProgress.ad_format,
-          video_ad_preferences: wizardProgress.video_ad_preferences,
-        };
-      }
-    }
+      if (error) throw error;
 
-    const { data, error } = await supabase
-      .from("projects")
-      .insert(projectData)
-      .select();
-
-    if (error) {
-      toast({
-        title: "Error creating project",
-        description: error.message,
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (data && data[0]) {
-      setCreatedProjectId(data[0].id);
-      setShowActions(true);
       toast({
         title: "Project created",
-        description: "Your project has been created successfully.",
+        description: "Your new project has been created successfully.",
       });
-      onSuccess(data[0].id);
-    }
-  };
 
-  const handleGenerateAds = () => {
-    if (createdProjectId && onStartAdWizard) {
-      onStartAdWizard(createdProjectId);
+      onSuccess();
       onOpenChange(false);
+
+      if (data) {
+        onStartAdWizard(data.id);
+      }
+
+    } catch (error) {
+      console.error("Error creating project:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create project. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
-
-  const handleBackToProjects = () => {
-    onOpenChange(false);
-  };
-
-  useEffect(() => {
-    if (!open) {
-      setShowActions(false);
-      setCreatedProjectId(null);
-      setIncludeWizardProgress(true);
-    }
-  }, [open]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>
-            {showActions ? "What's next?" : "Create New Validation Project"}
-          </DialogTitle>
-          <DialogDescription>
-            {showActions 
-              ? "Choose your next action for the project"
-              : "Start validating your business idea through market testing"
-            }
-          </DialogDescription>
+          <DialogTitle>Create New Project</DialogTitle>
         </DialogHeader>
-        {!showActions ? (
-          <>
-            <ProjectForm
-              onSubmit={handleSubmit}
-              onCancel={() => onOpenChange(false)}
-              initialBusinessIdea={initialBusinessIdea}
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label htmlFor="title">Project Name</Label>
+            <Input
+              id="title"
+              placeholder="Enter project name"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
             />
-            <div className="flex items-center space-x-2 mt-4">
-              <Checkbox
-                id="includeProgress"
-                checked={includeWizardProgress}
-                onCheckedChange={(checked) => setIncludeWizardProgress(checked as boolean)}
-              />
-              <Label htmlFor="includeProgress">
-                Include wizard progress data in the project
-              </Label>
-            </div>
-          </>
-        ) : (
-          <ProjectActions
-            onGenerateAds={handleGenerateAds}
-            onBackToProjects={handleBackToProjects}
-          />
-        )}
+          </div>
+        </div>
+        <div className="flex justify-end gap-2">
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={isLoading}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleCreate}
+            disabled={isLoading}
+          >
+            {isLoading ? "Creating..." : "Create Project"}
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );
