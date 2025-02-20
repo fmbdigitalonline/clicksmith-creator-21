@@ -1,3 +1,4 @@
+
 import { corsHeaders } from "../_shared/cors.ts";
 import { OpenAI } from "https://deno.land/x/openai@v4.20.1/mod.ts";
 
@@ -5,105 +6,115 @@ const openAI = new OpenAI({
   apiKey: Deno.env.get("OPENAI_API_KEY"),
 });
 
-const generateWithDeepseek = async (prompt: string) => {
-  const chatCompletion = await openAI.chat.completions.create({
-    messages: [{ role: "user", content: prompt }],
-    model: "deepseek-chat",
-  });
-  return chatCompletion.choices[0].message.content;
+const generateLandingPageContent = async (prompt: string) => {
+  try {
+    console.log("Generating content with GPT-4-mini...");
+    const chatCompletion = await openAI.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content: "You are a landing page content expert that creates engaging, conversion-focused content based on business ideas and target audiences."
+        },
+        { role: "user", content: prompt }
+      ],
+    });
+    
+    return chatCompletion.choices[0].message.content;
+  } catch (error) {
+    console.error("❌ OpenAI API error:", error);
+    throw error;
+  }
 };
 
-const generateBasicContent = (businessIdea: string, targetAudience: string) => {
+const generateBasicContent = (businessIdea: any, targetAudience: any) => {
   return {
     hero: {
       title: "Welcome",
-      description: `Your landing page content is being generated for the business idea: ${businessIdea} and target audience: ${targetAudience}.`,
+      description: `Transform your business with our innovative solution designed for ${targetAudience?.demographics || 'you'}.`,
       ctaText: "Get Started",
     },
-    value_proposition: {
-      title: "Our Value Proposition",
-      items: [
-        "Compelling Feature 1",
-        "Unique Benefit 1",
-        "Advantageous Aspect 1",
-      ],
-    },
     features: {
-      title: "Features",
-      items: [
-        "Feature 1",
-        "Feature 2",
-        "Feature 3",
-      ],
-    },
-    proof: {
-      title: "What Our Customers Say",
-      testimonials: [
-        {
-          name: "John Doe",
-          role: "Satisfied Customer",
-          content: "This product/service exceeded my expectations!",
-        },
-      ],
-    },
-    pricing: {
-      title: "Pricing Plans",
-      plans: [
-        {
-          name: "Basic",
-          price: "Free",
-          features: ["Feature 1", "Feature 2"],
-        },
-      ],
-    },
-    faq: {
-      title: "Frequently Asked Questions",
+      title: "Key Features",
       items: [
         {
-          question: "How does this work?",
-          answer: "It works magically!",
+          title: "Innovative Solution",
+          description: businessIdea?.description || "Transform your business with our cutting-edge solution."
         },
-      ],
+        {
+          title: "Tailored For You",
+          description: `Specifically designed for ${targetAudience?.demographics || 'our customers'}.`
+        },
+        {
+          title: "Proven Results",
+          description: "Join our satisfied customers and see the difference."
+        }
+      ]
     },
-    finalCta: {
+    benefits: {
+      title: "Benefits",
+      items: targetAudience?.painPoints?.map((point: string) => ({
+        title: "Problem Solved",
+        description: point
+      })) || []
+    },
+    testimonials: [
+      {
+        quote: "This solution transformed our business operations.",
+        author: "Satisfied Customer",
+        role: targetAudience?.demographics || "Business Owner"
+      }
+    ],
+    cta: {
       title: "Ready to Get Started?",
       description: "Join us today and experience the difference.",
-      ctaText: "Get Started Now",
-    },
-    footer: {
-      links: {
-        company: ["About", "Contact", "Careers"],
-        resources: ["Help Center", "Terms", "Privacy"],
-      },
-    },
+      buttonText: "Start Now"
+    }
   };
 };
 
 const generateIterativeContent = async (
   projectId: string,
-  businessIdea: string,
-  targetAudience: string,
+  businessIdea: any,
+  targetAudience: any,
   currentContent?: any,
   isRefinement = false
 ) => {
   try {
-    console.log("Attempting to generate content with Deepseek...");
     const prompt = `
-      Create landing page content for this business idea.
-      Business idea: ${businessIdea}
-      Target audience: ${targetAudience}
-      ${isRefinement && currentContent ? `Current content to improve: ${JSON.stringify(currentContent)}` : ""}
+      Create engaging landing page content for this business:
       
-      Please ensure the content is engaging, persuasive, and tailored to the target audience.
-      Focus on the unique value proposition and benefits for the specified target audience.
+      Business Idea: ${JSON.stringify(businessIdea)}
+      Target Audience: ${JSON.stringify(targetAudience)}
+      ${isRefinement ? `Current Content to Improve: ${JSON.stringify(currentContent)}` : ''}
+      
+      Generate a complete landing page content structure with the following sections:
+      1. Hero section with compelling headline, description, and CTA
+      2. Features section highlighting key benefits
+      3. Benefits section addressing pain points
+      4. Testimonials that resonate with the target audience
+      5. Final call-to-action section
+      
+      Make the content engaging, persuasive, and specifically tailored to the target audience.
+      Focus on the unique value proposition and benefits.
+      Use a professional, conversion-focused tone.
+      
+      Return the content in a structured JSON format.
     `;
     
-    const content = await generateWithDeepseek(prompt);
-    console.log("Successfully generated content with Deepseek");
-    return content;
+    const content = await generateLandingPageContent(prompt);
+    console.log("Successfully generated landing page content");
+    
+    try {
+      // Try to parse the response as JSON
+      return JSON.parse(content);
+    } catch (parseError) {
+      console.error("❌ Error parsing GPT response as JSON:", parseError);
+      // If parsing fails, return the basic content structure
+      return generateBasicContent(businessIdea, targetAudience);
+    }
   } catch (error) {
-    console.error("❌ Deepseek API error:", error);
-    console.error("❌ Error in Deepseek generation, falling back to basic content:", error);
+    console.error("❌ Error generating content:", error);
     return generateBasicContent(businessIdea, targetAudience);
   }
 };
