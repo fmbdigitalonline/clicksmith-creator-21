@@ -16,6 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useQueryClient } from "@tanstack/react-query";
 
 // Updated schema to match database requirements
 const blogPostSchema = z.object({
@@ -33,16 +34,24 @@ const blogPostSchema = z.object({
 
 type BlogPostFormValues = z.infer<typeof blogPostSchema>;
 
-export function CreateBlogPost() {
+interface CreateBlogPostProps {
+  editMode?: boolean;
+  initialData?: BlogPostFormValues & { id: string };
+  onSuccess?: () => void;
+}
+
+export function CreateBlogPost({ editMode, initialData, onSuccess }: CreateBlogPostProps) {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+
   const form = useForm<BlogPostFormValues>({
     resolver: zodResolver(blogPostSchema),
-    defaultValues: {
+    defaultValues: initialData || {
       published: false,
       featured: false,
       meta_keywords: [],
       image_url: "",
-      canonical_url: "", // Initialize empty canonical URL
+      canonical_url: "",
     },
   });
 
@@ -50,37 +59,61 @@ export function CreateBlogPost() {
     // Generate the canonical URL if not provided
     const canonical_url = data.canonical_url || `${window.location.origin}/blog/${data.slug}`;
 
-    const { error } = await supabase
-      .from("blog_posts")
-      .insert({
-        title: data.title,
-        slug: data.slug,
-        description: data.description,
-        content: data.content,
-        meta_description: data.meta_description,
-        published: data.published,
-        image_url: data.image_url || null,
-        meta_keywords: data.meta_keywords || [],
-        featured: data.featured,
-        published_at: data.published ? new Date().toISOString() : null,
-        canonical_url: canonical_url, // Add canonical URL
+    if (editMode && initialData) {
+      const { error } = await supabase
+        .from("blog_posts")
+        .update({
+          ...data,
+          canonical_url,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", initialData.id);
+
+      if (error) {
+        toast({
+          title: "Error updating post",
+          description: error.message,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "Post updated",
+        description: "Your blog post has been successfully updated.",
+      });
+    } else {
+      const { error } = await supabase
+        .from("blog_posts")
+        .insert({
+          ...data,
+          canonical_url,
+          published_at: data.published ? new Date().toISOString() : null,
+        });
+
+      if (error) {
+        toast({
+          title: "Error creating post",
+          description: error.message,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "Post created",
+        description: "Your blog post has been successfully created.",
       });
 
-    if (error) {
-      toast({
-        title: "Error creating post",
-        description: error.message,
-        variant: "destructive",
-      });
-      return;
+      form.reset();
     }
 
-    toast({
-      title: "Post created",
-      description: "Your blog post has been successfully created.",
-    });
-
-    form.reset();
+    // Invalidate the posts query to refresh the list
+    queryClient.invalidateQueries({ queryKey: ["blog-posts"] });
+    
+    if (onSuccess) {
+      onSuccess();
+    }
   };
 
   return (
@@ -242,7 +275,7 @@ export function CreateBlogPost() {
         </div>
 
         <Button type="submit" className="w-full">
-          Create Post
+          {editMode ? "Update Post" : "Create Post"}
         </Button>
       </form>
     </Form>

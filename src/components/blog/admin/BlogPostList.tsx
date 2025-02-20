@@ -13,9 +13,33 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Edit, Trash2 } from "lucide-react";
 import { format } from "date-fns";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { useState } from "react";
+import { CreateBlogPost } from "./CreateBlogPost";
+
+type BlogPost = {
+  id: string;
+  title: string;
+  slug: string;
+  description: string;
+  content: string;
+  meta_description?: string;
+  published: boolean;
+  created_at: string;
+  image_url?: string;
+  meta_keywords?: string[];
+  featured?: boolean;
+  canonical_url?: string;
+};
 
 export function BlogPostList() {
   const { toast } = useToast();
+  const [editingPost, setEditingPost] = useState<BlogPost | null>(null);
 
   const { data: posts, isLoading } = useQuery({
     queryKey: ["blog-posts"],
@@ -34,7 +58,7 @@ export function BlogPostList() {
         return [];
       }
 
-      return data;
+      return data as BlogPost[];
     },
   });
 
@@ -94,13 +118,7 @@ export function BlogPostList() {
                   variant="ghost"
                   size="sm"
                   className="mr-2"
-                  onClick={() => {
-                    // TODO: Implement edit functionality
-                    toast({
-                      title: "Edit functionality",
-                      description: "Coming soon!",
-                    });
-                  }}
+                  onClick={() => setEditingPost(post)}
                 >
                   <Edit className="h-4 w-4" />
                 </Button>
@@ -116,6 +134,21 @@ export function BlogPostList() {
           ))}
         </TableBody>
       </Table>
+
+      <Dialog open={!!editingPost} onOpenChange={() => setEditingPost(null)}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Edit Blog Post</DialogTitle>
+          </DialogHeader>
+          {editingPost && (
+            <CreateBlogPost
+              editMode
+              initialData={editingPost}
+              onSuccess={() => setEditingPost(null)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
