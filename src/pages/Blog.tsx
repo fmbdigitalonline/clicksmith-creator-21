@@ -98,11 +98,15 @@ const Blog = () => {
             </div>
             <div 
               id="trending-container"
-              className="flex gap-6 overflow-x-auto scrollbar-hide pb-4"
-              style={{ scrollBehavior: 'smooth' }}
+              className="flex gap-6 overflow-x-auto no-scrollbar"
+              style={{ 
+                scrollBehavior: 'smooth',
+                msOverflowStyle: 'none',
+                scrollbarWidth: 'none'
+              }}
             >
               {posts.slice(1, 4).map((post) => (
-                <div key={post.id} className="min-w-[350px] max-w-[350px]">
+                <div key={post.id} className="min-w-[350px] max-w-[350px] flex-shrink-0">
                   <BlogCard post={post} compact={true} />
                 </div>
               ))}
@@ -134,11 +138,15 @@ const Blog = () => {
             </div>
             <div 
               id="popular-container"
-              className="flex gap-6 overflow-x-auto scrollbar-hide pb-4"
-              style={{ scrollBehavior: 'smooth' }}
+              className="flex gap-6 overflow-x-auto no-scrollbar"
+              style={{ 
+                scrollBehavior: 'smooth',
+                msOverflowStyle: 'none',
+                scrollbarWidth: 'none'
+              }}
             >
               {posts.slice(4).map((post) => (
-                <div key={post.id} className="min-w-[350px] max-w-[350px]">
+                <div key={post.id} className="min-w-[350px] max-w-[350px] flex-shrink-0">
                   <BlogCard post={post} compact={true} />
                 </div>
               ))}
@@ -159,6 +167,18 @@ const Blog = () => {
           </div>
         )}
       </div>
+
+      <style>
+        {`
+          .no-scrollbar::-webkit-scrollbar {
+            display: none;
+          }
+          .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+          }
+        `}
+      </style>
     </div>
   );
 };
