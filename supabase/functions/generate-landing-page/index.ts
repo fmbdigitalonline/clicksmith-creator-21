@@ -1,157 +1,86 @@
-
 import { corsHeaders } from "../_shared/cors.ts";
 import { OpenAI } from "https://deno.land/x/openai@v4.20.1/mod.ts";
 
+const openAI = new OpenAI({
+  apiKey: Deno.env.get("OPENAI_API_KEY"),
+});
+
 const generateWithDeepseek = async (prompt: string) => {
-  const apiKey = Deno.env.get("DEEPSEEK_API_KEY");
-  if (!apiKey) {
-    throw new Error("Missing DEEPSEEK_API_KEY");
-  }
-
-  const client = new OpenAI({
-    apiKey: apiKey,
-    baseURL: 'https://api.deepseek.com',
+  const chatCompletion = await openAI.chat.completions.create({
+    messages: [{ role: "user", content: prompt }],
+    model: "deepseek-chat",
   });
-
-  const system_prompt = `
-    You are a landing page content generator. Generate content in JSON format following this structure:
-    {
-      "hero": {
-        "title": "string",
-        "description": "string",
-        "ctaText": "string"
-      },
-      "features": [
-        {
-          "title": "string",
-          "description": "string"
-        }
-      ],
-      "benefits": [
-        {
-          "title": "string",
-          "description": "string"
-        }
-      ],
-      "testimonials": [
-        {
-          "quote": "string",
-          "author": "string",
-          "title": "string"
-        }
-      ],
-      "pricing": {
-        "plans": [
-          {
-            "name": "string",
-            "price": "string",
-            "features": ["string"]
-          }
-        ]
-      },
-      "faq": {
-        "items": [
-          {
-            "question": "string",
-            "answer": "string"
-          }
-        ]
-      }
-    }
-  `;
-
-  try {
-    const completion = await client.chat.completions.create({
-      model: "deepseek-chat",
-      messages: [
-        { role: "system", content: system_prompt },
-        { role: "user", content: prompt }
-      ],
-      response_format: {
-        type: 'json_object'
-      },
-      max_tokens: 2000,
-      temperature: 0.7,
-    });
-
-    const content = completion.choices[0].message.content;
-    if (!content) {
-      throw new Error("Empty response from Deepseek API");
-    }
-
-    return JSON.parse(content);
-  } catch (error) {
-    console.error("Error calling Deepseek API:", error);
-    throw error;
-  }
+  return chatCompletion.choices[0].message.content;
 };
 
 const generateBasicContent = (businessIdea: string, targetAudience: string) => {
   return {
     hero: {
-      title: "Welcome to Our Platform",
-      description: "We're here to help you succeed.",
+      title: "Welcome",
+      description: `Your landing page content is being generated for the business idea: ${businessIdea} and target audience: ${targetAudience}.`,
       ctaText: "Get Started",
     },
-    features: [
-      {
-        title: "Easy to Use",
-        description: "Our platform is designed with simplicity in mind."
-      },
-      {
-        title: "Powerful Features",
-        description: "Everything you need to grow your business."
-      }
-    ],
-    benefits: [
-      {
-        title: "Save Time",
-        description: "Automate your workflows and focus on what matters."
-      },
-      {
-        title: "Increase Revenue",
-        description: "Optimize your operations for better results."
-      }
-    ],
-    testimonials: [
-      {
-        quote: "This platform has transformed our business.",
-        author: "John Doe",
-        title: "CEO"
-      }
-    ],
+    value_proposition: {
+      title: "Our Value Proposition",
+      items: [
+        "Compelling Feature 1",
+        "Unique Benefit 1",
+        "Advantageous Aspect 1",
+      ],
+    },
+    features: {
+      title: "Features",
+      items: [
+        "Feature 1",
+        "Feature 2",
+        "Feature 3",
+      ],
+    },
+    proof: {
+      title: "What Our Customers Say",
+      testimonials: [
+        {
+          name: "John Doe",
+          role: "Satisfied Customer",
+          content: "This product/service exceeded my expectations!",
+        },
+      ],
+    },
     pricing: {
+      title: "Pricing Plans",
       plans: [
         {
           name: "Basic",
-          price: "$9",
-          features: ["Core Features", "Basic Support"]
+          price: "Free",
+          features: ["Feature 1", "Feature 2"],
         },
-        {
-          name: "Pro",
-          price: "$29",
-          features: ["All Features", "Priority Support"]
-        }
-      ]
+      ],
     },
     faq: {
+      title: "Frequently Asked Questions",
       items: [
         {
-          question: "How does it work?",
-          answer: "Our platform is designed to be intuitive and easy to use."
+          question: "How does this work?",
+          answer: "It works magically!",
         },
-        {
-          question: "What support do you offer?",
-          answer: "We offer comprehensive support to all our customers."
-        }
-      ]
-    }
+      ],
+    },
+    finalCta: {
+      title: "Ready to Get Started?",
+      description: "Join us today and experience the difference.",
+      ctaText: "Get Started Now",
+    },
+    footer: {
+      links: {
+        company: ["About", "Contact", "Careers"],
+        resources: ["Help Center", "Terms", "Privacy"],
+      },
+    },
   };
 };
 
 const generateIterativeContent = async (
   projectId: string,
-  businessName: string,
   businessIdea: string,
   targetAudience: string,
   currentContent?: any,
@@ -160,7 +89,7 @@ const generateIterativeContent = async (
   try {
     console.log("Attempting to generate content with Deepseek...");
     const prompt = `
-      Create landing page content for a business named "${businessName}".
+      Create landing page content for this business idea.
       Business idea: ${businessIdea}
       Target audience: ${targetAudience}
       ${isRefinement && currentContent ? `Current content to improve: ${JSON.stringify(currentContent)}` : ""}
@@ -188,12 +117,11 @@ Deno.serve(async (req) => {
     const body = await req.json();
     console.log("Received request body:", body);
 
-    const { projectId, businessName, businessIdea, targetAudience, currentContent, isRefinement } = body;
+    const { projectId, businessIdea, targetAudience, currentContent, isRefinement } = body;
 
     // Validate required fields
     const missingFields = [];
     if (!projectId) missingFields.push('projectId');
-    if (!businessName) missingFields.push('businessName');
     if (!businessIdea) missingFields.push('businessIdea');
     if (!targetAudience) missingFields.push('targetAudience');
 
@@ -203,7 +131,6 @@ Deno.serve(async (req) => {
 
     console.log("Generating content with parameters:", {
       projectId,
-      businessName,
       businessIdea,
       targetAudience,
       isRefinement: !!isRefinement
@@ -211,7 +138,6 @@ Deno.serve(async (req) => {
 
     const content = await generateIterativeContent(
       projectId,
-      businessName,
       businessIdea,
       targetAudience,
       currentContent,
