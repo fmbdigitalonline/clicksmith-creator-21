@@ -12,6 +12,7 @@ import { Loader2 } from "lucide-react";
 import { HeroSection } from "./components/HeroSection";
 import { SocialProofSection } from "./components/SocialProofSection";
 import { DynamicSection } from "./components/DynamicSection";
+import { useNavigate } from "react-router-dom";
 
 interface GenerationProgress {
   status: string;
@@ -40,6 +41,7 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
   });
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const { isLoading: isTemplateLoading } = useLandingPageTemplate();
 
   useEffect(() => {
@@ -115,6 +117,17 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
 
       if (error) throw error;
 
+      // Handle credit-related errors
+      if (error?.status === 402) {
+        toast({
+          title: "Insufficient Credits",
+          description: "Please upgrade your plan to generate more landing pages.",
+          variant: "destructive"
+        });
+        navigate('/pricing');
+        return;
+      }
+
       if (data && data.content) {
         console.log("Received new content:", data);
         toast({
@@ -122,6 +135,9 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
           description: "Your landing page content has been updated."
         });
 
+        // Invalidate credits query to refresh the display
+        queryClient.invalidateQueries({ queryKey: ['subscription'] });
+        queryClient.invalidateQueries({ queryKey: ['free_tier_usage'] });
         queryClient.invalidateQueries({ queryKey: ['landing-page', project.id] });
         window.location.reload();
       }

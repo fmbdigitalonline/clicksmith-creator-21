@@ -17,6 +17,35 @@ serve(async (req) => {
   try {
     const { projectId, businessIdea, targetAudience, userId } = await req.json();
 
+    // Initialize Supabase client
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    if (!supabaseUrl || !supabaseKey) throw new Error('Missing Supabase environment variables');
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Check user credits before proceeding
+    const { data: creditCheck, error: creditCheckError } = await supabase.rpc(
+      'check_user_credits',
+      { p_user_id: userId, required_credits: 1 }
+    );
+
+    if (creditCheckError) {
+      throw new Error(`Credit check failed: ${creditCheckError.message}`);
+    }
+
+    if (!creditCheck[0].has_credits) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'Insufficient credits', 
+          message: creditCheck[0].error_message 
+        }),
+        {
+          status: 402,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
     // Initialize Replicate client
     const REPLICATE_API_KEY = Deno.env.get('REPLICATE_API_KEY');
     if (!REPLICATE_API_KEY) {
@@ -26,12 +55,6 @@ serve(async (req) => {
     const replicate = new Replicate({
       auth: REPLICATE_API_KEY,
     });
-
-    // Create Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    if (!supabaseUrl || !supabaseKey) throw new Error('Missing Supabase environment variables');
-    const supabase = createClient(supabaseUrl, supabaseKey);
 
     console.log('Generating landing page content for project:', projectId);
 
@@ -353,7 +376,22 @@ serve(async (req) => {
 
     if (upsertError) throw upsertError;
 
-    console.log('Landing page content generated and stored successfully');
+    // Deduct 1 credit after successful generation
+    const { data: deductionResult, error: deductionError } = await supabase.rpc(
+      'deduct_user_credits',
+      { input_user_id: userId, credits_to_deduct: 1 }
+    );
+
+    if (deductionError) {
+      console.error('Error deducting credits:', deductionError);
+      // Don't throw here as the landing page was already generated
+    }
+
+    if (!deductionResult?.[0]?.success) {
+      console.error('Failed to deduct credits:', deductionResult?.[0]?.error_message);
+    }
+
+    console.log('Landing page content generated and credits deducted successfully');
 
     return new Response(JSON.stringify({ content: landingPageContent }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
