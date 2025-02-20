@@ -72,11 +72,11 @@ Make content highly converting, emotional, and specific to the business and targ
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',  // Changed from 'gpt-4' to 'gpt-4o-mini'
+        model: 'gpt-4',
         messages: [
           {
             role: "system",
-            content: "You are an expert landing page copywriter focused on conversion."
+            content: "You are an expert landing page copywriter focused on conversion. Generate unique, compelling content in the exact JSON structure provided."
           },
           {
             role: "user",
@@ -100,8 +100,19 @@ Make content highly converting, emotional, and specific to the business and targ
       throw new Error('Invalid response format from OpenAI');
     }
 
-    const content = JSON.parse(data.choices[0].message.content);
-    return content;
+    try {
+      const content = JSON.parse(data.choices[0].message.content);
+      
+      // Validate the required structure
+      if (!content.hero?.title || !content.hero?.description || !content.hero?.buttonText) {
+        throw new Error('Invalid hero section structure in OpenAI response');
+      }
+      
+      return content;
+    } catch (parseError) {
+      console.error('Error parsing OpenAI response:', parseError);
+      throw new Error('Failed to parse OpenAI response as JSON');
+    }
   } catch (error) {
     console.error('Error in generateContent:', error);
     throw error;
