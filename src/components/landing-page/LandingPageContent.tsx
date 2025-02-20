@@ -47,6 +47,12 @@ interface GenerationLog {
   step_details?: StepDetails;
 }
 
+interface LandingPageResponse {
+  content: any;
+  project_id: string;
+  id: string;
+}
+
 const LandingPageContent = ({ project, landingPage }: { project: any; landingPage: any }) => {
   const [activeView, setActiveView] = useState<"edit" | "preview">("preview");
   const [isGenerating, setIsGenerating] = useState(false);
@@ -101,10 +107,18 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
             setIsGenerating(false);
             setIsRefining(false);
 
-            // Invalidate queries after successful generation
-            await queryClient.invalidateQueries({ queryKey: ['subscription'] });
-            await queryClient.invalidateQueries({ queryKey: ['free_tier_usage'] });
-            await queryClient.invalidateQueries({ queryKey: ['landing-page', project.id] });
+            // Invalidate and wait for queries after successful generation
+            await Promise.all([
+              queryClient.invalidateQueries({ queryKey: ['subscription'] }),
+              queryClient.invalidateQueries({ queryKey: ['free_tier_usage'] }),
+              queryClient.invalidateQueries({ queryKey: ['landing-page', project.id] })
+            ]);
+
+            // Force an immediate refetch
+            await queryClient.refetchQueries({ 
+              queryKey: ['landing-page', project.id],
+              type: 'active'
+            });
           } else if (logData.error_message) {
             setGenerationProgress({ 
               status: `Error: ${logData.error_message}`, 
@@ -195,6 +209,15 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
         throw new Error('Invalid response from generation service');
       }
 
+      // Verify the returned content matches our project
+      if (data.project_id !== project.id) {
+        console.error('Project ID mismatch:', { 
+          expected: project.id, 
+          received: data.project_id 
+        });
+        throw new Error('Generated content does not match the current project');
+      }
+
       console.log("Received new content:", data);
       toast({
         title: "Content Generated",
@@ -213,6 +236,17 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
       setGenerationProgress({ status: "", progress: 0 });
     }
   };
+
+  // Verify that the displayed landing page matches the current project
+  useEffect(() => {
+    if (landingPage && project && landingPage.project_id !== project.id) {
+      console.error('Landing page project ID mismatch');
+      // Force a refetch of the correct landing page
+      void queryClient.invalidateQueries({ 
+        queryKey: ['landing-page', project.id] 
+      });
+    }
+  }, [landingPage, project, queryClient]);
 
   if (isTemplateLoading) {
     return <LoadingStateLandingPage />;
@@ -294,3 +328,4 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
 };
 
 export default LandingPageContent;
+

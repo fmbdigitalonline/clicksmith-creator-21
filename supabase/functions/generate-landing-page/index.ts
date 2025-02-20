@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import Replicate from "https://esm.sh/replicate@0.25.2";
@@ -16,6 +15,7 @@ serve(async (req) => {
 
   try {
     const { projectId, businessIdea, targetAudience, userId } = await req.json();
+    console.log('Starting landing page generation for project:', projectId);
 
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
@@ -30,6 +30,7 @@ serve(async (req) => {
     );
 
     if (creditCheckError) {
+      console.error('Credit check failed:', creditCheckError);
       throw new Error(`Credit check failed: ${creditCheckError.message}`);
     }
 
@@ -45,18 +46,6 @@ serve(async (req) => {
         }
       );
     }
-
-    // Initialize Replicate client
-    const REPLICATE_API_KEY = Deno.env.get('REPLICATE_API_KEY');
-    if (!REPLICATE_API_KEY) {
-      throw new Error('REPLICATE_API_KEY is not set');
-    }
-
-    const replicate = new Replicate({
-      auth: REPLICATE_API_KEY,
-    });
-
-    console.log('Generating landing page content for project:', projectId);
 
     // Generate hero image with more engaging, people-focused prompt
     const heroImagePrompt = `Professional website hero image showcasing:
@@ -361,7 +350,7 @@ serve(async (req) => {
       ]
     };
 
-    // Store the landing page content
+    // Store the landing page content and get the complete landing page object
     const { data: landingPage, error: upsertError } = await supabase
       .from('landing_pages')
       .upsert({
@@ -369,12 +358,16 @@ serve(async (req) => {
         user_id: userId,
         content: landingPageContent,
         title: "Market Testing & Validation Platform",
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
+        content_iterations: 1
       })
       .select()
       .single();
 
-    if (upsertError) throw upsertError;
+    if (upsertError) {
+      console.error('Error storing landing page:', upsertError);
+      throw upsertError;
+    }
 
     // Deduct 1 credit after successful generation
     const { data: deductionResult, error: deductionError } = await supabase.rpc(
@@ -384,24 +377,35 @@ serve(async (req) => {
 
     if (deductionError) {
       console.error('Error deducting credits:', deductionError);
-      // Don't throw here as the landing page was already generated
     }
 
     if (!deductionResult?.[0]?.success) {
       console.error('Failed to deduct credits:', deductionResult?.[0]?.error_message);
     }
 
-    console.log('Landing page content generated and credits deducted successfully');
+    console.log('Landing page generated successfully for project:', projectId);
 
-    return new Response(JSON.stringify({ content: landingPageContent }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    // Return the complete landing page object
+    return new Response(
+      JSON.stringify({ 
+        content: landingPageContent,
+        project_id: landingPage.project_id,
+        id: landingPage.id,
+        content_iterations: landingPage.content_iterations
+      }), 
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    );
 
   } catch (error) {
     console.error('Error generating landing page:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 500,
-    });
+    return new Response(
+      JSON.stringify({ error: error.message }), 
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500,
+      }
+    );
   }
 });
