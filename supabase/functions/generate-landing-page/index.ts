@@ -1,5 +1,7 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { Configuration, OpenAIApi } from "https://esm.sh/openai@4.28.0";
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
+import Replicate from "https://esm.sh/replicate@0.25.2";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.8";
 
 const corsHeaders = {
@@ -16,11 +18,15 @@ serve(async (req) => {
   try {
     const { projectId, businessIdea, targetAudience, userId } = await req.json();
 
-    // Initialize OpenAI
-    const configuration = new Configuration({
-      apiKey: Deno.env.get('OPENAI_API_KEY'),
+    // Initialize Replicate client
+    const REPLICATE_API_KEY = Deno.env.get('REPLICATE_API_KEY');
+    if (!REPLICATE_API_KEY) {
+      throw new Error('REPLICATE_API_KEY is not set');
+    }
+
+    const replicate = new Replicate({
+      auth: REPLICATE_API_KEY,
     });
-    const openai = new OpenAIApi(configuration);
 
     // Create Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
@@ -31,24 +37,37 @@ serve(async (req) => {
     console.log('Generating landing page content for project:', projectId);
 
     // Generate hero image prompt
-    const heroImagePrompt = `Create a professional, high-quality image for a business website. 
-    Business: ${businessIdea}
-    Target audience: ${targetAudience}
-    The image should be modern, professional, and appropriate for a business website.
-    Style: Clean, professional, modern corporate style.
-    Make it suitable as a hero image that will have text overlay.`;
+    const heroImagePrompt = `Professional website hero image for:
+    ${businessIdea?.description || 'A modern business'}. 
+    Target audience: ${targetAudience?.description || 'professionals'}.
+    Style: Clean, modern, corporate, professional photography style.
+    High quality, suitable for website hero section with text overlay.
+    No text, no watermarks, no logos.`;
 
-    // Generate hero image using DALL-E
-    console.log('Generating hero image...');
-    const heroImageResponse = await openai.createImage({
-      prompt: heroImagePrompt,
-      n: 1,
-      size: "1024x1024",
-      model: "dall-e-3",
-    });
+    // Generate hero image using Replicate
+    console.log('Generating hero image with prompt:', heroImagePrompt);
+    const imageOutput = await replicate.run(
+      "black-forest-labs/flux-1.1-pro-ultra",
+      {
+        input: {
+          prompt: heroImagePrompt,
+          negative_prompt: "blur, watermark, text, logo, signature, low quality",
+          num_inference_steps: 50,
+          guidance_scale: 7.5,
+          width: 1024,
+          height: 576, // 16:9 aspect ratio for hero image
+          style_preset: "photographic",
+          num_outputs: 1
+        }
+      }
+    );
 
-    const heroImageUrl = heroImageResponse.data.data[0].url;
-    console.log('Hero image generated:', heroImageUrl);
+    console.log('Image generation response:', imageOutput);
+    const heroImageUrl = Array.isArray(imageOutput) ? imageOutput[0] : imageOutput;
+
+    if (!heroImageUrl) {
+      throw new Error('Failed to generate hero image');
+    }
 
     // Generate landing page sections with the hero image
     const landingPageContent = {
@@ -69,7 +88,7 @@ serve(async (req) => {
               description: "Discover our solutions"
             }
           }
-        },
+        }
         // ... Additional sections would go here
       ]
     };
