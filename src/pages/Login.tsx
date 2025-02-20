@@ -72,6 +72,7 @@ const Login = () => {
           
           <Auth
             supabaseClient={supabase}
+            view="sign_in"
             appearance={{
               theme: ThemeSupa,
               style: {
@@ -94,6 +95,15 @@ const Login = () => {
             showLinks={true}
             localization={{
               variables: {
+                sign_in: {
+                  email_label: 'Email address',
+                  password_label: 'Your password',
+                  email_input_placeholder: 'Your email address',
+                  password_input_placeholder: 'Password (minimum 6 characters)',
+                  button_label: 'Sign in',
+                  loading_button_label: 'Signing in ...',
+                  link_text: "Don't have an account? Sign up and get free credits"
+                },
                 sign_up: {
                   email_label: 'Email address',
                   password_label: 'Create a Password',
@@ -103,15 +113,6 @@ const Login = () => {
                   loading_button_label: 'Creating account ...',
                   link_text: "Already have an account? Sign in",
                   confirmation_text: 'Check your email for the confirmation link'
-                },
-                sign_in: {
-                  email_label: 'Email address',
-                  password_label: 'Your password',
-                  email_input_placeholder: 'Your email address',
-                  password_input_placeholder: 'Password (minimum 6 characters)',
-                  button_label: 'Sign in',
-                  loading_button_label: 'Signing in ...',
-                  link_text: "Don't have an account? Sign up and get free credits"
                 }
               }
             }}
