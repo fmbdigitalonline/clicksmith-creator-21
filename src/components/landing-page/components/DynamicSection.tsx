@@ -31,6 +31,7 @@ export const DynamicSection = ({ section }: DynamicSectionProps) => {
   );
 
   const isSplitLayout = section.layout?.style === 'split';
+  const isColumnsLayout = section.layout?.style === 'columns';
 
   return (
     <section className={containerClass}>
@@ -54,14 +55,20 @@ export const DynamicSection = ({ section }: DynamicSectionProps) => {
           {/* Text and Image Content */}
           {(section.content?.mainDescription || section.content?.bulletPoints || section.content?.imageUrl) && (
             <div className={cn(
-              isSplitLayout ? "grid md:grid-cols-2 gap-12 items-center" : "space-y-8"
+              "w-full",
+              isSplitLayout && "grid md:grid-cols-2 gap-12 items-center",
+              isColumnsLayout && "flex flex-col md:flex-row gap-12 items-start",
+              !isSplitLayout && !isColumnsLayout && "space-y-8"
             )}>
               {/* Text Content */}
-              <div className="space-y-8">
+              <div className={cn(
+                "space-y-8",
+                isColumnsLayout && "flex-1"
+              )}>
                 {section.content?.mainDescription && (
                   <div className={cn(
                     "animate-fade-in",
-                    !isSplitLayout && "max-w-3xl mx-auto"
+                    !isSplitLayout && !isColumnsLayout && "max-w-3xl mx-auto"
                   )}>
                     <p className="text-xl text-gray-600 dark:text-gray-300 leading-relaxed">
                       {section.content.mainDescription}
@@ -77,7 +84,9 @@ export const DynamicSection = ({ section }: DynamicSectionProps) => {
               {section.content?.imageUrl && (
                 <div className={cn(
                   "relative overflow-hidden rounded-xl shadow-xl",
-                  isSplitLayout ? "h-[400px]" : "aspect-video max-w-4xl mx-auto"
+                  isSplitLayout && "h-[400px]",
+                  isColumnsLayout && "w-full md:w-1/2 aspect-video",
+                  !isSplitLayout && !isColumnsLayout && "aspect-video max-w-4xl mx-auto"
                 )}>
                   <img 
                     src={section.content.imageUrl} 
