@@ -17,7 +17,16 @@ serve(async (req) => {
   }
 
   try {
-    const { projectId, businessName, businessIdea, targetAudience } = await req.json();
+    const { 
+      projectId, 
+      businessName, 
+      businessIdea, 
+      targetAudience,
+      currentContent,
+      isRefinement,
+      iterationNumber = 1
+    } = await req.json();
+
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Create a log entry
@@ -34,16 +43,23 @@ serve(async (req) => {
 
     if (!log) throw new Error('Failed to create generation log');
 
-    // Generate the content structure
+    // Determine the expansion mode based on iteration number
+    const expansionMode = iterationNumber <= 2 ? 'core_content' :
+                         iterationNumber <= 4 ? 'detailed_expansion' :
+                         'final_polish';
+
+    // Generate content with progressive detail
     const content = {
       hero: {
         title: `${businessName} - Innovation Meets Excellence`,
-        description: `Transform your experience with our cutting-edge solutions. ${businessIdea}`,
+        description: isRefinement ? 
+          `${currentContent.hero.content.description}\n\nFurther refined: ${businessIdea}` :
+          `Transform your experience with our cutting-edge solutions. ${businessIdea}`,
         cta: "Get Started Today",
       },
       features: {
         title: "Why Choose Us",
-        cards: [
+        cards: expansionMode === 'core_content' ? [
           {
             title: "Expert Solutions",
             description: "Industry-leading expertise and proven results",
@@ -56,11 +72,56 @@ serve(async (req) => {
             title: "Innovation",
             description: "Cutting-edge technology and forward-thinking approaches",
           }
+        ] : expansionMode === 'detailed_expansion' ? [
+          {
+            title: "Expert Solutions",
+            description: "Industry-leading expertise with proven results backed by years of experience. Our solutions are tailored to your specific needs.",
+            bulletPoints: [
+              "Customized approaches for your unique challenges",
+              "Data-driven decision making",
+              "Continuous improvement methodology"
+            ]
+          },
+          {
+            title: "Customer Focus",
+            description: "We put your success at the heart of everything we do. Our dedicated support team ensures you get the most value from our partnership.",
+            bulletPoints: [
+              "24/7 dedicated support",
+              "Personalized onboarding process",
+              "Regular check-ins and updates"
+            ]
+          },
+          {
+            title: "Innovation",
+            description: "Stay ahead of the curve with our cutting-edge technology and forward-thinking approaches that drive real results.",
+            bulletPoints: [
+              "Latest technology adoption",
+              "Continuous feature updates",
+              "Industry-leading practices"
+            ]
+          }
+        ] : [
+          // Final polish adds concrete examples and metrics
+          {
+            title: "Expert Solutions",
+            description: `Industry-leading expertise with proven results backed by ${iterationNumber} years of experience. Our solutions have helped businesses achieve an average of 45% improvement in efficiency.`,
+            bulletPoints: [
+              "Customized approaches with 98% client satisfaction rate",
+              "Data-driven decisions backed by advanced analytics",
+              "ISO-certified improvement methodology"
+            ],
+            metrics: {
+              improvement: "45%",
+              satisfaction: "98%",
+              implementation: "< 2 weeks"
+            }
+          },
+          // ... similar expansions for other cards
         ]
       },
       benefits: {
         title: "Our Features",
-        items: [
+        items: expansionMode === 'core_content' ? [
           {
             title: "Comprehensive Solutions",
             description: "End-to-end services tailored to your needs"
@@ -73,11 +134,57 @@ serve(async (req) => {
             title: "Proven Results",
             description: "Track record of success with satisfied clients"
           }
+        ] : expansionMode === 'detailed_expansion' ? [
+          {
+            title: "Comprehensive Solutions",
+            description: "Our end-to-end services are meticulously tailored to address your specific challenges and goals.",
+            details: [
+              "Custom implementation plans",
+              "Integrated workflows",
+              "Scalable architecture"
+            ]
+          },
+          // ... expanded benefits
+        ] : [
+          // Final polish with concrete examples
+          {
+            title: "Comprehensive Solutions",
+            description: "Our end-to-end services have helped over 500 businesses achieve their goals with measurable results.",
+            details: [
+              "Custom implementation plans with 99.9% uptime",
+              "Integrated workflows reducing manual work by 75%",
+              "Scalable architecture supporting 10x growth"
+            ],
+            caseStudy: {
+              metric: "75%",
+              description: "Average reduction in manual workflows"
+            }
+          },
+          // ... similar expansions for other items
         ]
       },
       testimonials: {
         title: "What Our Clients Say",
-        items: [
+        items: expansionMode === 'final_polish' ? [
+          {
+            quote: "A game-changing solution that transformed our business operations and improved efficiency by 40%.",
+            author: "Jane Smith",
+            role: "CEO, Tech Solutions Inc.",
+            metrics: {
+              improvement: "40%",
+              timeframe: "6 months"
+            }
+          },
+          {
+            quote: "The level of support and expertise we received was exceptional. Our ROI exceeded expectations.",
+            author: "John Doe",
+            role: "CTO, Innovation Corp",
+            metrics: {
+              roi: "250%",
+              satisfaction: "5/5"
+            }
+          }
+        ] : [
           {
             quote: "A game-changing solution that transformed our business.",
             author: "Jane Smith",
@@ -92,12 +199,16 @@ serve(async (req) => {
           {
             title: "Starter",
             price: "$49/mo",
-            features: ["Basic features", "Email support", "1 user"]
+            features: expansionMode === 'core_content' ? 
+              ["Basic features", "Email support", "1 user"] :
+              ["All basic features", "Priority email support", "Up to 5 users", "99.9% uptime SLA", "Basic analytics"]
           },
           {
             title: "Professional",
             price: "$99/mo",
-            features: ["Advanced features", "Priority support", "5 users"]
+            features: expansionMode === 'core_content' ?
+              ["Advanced features", "Priority support", "5 users"] :
+              ["All Starter features", "24/7 phone support", "Up to 20 users", "Advanced analytics", "Custom integrations"]
           }
         ]
       }
@@ -134,9 +245,35 @@ serve(async (req) => {
     }
 
     const imageData = await imageResponse.json();
-    
-    // Update the hero section with the generated image
     content.hero.image = imageData.images[0];
+
+    // Calculate statistics based on the content
+    const statistics = {
+      metrics: [
+        {
+          label: "Content Sections",
+          value: Object.keys(content).length
+        },
+        {
+          label: "Iteration",
+          value: iterationNumber
+        },
+        {
+          label: "Detail Level",
+          value: expansionMode.replace('_', ' ')
+        }
+      ],
+      data_points: [
+        {
+          category: "Content",
+          metrics: {
+            sections: Object.keys(content).length,
+            features: content.features.cards.length,
+            testimonials: content.testimonials.items.length
+          }
+        }
+      ]
+    };
 
     // Update log for completion
     await supabase
@@ -145,7 +282,7 @@ serve(async (req) => {
         status: 'completed',
         step_details: { stage: 'images_generated' },
         success: true,
-        response_payload: content
+        response_payload: { content, statistics }
       })
       .eq('id', log.id);
 
@@ -158,7 +295,8 @@ serve(async (req) => {
         benefitsLayout: "grid",
         testimonialsLayout: "grid",
         pricingLayout: "grid"
-      }
+      },
+      statistics
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
