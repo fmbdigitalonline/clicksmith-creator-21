@@ -8,7 +8,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import LoadingStateLandingPage from "./LoadingStateLandingPage";
 import { cn } from "@/lib/utils";
-import { Loader2 } from "lucide-react";
+import { 
+  Loader2, 
+  ArrowRight, 
+  ArrowDown, 
+  Star, 
+  Check, 
+  Quote,
+  ChevronDown,
+  ChevronUp
+} from "lucide-react";
 
 interface GenerationLog {
   api_status_code: number;
@@ -141,7 +150,7 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
       <section className="relative min-h-[80vh] flex items-center bg-gradient-to-r from-primary/5 via-primary/10 to-secondary/5 py-20">
         <div className="container mx-auto px-4">
           <div className="grid md:grid-cols-2 gap-12 items-center">
-            <div className="space-y-8">
+            <div className="space-y-8 animate-fade-in">
               <h1 className="text-4xl md:text-6xl font-bold leading-tight">
                 {section.content.title}
               </h1>
@@ -150,19 +159,30 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 {section.content.primaryCta && (
-                  <Button size="lg" className="text-lg py-6">
+                  <Button 
+                    size="lg" 
+                    className="text-lg py-6 group hover:scale-105 transition-all duration-200"
+                  >
                     {section.content.primaryCta.text}
+                    <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
                   </Button>
                 )}
                 {section.content.secondaryCta && (
-                  <Button variant="outline" size="lg" className="text-lg py-6">
+                  <Button 
+                    variant="outline" 
+                    size="lg" 
+                    className="text-lg py-6 hover:scale-105 transition-all duration-200"
+                  >
                     {section.content.secondaryCta.text}
                   </Button>
                 )}
               </div>
             </div>
-            <div className="relative h-[500px] rounded-lg overflow-hidden bg-gradient-to-br from-primary/10 to-secondary/10 shadow-2xl" />
+            <div className="relative h-[500px] rounded-lg overflow-hidden bg-gradient-to-br from-primary/10 to-secondary/10 shadow-2xl animate-fade-in [animation-delay:200ms]" />
           </div>
+        </div>
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce">
+          <ArrowDown className="h-6 w-6 text-primary" />
         </div>
       </section>
     );
@@ -175,7 +195,12 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
           <h2 className="text-3xl font-bold text-center mb-12">{section.content.title}</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {section.content.items.map((item: any, index: number) => (
-              <div key={index} className="text-center">
+              <div 
+                key={index} 
+                className="text-center transform hover:scale-105 transition-all duration-200 animate-fade-in"
+                style={{ animationDelay: `${index * 100}ms` }}
+              >
+                <Star className="h-8 w-8 text-primary mx-auto mb-4" />
                 <div className="text-4xl font-bold text-primary mb-2">{item.title}</div>
                 <div className="text-gray-600">{item.description}</div>
               </div>
@@ -215,8 +240,12 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
       <div className="max-w-3xl mx-auto">
         <ul className="space-y-4 list-none">
           {points.map((point, index) => (
-            <li key={index} className="flex items-start space-x-3">
-              <span className="flex-shrink-0 w-1.5 h-1.5 mt-2 rounded-full bg-primary" />
+            <li 
+              key={index} 
+              className="flex items-start space-x-3 animate-fade-in"
+              style={{ animationDelay: `${index * 100}ms` }}
+            >
+              <Check className="h-5 w-5 text-primary mt-1 flex-shrink-0" />
               <span className="text-lg text-gray-600 dark:text-gray-300">{point}</span>
             </li>
           ))}
@@ -236,20 +265,30 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
         "max-w-7xl mx-auto"
       )}>
         {items.map((item, index) => (
-          <div key={index} className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow duration-200">
+          <div 
+            key={index} 
+            className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-200 transform hover:scale-105 animate-fade-in"
+            style={{ animationDelay: `${index * 100}ms` }}
+          >
             <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">{item.title}</h3>
             <p className="text-gray-600 dark:text-gray-300 mb-4">{item.description}</p>
             {item.details && (
               <div className="mt-4 space-y-2">
                 {item.details.map((detail: string, dIndex: number) => (
-                  <p key={dIndex} className="text-gray-500 dark:text-gray-400 text-sm">{detail}</p>
+                  <p key={dIndex} className="text-gray-500 dark:text-gray-400 text-sm flex items-center">
+                    <Check className="h-4 w-4 text-primary mr-2" />
+                    {detail}
+                  </p>
                 ))}
               </div>
             )}
             {item.highlights && (
               <div className="mt-4 flex flex-wrap gap-2">
                 {item.highlights.map((highlight: string, hIndex: number) => (
-                  <span key={hIndex} className="inline-block bg-primary/10 text-primary px-3 py-1 rounded-full text-sm">
+                  <span 
+                    key={hIndex} 
+                    className="inline-block bg-primary/10 text-primary px-3 py-1 rounded-full text-sm"
+                  >
                     {highlight}
                   </span>
                 ))}
@@ -282,7 +321,7 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
     );
 
     const headingClass = cn(
-      "font-bold leading-tight max-w-4xl mx-auto",
+      "font-bold leading-tight max-w-4xl mx-auto animate-fade-in",
       section.style?.typography?.headingSize === 'large' && "text-4xl md:text-5xl lg:text-6xl",
       section.style?.typography?.headingSize === 'xlarge' && "text-5xl md:text-6xl lg:text-7xl",
       "text-3xl md:text-4xl lg:text-5xl"
@@ -295,7 +334,7 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
             <div className="space-y-4 text-center mb-12">
               <h2 className={headingClass}>{section.content.title}</h2>
               {section.content?.subtitle && (
-                <p className="text-xl md:text-2xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
+                <p className="text-xl md:text-2xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto animate-fade-in [animation-delay:200ms]">
                   {section.content.subtitle}
                 </p>
               )}
@@ -303,7 +342,7 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
           )}
           
           {section.content?.mainDescription && (
-            <div className="max-w-3xl mx-auto">
+            <div className="max-w-3xl mx-auto animate-fade-in">
               <p className="text-xl text-gray-600 dark:text-gray-300 leading-relaxed">
                 {section.content.mainDescription}
               </p>
@@ -315,11 +354,15 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
           {section.content?.items && renderItems(section.content.items, section.layout)}
           
           {(section.content?.primaryCta || section.content?.secondaryCta) && (
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mt-12">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center mt-12 animate-fade-in [animation-delay:400ms]">
               {section.content.primaryCta && (
                 <div className="text-center">
-                  <Button size="lg" className="min-w-[200px] text-lg py-6">
+                  <Button 
+                    size="lg" 
+                    className="min-w-[200px] text-lg py-6 group hover:scale-105 transition-all duration-200"
+                  >
                     {section.content.primaryCta.text}
+                    <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
                   </Button>
                   {section.content.primaryCta.description && (
                     <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
@@ -330,7 +373,11 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
               )}
               {section.content.secondaryCta && (
                 <div className="text-center">
-                  <Button variant="outline" size="lg" className="min-w-[200px] text-lg py-6">
+                  <Button 
+                    variant="outline" 
+                    size="lg" 
+                    className="min-w-[200px] text-lg py-6 hover:scale-105 transition-all duration-200"
+                  >
                     {section.content.secondaryCta.text}
                   </Button>
                   {section.content.secondaryCta.description && (
