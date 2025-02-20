@@ -2,7 +2,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { CreditCard, HelpCircle, MessageSquare, BookOpen } from "lucide-react";
+import { CreditCard, HelpCircle, MessageSquare, BookOpen, BookOpen as BlogIcon } from "lucide-react";
 import { CreditDisplay } from "./CreditDisplay";
 import {
   DropdownMenu,
@@ -33,6 +33,20 @@ const Navigation = () => {
           </Link>
           <div className="flex items-center gap-4">
             <CreditDisplay />
+            <Button
+              variant="ghost"
+              size="sm"
+              asChild
+              className={cn(
+                "gap-2",
+                isActive("/blog") && "bg-accent"
+              )}
+            >
+              <Link to="/blog">
+                <BlogIcon className="h-4 w-4" />
+                <span>Blog</span>
+              </Link>
+            </Button>
             <Button
               variant="ghost"
               size="sm"
