@@ -1,4 +1,3 @@
-
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
@@ -23,6 +22,7 @@ import LandingPages from "@/pages/LandingPages";
 import Referral from "@/pages/Referral";
 import Affiliate from "@/pages/Affiliate";
 import Share from "@/pages/Share";
+import BlogAdmin from "@/pages/BlogAdmin";
 
 const queryClient = new QueryClient();
 
@@ -48,6 +48,16 @@ function App() {
                 <ProtectedRoute>
                   <AppLayout>
                     <Dashboard />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/blog-admin"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <BlogAdmin />
                   </AppLayout>
                 </ProtectedRoute>
               }

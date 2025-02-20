@@ -9,6 +9,7 @@ import {
   Home,
   BookmarkIcon,
   Layout,
+  FileText,
 } from "lucide-react";
 import {
   Sidebar,
@@ -47,6 +48,11 @@ export function AppSidebar() {
       title: "Landing Pages",
       icon: Layout,
       url: "/landing-pages",
+    },
+    {
+      title: "Blog Admin",
+      icon: FileText,
+      url: "/blog-admin",
     },
     {
       title: "Settings",
