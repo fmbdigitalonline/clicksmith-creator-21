@@ -24,31 +24,14 @@ interface StepDetails {
   [key: string]: any;
 }
 
-interface DatabaseLog {
-  api_status_code: number;
-  cache_hit: boolean;
-  created_at: string;
-  error_message: string | null;
-  generation_time: number;
-  id: string;
-  project_id: string;
-  request_payload: any;
-  response_payload: any;
-  status: string | null;
-  step_details: any;
-  success: boolean;
-  user_id: string;
-}
-
-interface GenerationLog {
-  success: boolean;
-  error_message?: string;
-  status?: string;
-  step_details?: StepDetails;
-}
-
 interface LandingPageResponse {
-  content: any;
+  content: {
+    sections?: Array<{
+      type: string;
+      order?: number;
+      content: any;
+    }>;
+  };
   project_id: string;
   id: string;
 }
@@ -87,49 +70,35 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
         }
 
         if (logs) {
-          const dbLog = logs as DatabaseLog;
-          const logData: GenerationLog = {
-            success: dbLog.success,
-            error_message: dbLog.error_message || undefined,
-            status: dbLog.status || undefined,
-            step_details: dbLog.step_details ? {
-              stage: dbLog.step_details.stage || 'unknown',
-              ...dbLog.step_details
-            } : undefined
-          };
+          console.log('Generation log status:', logs.status, 'Step details:', logs.step_details);
           
-          if (logData.success) {
+          if (logs.success) {
             setGenerationProgress({ status: "Success!", progress: 100 });
-            if (intervalId) {
-              clearInterval(intervalId);
-            }
+            clearInterval(intervalId);
             setIsGenerating(false);
             setIsRefining(false);
 
-            // Invalidate and wait for queries after successful generation
             await Promise.all([
               queryClient.invalidateQueries({ queryKey: ['subscription'] }),
               queryClient.invalidateQueries({ queryKey: ['free_tier_usage'] }),
               queryClient.invalidateQueries({ queryKey: ['landing-page', project.id] })
             ]);
 
-            // Force an immediate refetch
+            // Force a refetch
             await queryClient.refetchQueries({ 
               queryKey: ['landing-page', project.id],
               type: 'active'
             });
-          } else if (logData.error_message) {
+          } else if (logs.error_message) {
             setGenerationProgress({ 
-              status: `Error: ${logData.error_message}`, 
+              status: `Error: ${logs.error_message}`, 
               progress: 0 
             });
-            if (intervalId) {
-              clearInterval(intervalId);
-            }
+            clearInterval(intervalId);
             setIsGenerating(false);
             setIsRefining(false);
           } else {
-            const stepDetails = logData.step_details;
+            const stepDetails = logs.step_details;
             let progress = 0;
 
             if (stepDetails) {
@@ -139,7 +108,7 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
             }
             
             setGenerationProgress({ 
-              status: `${logData.status?.replace(/_/g, ' ') || 'Processing'}...`, 
+              status: `${logs.status?.replace(/_/g, ' ') || 'Processing'}...`, 
               progress 
             });
           }
@@ -181,6 +150,8 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
         throw new Error('Authentication required');
       }
 
+      console.log('Starting landing page generation for project:', project.id);
+
       const { data, error } = await supabase.functions.invoke('generate-landing-page', {
         body: {
           projectId: project.id,
@@ -192,6 +163,7 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
       });
 
       if (error) {
+        console.error('Generation error:', error);
         if (error.status === 402) {
           toast({
             title: "Insufficient Credits",
@@ -204,11 +176,12 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
         throw error;
       }
 
+      console.log('Generated content:', data);
+
       if (!data || !data.content) {
         throw new Error('Invalid response from generation service');
       }
 
-      // Verify the returned content matches our project
       if (data.project_id !== project.id) {
         console.error('Project ID mismatch:', { 
           expected: project.id, 
@@ -217,7 +190,6 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
         throw new Error('Generated content does not match the current project');
       }
 
-      console.log("Received new content:", data);
       toast({
         title: "Content Generated",
         description: "Your landing page content has been updated."
@@ -235,17 +207,6 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
       setGenerationProgress({ status: "", progress: 0 });
     }
   };
-
-  // Verify that the displayed landing page matches the current project
-  useEffect(() => {
-    if (landingPage && project && landingPage.project_id !== project.id) {
-      console.error('Landing page project ID mismatch');
-      // Force a refetch of the correct landing page
-      void queryClient.invalidateQueries({ 
-        queryKey: ['landing-page', project.id] 
-      });
-    }
-  }, [landingPage, project, queryClient]);
 
   if (isTemplateLoading) {
     return <LoadingStateLandingPage />;
@@ -290,16 +251,17 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
         <TabsContent value="preview" className="mt-0">
           {landingPage?.content?.sections ? (
             <div className="divide-y divide-gray-200">
-              {landingPage.content.sections
-                .sort((a: any, b: any) => a.order - b.order)
-                .map((section: any) => {
+              {[...landingPage.content.sections]
+                .sort((a, b) => (a.order || 0) - (b.order || 0))
+                .map((section, index) => {
+                  console.log('Rendering section:', section);
                   switch (section.type) {
                     case 'hero':
-                      return <HeroSection key={section.type} content={section.content} />;
+                      return <HeroSection key={`${section.type}-${index}`} content={section.content} />;
                     case 'social-proof':
-                      return <SocialProofSection key={section.type} content={section.content} />;
+                      return <SocialProofSection key={`${section.type}-${index}`} content={section.content} />;
                     default:
-                      return <DynamicSection key={section.type} section={section} />;
+                      return <DynamicSection key={`${section.type}-${index}`} section={section} />;
                   }
                 })}
             </div>
