@@ -657,6 +657,8 @@ export type Database = {
           project_id: string | null
           request_payload: Json | null
           response_payload: Json | null
+          status: string | null
+          step_details: Json | null
           success: boolean | null
         }
         Insert: {
@@ -669,6 +671,8 @@ export type Database = {
           project_id?: string | null
           request_payload?: Json | null
           response_payload?: Json | null
+          status?: string | null
+          step_details?: Json | null
           success?: boolean | null
         }
         Update: {
@@ -681,6 +685,8 @@ export type Database = {
           project_id?: string | null
           request_payload?: Json | null
           response_payload?: Json | null
+          status?: string | null
+          step_details?: Json | null
           success?: boolean | null
         }
         Relationships: [
