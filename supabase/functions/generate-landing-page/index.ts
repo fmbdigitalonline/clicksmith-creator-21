@@ -199,21 +199,54 @@ serve(async (req) => {
 
     const content = await generateContent(businessIdea, targetAudience, iterationNumber);
 
-    // Update the existing landing page with the new content
-    const { data: landingPage, error: updateError } = await supabaseClient
+    // First try to get the existing landing page
+    const { data: existingPage } = await supabaseClient
       .from('landing_pages')
-      .update({ 
-        content,
-        content_iterations: iterationNumber,
-        updated_at: new Date().toISOString()
-      })
+      .select('*')
       .eq('project_id', projectId)
-      .select()
-      .single();
+      .maybeSingle();
 
-    if (updateError) {
-      console.error('Error updating landing page:', updateError);
-      throw updateError;
+    let landingPage;
+    if (!existingPage) {
+      // Create new landing page if none exists
+      console.log('Creating new landing page for project:', projectId);
+      const { data: newPage, error: createError } = await supabaseClient
+        .from('landing_pages')
+        .insert({ 
+          project_id: projectId,
+          user_id: userId,
+          content,
+          content_iterations: iterationNumber,
+          title: 'Landing Page',
+          theme_settings: {}
+        })
+        .select()
+        .single();
+
+      if (createError) {
+        console.error('Error creating landing page:', createError);
+        throw createError;
+      }
+      landingPage = newPage;
+    } else {
+      // Update existing landing page
+      console.log('Updating existing landing page for project:', projectId);
+      const { data: updatedPage, error: updateError } = await supabaseClient
+        .from('landing_pages')
+        .update({ 
+          content,
+          content_iterations: iterationNumber,
+          updated_at: new Date().toISOString()
+        })
+        .eq('project_id', projectId)
+        .select()
+        .single();
+
+      if (updateError) {
+        console.error('Error updating landing page:', updateError);
+        throw updateError;
+      }
+      landingPage = updatedPage;
     }
 
     // Update the log with success
