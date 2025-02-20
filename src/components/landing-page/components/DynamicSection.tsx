@@ -55,21 +55,19 @@ export const DynamicSection = ({ section }: DynamicSectionProps) => {
           {/* Text and Image Content */}
           {(section.content?.mainDescription || section.content?.bulletPoints || section.content?.imageUrl) && (
             <div className={cn(
-              "w-full",
-              isSplitLayout && "grid md:grid-cols-2 gap-12 items-center",
-              isColumnsLayout && "flex flex-col md:flex-row gap-12 items-start",
+              "w-full gap-8 md:gap-12",
+              isSplitLayout && "grid md:grid-cols-2 items-center",
+              isColumnsLayout && "grid grid-cols-1 md:grid-cols-12 items-start",
               !isSplitLayout && !isColumnsLayout && "space-y-8"
             )}>
               {/* Text Content */}
               <div className={cn(
                 "space-y-8",
-                isColumnsLayout && "flex-1"
+                isColumnsLayout && "md:col-span-7",
+                !isColumnsLayout && !isSplitLayout && "max-w-3xl mx-auto"
               )}>
                 {section.content?.mainDescription && (
-                  <div className={cn(
-                    "animate-fade-in",
-                    !isSplitLayout && !isColumnsLayout && "max-w-3xl mx-auto"
-                  )}>
+                  <div className="animate-fade-in">
                     <p className="text-xl text-gray-600 dark:text-gray-300 leading-relaxed">
                       {section.content.mainDescription}
                     </p>
@@ -85,7 +83,7 @@ export const DynamicSection = ({ section }: DynamicSectionProps) => {
                 <div className={cn(
                   "relative overflow-hidden rounded-xl shadow-xl",
                   isSplitLayout && "h-[400px]",
-                  isColumnsLayout && "w-full md:w-1/2 aspect-video",
+                  isColumnsLayout && "md:col-span-5 aspect-[4/3]",
                   !isSplitLayout && !isColumnsLayout && "aspect-video max-w-4xl mx-auto"
                 )}>
                   <img 
