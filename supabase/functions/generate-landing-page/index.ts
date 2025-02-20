@@ -15,9 +15,9 @@ serve(async (req) => {
 
   try {
     const { projectId, businessIdea, targetAudience, userId } = await req.json();
-    console.log('📝 Request payload:', { projectId, userId });
-    console.log('📝 Business idea:', businessIdea);
-    console.log('📝 Target audience:', targetAudience);
+    console.log('📝 Starting landing page generation for project:', projectId);
+    console.log('Business idea:', businessIdea);
+    console.log('Target audience:', targetAudience);
 
     if (!projectId || !userId) {
       throw new Error('Missing required parameters: projectId and userId');
@@ -34,43 +34,124 @@ serve(async (req) => {
       }
     );
 
-    console.log('🔄 Generating landing page content...');
+    // Generate base content structure matching frontend expectations
     const landingPageContent = {
       hero: {
-        title: businessIdea?.valueProposition || "Welcome",
-        description: businessIdea?.description || "",
-        cta: "Get Started Now"
+        title: businessIdea?.valueProposition || "Welcome to Our Solution",
+        description: businessIdea?.description || "Discover how we can help transform your business",
+        cta: "Get Started Now",
+        image: null // placeholder for future image generation
       },
-      features: [
-        {
-          title: "Easy to Use",
-          description: "Our platform makes it simple to get started"
-        },
-        {
-          title: "Professional Results",
-          description: "Get high-quality outputs every time"
-        }
-      ],
-      benefits: [
-        "Save time and effort",
-        "Professional quality results",
-        "Customizable solutions"
-      ],
-      testimonials: [
-        {
-          name: "John Doe",
-          role: targetAudience?.demographics || "Professional",
-          content: `As a ${targetAudience?.demographics || 'professional'}, I found this solution incredibly helpful.`
-        }
-      ],
-      callToAction: {
+      value_proposition: {
+        title: "Why Choose Us",
+        description: "We offer the best solution for your needs",
+        cards: [
+          {
+            title: "Expert Solution",
+            description: businessIdea?.valueProposition || "Professional quality results every time",
+            icon: "✨"
+          },
+          {
+            title: "Tailored Approach",
+            description: "Customized to your specific needs",
+            icon: "🎯"
+          },
+          {
+            title: "Proven Results",
+            description: "Join our satisfied customers",
+            icon: "🌟"
+          }
+        ]
+      },
+      features: {
+        title: "Key Features",
+        description: "Discover what makes us different",
+        items: [
+          {
+            title: "Easy to Use",
+            description: "Intuitive interface designed for efficiency",
+            icon: "💡"
+          },
+          {
+            title: "Powerful Features",
+            description: "Everything you need in one place",
+            icon: "⚡"
+          },
+          {
+            title: "Professional Support",
+            description: "We're here to help you succeed",
+            icon: "🤝"
+          }
+        ]
+      },
+      proof: {
+        title: "What Our Clients Say",
+        items: [
+          {
+            quote: `As a ${targetAudience?.demographics || 'professional'}, I found this solution exactly what I needed.`,
+            author: "John Smith",
+            role: targetAudience?.demographics || "Business Owner"
+          },
+          {
+            quote: "The results exceeded our expectations.",
+            author: "Sarah Johnson",
+            role: "Marketing Director"
+          }
+        ]
+      },
+      pricing: {
+        title: "Simple, Transparent Pricing",
+        description: "Choose the plan that's right for you",
+        items: [
+          {
+            name: "Starter",
+            price: "$49/mo",
+            features: [
+              "Core features",
+              "Basic support",
+              "Up to 1000 users"
+            ]
+          },
+          {
+            name: "Professional",
+            price: "$99/mo",
+            features: [
+              "All Starter features",
+              "Priority support",
+              "Advanced analytics"
+            ]
+          }
+        ]
+      },
+      faq: {
+        title: "Frequently Asked Questions",
+        items: [
+          {
+            question: "How does it work?",
+            answer: "Our platform is designed to be intuitive and easy to use. Simply sign up and follow our guided setup process."
+          },
+          {
+            question: "What support do you offer?",
+            answer: "We offer comprehensive support including documentation, email support, and live chat for our premium customers."
+          }
+        ]
+      },
+      finalCta: {
         title: "Ready to Get Started?",
         description: "Join thousands of satisfied customers and transform your business today.",
-        buttonText: "Start Now"
+        ctaText: "Start Now"
+      },
+      footer: {
+        content: {
+          links: {
+            company: ["About", "Contact", "Careers"],
+            resources: ["Help Center", "Terms", "Privacy"]
+          }
+        }
       }
     };
 
-    console.log('📝 Generated content:', landingPageContent);
+    console.log('📝 Generated content structure:', landingPageContent);
 
     // Create a unique slug
     const slug = `landing-page-${Math.random().toString(36).substring(2, 8)}`;
@@ -85,6 +166,7 @@ serve(async (req) => {
         content: landingPageContent,
         slug,
         published: false,
+        content_iterations: 1,
         theme_settings: {
           colorScheme: "light",
           typography: {
