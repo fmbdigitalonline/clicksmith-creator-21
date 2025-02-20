@@ -26,7 +26,9 @@ ${JSON.stringify(targetAudience, null, 2)}
 
 Design a unique landing page structure that best converts this target audience. You have complete creative freedom.
 
-Return a JSON object with this structure:
+IMPORTANT: Return ONLY the raw JSON object, no markdown formatting or code block syntax.
+
+The JSON structure should follow this format:
 {
   "sections": [
     {
@@ -65,9 +67,7 @@ Return a JSON object with this structure:
       "body": string
     }
   }
-}
-
-Focus on creating a unique structure that best serves this specific business and audience. Don't follow a rigid template.`;
+}`;
 
   try {
     console.log('Sending request to OpenAI...');
@@ -83,7 +83,7 @@ Focus on creating a unique structure that best serves this specific business and
         messages: [
           {
             role: "system",
-            content: "You are an expert landing page designer focused on conversion rate optimization. Design unique, effective landing pages tailored to each business."
+            content: "You are an expert landing page designer. Always return ONLY raw JSON without any markdown formatting or code blocks."
           },
           {
             role: "user",
@@ -107,8 +107,21 @@ Focus on creating a unique structure that best serves this specific business and
       throw new Error('Invalid response format from OpenAI');
     }
 
-    const content = JSON.parse(data.choices[0].message.content.trim());
-    return content;
+    // Clean up the response content before parsing
+    let contentString = data.choices[0].message.content.trim();
+    
+    // Remove any markdown code block syntax if present
+    contentString = contentString.replace(/^```json\n?/, '').replace(/\n?```$/, '');
+    
+    try {
+      const content = JSON.parse(contentString);
+      console.log('Successfully parsed content:', content);
+      return content;
+    } catch (parseError) {
+      console.error('Error parsing JSON:', parseError);
+      console.error('Content that failed to parse:', contentString);
+      throw new Error('Failed to parse generated content as JSON');
+    }
   } catch (error) {
     console.error('Error generating content:', error);
     throw error;
