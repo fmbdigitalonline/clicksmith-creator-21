@@ -18,6 +18,18 @@ interface GenerationProgress {
   progress: number;
 }
 
+interface StepDetails {
+  stage: 'started' | 'content_generated' | 'images_generated' | string;
+  [key: string]: any;
+}
+
+interface GenerationLog {
+  success: boolean;
+  error_message?: string;
+  status?: string;
+  step_details?: StepDetails;
+}
+
 const LandingPageContent = ({ project, landingPage }: { project: any; landingPage: any }) => {
   const [activeView, setActiveView] = useState<"edit" | "preview">("preview");
   const [isGenerating, setIsGenerating] = useState(false);
@@ -47,22 +59,29 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
         }
 
         if (logs) {
-          if (logs.success) {
+          const logData = logs as unknown as GenerationLog;
+          
+          if (logData.success) {
             setGenerationProgress({ status: "Success!", progress: 100 });
             clearInterval(interval);
-          } else if (logs.error_message) {
+          } else if (logData.error_message) {
             setGenerationProgress({ 
-              status: `Error: ${logs.error_message}`, 
+              status: `Error: ${logData.error_message}`, 
               progress: 0 
             });
             clearInterval(interval);
           } else {
-            const progress = logs.step_details?.stage === 'started' ? 25 :
-                           logs.step_details?.stage === 'content_generated' ? 50 :
-                           logs.step_details?.stage === 'images_generated' ? 75 : 0;
+            const stepDetails = logData.step_details;
+            let progress = 0;
+
+            if (stepDetails) {
+              progress = stepDetails.stage === 'started' ? 25 :
+                        stepDetails.stage === 'content_generated' ? 50 :
+                        stepDetails.stage === 'images_generated' ? 75 : 0;
+            }
             
             setGenerationProgress({ 
-              status: `${logs.status?.replace(/_/g, ' ') || 'Processing'}...`, 
+              status: `${logData.status?.replace(/_/g, ' ') || 'Processing'}...`, 
               progress 
             });
           }
