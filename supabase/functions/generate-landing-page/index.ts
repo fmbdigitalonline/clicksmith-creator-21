@@ -7,8 +7,98 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+async function generateWithDeepeek(prompt: string, context: any) {
+  const DEEPEEK_API_KEY = Deno.env.get('DEEPEEK_API_KEY');
+  if (!DEEPEEK_API_KEY) {
+    throw new Error('DEEPEEK_API_KEY is not set');
+  }
+
+  try {
+    console.log('🤖 Calling Deepeek API with prompt:', prompt);
+    const response = await fetch('https://api.deepeek.com/v1/generate', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${DEEPEEK_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        prompt,
+        context,
+        max_tokens: 500,
+        temperature: 0.7
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Deepeek API error: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    console.log('🤖 Deepeek response:', data);
+    return data.choices[0].text;
+  } catch (error) {
+    console.error('❌ Deepeek API error:', error);
+    throw error;
+  }
+}
+
+async function generateIterativeContent(businessIdea: any, targetAudience: any) {
+  console.log('📝 Starting iterative content generation...');
+  
+  try {
+    // Step 1: Generate core messaging
+    const heroContent = await generateWithDeepeek(
+      `Create a compelling hero section for a landing page about: ${businessIdea.description}. 
+       Target audience: ${targetAudience.demographics}.
+       Include a headline, subheadline, and call to action.`,
+      { type: 'hero', businessIdea, targetAudience }
+    );
+
+    // Step 2: Generate value propositions
+    const valueProps = await generateWithDeepeek(
+      `List 3 key value propositions for: ${businessIdea.description}.
+       Make them specific to ${targetAudience.demographics}.
+       Include a title and description for each.`,
+      { type: 'features', previousContent: heroContent }
+    );
+
+    // Step 3: Generate features with examples
+    const features = await generateWithDeepeek(
+      `Describe 3 main features of the solution: ${businessIdea.description}.
+       Include specific benefits for ${targetAudience.demographics}.
+       Add real-world examples or use cases.`,
+      { type: 'features', previousContent: valueProps }
+    );
+
+    // Step 4: Generate social proof
+    const testimonials = await generateWithDeepeek(
+      `Create 2 testimonials from ${targetAudience.demographics} about: ${businessIdea.description}.
+       Include specific results and benefits they experienced.`,
+      { type: 'testimonials', previousContent: features }
+    );
+
+    // Step 5: Generate FAQ content
+    const faq = await generateWithDeepeek(
+      `Create 4 frequently asked questions about: ${businessIdea.description}.
+       Address common concerns of ${targetAudience.demographics}.
+       Provide detailed, reassuring answers.`,
+      { type: 'faq', previousContent: testimonials }
+    );
+
+    return {
+      hero: JSON.parse(heroContent),
+      value_proposition: JSON.parse(valueProps),
+      features: JSON.parse(features),
+      proof: JSON.parse(testimonials),
+      faq: JSON.parse(faq)
+    };
+  } catch (error) {
+    console.error('❌ Error in iterative content generation:', error);
+    throw error;
+  }
+}
+
 serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -16,8 +106,6 @@ serve(async (req) => {
   try {
     const { projectId, businessIdea, targetAudience, userId } = await req.json();
     console.log('📝 Starting landing page generation for project:', projectId);
-    console.log('Business idea:', businessIdea);
-    console.log('Target audience:', targetAudience);
 
     if (!projectId || !userId) {
       throw new Error('Missing required parameters: projectId and userId');
@@ -26,79 +114,16 @@ serve(async (req) => {
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
-      }
+      { auth: { autoRefreshToken: false, persistSession: false } }
     );
 
-    // Generate base content structure matching frontend expectations
+    // Generate content iteratively
+    console.log('🔄 Starting iterative content generation...');
+    const generatedContent = await generateIterativeContent(businessIdea, targetAudience);
+
+    // Create the full landing page content structure
     const landingPageContent = {
-      hero: {
-        title: businessIdea?.valueProposition || "Welcome to Our Solution",
-        description: businessIdea?.description || "Discover how we can help transform your business",
-        cta: "Get Started Now",
-        image: null // placeholder for future image generation
-      },
-      value_proposition: {
-        title: "Why Choose Us",
-        description: "We offer the best solution for your needs",
-        cards: [
-          {
-            title: "Expert Solution",
-            description: businessIdea?.valueProposition || "Professional quality results every time",
-            icon: "✨"
-          },
-          {
-            title: "Tailored Approach",
-            description: "Customized to your specific needs",
-            icon: "🎯"
-          },
-          {
-            title: "Proven Results",
-            description: "Join our satisfied customers",
-            icon: "🌟"
-          }
-        ]
-      },
-      features: {
-        title: "Key Features",
-        description: "Discover what makes us different",
-        items: [
-          {
-            title: "Easy to Use",
-            description: "Intuitive interface designed for efficiency",
-            icon: "💡"
-          },
-          {
-            title: "Powerful Features",
-            description: "Everything you need in one place",
-            icon: "⚡"
-          },
-          {
-            title: "Professional Support",
-            description: "We're here to help you succeed",
-            icon: "🤝"
-          }
-        ]
-      },
-      proof: {
-        title: "What Our Clients Say",
-        items: [
-          {
-            quote: `As a ${targetAudience?.demographics || 'professional'}, I found this solution exactly what I needed.`,
-            author: "John Smith",
-            role: targetAudience?.demographics || "Business Owner"
-          },
-          {
-            quote: "The results exceeded our expectations.",
-            author: "Sarah Johnson",
-            role: "Marketing Director"
-          }
-        ]
-      },
+      ...generatedContent,
       pricing: {
         title: "Simple, Transparent Pricing",
         description: "Choose the plan that's right for you",
@@ -106,33 +131,12 @@ serve(async (req) => {
           {
             name: "Starter",
             price: "$49/mo",
-            features: [
-              "Core features",
-              "Basic support",
-              "Up to 1000 users"
-            ]
+            features: ["Core features", "Basic support", "Up to 1000 users"]
           },
           {
             name: "Professional",
             price: "$99/mo",
-            features: [
-              "All Starter features",
-              "Priority support",
-              "Advanced analytics"
-            ]
-          }
-        ]
-      },
-      faq: {
-        title: "Frequently Asked Questions",
-        items: [
-          {
-            question: "How does it work?",
-            answer: "Our platform is designed to be intuitive and easy to use. Simply sign up and follow our guided setup process."
-          },
-          {
-            question: "What support do you offer?",
-            answer: "We offer comprehensive support including documentation, email support, and live chat for our premium customers."
+            features: ["All Starter features", "Priority support", "Advanced analytics"]
           }
         ]
       },
@@ -191,17 +195,11 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify(landingPage),
-      { 
-        headers: { 
-          ...corsHeaders,
-          'Content-Type': 'application/json'
-        }
-      }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
     console.error('❌ Error in generate-landing-page function:', error);
-    
     return new Response(
       JSON.stringify({
         error: error.message || 'Internal server error',
@@ -209,10 +207,7 @@ serve(async (req) => {
       }),
       { 
         status: 500,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json'
-        }
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     );
   }
