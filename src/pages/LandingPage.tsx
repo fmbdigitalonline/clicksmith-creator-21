@@ -58,13 +58,11 @@ const LandingPage = () => {
           throw new Error('No authenticated session');
         }
 
-        // First, check for any existing landing page
+        // First, check for any existing landing page specific to this project
         const { data: existingPage, error: pageError } = await supabase
           .from("landing_pages")
           .select("*")
           .eq("project_id", projectId)
-          .order('created_at', { ascending: false })
-          .limit(1)
           .maybeSingle();
 
         if (pageError && pageError.code !== "PGRST116") {
@@ -77,13 +75,13 @@ const LandingPage = () => {
         }
 
         if (!existingPage) {
-          // If no landing page exists, create one with required fields
+          // If no landing page exists for this project, create one with required fields
           const { data: newPage, error: createError } = await supabase
             .from("landing_pages")
             .insert({
               project_id: projectId,
               user_id: session.session.user.id,
-              title: project?.title || 'New Landing Page', // Use project title or default
+              title: project?.title || 'New Landing Page',
               content: {},
               theme_settings: {},
               content_iterations: 0
