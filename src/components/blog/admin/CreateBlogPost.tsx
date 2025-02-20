@@ -27,7 +27,8 @@ const blogPostSchema = z.object({
   published: z.boolean().default(false),
   image_url: z.string().optional(),
   meta_keywords: z.array(z.string()).optional(),
-  featured: z.boolean().default(false)
+  featured: z.boolean().default(false),
+  canonical_url: z.string().optional()
 });
 
 type BlogPostFormValues = z.infer<typeof blogPostSchema>;
@@ -41,10 +42,14 @@ export function CreateBlogPost() {
       featured: false,
       meta_keywords: [],
       image_url: "",
+      canonical_url: "", // Initialize empty canonical URL
     },
   });
 
   const onSubmit = async (data: BlogPostFormValues) => {
+    // Generate the canonical URL if not provided
+    const canonical_url = data.canonical_url || `${window.location.origin}/blog/${data.slug}`;
+
     const { error } = await supabase
       .from("blog_posts")
       .insert({
@@ -58,6 +63,7 @@ export function CreateBlogPost() {
         meta_keywords: data.meta_keywords || [],
         featured: data.featured,
         published_at: data.published ? new Date().toISOString() : null,
+        canonical_url: canonical_url, // Add canonical URL
       });
 
     if (error) {
@@ -152,6 +158,26 @@ export function CreateBlogPost() {
               <FormControl>
                 <Input placeholder="Meta description for SEO" {...field} />
               </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="canonical_url"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Canonical URL (Optional)</FormLabel>
+              <FormControl>
+                <Input 
+                  placeholder="Leave empty to auto-generate from slug" 
+                  {...field} 
+                />
+              </FormControl>
+              <div className="text-sm text-muted-foreground">
+                If this is the original source, leave empty. Only set if this content exists elsewhere.
+              </div>
               <FormMessage />
             </FormItem>
           )}
