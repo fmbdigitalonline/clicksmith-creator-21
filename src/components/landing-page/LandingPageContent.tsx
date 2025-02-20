@@ -24,6 +24,22 @@ interface StepDetails {
   [key: string]: any;
 }
 
+interface DatabaseLog {
+  api_status_code: number;
+  cache_hit: boolean;
+  created_at: string;
+  error_message: string | null;
+  generation_time: number;
+  id: string;
+  project_id: string;
+  request_payload: any;
+  response_payload: any;
+  status: string | null;
+  step_details: any;
+  success: boolean;
+  user_id: string;
+}
+
 interface GenerationLog {
   success: boolean;
   error_message?: string;
@@ -46,7 +62,7 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
 
   // Track generation progress with cleanup
   useEffect(() => {
-    let intervalId: number | undefined;
+    let intervalId: NodeJS.Timeout | undefined;
 
     const checkProgress = async () => {
       if (!project?.id || (!isGenerating && !isRefining)) return;
@@ -66,11 +82,22 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
         }
 
         if (logs) {
-          const logData = logs as GenerationLog;
+          const dbLog = logs as DatabaseLog;
+          const logData: GenerationLog = {
+            success: dbLog.success,
+            error_message: dbLog.error_message || undefined,
+            status: dbLog.status || undefined,
+            step_details: dbLog.step_details ? {
+              stage: dbLog.step_details.stage || 'unknown',
+              ...dbLog.step_details
+            } : undefined
+          };
           
           if (logData.success) {
             setGenerationProgress({ status: "Success!", progress: 100 });
-            clearInterval(intervalId);
+            if (intervalId) {
+              clearInterval(intervalId);
+            }
             setIsGenerating(false);
             setIsRefining(false);
 
@@ -83,7 +110,9 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
               status: `Error: ${logData.error_message}`, 
               progress: 0 
             });
-            clearInterval(intervalId);
+            if (intervalId) {
+              clearInterval(intervalId);
+            }
             setIsGenerating(false);
             setIsRefining(false);
           } else {
