@@ -1,3 +1,4 @@
+
 import { BusinessIdea, TargetAudience, AdHook } from "@/types/adWizard";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -77,10 +78,11 @@ export const useAdGeneration = (
     try {
       const hasCredits = await checkCredits();
       if (!hasCredits) {
+        setIsGenerating(false);
         return;
       }
 
-      setGenerationStatus("Initializing ad generation...");
+      setGenerationStatus(`Initializing ${selectedPlatform} ad generation...`);
       console.log('Generating ads for platform:', selectedPlatform, 'with target audience:', targetAudience);
       
       const { data, error } = await supabase.functions.invoke('generate-ad-content', {
@@ -160,12 +162,21 @@ export const useAdGeneration = (
           return newVariant;
         } catch (error) {
           console.error('Error processing variant:', error);
-          return null;
+          throw error; // Let the error bubble up
         }
       }));
 
-      console.log('Processed ad variants:', processedVariants);
-      setAdVariants(prev => [...prev, ...processedVariants.filter(Boolean)]);
+      // Filter out any null values and combine with existing variants
+      const validVariants = processedVariants.filter(Boolean);
+      console.log('Successfully processed variants:', validVariants);
+      
+      // Update state with new variants
+      setAdVariants(prev => {
+        // Remove old variants for the same platform
+        const filteredPrev = prev.filter(v => v.platform !== selectedPlatform);
+        return [...filteredPrev, ...validVariants];
+      });
+      
       setRegenerationCount(prev => prev + 1);
       
       toast({
