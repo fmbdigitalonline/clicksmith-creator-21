@@ -23,63 +23,81 @@ const LandingPageHeader = ({ project, landingPage }: LandingPageHeaderProps) => 
   const { toast } = useToast();
 
   const handleSave = async () => {
-    // Get the current user's ID
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
+    try {
+      // Get the current user's ID
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        toast({
+          title: "Authentication required",
+          description: "Please sign in to save landing pages.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const content = generateLandingPageContent(project);
+      
+      if (landingPage) {
+        const { error } = await supabase
+          .from("landing_pages")
+          .update({ 
+            content,
+            updated_at: new Date().toISOString()
+          })
+          .eq("id", landingPage.id);
+
+        if (error) throw error;
+
+        toast({
+          title: "Landing page updated",
+          description: "Your landing page has been updated successfully.",
+        });
+      } else {
+        // Create new landing page
+        const slug = generateUniqueSlug(project.title);
+        const title = project.title || "Untitled Landing Page";
+        
+        const { data, error } = await supabase
+          .from("landing_pages")
+          .insert({
+            project_id: project.id,
+            user_id: user.id,
+            title,
+            content,
+            slug,
+            theme_settings: {
+              colorScheme: "light",
+              typography: {
+                headingFont: "Inter",
+                bodyFont: "Inter"
+              },
+              spacing: {
+                sectionPadding: "py-16",
+                componentGap: "gap-8"
+              }
+            }
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        // Successfully created
+        toast({
+          title: "Landing page created",
+          description: "Your landing page has been created successfully.",
+        });
+
+        // Redirect to the newly created landing page's URL
+        navigate(`/projects/${project.id}/landing-page/${data.id}`);
+      }
+    } catch (error: any) {
+      console.error('Error saving landing page:', error);
       toast({
-        title: "Authentication required",
-        description: "Please sign in to save landing pages.",
+        title: "Error saving landing page",
+        description: error.message,
         variant: "destructive",
-      });
-      return;
-    }
-
-    const content = generateLandingPageContent(project);
-    
-    if (landingPage) {
-      const { error } = await supabase
-        .from("landing_pages")
-        .update({ content })
-        .eq("id", landingPage.id);
-
-      if (error) {
-        toast({
-          title: "Error updating landing page",
-          description: error.message,
-          variant: "destructive",
-        });
-        return;
-      }
-
-      toast({
-        title: "Landing page updated",
-        description: "Your landing page has been updated successfully.",
-      });
-    } else {
-      const slug = generateUniqueSlug(project.title);
-      const { error } = await supabase
-        .from("landing_pages")
-        .insert({
-          project_id: project.id,
-          user_id: user.id,
-          title: project.title || "Untitled Landing Page", // Ensure we always have a title
-          content,
-          slug,
-        });
-
-      if (error) {
-        toast({
-          title: "Error creating landing page",
-          description: error.message,
-          variant: "destructive",
-        });
-        return;
-      }
-
-      toast({
-        title: "Landing page created",
-        description: "Your landing page has been created successfully.",
       });
     }
   };
@@ -87,7 +105,7 @@ const LandingPageHeader = ({ project, landingPage }: LandingPageHeaderProps) => 
   const visitPage = () => {
     if (landingPage?.domain) {
       window.open(`https://${landingPage.domain}`, '_blank');
-    } else {
+    } else if (landingPage?.id) {
       window.open(`/preview/${landingPage.id}`, '_blank');
     }
   };
@@ -151,14 +169,14 @@ const LandingPageHeader = ({ project, landingPage }: LandingPageHeaderProps) => 
 };
 
 const generateSlug = (title: string): string => {
-  return title
+  return (title || "untitled")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
 };
 
 const generateUniqueSlug = (title: string): string => {
-  const baseSlug = generateSlug(title || "untitled");
+  const baseSlug = generateSlug(title);
   // Add a random 6-character suffix
   const randomSuffix = Math.random().toString(36).substring(2, 8);
   return `${baseSlug}-${randomSuffix}`;
@@ -186,7 +204,6 @@ const generateLandingPageContent = (project: any) => {
 };
 
 const generateTestimonials = (targetAudience: any, audienceAnalysis: any) => {
-  // Generate testimonials based on target audience and analysis
   const testimonials = [];
   
   if (targetAudience?.demographics) {
