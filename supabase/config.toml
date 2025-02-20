@@ -3,26 +3,10 @@ project_id = "xorlfvflpihtafugltni"
 
 [api]
 enabled = true
-port = 54321
-schemas = ["public", "storage", "graphql_public"]
+url = "https://xorlfvflpihtafugltni.supabase.co"
 
-[db]
-port = 54322
-
-[studio]
-enabled = true
-port = 54323
-
-[inbucket]
-enabled = true
-port = 54324
-
-[storage]
-enabled = true
-
-[auth]
-enabled = true
-
-[functions]
 [functions.generate-landing-page]
+verify_jwt = false
+
+[functions.generate-images]
 verify_jwt = false
