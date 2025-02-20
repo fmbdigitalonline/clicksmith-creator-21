@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { ArrowRight, CheckCircle, MessageCircle, BadgeCheck, Target, ArrowRight as ArrowRightIcon, Lightbulb, PieChart, DollarSign, Users, BarChart, Rocket, Globe } from "lucide-react";
 import { TextCycler } from "@/components/TextCycler";
 import LandingNav from "@/components/LandingNav";
-import FooterSection from "@/components/landing-page/sections/FooterSection";
+import IndexFooter from "@/components/IndexFooter";
 
 const Index = () => {
   const howItWorks = [
@@ -492,15 +492,7 @@ const Index = () => {
       </section>
 
       {/* Footer */}
-      <FooterSection 
-        content={{
-          links: {
-            company: ["About", "Contact", "Careers"],
-            resources: ["Blog", "Help Center", "Support"]
-          },
-          copyright: `© ${new Date().getFullYear()} Viable. All rights reserved.`
-        }}
-      />
+      <IndexFooter />
     </div>
   );
 };
