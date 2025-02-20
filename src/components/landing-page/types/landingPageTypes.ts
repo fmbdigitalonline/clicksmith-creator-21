@@ -32,3 +32,24 @@ export interface SectionContentMap {
 export interface SectionComponentsMap {
   [key: string]: React.ComponentType<any>;
 }
+
+export interface GenerationLog {
+  id: string;
+  project_id: string;
+  user_id: string;
+  api_status_code: number;
+  cache_hit: boolean;
+  error_message: string | null;
+  generation_time: number;
+  success: boolean;
+  status: string;
+  step_details: {
+    stage?: string;
+    timestamp?: string;
+    [key: string]: any;
+  } | null;
+  request_payload: any;
+  response_payload: any;
+  created_at: string;
+  updated_at?: string;
+}

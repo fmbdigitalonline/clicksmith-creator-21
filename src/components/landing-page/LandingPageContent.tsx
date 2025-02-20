@@ -145,7 +145,8 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
           return;
         }
 
-        const log = logs as GenerationLog;
+        // Add type assertion here
+        const log = logs as unknown as GenerationLog;
 
         if (log) {
           if (log.success) {
@@ -505,4 +506,3 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
 };
 
 export default LandingPageContent;
-
