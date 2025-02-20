@@ -690,6 +690,8 @@ export type Database = {
           status: string | null
           step_details: Json | null
           success: boolean | null
+          updated_at: string | null
+          user_id: string | null
         }
         Insert: {
           api_status_code?: number | null
@@ -704,6 +706,8 @@ export type Database = {
           status?: string | null
           step_details?: Json | null
           success?: boolean | null
+          updated_at?: string | null
+          user_id?: string | null
         }
         Update: {
           api_status_code?: number | null
@@ -718,6 +722,8 @@ export type Database = {
           status?: string | null
           step_details?: Json | null
           success?: boolean | null
+          updated_at?: string | null
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -725,47 +731,6 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      landing_page_section_analytics: {
-        Row: {
-          click_through_rate: number | null
-          created_at: string | null
-          engagement_score: number | null
-          id: string
-          landing_page_id: string | null
-          section_name: string
-          updated_at: string | null
-          view_time: number | null
-        }
-        Insert: {
-          click_through_rate?: number | null
-          created_at?: string | null
-          engagement_score?: number | null
-          id?: string
-          landing_page_id?: string | null
-          section_name: string
-          updated_at?: string | null
-          view_time?: number | null
-        }
-        Update: {
-          click_through_rate?: number | null
-          created_at?: string | null
-          engagement_score?: number | null
-          id?: string
-          landing_page_id?: string | null
-          section_name?: string
-          updated_at?: string | null
-          view_time?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "landing_page_section_analytics_landing_page_id_fkey"
-            columns: ["landing_page_id"]
-            isOneToOne: false
-            referencedRelation: "landing_pages"
             referencedColumns: ["id"]
           },
         ]
@@ -797,163 +762,44 @@ export type Database = {
         }
         Relationships: []
       }
-      landing_page_variations: {
-        Row: {
-          content: Json
-          conversion_rate: number | null
-          created_at: string | null
-          end_date: string | null
-          id: string
-          is_control: boolean | null
-          landing_page_id: string | null
-          start_date: string | null
-          updated_at: string | null
-          variant_name: string
-        }
-        Insert: {
-          content: Json
-          conversion_rate?: number | null
-          created_at?: string | null
-          end_date?: string | null
-          id?: string
-          is_control?: boolean | null
-          landing_page_id?: string | null
-          start_date?: string | null
-          updated_at?: string | null
-          variant_name: string
-        }
-        Update: {
-          content?: Json
-          conversion_rate?: number | null
-          created_at?: string | null
-          end_date?: string | null
-          id?: string
-          is_control?: boolean | null
-          landing_page_id?: string | null
-          start_date?: string | null
-          updated_at?: string | null
-          variant_name?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "landing_page_variations_landing_page_id_fkey"
-            columns: ["landing_page_id"]
-            isOneToOne: false
-            referencedRelation: "landing_pages"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       landing_pages: {
         Row: {
-          analytics_config: Json | null
-          bounce_rate: number | null
-          content: Json
+          content: Json | null
           content_iterations: number | null
-          content_versions: Json[] | null
-          conversion_goals: Json | null
-          conversion_rate: number | null
-          created_at: string
-          current_version: number | null
-          faq: Json | null
-          footer_content: Json | null
-          generation_version: number | null
-          how_it_works: Json | null
+          created_at: string | null
           id: string
-          image_placements: Json | null
-          is_published: boolean | null
-          last_generated_at: string | null
-          layout: Json | null
-          layout_style: Json | null
-          market_analysis: Json | null
-          metadata: Json | null
-          objections: Json | null
-          project_id: string
+          project_id: string | null
           published: boolean | null
-          section_order: Json | null
-          slug: string | null
-          statistics: Json | null
-          styling: Json | null
-          template_version: number | null
           theme_settings: Json | null
           title: string
-          unique_visitors: number | null
-          updated_at: string
-          user_id: string
+          updated_at: string | null
+          user_id: string | null
           views: number | null
         }
         Insert: {
-          analytics_config?: Json | null
-          bounce_rate?: number | null
-          content: Json
+          content?: Json | null
           content_iterations?: number | null
-          content_versions?: Json[] | null
-          conversion_goals?: Json | null
-          conversion_rate?: number | null
-          created_at?: string
-          current_version?: number | null
-          faq?: Json | null
-          footer_content?: Json | null
-          generation_version?: number | null
-          how_it_works?: Json | null
+          created_at?: string | null
           id?: string
-          image_placements?: Json | null
-          is_published?: boolean | null
-          last_generated_at?: string | null
-          layout?: Json | null
-          layout_style?: Json | null
-          market_analysis?: Json | null
-          metadata?: Json | null
-          objections?: Json | null
-          project_id: string
+          project_id?: string | null
           published?: boolean | null
-          section_order?: Json | null
-          slug?: string | null
-          statistics?: Json | null
-          styling?: Json | null
-          template_version?: number | null
           theme_settings?: Json | null
           title: string
-          unique_visitors?: number | null
-          updated_at?: string
-          user_id: string
+          updated_at?: string | null
+          user_id?: string | null
           views?: number | null
         }
         Update: {
-          analytics_config?: Json | null
-          bounce_rate?: number | null
-          content?: Json
+          content?: Json | null
           content_iterations?: number | null
-          content_versions?: Json[] | null
-          conversion_goals?: Json | null
-          conversion_rate?: number | null
-          created_at?: string
-          current_version?: number | null
-          faq?: Json | null
-          footer_content?: Json | null
-          generation_version?: number | null
-          how_it_works?: Json | null
+          created_at?: string | null
           id?: string
-          image_placements?: Json | null
-          is_published?: boolean | null
-          last_generated_at?: string | null
-          layout?: Json | null
-          layout_style?: Json | null
-          market_analysis?: Json | null
-          metadata?: Json | null
-          objections?: Json | null
-          project_id?: string
+          project_id?: string | null
           published?: boolean | null
-          section_order?: Json | null
-          slug?: string | null
-          statistics?: Json | null
-          styling?: Json | null
-          template_version?: number | null
           theme_settings?: Json | null
           title?: string
-          unique_visitors?: number | null
-          updated_at?: string
-          user_id?: string
+          updated_at?: string | null
+          user_id?: string | null
           views?: number | null
         }
         Relationships: [
