@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import Replicate from "https://esm.sh/replicate@0.25.2";
@@ -17,11 +18,40 @@ serve(async (req) => {
     const { projectId, businessIdea, targetAudience, userId } = await req.json();
     console.log('Starting landing page generation for project:', projectId);
 
+    // Verify Replicate API key is available
+    const REPLICATE_API_KEY = Deno.env.get('REPLICATE_API_KEY');
+    if (!REPLICATE_API_KEY) {
+      console.error('REPLICATE_API_KEY is not set');
+      throw new Error('Image generation service configuration is missing');
+    }
+
+    // Initialize Replicate client
+    const replicate = new Replicate({
+      auth: REPLICATE_API_KEY,
+    });
+
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     if (!supabaseUrl || !supabaseKey) throw new Error('Missing Supabase environment variables');
     const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Log generation start
+    const { error: logError } = await supabase
+      .from('landing_page_generation_logs')
+      .insert({
+        project_id: projectId,
+        user_id: userId,
+        status: 'generation_started',
+        step_details: {
+          stage: 'started',
+          timestamp: new Date().toISOString()
+        }
+      });
+
+    if (logError) {
+      console.error('Error logging generation start:', logError);
+    }
 
     // Check user credits before proceeding
     const { data: creditCheck, error: creditCheckError } = await supabase.rpc(
@@ -47,310 +77,63 @@ serve(async (req) => {
       );
     }
 
-    // Generate hero image with more engaging, people-focused prompt
-    const heroImagePrompt = `Professional website hero image showcasing:
-    Diverse team of happy professionals collaborating in a modern workspace.
-    Natural, authentic interactions with positive body language.
-    Bright, well-lit environment with modern office elements.
-    High quality photographic style, perfect for website hero section.
-    No text, no watermarks, no logos.`;
-
-    console.log('Generating hero image with prompt:', heroImagePrompt);
-    const heroImageOutput = await replicate.run(
-      "black-forest-labs/flux-1.1-pro-ultra",
-      {
-        input: {
-          prompt: heroImagePrompt,
-          negative_prompt: "blur, watermark, text, logo, signature, low quality, artificial poses, fake smiles",
-          num_inference_steps: 50,
-          guidance_scale: 7.5,
-          width: 1024,
-          height: 576,
-          style_preset: "photographic",
-          num_outputs: 1
-        }
-      }
-    );
-
-    // Generate analysis section image focused on people
-    const analysisImagePrompt = `Professional business scene showing:
-    Diverse group of happy business professionals analyzing market data together.
-    Modern office setting with natural lighting.
-    People pointing at and discussing digital charts on screens.
-    Collaborative and positive atmosphere with genuine smiles.
-    Natural, candid interaction showing engagement and success.
-    High quality photographic style, no text or watermarks.`;
-
-    console.log('Generating analysis image with prompt:', analysisImagePrompt);
-    const analysisImageOutput = await replicate.run(
-      "black-forest-labs/flux-1.1-pro-ultra",
-      {
-        input: {
-          prompt: analysisImagePrompt,
-          negative_prompt: "blur, watermark, text, logo, signature, low quality, artificial poses, fake smiles, charts without people",
-          num_inference_steps: 50,
-          guidance_scale: 7.5,
-          width: 800,
-          height: 600,
-          style_preset: "photographic",
-          num_outputs: 1
-        }
-      }
-    );
-
-    // Generate workflow image focused on people
-    const workflowImagePrompt = `Professional business consulting scene:
-    Happy entrepreneur and consultant reviewing business results together.
-    Modern, bright office environment with natural lighting.
-    Positive body language and genuine smiles showing success.
-    Natural, candid interaction demonstrating collaboration.
-    Diverse professionals in business attire.
-    High quality photographic style, no text or watermarks.`;
-
-    console.log('Generating workflow image with prompt:', workflowImagePrompt);
-    const workflowImageOutput = await replicate.run(
-      "black-forest-labs/flux-1.1-pro-ultra",
-      {
-        input: {
-          prompt: workflowImagePrompt,
-          negative_prompt: "blur, watermark, text, logo, signature, low quality, artificial poses, fake smiles, diagrams without people",
-          num_inference_steps: 50,
-          guidance_scale: 7.5,
-          width: 800,
-          height: 600,
-          style_preset: "photographic",
-          num_outputs: 1
-        }
-      }
-    );
-
-    const heroImageUrl = Array.isArray(heroImageOutput) ? heroImageOutput[0] : heroImageOutput;
-    const analysisImageUrl = Array.isArray(analysisImageOutput) ? analysisImageOutput[0] : analysisImageOutput;
-    const workflowImageUrl = Array.isArray(workflowImageOutput) ? workflowImageOutput[0] : workflowImageOutput;
-
-    if (!heroImageUrl || !analysisImageUrl || !workflowImageUrl) {
-      throw new Error('Failed to generate one or more images');
-    }
-
-    // Generate complete landing page content with expanded sections
+    // Generate the landing page content based on business idea and target audience
     const landingPageContent = {
       sections: [
         {
           type: 'hero',
-          order: 0,
+          order: 1,
           content: {
-            title: "Validate Your Business Ideas with Real Market Data",
-            subtitle: "Transform your products, services, and marketing campaigns into validated successes through quick market testing and real audience feedback.",
-            imageUrl: heroImageUrl,
-            primaryCta: {
-              text: "Start Testing Your Idea",
-              description: "Get market insights in minutes"
-            },
-            secondaryCta: {
-              text: "See How It Works",
-              description: "Learn about our testing process"
-            }
+            headline: `Transform Your ${businessIdea.industry || 'Business'} with Our Solution`,
+            subheadline: `Designed for ${targetAudience.name || 'Your Audience'}`,
+            description: businessIdea.description || 'Welcome to our platform',
+            ctaText: 'Get Started Today'
           }
         },
         {
           type: 'social-proof',
-          order: 1,
-          content: {
-            title: "Trusted by Forward-Thinking Entrepreneurs",
-            items: [
-              {
-                title: "83%",
-                description: "Faster Market Validation"
-              },
-              {
-                title: "2.5x",
-                description: "Better Client Targeting"
-              },
-              {
-                title: "95%",
-                description: "User Satisfaction"
-              }
-            ]
-          }
-        },
-        {
-          type: 'features',
           order: 2,
-          layout: {
-            style: 'grid',
-            background: 'gradient'
-          },
           content: {
-            title: "Market Testing Made Simple",
-            subtitle: "Get the insights you need to make confident business decisions",
-            items: [
+            headline: 'Trusted by Industry Leaders',
+            testimonials: [
               {
-                title: "Quick Market Testing",
-                description: "Test your business ideas, products, or services in minutes instead of months",
-                highlights: ["Instant Feedback", "Real Market Data", "AI-Powered Analysis"]
-              },
-              {
-                title: "AI-Powered Analysis",
-                description: "Understand your target audience with deep market insights and behavior analysis",
-                highlights: ["Audience Insights", "Behavior Patterns", "Predictive Analytics"]
-              },
-              {
-                title: "Social Media Integration",
-                description: "Create and test social media ads to find what resonates with your audience",
-                highlights: ["Multi-Platform", "Performance Tracking", "A/B Testing"]
+                quote: "This solution transformed our business operations.",
+                author: "John Doe",
+                company: "Tech Solutions Inc."
               }
             ]
-          }
-        },
-        {
-          type: 'dynamic',
-          order: 3,
-          layout: {
-            style: 'split',
-            background: 'light'
-          },
-          content: {
-            title: "Comprehensive Market Analysis",
-            subtitle: "Get Deep Insights Into Your Market",
-            mainDescription: "Our AI-powered platform analyzes multiple data sources to give you a complete picture of your market opportunity.",
-            bulletPoints: [
-              "Detailed competitor analysis and market positioning",
-              "Customer sentiment analysis across social platforms",
-              "Trend identification and growth opportunity spotting",
-              "Real-time market demand assessment"
-            ],
-            imageUrl: analysisImageUrl
-          }
-        },
-        {
-          type: 'features',
-          order: 4,
-          layout: {
-            style: 'columns',
-            background: 'white'
-          },
-          content: {
-            title: "Advanced Features for Deep Insights",
-            subtitle: "Everything you need to validate and launch successfully",
-            items: [
-              {
-                title: "Real-Time Testing",
-                description: "Launch quick market tests and get results within hours",
-                details: ["Instant feedback loops", "Real user responses", "Quick iterations"]
-              },
-              {
-                title: "Audience Analysis",
-                description: "Understand exactly who your customers are and what they want",
-                details: ["Demographic insights", "Behavior patterns", "Purchase intent"]
-              },
-              {
-                title: "Competition Tracking",
-                description: "Stay ahead of market trends and competitor movements",
-                details: ["Market positioning", "Competitor strategies", "Gap analysis"]
-              }
-            ]
-          }
-        },
-        {
-          type: 'dynamic',
-          order: 5,
-          layout: {
-            style: 'columns',
-            background: 'gradient'
-          },
-          content: {
-            title: "How It Works",
-            subtitle: "Your Journey to Market Success",
-            mainDescription: "Our proven four-step process helps you validate your ideas and launch with confidence.",
-            bulletPoints: [
-              "1. Input your business concept and target market",
-              "2. Receive AI-generated market analysis and insights",
-              "3. Test your messaging with real audience feedback",
-              "4. Get actionable recommendations for success"
-            ],
-            imageUrl: workflowImageUrl
-          }
-        },
-        {
-          type: 'dynamic',
-          order: 6,
-          layout: {
-            width: 'contained',
-            spacing: 'spacious'
-          },
-          content: {
-            title: "Common Questions About Market Testing",
-            subtitle: "Get answers to frequently asked questions",
-            items: [
-              {
-                title: "How long does market testing take?",
-                description: "Most tests can be completed within 24-48 hours, giving you quick insights to make informed decisions."
-              },
-              {
-                title: "What kind of results can I expect?",
-                description: "You'll receive detailed audience insights, market demand metrics, and actionable recommendations."
-              },
-              {
-                title: "Is this suitable for my industry?",
-                description: "Our platform works across all industries, from tech to retail, services to products."
-              }
-            ]
-          }
-        },
-        {
-          type: 'features',
-          order: 7,
-          layout: {
-            style: 'grid',
-            background: 'light'
-          },
-          content: {
-            title: "Success Stories",
-            subtitle: "See how others have validated their ideas",
-            items: [
-              {
-                title: "Tech Startup",
-                description: "Validated product-market fit in 2 weeks instead of 6 months",
-                highlights: ["90% time saved", "50K in saved development costs"]
-              },
-              {
-                title: "Service Business",
-                description: "Found perfect target audience and messaging in first attempt",
-                highlights: ["3x conversion rate", "Perfect market fit"]
-              },
-              {
-                title: "E-commerce Brand",
-                description: "Identified winning products before launch",
-                highlights: ["Zero inventory waste", "145% ROI"]
-              }
-            ]
-          }
-        },
-        {
-          type: 'dynamic',
-          order: 8,
-          layout: {
-            width: 'contained',
-            spacing: 'spacious',
-            style: 'center'
-          },
-          content: {
-            title: "Ready to Validate Your Idea?",
-            subtitle: "Join successful entrepreneurs who've already transformed their businesses with market insights",
-            primaryCta: {
-              text: "Start Your Market Test",
-              description: "Begin with a free trial"
-            },
-            secondaryCta: {
-              text: "Schedule a Demo",
-              description: "See how it works live"
-            }
           }
         }
       ]
     };
 
-    // Store the landing page content and get the complete landing page object
+    // Generate hero image using Replicate
+    console.log('Generating hero image...');
+    try {
+      const imagePrompt = `Create a professional, modern hero image for a ${businessIdea.industry} business targeting ${targetAudience.name}. The image should be clean, minimal, and suitable for a landing page.`;
+      
+      const imageOutput = await replicate.run(
+        "stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b",
+        {
+          input: {
+            prompt: imagePrompt,
+            num_outputs: 1,
+            scheduler: "K_EULER",
+            num_inference_steps: 50
+          }
+        }
+      );
+
+      if (imageOutput && Array.isArray(imageOutput) && imageOutput[0]) {
+        landingPageContent.sections[0].content.imageUrl = imageOutput[0];
+        console.log('Hero image generated successfully:', imageOutput[0]);
+      }
+    } catch (imageError) {
+      console.error('Error generating hero image:', imageError);
+      // Continue without image if generation fails
+    }
+
+    // Store the landing page content
     const { data: landingPage, error: upsertError } = await supabase
       .from('landing_pages')
       .upsert({
@@ -367,6 +150,24 @@ serve(async (req) => {
     if (upsertError) {
       console.error('Error storing landing page:', upsertError);
       throw upsertError;
+    }
+
+    // Log successful generation
+    const { error: successLogError } = await supabase
+      .from('landing_page_generation_logs')
+      .insert({
+        project_id: projectId,
+        user_id: userId,
+        status: 'generation_completed',
+        success: true,
+        step_details: {
+          stage: 'completed',
+          timestamp: new Date().toISOString()
+        }
+      });
+
+    if (successLogError) {
+      console.error('Error logging generation success:', successLogError);
     }
 
     // Deduct 1 credit after successful generation
@@ -400,6 +201,33 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error generating landing page:', error);
+    
+    // Log the error
+    if (error instanceof Error) {
+      const { projectId, userId } = await req.json().catch(() => ({ projectId: null, userId: null }));
+      
+      if (projectId && userId) {
+        const supabaseUrl = Deno.env.get('SUPABASE_URL');
+        const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+        if (supabaseUrl && supabaseKey) {
+          const supabase = createClient(supabaseUrl, supabaseKey);
+          await supabase
+            .from('landing_page_generation_logs')
+            .insert({
+              project_id: projectId,
+              user_id: userId,
+              status: 'generation_failed',
+              success: false,
+              error_message: error.message,
+              step_details: {
+                stage: 'failed',
+                timestamp: new Date().toISOString()
+              }
+            });
+        }
+      }
+    }
+
     return new Response(
       JSON.stringify({ error: error.message }), 
       {
