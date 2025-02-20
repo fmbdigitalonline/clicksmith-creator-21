@@ -2,7 +2,7 @@
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Globe, Save, Settings } from "lucide-react";
+import { ArrowLeft, Globe, Loader2, Save, Settings } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import {
   Sheet,
@@ -12,6 +12,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import LandingPageSettings from "./LandingPageSettings";
+import { useState } from "react";
 
 interface LandingPageHeaderProps {
   project: any;
@@ -21,9 +22,12 @@ interface LandingPageHeaderProps {
 const LandingPageHeader = ({ project, landingPage }: LandingPageHeaderProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [isSaving, setIsSaving] = useState(false);
 
   const handleSave = async () => {
     try {
+      setIsSaving(true);
+      
       // Get the current user's ID
       const { data: { user } } = await supabase.auth.getUser();
       
@@ -37,8 +41,10 @@ const LandingPageHeader = ({ project, landingPage }: LandingPageHeaderProps) => 
       }
 
       const content = generateLandingPageContent(project);
+      console.log('Generated content:', content); // Debug log
       
-      if (landingPage) {
+      if (landingPage?.id) {
+        console.log('Updating existing landing page:', landingPage.id); // Debug log
         const { error } = await supabase
           .from("landing_pages")
           .update({ 
@@ -54,6 +60,7 @@ const LandingPageHeader = ({ project, landingPage }: LandingPageHeaderProps) => 
           description: "Your landing page has been updated successfully.",
         });
       } else {
+        console.log('Creating new landing page for project:', project.id); // Debug log
         // Create new landing page
         const slug = generateUniqueSlug(project.title);
         const title = project.title || "Untitled Landing Page";
@@ -83,6 +90,8 @@ const LandingPageHeader = ({ project, landingPage }: LandingPageHeaderProps) => 
 
         if (error) throw error;
 
+        console.log('Created new landing page:', data); // Debug log
+
         // Successfully created
         toast({
           title: "Landing page created",
@@ -99,13 +108,17 @@ const LandingPageHeader = ({ project, landingPage }: LandingPageHeaderProps) => 
         description: error.message,
         variant: "destructive",
       });
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const visitPage = () => {
-    if (landingPage?.domain) {
+    if (!landingPage) return;
+    
+    if (landingPage.domain) {
       window.open(`https://${landingPage.domain}`, '_blank');
-    } else if (landingPage?.id) {
+    } else if (landingPage.id) {
       window.open(`/preview/${landingPage.id}`, '_blank');
     }
   };
@@ -120,7 +133,7 @@ const LandingPageHeader = ({ project, landingPage }: LandingPageHeaderProps) => 
         >
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <h1 className="text-2xl font-bold">{project.title || "Untitled Project"} - Landing Page</h1>
+        <h1 className="text-2xl font-bold">{project?.title || "Untitled Project"} - Landing Page</h1>
       </div>
       <div className="flex items-center gap-2">
         {landingPage?.published && (
@@ -159,9 +172,13 @@ const LandingPageHeader = ({ project, landingPage }: LandingPageHeaderProps) => 
           </SheetContent>
         </Sheet>
 
-        <Button onClick={handleSave} className="gap-2">
-          <Save className="h-4 w-4" />
-          Save Landing Page
+        <Button onClick={handleSave} disabled={isSaving} className="gap-2">
+          {isSaving ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Save className="h-4 w-4" />
+          )}
+          {isSaving ? "Saving..." : "Save Landing Page"}
         </Button>
       </div>
     </div>
