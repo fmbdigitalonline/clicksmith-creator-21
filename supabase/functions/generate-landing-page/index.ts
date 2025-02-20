@@ -1,284 +1,267 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/cors.ts';
 
-interface GenerateLandingPageRequest {
-  projectId: string;
-  businessIdea: any;
-  targetAudience: any;
-  userId: string;
-  currentContent?: any;
-  isRefinement?: boolean;
-  iterationNumber?: number;
-}
-
 const generateContent = async (businessIdea: any, targetAudience: any, iterationNumber: number = 1) => {
-  const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
-  
-  const prompt = `Create a detailed, text-rich landing page content structure for this business:
-
-Business Details:
-${JSON.stringify(businessIdea, null, 2)}
-
-Target Audience:
-${JSON.stringify(targetAudience, null, 2)}
-
-Design a unique, content-rich landing page structure that effectively communicates value to this target audience. Focus on detailed explanations, compelling copy, and thorough content in each section.
-
-IMPORTANT: Return ONLY the raw JSON object, no markdown formatting or code block syntax.
-
-The JSON structure should follow this format:
-{
-  "sections": [
-    {
-      "type": string (choose from: hero, story, features, valueProposition, marketingCopy, industryInsights, benefits, testimonials, callToAction),
-      "order": number,
-      "layout": {
-        "style": string (grid, columns, carousel, split, centered),
-        "background": string (solid, gradient, pattern, image),
-        "spacing": string (compact, normal, spacious),
-        "width": string (contained, full, narrow)
-      },
-      "content": {
-        "title": string (compelling headline),
-        "subtitle": string (supporting subheadline),
-        "mainDescription": string (primary content paragraph),
-        "detailedDescription": string (in-depth explanation),
-        "summary": string (brief overview),
-        "bulletPoints": string[] (key points or features),
-        "paragraphs": [
-          {
-            "heading": string,
-            "text": string (detailed paragraph),
-            "emphasis": boolean
-          }
-        ],
-        "items": [
-          {
-            "title": string,
-            "description": string (detailed item description),
-            "details": string[] (additional bullet points),
-            "highlights": string[] (key benefits or features)
-          }
-        ],
-        "primaryCta": { 
-          "text": string,
-          "action": string,
-          "description": string
+  // Create a structured content object following the landing page formula
+  const content = {
+    sections: [
+      {
+        type: 'hero',
+        order: 1,
+        layout: {
+          style: 'split',
+          width: 'contained',
+          background: 'gradient'
         },
-        "secondaryCta": { 
-          "text": string,
-          "action": string,
-          "description": string
+        style: {
+          colorScheme: 'light',
+          typography: {
+            headingSize: 'xlarge'
+          }
+        },
+        content: {
+          title: `Transform Your ${businessIdea.industry || 'Business'} with Innovative Solutions`,
+          subtitle: `Perfect for ${targetAudience.description || 'businesses'} looking to grow and succeed`,
+          mainDescription: businessIdea.description,
+          primaryCta: {
+            text: "Get Started Now",
+            description: "Start your journey today"
+          },
+          secondaryCta: {
+            text: "Learn More",
+            description: "See how it works"
+          }
         }
       },
-      "style": {
-        "textAlign": string (left, center, right),
-        "colorScheme": string (light, dark, custom),
-        "accentColor": string,
-        "typography": {
-          "headingSize": string (normal, large, xlarge),
-          "bodySize": string (normal, large),
-          "lineHeight": string (normal, relaxed, loose)
+      {
+        type: 'social-proof',
+        order: 2,
+        layout: {
+          style: 'grid',
+          width: 'contained'
+        },
+        style: {
+          colorScheme: 'light',
+          textAlign: 'center'
+        },
+        content: {
+          title: "Trusted by Leading Companies",
+          items: [
+            { title: "50+", description: "Satisfied Clients" },
+            { title: "98%", description: "Customer Satisfaction" },
+            { title: "24/7", description: "Support Available" }
+          ]
+        }
+      },
+      {
+        type: 'value-proposition',
+        order: 3,
+        layout: {
+          style: 'grid',
+          width: 'contained'
+        },
+        style: {
+          colorScheme: 'light'
+        },
+        content: {
+          title: "Why Choose Us",
+          subtitle: `We understand the unique challenges of ${businessIdea.industry || 'your industry'}`,
+          items: [
+            {
+              title: "Expert Solutions",
+              description: "Tailored to your specific needs",
+              highlights: ["Professional", "Customized", "Efficient"]
+            },
+            {
+              title: "Proven Results",
+              description: "Track record of success",
+              highlights: ["Data-Driven", "Measurable", "Impactful"]
+            },
+            {
+              title: "Dedicated Support",
+              description: "Always here to help",
+              highlights: ["24/7", "Responsive", "Knowledgeable"]
+            }
+          ]
+        }
+      },
+      {
+        type: 'features',
+        order: 4,
+        layout: {
+          style: 'columns',
+          width: 'contained',
+          spacing: 'spacious'
+        },
+        style: {
+          colorScheme: 'light'
+        },
+        content: {
+          title: "Powerful Features",
+          subtitle: "Everything you need to succeed",
+          items: [
+            {
+              title: "Comprehensive Solutions",
+              description: "End-to-end service tailored to your needs",
+              details: ["Custom strategies", "Flexible options", "Scalable solutions"]
+            },
+            {
+              title: "Expert Support",
+              description: "Professional guidance every step of the way",
+              details: ["Dedicated team", "Regular updates", "Priority support"]
+            }
+          ]
+        }
+      },
+      {
+        type: 'testimonials',
+        order: 5,
+        layout: {
+          style: 'grid',
+          width: 'narrow'
+        },
+        style: {
+          colorScheme: 'light'
+        },
+        content: {
+          title: "What Our Clients Say",
+          items: [
+            {
+              title: "Outstanding Results",
+              description: "Working with this team has transformed our business. The results exceeded our expectations.",
+              details: ["CEO, Industry Leader"]
+            }
+          ]
+        }
+      },
+      {
+        type: 'cta',
+        order: 6,
+        layout: {
+          width: 'contained',
+          background: 'gradient'
+        },
+        style: {
+          colorScheme: 'light',
+          textAlign: 'center'
+        },
+        content: {
+          title: "Ready to Get Started?",
+          subtitle: "Join our satisfied clients and transform your business today",
+          primaryCta: {
+            text: "Start Now",
+            description: "No credit card required"
+          }
         }
       }
-    }
-  ],
-  "theme": {
-    "primary": string,
-    "secondary": string,
-    "background": string,
-    "text": string,
-    "fonts": {
-      "heading": string,
-      "body": string
-    }
-  }
-}
+    ]
+  };
 
-Instructions for content generation:
-1. Create multiple paragraphs of detailed content for each section
-2. Use industry-specific terminology and examples
-3. Include persuasive marketing copy that resonates with the target audience
-4. Provide thorough explanations of features and benefits
-5. Use a mix of short and long-form content
-6. Ensure each section has a clear purpose and message
-7. Include relevant statistics and data points where appropriate
-8. Write in a tone that matches the business and audience
-9. Include clear calls-to-action with supporting text`;
-
-  try {
-    console.log('Sending request to OpenAI...');
-    
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o',
-        messages: [
-          {
-            role: "system",
-            content: "You are an expert landing page designer and copywriter. Create detailed, persuasive content that converts. Focus on thorough explanations and compelling copy. Always return ONLY raw JSON without any markdown formatting or code blocks."
-          },
-          {
-            role: "user",
-            content: prompt
-          }
-        ],
-        temperature: 0.8,
-      }),
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      console.error('OpenAI API error:', error);
-      throw new Error(`OpenAI API error: ${error.error?.message || 'Unknown error'}`);
-    }
-
-    const data = await response.json();
-    console.log('Received response from OpenAI');
-    
-    if (!data.choices?.[0]?.message?.content) {
-      throw new Error('Invalid response format from OpenAI');
-    }
-
-    let contentString = data.choices[0].message.content.trim();
-    contentString = contentString.replace(/^```json\n?/, '').replace(/\n?```$/, '');
-    
-    try {
-      const content = JSON.parse(contentString);
-      console.log('Successfully parsed content:', content);
-      return content;
-    } catch (parseError) {
-      console.error('Error parsing JSON:', parseError);
-      console.error('Content that failed to parse:', contentString);
-      throw new Error('Failed to parse generated content as JSON');
-    }
-  } catch (error) {
-    console.error('Error generating content:', error);
-    throw error;
-  }
+  return content;
 };
 
 serve(async (req) => {
+  // This is needed if you're planning to invoke your function from a browser.
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response('ok', { headers: corsHeaders })
   }
 
   try {
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
+    )
 
-    const { projectId, businessIdea, targetAudience, userId, iterationNumber = 1 } = await req.json() as GenerateLandingPageRequest;
+    const { data: { user } } = await supabaseClient.auth.getUser()
 
-    console.log('Generating content for project:', projectId);
-    
-    // Log generation start
-    const { data: logData, error: logError } = await supabaseClient
+    if (!user) {
+      return new Response(JSON.stringify({ error: 'User not found' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 404,
+      })
+    }
+
+    const requestBody = await req.json();
+    const { projectId, businessIdea, targetAudience, iterationNumber } = requestBody;
+
+    if (!projectId || !businessIdea || !targetAudience) {
+      return new Response(
+        JSON.stringify({ error: 'Missing projectId, businessIdea, or targetAudience' }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400,
+        }
+      );
+    }
+
+    console.log('Params:', businessIdea, targetAudience)
+
+    // Log the start of the landing page generation
+    await supabaseClient
       .from('landing_page_generation_logs')
       .insert({
         project_id: projectId,
-        user_id: userId,
-        status: 'generation_started',
+        user_id: user.id,
+        status: 'started',
         step_details: { stage: 'started', timestamp: new Date().toISOString() },
-        request_payload: { businessIdea, targetAudience, iterationNumber }
-      })
-      .select()
-      .single();
+        request_payload: { businessIdea, targetAudience },
+      });
 
-    if (logError) {
-      console.error('Error logging generation start:', logError);
-      throw logError;
-    }
-
+    // Generate content
     const content = await generateContent(businessIdea, targetAudience, iterationNumber);
 
-    // First try to get the existing landing page
-    const { data: existingPage } = await supabaseClient
-      .from('landing_pages')
-      .select('*')
-      .eq('project_id', projectId)
-      .maybeSingle();
-
-    let landingPage;
-    if (!existingPage) {
-      // Create new landing page if none exists
-      console.log('Creating new landing page for project:', projectId);
-      const { data: newPage, error: createError } = await supabaseClient
-        .from('landing_pages')
-        .insert({ 
-          project_id: projectId,
-          user_id: userId,
-          content,
-          content_iterations: iterationNumber,
-          title: 'Landing Page',
-          theme_settings: {}
-        })
-        .select()
-        .single();
-
-      if (createError) {
-        console.error('Error creating landing page:', createError);
-        throw createError;
-      }
-      landingPage = newPage;
-    } else {
-      // Update existing landing page
-      console.log('Updating existing landing page for project:', projectId);
-      const { data: updatedPage, error: updateError } = await supabaseClient
-        .from('landing_pages')
-        .update({ 
-          content,
-          content_iterations: iterationNumber,
-          updated_at: new Date().toISOString()
-        })
-        .eq('project_id', projectId)
-        .select()
-        .single();
-
-      if (updateError) {
-        console.error('Error updating landing page:', updateError);
-        throw updateError;
-      }
-      landingPage = updatedPage;
-    }
-
-    // Update the log with success
+    // Log the content generation
     await supabaseClient
       .from('landing_page_generation_logs')
-      .update({
-        status: 'completed',
-        success: true,
+      .insert({
+        project_id: projectId,
+        user_id: user.id,
+        status: 'content_generated',
         step_details: { stage: 'content_generated', timestamp: new Date().toISOString() },
-        response_payload: { content }
-      })
-      .eq('id', logData.id);
+        request_payload: { businessIdea, targetAudience },
+        response_payload: { content },
+        success: true
+      });
 
-    return new Response(
-      JSON.stringify({ content, landingPage }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
-      },
-    );
+    // Update the landing page content in the database
+    const { data, error } = await supabaseClient
+      .from('landing_pages')
+      .update({ content: content, content_iterations: iterationNumber })
+      .eq('project_id', projectId)
+      .select();
 
-  } catch (error) {
-    console.error('Error in edge function:', error);
-    return new Response(
-      JSON.stringify({ 
-        error: error instanceof Error ? error.message : 'An unexpected error occurred',
-        details: error instanceof Error ? error.stack : undefined
-      }),
-      {
+    if (error) {
+      console.error('Error updating landing page:', error);
+
+      await supabaseClient
+        .from('landing_page_generation_logs')
+        .insert({
+          project_id: projectId,
+          user_id: user.id,
+          status: 'failed',
+          step_details: { stage: 'failed', timestamp: new Date().toISOString() },
+          request_payload: { businessIdea, targetAudience },
+          error_message: error.message,
+          success: false
+        });
+
+      return new Response(JSON.stringify({ error: 'Failed to update landing page' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500,
-      },
-    );
+      });
+    }
+
+    return new Response(JSON.stringify({ data, content }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 200,
+    });
+  } catch (error) {
+    console.error('Error:', error);
+    return new Response(JSON.stringify({ error: error.message }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 500,
+    });
   }
 });

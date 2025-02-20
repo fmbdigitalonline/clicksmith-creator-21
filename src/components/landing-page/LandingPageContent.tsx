@@ -136,6 +136,56 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
     }
   };
 
+  const renderHeroSection = (section: any) => {
+    return (
+      <section className="relative min-h-[80vh] flex items-center bg-gradient-to-r from-primary/5 via-primary/10 to-secondary/5 py-20">
+        <div className="container mx-auto px-4">
+          <div className="grid md:grid-cols-2 gap-12 items-center">
+            <div className="space-y-8">
+              <h1 className="text-4xl md:text-6xl font-bold leading-tight">
+                {section.content.title}
+              </h1>
+              <p className="text-xl md:text-2xl text-gray-600 dark:text-gray-300">
+                {section.content.subtitle}
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4">
+                {section.content.primaryCta && (
+                  <Button size="lg" className="text-lg py-6">
+                    {section.content.primaryCta.text}
+                  </Button>
+                )}
+                {section.content.secondaryCta && (
+                  <Button variant="outline" size="lg" className="text-lg py-6">
+                    {section.content.secondaryCta.text}
+                  </Button>
+                )}
+              </div>
+            </div>
+            <div className="relative h-[500px] rounded-lg overflow-hidden bg-gradient-to-br from-primary/10 to-secondary/10 shadow-2xl" />
+          </div>
+        </div>
+      </section>
+    );
+  };
+
+  const renderSocialProofSection = (section: any) => {
+    return (
+      <section className="py-16 bg-white">
+        <div className="container mx-auto px-4">
+          <h2 className="text-3xl font-bold text-center mb-12">{section.content.title}</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {section.content.items.map((item: any, index: number) => (
+              <div key={index} className="text-center">
+                <div className="text-4xl font-bold text-primary mb-2">{item.title}</div>
+                <div className="text-gray-600">{item.description}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  };
+
   const renderParagraphs = (paragraphs: any[]) => {
     if (!paragraphs?.length) return null;
 
@@ -342,7 +392,16 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
             <div className="divide-y divide-gray-200">
               {landingPage.content.sections
                 .sort((a: any, b: any) => a.order - b.order)
-                .map((section: any) => renderDynamicSection(section))}
+                .map((section: any) => {
+                  switch (section.type) {
+                    case 'hero':
+                      return renderHeroSection(section);
+                    case 'social-proof':
+                      return renderSocialProofSection(section);
+                    default:
+                      return renderDynamicSection(section);
+                  }
+                })}
             </div>
           ) : (
             <div className="text-center py-16">
