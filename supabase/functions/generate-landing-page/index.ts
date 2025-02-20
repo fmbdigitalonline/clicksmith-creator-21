@@ -93,6 +93,11 @@ serve(async (req) => {
       ]
     };
 
+    // Generate a title based on business idea or use default
+    const landingPageTitle = businessIdea?.name 
+      ? `${businessIdea.name} - Landing Page`
+      : "My Business Landing Page";
+
     // Store the landing page content
     const { data: landingPage, error: upsertError } = await supabase
       .from('landing_pages')
@@ -100,6 +105,7 @@ serve(async (req) => {
         project_id: projectId,
         user_id: userId,
         content: landingPageContent,
+        title: landingPageTitle,
         updated_at: new Date().toISOString()
       })
       .select()
