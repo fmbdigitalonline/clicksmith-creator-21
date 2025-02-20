@@ -1,7 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { Configuration, OpenAIApi } from 'https://esm.sh/openai@3.2.1';
 import { corsHeaders } from '../_shared/cors.ts';
 
 interface GenerateLandingPageRequest {
@@ -15,11 +14,6 @@ interface GenerateLandingPageRequest {
 }
 
 const generateContent = async (businessIdea: any, targetAudience: any, iterationNumber: number = 1) => {
-  const configuration = new Configuration({
-    apiKey: Deno.env.get('OPENAI_API_KEY'),
-  });
-  const openai = new OpenAIApi(configuration);
-
   const prompt = `Generate a landing page content in JSON format for a business with the following details:
 Business Idea: ${JSON.stringify(businessIdea)}
 Target Audience: ${JSON.stringify(targetAudience)}
@@ -69,22 +63,47 @@ The response should strictly follow this structure:
 Make content highly converting, emotional, and specific to the business and target audience.`;
 
   try {
-    const completion = await openai.createChatCompletion({
-      model: "gpt-4",
-      messages: [{
-        role: "system",
-        content: "You are an expert landing page copywriter focused on conversion."
-      }, {
-        role: "user",
-        content: prompt
-      }],
-      temperature: 0.7,
+    console.log('Sending request to OpenAI...');
+    
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4',
+        messages: [
+          {
+            role: "system",
+            content: "You are an expert landing page copywriter focused on conversion."
+          },
+          {
+            role: "user",
+            content: prompt
+          }
+        ],
+        temperature: 0.7,
+      }),
     });
 
-    const content = JSON.parse(completion.data.choices[0].message?.content || "{}");
+    if (!response.ok) {
+      const error = await response.json();
+      console.error('OpenAI API error:', error);
+      throw new Error(`OpenAI API error: ${error.error?.message || 'Unknown error'}`);
+    }
+
+    const data = await response.json();
+    console.log('Received response from OpenAI');
+    
+    if (!data.choices?.[0]?.message?.content) {
+      throw new Error('Invalid response format from OpenAI');
+    }
+
+    const content = JSON.parse(data.choices[0].message.content);
     return content;
   } catch (error) {
-    console.error('Error generating content:', error);
+    console.error('Error in generateContent:', error);
     throw error;
   }
 };
@@ -134,10 +153,8 @@ serve(async (req) => {
       })
       .eq('id', logData.id);
 
-    const response = { content };
-    
     return new Response(
-      JSON.stringify(response),
+      JSON.stringify({ content }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
@@ -145,9 +162,12 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Error:', error);
+    console.error('Error in edge function:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error instanceof Error ? error.message : 'An unexpected error occurred',
+        details: error instanceof Error ? error.stack : undefined
+      }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500,
@@ -155,4 +175,3 @@ serve(async (req) => {
     );
   }
 });
-
