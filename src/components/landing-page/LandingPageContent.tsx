@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -29,13 +28,15 @@ interface GenerationLog {
   };
 }
 
+interface LandingPageSection {
+  type: string;
+  order?: number;
+  content: any;
+}
+
 interface LandingPageResponse {
   content: {
-    sections?: Array<{
-      type: string;
-      order?: number;
-      content: any;
-    }>;
+    sections?: LandingPageSection[];
   };
   project_id: string;
   id: string;
@@ -216,6 +217,36 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
     }
   };
 
+  const renderSections = () => {
+    const sections = landingPage?.content?.sections;
+    if (!Array.isArray(sections) || sections.length === 0) {
+      return (
+        <div className="text-center py-16">
+          <h2 className="text-2xl font-semibold mb-4">No Content Generated Yet</h2>
+          <p className="text-gray-600 mb-8">Click the "Generate Content" button to create your landing page.</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="divide-y divide-gray-200">
+        {sections
+          .sort((a, b) => (a.order || 0) - (b.order || 0))
+          .map((section, index) => {
+            console.log('Rendering section:', section);
+            switch (section.type) {
+              case 'hero':
+                return <HeroSection key={`${section.type}-${index}`} content={section.content} />;
+              case 'social-proof':
+                return <SocialProofSection key={`${section.type}-${index}`} content={section.content} />;
+              default:
+                return <DynamicSection key={`${section.type}-${index}`} section={section} />;
+            }
+          })}
+      </div>
+    );
+  };
+
   if (isTemplateLoading) {
     return <LoadingStateLandingPage />;
   }
@@ -257,28 +288,7 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
         </div>
 
         <TabsContent value="preview" className="mt-0">
-          {landingPage?.content?.sections ? (
-            <div className="divide-y divide-gray-200">
-              {[...landingPage.content.sections]
-                .sort((a, b) => (a.order || 0) - (b.order || 0))
-                .map((section, index) => {
-                  console.log('Rendering section:', section);
-                  switch (section.type) {
-                    case 'hero':
-                      return <HeroSection key={`${section.type}-${index}`} content={section.content} />;
-                    case 'social-proof':
-                      return <SocialProofSection key={`${section.type}-${index}`} content={section.content} />;
-                    default:
-                      return <DynamicSection key={`${section.type}-${index}`} section={section} />;
-                  }
-                })}
-            </div>
-          ) : (
-            <div className="text-center py-16">
-              <h2 className="text-2xl font-semibold mb-4">No Content Generated Yet</h2>
-              <p className="text-gray-600 mb-8">Click the "Generate Content" button to create your landing page.</p>
-            </div>
-          )}
+          {renderSections()}
         </TabsContent>
 
         <TabsContent value="edit" className="mt-0">
