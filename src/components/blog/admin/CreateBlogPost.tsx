@@ -93,6 +93,16 @@ export function CreateBlogPost({ editMode, initialData, onSuccess }: CreateBlogP
 
   const onSubmit = async (data: BlogPostFormValues) => {
     const canonical_url = data.canonical_url || `${window.location.origin}/blog/${data.slug}`;
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      toast({
+        title: "Authentication Error",
+        description: "You must be logged in to create or edit posts.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     const postData = {
       title: data.title,
@@ -104,7 +114,8 @@ export function CreateBlogPost({ editMode, initialData, onSuccess }: CreateBlogP
       image_url: data.image_url || null,
       meta_keywords: data.meta_keywords || [],
       featured: data.featured,
-      canonical_url
+      canonical_url,
+      author_id: user.id // Add the author_id field
     };
 
     if (editMode && initialData) {
