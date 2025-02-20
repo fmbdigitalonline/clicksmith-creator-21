@@ -43,68 +43,84 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
   const queryClient = useQueryClient();
   const { data: template, isLoading: isTemplateLoading } = useLandingPageTemplate();
   
-  // Only initialize content if landingPage.content exists and has actual data
-  const [currentContent, setCurrentContent] = useState<SectionContentMap>(() => {
-    if (landingPage?.content && Object.keys(landingPage.content).length > 0) {
-      console.log("Initializing with existing landing page content:", landingPage.content);
-      return {
-        hero: landingPage.content.hero ? { 
-          content: landingPage.content.hero, 
-          layout: landingPage.theme_settings?.heroLayout || "centered" 
-        } : null,
-        value_proposition: landingPage.content.features ? { 
-          content: {
-            title: "Why Choose Us",
-            items: landingPage.content.features
-          }, 
-          layout: landingPage.theme_settings?.featuresLayout || "grid" 
-        } : null,
-        features: landingPage.content.benefits ? { 
-          content: {
-            title: "Our Features",
-            items: landingPage.content.benefits
-          }, 
-          layout: landingPage.theme_settings?.benefitsLayout || "grid" 
-        } : null,
-        proof: landingPage.content.testimonials ? { 
-          content: {
-            title: "Customer Testimonials",
-            testimonials: landingPage.content.testimonials
-          }, 
-          layout: landingPage.theme_settings?.testimonialsLayout || "grid" 
-        } : null,
-        pricing: { 
-          content: {
-            title: "Our Pricing",
-            plans: []
-          }, 
-          layout: landingPage.theme_settings?.pricingLayout || "grid" 
-        },
-        faq: landingPage.content.faq?.items ? {
-          content: {
-            title: "Frequently Asked Questions",
-            items: landingPage.content.faq.items
-          },
-          layout: "default"
-        } : null,
-        finalCta: landingPage.content.cta ? { 
-          content: {
-            title: landingPage.content.cta.title,
-            description: landingPage.content.cta.description,
-            ctaText: landingPage.content.cta.buttonText
-          }, 
-          layout: "centered" 
-        } : null,
-        footer: landingPage.content.footer ? { 
-          content: {
-            links: landingPage.content.footer
-          }, 
-          layout: "grid" 
-        } : null
-      };
+  // Initialize with empty content by default
+  const [currentContent, setCurrentContent] = useState<SectionContentMap>({});
+
+  useEffect(() => {
+    if (landingPage?.content) {
+      const hasValidContent = 
+        landingPage.content.hero ||
+        landingPage.content.features?.length ||
+        landingPage.content.benefits?.length ||
+        landingPage.content.testimonials?.length ||
+        landingPage.content.faq?.items?.length ||
+        landingPage.content.cta;
+
+      if (hasValidContent) {
+        const newContent: SectionContentMap = {};
+        
+        if (landingPage.content.hero) {
+          newContent.hero = {
+            content: landingPage.content.hero,
+            layout: landingPage.theme_settings?.heroLayout || "centered"
+          };
+        }
+        
+        if (landingPage.content.features?.length > 0) {
+          newContent.value_proposition = {
+            content: {
+              title: "Why Choose Us",
+              items: landingPage.content.features
+            },
+            layout: landingPage.theme_settings?.featuresLayout || "grid"
+          };
+        }
+        
+        if (landingPage.content.benefits?.length > 0) {
+          newContent.features = {
+            content: {
+              title: "Our Features",
+              items: landingPage.content.benefits
+            },
+            layout: landingPage.theme_settings?.benefitsLayout || "grid"
+          };
+        }
+        
+        if (landingPage.content.testimonials?.length > 0) {
+          newContent.proof = {
+            content: {
+              title: "Customer Testimonials",
+              testimonials: landingPage.content.testimonials
+            },
+            layout: landingPage.theme_settings?.testimonialsLayout || "grid"
+          };
+        }
+        
+        if (landingPage.content.faq?.items?.length > 0) {
+          newContent.faq = {
+            content: {
+              title: "Frequently Asked Questions",
+              items: landingPage.content.faq.items
+            },
+            layout: "default"
+          };
+        }
+        
+        if (landingPage.content.cta) {
+          newContent.finalCta = {
+            content: {
+              title: landingPage.content.cta.title,
+              description: landingPage.content.cta.description,
+              ctaText: landingPage.content.cta.buttonText
+            },
+            layout: "centered"
+          };
+        }
+
+        setCurrentContent(newContent);
+      }
     }
-    return {};
-  });
+  }, [landingPage]);
 
   // Monitor generation progress
   useEffect(() => {
@@ -200,7 +216,7 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
           };
         }
         
-        if (data.content.features) {
+        if (data.content.features?.length > 0) {
           newContent.value_proposition = {
             content: {
               title: "Why Choose Us",
@@ -210,7 +226,7 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
           };
         }
         
-        if (data.content.benefits) {
+        if (data.content.benefits?.length > 0) {
           newContent.features = {
             content: {
               title: "Our Features",
@@ -220,7 +236,7 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
           };
         }
         
-        if (data.content.testimonials) {
+        if (data.content.testimonials?.length > 0) {
           newContent.proof = {
             content: {
               title: "Customer Testimonials",
@@ -230,7 +246,7 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
           };
         }
         
-        if (data.content.faq?.items) {
+        if (data.content.faq?.items?.length > 0) {
           newContent.faq = {
             content: {
               title: "Frequently Asked Questions",
@@ -318,16 +334,13 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
   };
 
   const renderSection = (sectionKey: string) => {
-    if (!currentContent[sectionKey]) {
+    if (!currentContent[sectionKey] || !currentContent[sectionKey]?.content) {
       return null;
     }
 
     const sectionData = currentContent[sectionKey];
-    if (!sectionData?.content) {
-      return null;
-    }
-
     const Component = sectionComponents[sectionKey];
+    
     if (!Component) {
       return null;
     }
