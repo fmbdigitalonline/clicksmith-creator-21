@@ -1,230 +1,180 @@
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0';
+import { corsHeaders } from "../_shared/cors.ts";
+import { generateContent } from "./deepeek.ts";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+const generateWithDeepeek = async (prompt: string) => {
+  const apiKey = Deno.env.get("DEEPEEK_API_KEY");
+  if (!apiKey) {
+    throw new Error("Missing DEEPEEK_API_KEY");
+  }
+
+  const response = await fetch("https://api.deepeek.com/v1/generate", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      prompt,
+      max_tokens: 1000,
+      temperature: 0.7,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Deepeek API returned ${response.status}: ${await response.text()}`);
+  }
+
+  const data = await response.json();
+  return data.choices[0].text;
 };
 
-async function generateWithDeepeek(prompt: string, context: any) {
-  const DEEPEEK_API_KEY = Deno.env.get('DEEPEEK_API_KEY');
-  console.log('🔑 Checking for Deepeek API key:', DEEPEEK_API_KEY ? 'Present' : 'Missing');
-  
-  // List all available environment variables for debugging
-  console.log('📝 Available environment variables:', Object.keys(Deno.env.toObject()));
-  
-  if (!DEEPEEK_API_KEY) {
-    throw new Error('DEEPEEK_API_KEY is not set in environment variables');
-  }
-
-  try {
-    console.log('🤖 Calling Deepeek API with prompt:', prompt);
-    const response = await fetch('https://api.deepeek.com/v1/generate', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${DEEPEEK_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        prompt,
-        context,
-        max_tokens: 500,
-        temperature: 0.7
-      })
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('❌ Deepeek API response error:', errorText);
-      throw new Error(`Deepeek API error: ${response.statusText}. Details: ${errorText}`);
-    }
-
-    const data = await response.json();
-    console.log('🤖 Deepeek response:', data);
-    return data.choices[0].text;
-  } catch (error) {
-    console.error('❌ Deepeek API error:', error);
-    throw error;
-  }
-}
-
-async function generateBasicContent(businessIdea: any, targetAudience: any) {
-  // Fallback content generation without Deepeek
-  console.log('📝 Generating basic content without Deepeek');
-  
+const generateBasicContent = (businessIdea: string, targetAudience: string) => {
   return {
     hero: {
-      title: businessIdea?.valueProposition || businessIdea?.title || "Welcome",
-      description: businessIdea?.description || "",
-      cta: "Get Started Now"
+      title: "Welcome to Our Platform",
+      description: "We're here to help you succeed.",
+      ctaText: "Get Started",
     },
-    features: businessIdea?.keyFeatures || [],
-    benefits: targetAudience?.benefits || [],
-    proof: {
-      testimonials: [
+    features: [
+      {
+        title: "Easy to Use",
+        description: "Our platform is designed with simplicity in mind."
+      },
+      {
+        title: "Powerful Features",
+        description: "Everything you need to grow your business."
+      }
+    ],
+    benefits: [
+      {
+        title: "Save Time",
+        description: "Automate your workflows and focus on what matters."
+      },
+      {
+        title: "Increase Revenue",
+        description: "Optimize your operations for better results."
+      }
+    ],
+    testimonials: [
+      {
+        quote: "This platform has transformed our business.",
+        author: "John Doe",
+        title: "CEO"
+      }
+    ],
+    pricing: {
+      plans: [
         {
-          content: `As ${targetAudience?.demographics || 'a customer'}, I found this solution incredibly helpful.`,
-          author: "John Doe",
-          role: targetAudience?.demographics || "Customer"
+          name: "Basic",
+          price: "$9",
+          features: ["Core Features", "Basic Support"]
+        },
+        {
+          name: "Pro",
+          price: "$29",
+          features: ["All Features", "Priority Support"]
         }
       ]
     },
     faq: {
-      questions: [
+      items: [
         {
           question: "How does it work?",
-          answer: businessIdea?.description || "Contact us to learn more."
+          answer: "Our platform is designed to be intuitive and easy to use."
+        },
+        {
+          question: "What support do you offer?",
+          answer: "We offer comprehensive support to all our customers."
         }
       ]
     }
   };
-}
+};
 
-async function generateIterativeContent(businessIdea: any, targetAudience: any) {
-  console.log('📝 Starting content generation...');
-  
+const generateIterativeContent = async (
+  projectId: string,
+  businessName: string,
+  businessIdea: string,
+  targetAudience: string,
+  currentContent?: any,
+  isRefinement = false
+) => {
   try {
-    // First try with Deepeek
-    return {
-      hero: JSON.parse(await generateWithDeepeek(
-        `Create a compelling hero section for: ${businessIdea.description}`,
-        { type: 'hero', businessIdea, targetAudience }
-      )),
-      value_proposition: JSON.parse(await generateWithDeepeek(
-        `List 3 key value propositions for: ${businessIdea.description}`,
-        { type: 'features', businessIdea }
-      )),
-      features: JSON.parse(await generateWithDeepeek(
-        `Describe 3 main features of: ${businessIdea.description}`,
-        { type: 'features', businessIdea }
-      )),
-      proof: JSON.parse(await generateWithDeepeek(
-        `Create 2 testimonials about: ${businessIdea.description}`,
-        { type: 'testimonials', targetAudience }
-      )),
-      faq: JSON.parse(await generateWithDeepeek(
-        `Create 4 FAQs about: ${businessIdea.description}`,
-        { type: 'faq', businessIdea }
-      ))
-    };
+    console.log("Attempting to generate content with Deepeek...");
+    const content = await generateWithDeepeek(`
+      Create landing page content for a business named "${businessName}".
+      Business idea: ${businessIdea}
+      Target audience: ${targetAudience}
+      ${isRefinement && currentContent ? `Current content to improve: ${JSON.stringify(currentContent)}` : ""}
+    `);
+
+    console.log("Successfully generated content with Deepeek");
+    return JSON.parse(content);
   } catch (error) {
-    console.error('❌ Error in Deepeek generation, falling back to basic content:', error);
-    // If Deepeek fails, fall back to basic content
+    console.error("❌ Deepeek API error:", error);
+    console.error("❌ Error in Deepeek generation, falling back to basic content:", error);
     return generateBasicContent(businessIdea, targetAudience);
   }
-}
+};
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { projectId, businessIdea, targetAudience, userId } = await req.json();
-    console.log('📝 Starting landing page generation for project:', projectId);
+    const { projectId, businessName, businessIdea, targetAudience, currentContent, isRefinement } = await req.json();
 
-    if (!projectId || !userId) {
-      throw new Error('Missing required parameters: projectId and userId');
+    if (!projectId || !businessName || !businessIdea || !targetAudience) {
+      throw new Error("Missing required fields");
     }
 
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-      { auth: { autoRefreshToken: false, persistSession: false } }
+    const content = await generateIterativeContent(
+      projectId,
+      businessName,
+      businessIdea,
+      targetAudience,
+      currentContent,
+      isRefinement
     );
 
-    // Generate content iteratively
-    console.log('🔄 Starting content generation...');
-    const generatedContent = await generateIterativeContent(businessIdea, targetAudience);
-
-    // Create the full landing page content structure
-    const landingPageContent = {
-      ...generatedContent,
-      pricing: {
-        title: "Simple, Transparent Pricing",
-        description: "Choose the plan that's right for you",
-        items: [
-          {
-            name: "Starter",
-            price: "$49/mo",
-            features: ["Core features", "Basic support", "Up to 1000 users"]
-          },
-          {
-            name: "Professional",
-            price: "$99/mo",
-            features: ["All Starter features", "Priority support", "Advanced analytics"]
-          }
-        ]
-      },
-      finalCta: {
-        title: "Ready to Get Started?",
-        description: "Join thousands of satisfied customers and transform your business today.",
-        ctaText: "Start Now"
-      },
-      footer: {
-        content: {
-          links: {
-            company: ["About", "Contact", "Careers"],
-            resources: ["Help Center", "Terms", "Privacy"]
-          }
-        }
-      }
+    const theme_settings = {
+      heroLayout: "centered",
+      featuresLayout: "grid",
+      benefitsLayout: "grid",
+      testimonialsLayout: "grid",
+      pricingLayout: "grid",
     };
 
-    console.log('📝 Generated content structure:', landingPageContent);
-
-    // Create a unique slug
-    const slug = `landing-page-${Math.random().toString(36).substring(2, 8)}`;
-
-    // Insert the landing page
-    const { data: landingPage, error: insertError } = await supabaseAdmin
-      .from('landing_pages')
-      .insert({
-        project_id: projectId,
-        user_id: userId,
-        title: businessIdea?.title || "Untitled Landing Page",
-        content: landingPageContent,
-        slug,
-        published: false,
-        content_iterations: 1,
-        theme_settings: {
-          colorScheme: "light",
-          typography: {
-            headingFont: "Inter",
-            bodyFont: "Inter"
-          },
-          spacing: {
-            sectionPadding: "py-16",
-            componentGap: "gap-8"
-          }
-        }
-      })
-      .select('*')
-      .single();
-
-    if (insertError) {
-      console.error('❌ Error inserting landing page:', insertError);
-      throw insertError;
-    }
-
-    console.log('✅ Landing page created successfully:', landingPage);
-
-    return new Response(
-      JSON.stringify(landingPage),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-
-  } catch (error) {
-    console.error('❌ Error in generate-landing-page function:', error);
     return new Response(
       JSON.stringify({
-        error: error.message || 'Internal server error',
-        details: error.toString()
+        content,
+        theme_settings,
+        statistics: {
+          metrics: [],
+          data_points: []
+        }
       }),
-      { 
+      {
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+  } catch (error) {
+    console.error("Error processing request:", error);
+    return new Response(
+      JSON.stringify({
+        error: error.message
+      }),
+      {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+        },
       }
     );
   }
