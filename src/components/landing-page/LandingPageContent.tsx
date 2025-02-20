@@ -50,7 +50,7 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
         hero: { 
           content: landingPage.content.hero || {
             title: "Welcome",
-            description: "Your landing page content is being generated.",
+            description: "Click 'Generate Content' to create your landing page.",
             ctaText: "Get Started"
           }, 
           layout: landingPage.theme_settings?.heroLayout || "centered" 
@@ -79,50 +79,30 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
         pricing: { 
           content: {
             title: "Our Pricing",
-            plans: [
-              {
-                name: "Starter",
-                price: "Free",
-                features: ["Basic features", "Community support", "Up to 1000 users"]
-              },
-              {
-                name: "Pro",
-                price: "$49/mo",
-                features: ["All Starter features", "Priority support", "Unlimited users"]
-              }
-            ]
+            plans: []
           }, 
           layout: landingPage.theme_settings?.pricingLayout || "grid" 
         },
         faq: {
           content: {
             title: "Frequently Asked Questions",
-            items: landingPage.content.faq?.items || [
-              {
-                question: "How do I get started?",
-                answer: "Getting started is easy! Simply sign up for an account and follow our quick setup guide."
-              },
-              {
-                question: "What payment methods do you accept?",
-                answer: "We accept all major credit cards, PayPal, and bank transfers."
-              }
-            ]
+            items: landingPage.content.faq?.items || []
           },
           layout: "default"
         },
         finalCta: { 
           content: {
             title: landingPage.content.cta?.title || "Ready to Get Started?",
-            description: landingPage.content.cta?.description || "Join us today and experience the difference.",
-            ctaText: landingPage.content.cta?.buttonText || "Get Started Now"
+            description: landingPage.content.cta?.description || "Generate your landing page content to get started.",
+            ctaText: landingPage.content.cta?.buttonText || "Generate Content"
           }, 
           layout: "centered" 
         },
         footer: { 
           content: {
             links: landingPage.content.footer || {
-              company: ["About", "Contact", "Careers"],
-              resources: ["Help Center", "Terms", "Privacy"]
+              company: [],
+              resources: []
             }
           }, 
           layout: "grid" 
@@ -130,67 +110,23 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
       };
     }
     
-    // Return default content if no landing page content exists
+    // Return minimal initial content
     return {
       hero: { 
         content: {
           title: "Welcome",
-          description: "Your landing page content is being generated.",
+          description: "Click 'Generate Content' to create your landing page.",
           ctaText: "Get Started"
         }, 
         layout: "centered" 
       },
-      value_proposition: { 
-        content: {
-          title: "Why Choose Us",
-          items: []
-        }, 
-        layout: "grid" 
-      },
-      features: { 
-        content: {
-          title: "Our Features",
-          items: []
-        }, 
-        layout: "grid" 
-      },
-      proof: { 
-        content: {
-          title: "Customer Testimonials",
-          testimonials: []
-        }, 
-        layout: "grid" 
-      },
-      pricing: { 
-        content: {
-          title: "Our Pricing",
-          plans: []
-        }, 
-        layout: "grid" 
-      },
-      faq: {
-        content: {
-          title: "Frequently Asked Questions",
-          items: []
-        },
-        layout: "default"
-      },
       finalCta: { 
         content: {
-          title: "Ready to Get Started?",
-          description: "Join us today and experience the difference.",
-          ctaText: "Get Started Now"
+          title: "Ready to Create Your Landing Page?",
+          description: "Click the 'Generate Content' button above to create your custom landing page.",
+          ctaText: "Generate Content"
         }, 
         layout: "centered" 
-      },
-      footer: { 
-        content: {
-          links: {
-            company: ["About", "Contact", "Careers"],
-            resources: ["Help Center", "Terms", "Privacy"]
-          }
-        }, 
-        layout: "grid" 
       }
     };
   });
