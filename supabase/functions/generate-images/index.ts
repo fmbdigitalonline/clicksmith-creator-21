@@ -17,11 +17,11 @@ serve(async (req) => {
   }
 
   try {
-    const { prompt, negative_prompt, style, width, height } = await req.json();
+    const { prompt, negative_prompt, width, height } = await req.json();
 
     console.log('Generating image with Black Forest Pro:', {
       prompt,
-      style,
+      model: "black-forest-labs/flux-1.1-pro-ultra",
       dimensions: `${width}x${height}`,
     });
 
@@ -34,7 +34,7 @@ serve(async (req) => {
       body: JSON.stringify({
         prompt,
         negative_prompt: negative_prompt || "",
-        style: style || "1-1",
+        model: "black-forest-labs/flux-1.1-pro-ultra",
         width: width || 1024,
         height: height || 1024,
         num_images: 1,
