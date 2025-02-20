@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,8 +6,6 @@ import { useLandingPageTemplate } from "./hooks/useLandingPageTemplate";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
-import { sectionComponents } from "./constants/sectionConfig";
-import type { LandingPageContentProps, SectionContentMap } from "./types/landingPageTypes";
 import LoadingStateLandingPage from "./LoadingStateLandingPage";
 import { cn } from "@/lib/utils";
 import { Loader2, RotateCw } from "lucide-react";
@@ -31,7 +28,7 @@ interface GenerationLog {
   };
 }
 
-const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) => {
+const LandingPageContent = ({ project, landingPage }: { project: any; landingPage: any }) => {
   const [activeView, setActiveView] = useState<"edit" | "preview">("preview");
   const [isGenerating, setIsGenerating] = useState(false);
   const [isRefining, setIsRefining] = useState(false);
@@ -39,95 +36,9 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
     status: string;
     progress: number;
   }>({ status: "", progress: 0 });
-  const [currentLayoutStyle, setCurrentLayoutStyle] = useState(landingPage?.theme_settings || {});
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { data: template, isLoading: isTemplateLoading } = useLandingPageTemplate();
-  
-  const [currentContent, setCurrentContent] = useState<SectionContentMap>({});
-
-  useEffect(() => {
-    if (landingPage?.content) {
-      const content = landingPage.content;
-      const newContent: SectionContentMap = {};
-      
-      if (content.hero) {
-        newContent.hero = {
-          content: {
-            title: content.hero.title,
-            description: content.hero.description,
-            buttonText: content.hero.buttonText || content.hero.cta,
-          },
-          layout: "centered"
-        };
-      }
-      
-      if (content.features?.length > 0) {
-        newContent.value_proposition = {
-          content: {
-            title: "Why Choose Us",
-            items: content.features.map(f => ({
-              title: f.title,
-              description: f.description
-            }))
-          },
-          layout: "grid"
-        };
-      }
-      
-      if (content.benefits?.length > 0) {
-        newContent.features = {
-          content: {
-            title: "Our Features",
-            items: content.benefits.map(b => ({
-              title: b.title,
-              description: b.description
-            }))
-          },
-          layout: "grid"
-        };
-      }
-      
-      if (content.testimonials?.length > 0) {
-        newContent.proof = {
-          content: {
-            title: "Customer Testimonials",
-            testimonials: content.testimonials.map(t => ({
-              quote: t.quote,
-              author: t.author,
-              role: t.role
-            }))
-          },
-          layout: "grid"
-        };
-      }
-      
-      if (content.faq?.items?.length > 0) {
-        newContent.faq = {
-          content: {
-            title: "Frequently Asked Questions",
-            items: content.faq.items
-          },
-          layout: "default"
-        };
-      }
-      
-      if (content.cta) {
-        newContent.finalCta = {
-          content: {
-            title: content.cta.title,
-            description: content.cta.description,
-            buttonText: content.cta.buttonText
-          },
-          layout: "centered"
-        };
-      }
-
-      if (Object.keys(newContent).length > 0) {
-        setCurrentContent(newContent);
-      }
-    }
-  }, [landingPage]);
+  const { isLoading: isTemplateLoading } = useLandingPageTemplate();
 
   useEffect(() => {
     if ((isGenerating || isRefining) && project?.id) {
@@ -145,7 +56,6 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
           return;
         }
 
-        // Add type assertion here
         const log = logs as unknown as GenerationLog;
 
         if (log) {
@@ -180,12 +90,18 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
     setGenerationProgress({ status: "Starting generation...", progress: 0 });
     
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error('Authentication required');
+      }
+
       const { data, error } = await supabase.functions.invoke('generate-landing-page', {
         body: {
           projectId: project.id,
-          businessName: project.title,
           businessIdea: project.business_idea,
           targetAudience: project.target_audience,
+          userId: user.id,
           iterationNumber: landingPage?.content_iterations || 1
         }
       });
@@ -194,100 +110,19 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
 
       if (data && data.content) {
         console.log("Received new content:", data);
-        
-        if (landingPage?.id) {
-          const { error: updateError } = await supabase
-            .from('landing_pages')
-            .update({
-              content: data.content,
-              content_iterations: (landingPage.content_iterations || 1) + 1,
-            })
-            .eq('id', landingPage.id);
-
-          if (updateError) {
-            console.error('Error updating landing page:', updateError);
-            throw updateError;
-          }
-        }
-
-        const newContent: SectionContentMap = {};
-        
-        if (data.content.hero) {
-          newContent.hero = {
-            content: {
-              title: data.content.hero.title,
-              description: data.content.hero.description,
-              buttonText: data.content.hero.buttonText,
-            },
-            layout: "centered"
-          };
-        }
-        
-        if (data.content.features?.length > 0) {
-          newContent.value_proposition = {
-            content: {
-              title: "Why Choose Us",
-              items: data.content.features
-            },
-            layout: "grid"
-          };
-        }
-        
-        if (data.content.benefits?.length > 0) {
-          newContent.features = {
-            content: {
-              title: "Our Features",
-              items: data.content.benefits
-            },
-            layout: "grid"
-          };
-        }
-        
-        if (data.content.testimonials?.length > 0) {
-          newContent.proof = {
-            content: {
-              title: "Customer Testimonials",
-              testimonials: data.content.testimonials
-            },
-            layout: "grid"
-          };
-        }
-        
-        if (data.content.faq?.items?.length > 0) {
-          newContent.faq = {
-            content: {
-              title: "Frequently Asked Questions",
-              items: data.content.faq.items
-            },
-            layout: "default"
-          };
-        }
-        
-        if (data.content.cta) {
-          newContent.finalCta = {
-            content: {
-              title: data.content.cta.title,
-              description: data.content.cta.description,
-              buttonText: data.content.cta.buttonText
-            },
-            layout: "centered"
-          };
-        }
-
-        setCurrentContent(newContent);
-
         toast({
           title: "Content Generated",
           description: "Your landing page content has been updated."
         });
 
         queryClient.invalidateQueries({ queryKey: ['landing-page', project.id] });
+        window.location.reload();
       }
     } catch (error) {
       console.error('Error generating content:', error);
       toast({
         title: "Error",
-        description: "Failed to generate landing page content. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to generate landing page content",
         variant: "destructive"
       });
     } finally {
@@ -296,113 +131,79 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
     }
   };
 
-  const refineLandingPageContent = async () => {
-    setIsRefining(true);
-    setGenerationProgress({ status: "Refining content...", progress: 0 });
-    
-    try {
-      const { data, error } = await supabase.functions.invoke('generate-landing-page', {
-        body: {
-          projectId: project.id,
-          businessName: project.title,
-          businessIdea: project.business_idea,
-          targetAudience: project.target_audience,
-          currentContent: currentContent,
-          isRefinement: true,
-          iterationNumber: (landingPage?.content_iterations || 1) + 1
-        }
-      });
+  const renderDynamicSection = (section: any) => {
+    if (!section) return null;
 
-      if (error) throw error;
+    const containerClass = cn(
+      "w-full py-12 md:py-16",
+      section.layout?.width === 'contained' && "container mx-auto px-4",
+      section.layout?.width === 'narrow' && "max-w-4xl mx-auto px-4",
+      section.layout?.spacing === 'compact' && "py-8 md:py-12",
+      section.layout?.spacing === 'spacious' && "py-16 md:py-24",
+      section.layout?.background === 'gradient' && "bg-gradient-to-r from-primary/10 to-secondary/10",
+      section.style?.colorScheme === 'dark' && "bg-gray-900 text-white",
+      section.style?.colorScheme === 'light' && "bg-white text-gray-900"
+    );
 
-      if (data && data.content) {
-        const newContent: SectionContentMap = {};
-        
-        // Map the new content using the same structure as generateLandingPageContent
-        if (data.content.hero) {
-          newContent.hero = {
-            content: {
-              title: data.content.hero.title,
-              description: data.content.hero.description,
-              buttonText: data.content.hero.buttonText,
-            },
-            layout: "centered"
-          };
-        }
-        
-        // ... Apply the same mapping for other sections
-        
-        setCurrentContent(newContent);
-
-        toast({
-          title: "Content Refined",
-          description: "Your landing page content has been improved."
-        });
-
-        // Update the database
-        if (landingPage?.id) {
-          const { error: updateError } = await supabase
-            .from('landing_pages')
-            .update({
-              content: data.content,
-              content_iterations: (landingPage.content_iterations || 1) + 1,
-            })
-            .eq('id', landingPage.id);
-
-          if (updateError) {
-            throw updateError;
-          }
-        }
-
-        queryClient.invalidateQueries({ queryKey: ['landing-page', project.id] });
-      }
-    } catch (error) {
-      console.error('Error refining content:', error);
-      toast({
-        title: "Error",
-        description: "Failed to refine landing page content. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsRefining(false);
-      setGenerationProgress({ status: "", progress: 0 });
-    }
-  };
-
-  const renderSection = (sectionKey: string) => {
-    if (!currentContent[sectionKey] || !currentContent[sectionKey]?.content) {
-      return null;
-    }
-
-    const sectionData = currentContent[sectionKey];
-    const Component = sectionComponents[sectionKey];
-    
-    if (!Component) {
-      return null;
-    }
-
-    const themeProps = {
-      ...currentLayoutStyle,
-      className: cn(
-        "w-full",
-        sectionKey === 'hero' && "bg-gradient-to-r from-blue-50 to-indigo-50",
-        sectionKey === 'value_proposition' && "bg-white",
-        sectionKey === 'features' && "bg-gray-50",
-        sectionKey === 'proof' && "bg-white",
-        sectionKey === 'pricing' && "bg-gray-50",
-        sectionKey === 'faq' && "bg-white",
-        sectionKey === 'finalCta' && "bg-gradient-to-r from-primary/10 to-accent/10",
-        sectionKey === 'footer' && "bg-gray-900 text-white"
-      )
-    };
+    const contentClass = cn(
+      "space-y-6",
+      section.layout?.style === 'grid' && "grid grid-cols-1 md:grid-cols-3 gap-8",
+      section.layout?.style === 'columns' && "columns-1 md:columns-2 gap-8",
+      section.style?.textAlign === 'center' && "text-center",
+      section.layout?.style === 'split' && "grid grid-cols-1 md:grid-cols-2 gap-12 items-center"
+    );
 
     return (
-      <div key={`${sectionKey}-${landingPage?.id}`} {...themeProps}>
-        <Component
-          content={sectionData.content}
-          layout={sectionData.layout || "default"}
-          theme={currentLayoutStyle}
-        />
+      <div key={section.type} className={containerClass}>
+        <div className={contentClass}>
+          {section.content?.title && (
+            <h2 className="text-3xl md:text-4xl font-bold leading-tight">
+              {section.content.title}
+            </h2>
+          )}
+          
+          {section.content?.subtitle && (
+            <p className="text-xl text-gray-600 dark:text-gray-300">
+              {section.content.subtitle}
+            </p>
+          )}
+          
+          {section.content?.description && (
+            <p className="text-gray-600 dark:text-gray-300">
+              {section.content.description}
+            </p>
+          )}
+          
+          {section.content?.items && (
+            <div className={cn(
+              "grid gap-6",
+              section.layout?.style === 'grid' && "grid-cols-1 md:grid-cols-3",
+              section.layout?.style === 'columns' && "columns-1 md:columns-2"
+            )}>
+              {section.content.items.map((item: any, index: number) => (
+                <div key={index} className="space-y-3">
+                  {item.title && <h3 className="text-xl font-semibold">{item.title}</h3>}
+                  {item.description && <p className="text-gray-600 dark:text-gray-300">{item.description}</p>}
+                </div>
+              ))}
+            </div>
+          )}
+          
+          {(section.content?.primaryCta || section.content?.secondaryCta) && (
+            <div className="flex flex-wrap gap-4 justify-center md:justify-start">
+              {section.content.primaryCta && (
+                <Button size="lg">
+                  {section.content.primaryCta.text}
+                </Button>
+              )}
+              {section.content.secondaryCta && (
+                <Button variant="outline" size="lg">
+                  {section.content.secondaryCta.text}
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     );
   };
@@ -410,17 +211,6 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
   if (isTemplateLoading) {
     return <LoadingStateLandingPage />;
   }
-
-  const sectionOrder = [
-    "hero",
-    "value_proposition",
-    "features",
-    "proof",
-    "pricing",
-    "faq",
-    "finalCta",
-    "footer"
-  ];
 
   return (
     <div className="min-h-screen">
@@ -445,25 +235,6 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
                   "Generate Content"
                 )}
               </Button>
-              {Object.keys(currentContent).length > 0 && (
-                <Button
-                  variant="outline"
-                  onClick={refineLandingPageContent}
-                  disabled={isGenerating || isRefining}
-                >
-                  {isRefining ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Refining...
-                    </>
-                  ) : (
-                    <>
-                      <RotateCw className="mr-2 h-4 w-4" />
-                      Refine Content
-                    </>
-                  )}
-                </Button>
-              )}
             </div>
           </div>
 
@@ -478,14 +249,16 @@ const LandingPageContent = ({ project, landingPage }: LandingPageContentProps) =
         </div>
 
         <TabsContent value="preview" className="mt-0">
-          {Object.keys(currentContent).length === 0 ? (
+          {landingPage?.content?.sections ? (
+            <div className="divide-y divide-gray-200">
+              {landingPage.content.sections
+                .sort((a: any, b: any) => a.order - b.order)
+                .map((section: any) => renderDynamicSection(section))}
+            </div>
+          ) : (
             <div className="text-center py-16">
               <h2 className="text-2xl font-semibold mb-4">No Content Generated Yet</h2>
               <p className="text-gray-600 mb-8">Click the "Generate Content" button to create your landing page.</p>
-            </div>
-          ) : (
-            <div className="divide-y divide-gray-200">
-              {sectionOrder.map((sectionKey) => renderSection(sectionKey))}
             </div>
           )}
         </TabsContent>

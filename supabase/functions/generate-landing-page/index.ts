@@ -14,54 +14,60 @@ interface GenerateLandingPageRequest {
 }
 
 const generateContent = async (businessIdea: any, targetAudience: any, iterationNumber: number = 1) => {
-  const prompt = `Create a landing page content object for a business. Focus on being specific and compelling.
+  const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+  
+  const prompt = `Create a dynamic landing page content structure for this business:
 
 Business Details:
-- Business Idea: ${JSON.stringify(businessIdea)}
-- Target Audience: ${JSON.stringify(targetAudience)}
-- Iteration: ${iterationNumber}
+${JSON.stringify(businessIdea, null, 2)}
 
-Please provide the response in the following JSON format (DO NOT include any markdown formatting or backticks, just the raw JSON):
+Target Audience:
+${JSON.stringify(targetAudience, null, 2)}
 
+Design a unique landing page structure that best converts this target audience. You have complete creative freedom.
+
+Return a JSON object with this structure:
 {
-  "hero": {
-    "title": "compelling headline",
-    "description": "engaging subheadline",
-    "buttonText": "action-oriented CTA"
-  },
-  "features": [
+  "sections": [
     {
-      "title": "feature name",
-      "description": "feature benefit"
-    }
-  ],
-  "benefits": [
-    {
-      "title": "benefit title",
-      "description": "benefit explanation"
-    }
-  ],
-  "testimonials": [
-    {
-      "quote": "positive testimonial",
-      "author": "customer name",
-      "role": "customer role"
-    }
-  ],
-  "faq": {
-    "items": [
-      {
-        "question": "common question",
-        "answer": "clear answer"
+      "type": string (any section type that makes sense for this business),
+      "order": number (position in the page),
+      "layout": {
+        "style": string (grid, columns, carousel, split, centered, etc),
+        "background": string (solid, gradient, pattern, image),
+        "spacing": string (compact, normal, spacious),
+        "width": string (contained, full, narrow)
+      },
+      "content": {
+        "title": string,
+        "subtitle"?: string,
+        "description"?: string,
+        "items"?: array of content items,
+        "primaryCta"?: { text: string, action: string },
+        "secondaryCta"?: { text: string, action: string },
+        "media"?: { type: string, url?: string, alt?: string }
+      },
+      "style": {
+        "textAlign": string (left, center, right),
+        "colorScheme": string (light, dark, custom),
+        "accentColor"?: string,
+        "animation"?: string
       }
-    ]
-  },
-  "cta": {
-    "title": "compelling final headline",
-    "description": "urgency-driven description",
-    "buttonText": "final call to action"
+    }
+  ],
+  "theme": {
+    "primary": string (color),
+    "secondary": string (color),
+    "background": string (color),
+    "text": string (color),
+    "fonts": {
+      "heading": string,
+      "body": string
+    }
   }
-}`;
+}
+
+Focus on creating a unique structure that best serves this specific business and audience. Don't follow a rigid template.`;
 
   try {
     console.log('Sending request to OpenAI...');
@@ -69,15 +75,15 @@ Please provide the response in the following JSON format (DO NOT include any mar
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+        'Authorization': `Bearer ${openAIApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini-2024-07-18', // Updated to use the specific model version
+        model: 'gpt-4o-mini',
         messages: [
           {
             role: "system",
-            content: "You are an expert landing page copywriter focused on conversion. Provide responses in clean JSON format without any markdown formatting or code blocks."
+            content: "You are an expert landing page designer focused on conversion rate optimization. Design unique, effective landing pages tailored to each business."
           },
           {
             role: "user",
@@ -101,24 +107,10 @@ Please provide the response in the following JSON format (DO NOT include any mar
       throw new Error('Invalid response format from OpenAI');
     }
 
-    // Clean up the response content to ensure it's valid JSON
-    const cleanContent = data.choices[0].message.content.trim()
-      .replace(/^```json\s*/, '') // Remove starting ```json if present
-      .replace(/```$/, '')        // Remove ending ``` if present
-      .trim();                    // Remove any extra whitespace
-
-    console.log('Cleaned content:', cleanContent);
-
-    try {
-      const content = JSON.parse(cleanContent);
-      return content;
-    } catch (parseError) {
-      console.error('JSON parse error:', parseError);
-      console.error('Content that failed to parse:', cleanContent);
-      throw new Error('Failed to parse OpenAI response as JSON');
-    }
+    const content = JSON.parse(data.choices[0].message.content.trim());
+    return content;
   } catch (error) {
-    console.error('Error in generateContent:', error);
+    console.error('Error generating content:', error);
     throw error;
   }
 };
