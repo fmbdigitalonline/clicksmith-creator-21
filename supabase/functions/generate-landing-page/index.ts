@@ -6,6 +6,15 @@ const openAI = new OpenAI({
   apiKey: Deno.env.get("OPENAI_API_KEY"),
 });
 
+const cleanJsonResponse = (content: string): string => {
+  // Remove markdown code blocks if present
+  const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+  if (jsonMatch) {
+    return jsonMatch[1];
+  }
+  return content;
+};
+
 const generateLandingPageContent = async (prompt: string) => {
   try {
     console.log("Generating content with GPT-4-mini...");
@@ -14,13 +23,14 @@ const generateLandingPageContent = async (prompt: string) => {
       messages: [
         {
           role: "system",
-          content: "You are a landing page content expert that creates engaging, conversion-focused content based on business ideas and target audiences."
+          content: "You are a landing page content expert. Return ONLY valid JSON without any markdown formatting, code blocks, or additional text."
         },
         { role: "user", content: prompt }
       ],
     });
     
-    return chatCompletion.choices[0].message.content;
+    const content = chatCompletion.choices[0].message.content;
+    return cleanJsonResponse(content);
   } catch (error) {
     console.error("❌ OpenAI API error:", error);
     throw error;
@@ -82,35 +92,62 @@ const generateIterativeContent = async (
 ) => {
   try {
     const prompt = `
-      Create engaging landing page content for this business:
-      
+      Create landing page content for this business. Return ONLY a valid JSON object with the following structure, no markdown or explanation needed:
+      {
+        "hero": {
+          "title": "string",
+          "description": "string",
+          "ctaText": "string"
+        },
+        "features": {
+          "title": "string",
+          "items": [
+            {
+              "title": "string",
+              "description": "string"
+            }
+          ]
+        },
+        "benefits": {
+          "title": "string",
+          "items": [
+            {
+              "title": "string",
+              "description": "string"
+            }
+          ]
+        },
+        "testimonials": [
+          {
+            "quote": "string",
+            "author": "string",
+            "role": "string"
+          }
+        ],
+        "cta": {
+          "title": "string",
+          "description": "string",
+          "buttonText": "string"
+        }
+      }
+
+      Business Context:
       Business Idea: ${JSON.stringify(businessIdea)}
       Target Audience: ${JSON.stringify(targetAudience)}
       ${isRefinement ? `Current Content to Improve: ${JSON.stringify(currentContent)}` : ''}
       
-      Generate a complete landing page content structure with the following sections:
-      1. Hero section with compelling headline, description, and CTA
-      2. Features section highlighting key benefits
-      3. Benefits section addressing pain points
-      4. Testimonials that resonate with the target audience
-      5. Final call-to-action section
-      
       Make the content engaging, persuasive, and specifically tailored to the target audience.
       Focus on the unique value proposition and benefits.
-      Use a professional, conversion-focused tone.
-      
-      Return the content in a structured JSON format.
     `;
     
     const content = await generateLandingPageContent(prompt);
-    console.log("Successfully generated landing page content");
+    console.log("Raw GPT response:", content);
     
     try {
-      // Try to parse the response as JSON
       return JSON.parse(content);
     } catch (parseError) {
       console.error("❌ Error parsing GPT response as JSON:", parseError);
-      // If parsing fails, return the basic content structure
+      console.error("Raw content that failed to parse:", content);
       return generateBasicContent(businessIdea, targetAudience);
     }
   } catch (error) {
