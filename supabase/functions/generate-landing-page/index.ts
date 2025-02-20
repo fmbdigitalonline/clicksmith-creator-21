@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import Replicate from "https://esm.sh/replicate@0.25.2";
@@ -34,11 +35,12 @@ serve(async (req) => {
 
     console.log('Generating landing page content for project:', projectId);
 
-    // Generate hero image
+    // Generate hero image with more engaging, people-focused prompt
     const heroImagePrompt = `Professional website hero image showcasing:
-    A modern professional using digital tools for market research and business validation.
-    Style: Clean, modern, bright workspace environment with data visualizations and social media elements.
-    High quality, suitable for website hero section with text overlay.
+    Diverse team of happy professionals collaborating in a modern workspace.
+    Natural, authentic interactions with positive body language.
+    Bright, well-lit environment with modern office elements.
+    High quality photographic style, perfect for website hero section.
     No text, no watermarks, no logos.`;
 
     console.log('Generating hero image with prompt:', heroImagePrompt);
@@ -47,7 +49,7 @@ serve(async (req) => {
       {
         input: {
           prompt: heroImagePrompt,
-          negative_prompt: "blur, watermark, text, logo, signature, low quality",
+          negative_prompt: "blur, watermark, text, logo, signature, low quality, artificial poses, fake smiles",
           num_inference_steps: 50,
           guidance_scale: 7.5,
           width: 1024,
@@ -58,12 +60,14 @@ serve(async (req) => {
       }
     );
 
-    // Generate analysis section image
-    const analysisImagePrompt = `Professional data visualization and market analysis dashboard:
-    Modern interface showing business analytics, charts, and market insights.
-    Clean, minimal design with blue and white color scheme.
-    High quality, perfect for business website.
-    No text overlays or watermarks.`;
+    // Generate analysis section image focused on people
+    const analysisImagePrompt = `Professional business scene showing:
+    Diverse group of happy business professionals analyzing market data together.
+    Modern office setting with natural lighting.
+    People pointing at and discussing digital charts on screens.
+    Collaborative and positive atmosphere with genuine smiles.
+    Natural, candid interaction showing engagement and success.
+    High quality photographic style, no text or watermarks.`;
 
     console.log('Generating analysis image with prompt:', analysisImagePrompt);
     const analysisImageOutput = await replicate.run(
@@ -71,7 +75,7 @@ serve(async (req) => {
       {
         input: {
           prompt: analysisImagePrompt,
-          negative_prompt: "blur, watermark, text, logo, signature, low quality",
+          negative_prompt: "blur, watermark, text, logo, signature, low quality, artificial poses, fake smiles, charts without people",
           num_inference_steps: 50,
           guidance_scale: 7.5,
           width: 800,
@@ -82,12 +86,14 @@ serve(async (req) => {
       }
     );
 
-    // Generate workflow image
-    const workflowImagePrompt = `Professional business workflow visualization:
-    Step-by-step process diagram showing market testing and validation workflow.
-    Modern, clean design with icons and flow arrows.
-    Perfect for business website process section.
-    No text overlays or watermarks.`;
+    // Generate workflow image focused on people
+    const workflowImagePrompt = `Professional business consulting scene:
+    Happy entrepreneur and consultant reviewing business results together.
+    Modern, bright office environment with natural lighting.
+    Positive body language and genuine smiles showing success.
+    Natural, candid interaction demonstrating collaboration.
+    Diverse professionals in business attire.
+    High quality photographic style, no text or watermarks.`;
 
     console.log('Generating workflow image with prompt:', workflowImagePrompt);
     const workflowImageOutput = await replicate.run(
@@ -95,7 +101,7 @@ serve(async (req) => {
       {
         input: {
           prompt: workflowImagePrompt,
-          negative_prompt: "blur, watermark, text, logo, signature, low quality",
+          negative_prompt: "blur, watermark, text, logo, signature, low quality, artificial poses, fake smiles, diagrams without people",
           num_inference_steps: 50,
           guidance_scale: 7.5,
           width: 800,
@@ -332,9 +338,6 @@ serve(async (req) => {
       ]
     };
 
-    // Generate a title based on business idea
-    const landingPageTitle = "Market Testing & Validation Platform";
-
     // Store the landing page content
     const { data: landingPage, error: upsertError } = await supabase
       .from('landing_pages')
@@ -342,7 +345,7 @@ serve(async (req) => {
         project_id: projectId,
         user_id: userId,
         content: landingPageContent,
-        title: landingPageTitle,
+        title: "Market Testing & Validation Platform",
         updated_at: new Date().toISOString()
       })
       .select()
