@@ -1,4 +1,3 @@
-
 import { BusinessIdea, TargetAudience, AdHook } from "@/types/adWizard";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -92,8 +91,7 @@ export const useAdGeneration = (
       setGenerationStatus("Processing generated content...");
       
       const processedVariants = await Promise.all(variants.map(async (variant: any) => {
-        // Get image URL and prompt using the new structure
-        const imageUrl = variant.image?.url || variant.imageUrl;
+        const imageUrl = variant.imageUrl || variant.image?.url;
         const imagePrompt = variant.image?.prompt || variant.prompt;
 
         if (!imageUrl) {
@@ -101,16 +99,12 @@ export const useAdGeneration = (
           return null;
         }
 
-        if (!imagePrompt) {
-          console.warn('Variant missing prompt:', variant);
-        }
-
         try {
           const { data: imageVariant, error: storeError } = await supabase
             .from('ad_image_variants')
             .insert({
               original_image_url: imageUrl,
-              prompt: imagePrompt, // Store the prompt
+              prompt: imagePrompt,
               metadata: {
                 platform: selectedPlatform,
                 size: variant.size,
@@ -127,7 +121,6 @@ export const useAdGeneration = (
             return null;
           }
 
-          // Ensure we maintain the same structure for all variants
           const newVariant = {
             ...variant,
             id: imageVariant.id,
