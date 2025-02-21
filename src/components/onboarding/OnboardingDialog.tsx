@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowRight } from "lucide-react";
 import { OnboardingStepContent } from "./OnboardingStepContent";
+import { useQueryClient } from "@tanstack/react-query";
 
 const steps = [
   {
@@ -50,6 +51,7 @@ export function OnboardingDialog() {
   const [userType, setUserType] = useState("consumer");
   const { toast } = useToast();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     const checkOnboardingStatus = async () => {
@@ -136,6 +138,9 @@ export function OnboardingDialog() {
           });
           return;
         }
+
+        // Invalidate the user-profile query to refresh the dashboard
+        queryClient.invalidateQueries({ queryKey: ["user-profile"] });
       }
 
       const { data: onboarding, error: fetchError } = await supabase
@@ -182,9 +187,11 @@ export function OnboardingDialog() {
         } else {
           setOpen(false);
           toast({
-            title: "Welcome aboard! 🎉",
+            title: `Welcome aboard, ${fullName}! 🎉`,
             description: "You're all set to start creating amazing content!"
           });
+          // Refresh the user profile data one final time
+          queryClient.invalidateQueries({ queryKey: ["user-profile"] });
         }
       }
     } catch (error) {
