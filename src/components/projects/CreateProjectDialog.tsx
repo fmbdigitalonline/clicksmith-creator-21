@@ -137,19 +137,14 @@ const CreateProjectDialog = ({
         const newProjectId = data[0].id;
         setCreatedProjectId(newProjectId);
 
-        // Close dialog first
-        onOpenChange(false);
-
         if (hasWizardProgress && includeWizardProgress && onStartAdWizard) {
           toast({
             title: "Project created",
             description: "Starting Ad Wizard with your progress...",
           });
-          // Navigate after dialog is closed
           onStartAdWizard(newProjectId);
         } else {
           setShowActions(true);
-          onSuccess(newProjectId);
           toast({
             title: "Project created",
             description: "Your project has been created successfully.",
@@ -170,9 +165,6 @@ const CreateProjectDialog = ({
 
   const handleGenerateAds = () => {
     if (createdProjectId && onStartAdWizard) {
-      // Close dialog first
-      onOpenChange(false);
-      // Then navigate
       onStartAdWizard(createdProjectId);
     }
   };
