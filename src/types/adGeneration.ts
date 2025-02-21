@@ -1,4 +1,3 @@
-
 import { Json } from "@/integrations/supabase/types";
 
 export type Platform = 'facebook' | 'google' | 'linkedin' | 'tiktok';
@@ -71,7 +70,7 @@ export const isValidAdVariant = (data: unknown): data is AdVariant => {
   );
 };
 
-export const convertToAdVariant = (data: unknown): AdVariant | null => {
+export const convertToAdVariant = (data: DatabaseAdVariant | unknown): AdVariant | null => {
   if (!data || typeof data !== 'object') return null;
   
   try {
@@ -103,7 +102,7 @@ export const convertToAdVariant = (data: unknown): AdVariant | null => {
   }
 };
 
-export const convertToDatabaseFormat = (variant: AdVariant): Record<string, Json> => {
+export const convertToDatabaseFormat = (variant: AdVariant): DatabaseAdVariant => {
   return {
     id: variant.id,
     platform: variant.platform,

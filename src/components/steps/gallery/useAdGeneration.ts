@@ -1,10 +1,10 @@
-
 import { BusinessIdea, TargetAudience, AdHook } from "@/types/adWizard";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
+import { Json } from "@/integrations/supabase/types";
 import { 
   AdVariant, 
   DatabaseAdVariant, 
@@ -82,7 +82,9 @@ export const useAdGeneration = (
           .single();
         
         if (project?.generated_ads) {
-          const variants = ((project.generated_ads as unknown[]) || [])
+          // First cast to unknown, then to DatabaseAdVariant[]
+          const dbVariants = (project.generated_ads as unknown) as DatabaseAdVariant[];
+          const variants = dbVariants
             .map(convertToAdVariant)
             .filter((v): v is AdVariant => v !== null);
             
@@ -182,7 +184,7 @@ export const useAdGeneration = (
         const { error: updateError } = await supabase
           .from('projects')
           .update({
-            generated_ads: databaseVariants as Json[]
+            generated_ads: databaseVariants as unknown as Json
           })
           .eq('id', projectId);
 
