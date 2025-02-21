@@ -8,7 +8,13 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { useProjectTitle } from "@/hooks/useProjectTitle";
-import { Loader2 } from "lucide-react";
+import { Loader2, CircleDot } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const BreadcrumbNav = () => {
   const location = useLocation();
@@ -24,7 +30,22 @@ const BreadcrumbNav = () => {
   const projectId = pathSegments.find(isUUID) || null;
   const { title: projectTitle, isLoading } = useProjectTitle(projectId);
 
-  const getDisplayName = (segment: string) => {
+  const getStepInfo = (segment: string) => {
+    if (segment === 'ad-wizard') {
+      return {
+        steps: [
+          { name: "Business Idea", description: "Define your business concept" },
+          { name: "Target Audience", description: "Identify your ideal customers" },
+          { name: "Audience Analysis", description: "Deep dive into audience insights" },
+          { name: "Ad Gallery", description: "View and manage generated ads" }
+        ],
+        currentStep: 1
+      };
+    }
+    return null;
+  };
+
+  const getDisplayName = (segment: string, index: number) => {
     // If this segment is a UUID and we're loading or have a project title
     if (isUUID(segment)) {
       if (isLoading) {
@@ -40,8 +61,46 @@ const BreadcrumbNav = () => {
 
     // Handle other special cases
     switch (segment) {
-      case "ad-wizard":
+      case "ad-wizard": {
+        const stepInfo = getStepInfo(segment);
+        if (stepInfo) {
+          return (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger className="flex items-center gap-2">
+                  <span>Ad Wizard</span>
+                  <div className="flex items-center gap-1">
+                    {stepInfo.steps.map((step, i) => (
+                      <CircleDot 
+                        key={i}
+                        className={`h-3 w-3 ${i + 1 === stepInfo.currentStep ? 'text-facebook' : 'text-muted-foreground/30'}`}
+                      />
+                    ))}
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent className="w-64">
+                  <div className="space-y-2">
+                    {stepInfo.steps.map((step, i) => (
+                      <div key={i} className="flex items-start gap-2">
+                        <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs ${
+                          i + 1 === stepInfo.currentStep ? 'bg-facebook text-white' : 'bg-muted'
+                        }`}>
+                          {i + 1}
+                        </div>
+                        <div>
+                          <div className="font-medium">{step.name}</div>
+                          <div className="text-xs text-muted-foreground">{step.description}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          );
+        }
         return "Ad Wizard";
+      }
       default:
         return segment.charAt(0).toUpperCase() + segment.slice(1);
     }
@@ -57,7 +116,7 @@ const BreadcrumbNav = () => {
           <BreadcrumbItem key={index}>
             <BreadcrumbSeparator />
             <BreadcrumbLink href={`/${pathSegments.slice(0, index + 1).join("/")}`}>
-              {getDisplayName(segment)}
+              {getDisplayName(segment, index)}
             </BreadcrumbLink>
           </BreadcrumbItem>
         ))}
