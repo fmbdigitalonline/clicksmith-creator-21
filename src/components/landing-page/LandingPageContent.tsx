@@ -86,38 +86,77 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
         throw new Error('Authentication required');
       }
 
-      const response = await fetch('https://xorlfvflpihtafugltni.supabase.co/functions/v1/generate-landing-content', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.SUPABASE_ANON_KEY}`,
-        },
-        body: JSON.stringify({
+      // Update to use supabase.functions.invoke
+      const { data, error } = await supabase.functions.invoke('generate-landing-content', {
+        body: {
           projectData: {
             business_idea: project.business_idea,
             target_audience: project.target_audience,
             audience_analysis: project.audience_analysis
           },
           landingPageId: landingPage.id
-        })
+        }
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to generate content');
+      if (error) {
+        console.error('Function error:', error);
+        throw new Error(error.message || 'Failed to generate content');
       }
-
-      const data = await response.json();
 
       if (data.error) {
         throw new Error(data.error);
       }
 
       toast({
-        title: "Content Generated",
-        description: "Your landing page content has been updated."
+        title: "Content Generation Started",
+        description: "Your landing page content is being generated. This may take a moment."
       });
 
-      queryClient.invalidateQueries({ queryKey: ['landing-page', project.id] });
+      // Start polling for updates
+      const checkInterval = setInterval(async () => {
+        const { data: pageData } = await supabase
+          .from('landing_pages')
+          .select('generation_status, content')
+          .eq('id', landingPage.id)
+          .single();
+
+        if (pageData?.generation_status === 'completed' && pageData?.content) {
+          clearInterval(checkInterval);
+          setIsGenerating(false);
+          setGenerationProgress({ status: "Success!", progress: 100 });
+          queryClient.invalidateQueries({ queryKey: ['landing-page', project.id] });
+          
+          toast({
+            title: "Content Generated",
+            description: "Your landing page content has been updated."
+          });
+        } else if (pageData?.generation_status === 'failed') {
+          clearInterval(checkInterval);
+          setIsGenerating(false);
+          setGenerationProgress({ status: "", progress: 0 });
+          
+          toast({
+            title: "Generation Failed",
+            description: "Failed to generate landing page content. Please try again.",
+            variant: "destructive"
+          });
+        }
+      }, 2000);
+
+      // Cleanup interval after 5 minutes (timeout)
+      setTimeout(() => {
+        clearInterval(checkInterval);
+        if (isGenerating) {
+          setIsGenerating(false);
+          setGenerationProgress({ status: "", progress: 0 });
+          toast({
+            title: "Generation Timeout",
+            description: "The generation process took too long. Please try again.",
+            variant: "destructive"
+          });
+        }
+      }, 300000);
+
     } catch (error) {
       console.error('Error generating content:', error);
       toast({
