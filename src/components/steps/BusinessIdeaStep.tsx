@@ -22,6 +22,7 @@ const BusinessIdeaStep = ({
 
   // Set initial description when component mounts or initialBusinessIdea changes
   useEffect(() => {
+    console.log('Initial business idea:', initialBusinessIdea);
     if (initialBusinessIdea?.description) {
       setDescription(initialBusinessIdea.description);
     }
@@ -43,7 +44,6 @@ const BusinessIdeaStep = ({
 
     try {
       // Format the value proposition to be more ad-friendly
-      // Remove any "Enhanced version of:" prefix and focus on the core message
       const valueProposition = description
         .replace(/^Enhanced version of:\s*/i, '')
         .split('.')
@@ -56,7 +56,7 @@ const BusinessIdeaStep = ({
         valueProposition,
       };
       
-      await Promise.resolve(onNext(businessIdea)); // Ensure async handling
+      await Promise.resolve(onNext(businessIdea));
     } catch (error) {
       console.error('Error submitting business idea:', error);
       toast({

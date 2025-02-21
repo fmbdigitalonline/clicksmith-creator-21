@@ -7,7 +7,7 @@ import {
 } from "@/types/adWizard";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { saveWizardProgress, clearWizardProgress } from "@/utils/wizardProgress";
 
 export const useAdWizardState = () => {
@@ -17,14 +17,24 @@ export const useAdWizardState = () => {
   const [audienceAnalysis, setAudienceAnalysis] = useState<AudienceAnalysis | null>(null);
   const [selectedHooks, setSelectedHooks] = useState<AdHook[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isCreatingProject, setIsCreatingProject] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
   const { projectId } = useParams();
+  const location = useLocation();
   const [autoCreatedProjectId, setAutoCreatedProjectId] = useState<string | null>(null);
 
   // Load existing project data
   useEffect(() => {
     const loadProjectData = async () => {
+      // Check for state from navigation first
+      const routerState = location.state as { businessIdea?: BusinessIdea };
+      if (routerState?.businessIdea) {
+        console.log('Setting business idea from router state:', routerState.businessIdea);
+        setBusinessIdea(routerState.businessIdea);
+        return;
+      }
+
       const currentProjectId = autoCreatedProjectId || projectId;
       if (currentProjectId && currentProjectId !== 'new') {
         try {
@@ -61,11 +71,11 @@ export const useAdWizardState = () => {
     };
 
     loadProjectData();
-  }, [projectId, autoCreatedProjectId]);
+  }, [projectId, autoCreatedProjectId, location.state]);
 
   const createInitialProject = async (idea: BusinessIdea) => {
     try {
-      console.log('Creating initial project...');
+      console.log('Creating initial project with idea:', idea);
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         console.log('No authenticated user found');
@@ -80,15 +90,17 @@ export const useAdWizardState = () => {
       const projectNumber = (count || 0) + 1;
       const projectTitle = `My Ad Campaign ${projectNumber}`;
 
+      const projectData = {
+        title: projectTitle,
+        user_id: user.id,
+        status: "draft",
+        current_step: 2,
+        business_idea: idea
+      };
+
       const { data, error } = await supabase
         .from("projects")
-        .insert({
-          title: projectTitle,
-          user_id: user.id,
-          status: "draft",
-          current_step: 1,
-          business_idea: idea
-        })
+        .insert(projectData)
         .select()
         .single();
 
@@ -111,33 +123,39 @@ export const useAdWizardState = () => {
   };
 
   const handleIdeaSubmit = useCallback(async (idea: BusinessIdea) => {
-    setBusinessIdea(idea);
+    if (isCreatingProject) return;
+    console.log('Handling idea submit:', idea);
     
-    let currentProjectId = projectId;
-    
-    // If we're on the 'new' route, create a project now
-    if (projectId === 'new') {
-      const newProjectId = await createInitialProject(idea);
-      if (!newProjectId) {
-        return; // Exit if project creation failed
-      }
-      setAutoCreatedProjectId(newProjectId);
-      navigate(`/ad-wizard/${newProjectId}`, { replace: true });
-      currentProjectId = newProjectId;
-      
-      toast({
-        title: "Project created",
-        description: "Your progress will be saved automatically.",
-      });
-    }
-
-    await saveWizardProgress({ 
-      business_idea: idea,
-      current_step: 2
-    }, currentProjectId);
-    
+    setBusinessIdea(idea); // Set state immediately
     setCurrentStep(2);
-  }, [projectId, navigate]);
+    
+    if (projectId === 'new') {
+      setIsCreatingProject(true);
+      try {
+        const newProjectId = await createInitialProject(idea);
+        if (!newProjectId) return;
+        
+        setAutoCreatedProjectId(newProjectId);
+        // Use React Router state to persist data during navigation
+        navigate(`/ad-wizard/${newProjectId}`, {
+          replace: true,
+          state: { businessIdea: idea }
+        });
+        
+        toast({
+          title: "Project created",
+          description: "Your progress will be saved automatically.",
+        });
+      } finally {
+        setIsCreatingProject(false);
+      }
+    } else {
+      await saveWizardProgress({ 
+        business_idea: idea,
+        current_step: 2
+      }, projectId);
+    }
+  }, [projectId, navigate, isCreatingProject]);
 
   const handleAudienceSelect = useCallback(async (audience: TargetAudience) => {
     setTargetAudience(audience);
@@ -299,6 +317,7 @@ export const useAdWizardState = () => {
     canNavigateToStep,
     setCurrentStep,
     isLoading,
+    isCreatingProject,
   };
 };
 
