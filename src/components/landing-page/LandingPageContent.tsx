@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -91,7 +92,7 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
         throw new Error('Authentication required');
       }
 
-      const { data, error } = await supabase.functions.invoke<GenerationResponse>('generate-landing-content', {
+      const { data: responseData, error: functionError } = await supabase.functions.invoke<GenerationResponse>('generate-landing-content', {
         body: {
           projectData: {
             business_idea: project.business_idea,
@@ -102,13 +103,13 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
         }
       });
 
-      if (error) {
-        console.error('Function error:', error);
-        throw new Error(error.message || 'Failed to generate content');
+      if (functionError) {
+        console.error('Function error:', functionError);
+        throw new Error(functionError.message || 'Failed to generate content');
       }
 
-      if (data?.error) {
-        throw new Error(data.error);
+      if (responseData && 'error' in responseData) {
+        throw new Error(responseData.error || 'Unknown error occurred');
       }
 
       toast({
