@@ -1,4 +1,3 @@
-
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
@@ -13,7 +12,7 @@ import { Rocket } from "lucide-react";
 interface CreateProjectDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSuccess: (projectId: string) => void;
+  onSuccess: (projectId: string, shouldNavigate: boolean) => void;
   onStartAdWizard?: (projectId?: string) => void;
   initialBusinessIdea?: string;
 }
@@ -139,21 +138,19 @@ const CreateProjectDialog = ({
     if (data && data[0]) {
       const projectId = data[0].id;
       setCreatedProjectId(projectId);
-      onSuccess(projectId);
-      
-      if (createMode === 'continue') {
-        if (onStartAdWizard) {
-          onStartAdWizard(projectId);
-          onOpenChange(false);
-        }
-      } else {
-        setShowActions(true);
-      }
       
       toast({
         title: "Project created",
         description: "Your project has been created successfully.",
       });
+
+      // Call onSuccess with the navigation flag based on creation mode
+      onSuccess(projectId, createMode === 'continue');
+      
+      // Only show actions if we're not continuing to ad wizard
+      if (createMode !== 'continue') {
+        setShowActions(true);
+      }
     }
   };
 
