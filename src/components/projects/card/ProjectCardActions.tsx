@@ -44,7 +44,9 @@ const ProjectCardActions = ({
     return true;
   };
 
-  const handleCreateLandingPage = async () => {
+  const handleCreateLandingPage = async (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent event from bubbling up to card
+    
     if (!validateProjectData()) return;
     
     console.log("Starting landing page creation for project:", projectId);
@@ -142,7 +144,10 @@ const ProjectCardActions = ({
         variant="outline"
         size="icon"
         className="h-7 w-7"
-        onClick={onEdit}
+        onClick={(e) => {
+          e.stopPropagation();
+          onEdit();
+        }}
       >
         <Edit2 className="h-3.5 w-3.5" />
       </Button>
@@ -150,7 +155,10 @@ const ProjectCardActions = ({
         variant="outline"
         size="icon"
         className="h-7 w-7"
-        onClick={onDelete}
+        onClick={(e) => {
+          e.stopPropagation();
+          onDelete();
+        }}
       >
         <Trash2 className="h-3.5 w-3.5" />
       </Button>
