@@ -18,6 +18,19 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
+interface BusinessIdea {
+  description: string;
+  valueProposition?: string;
+}
+
+interface ProjectData {
+  current_step: number;
+  business_idea: BusinessIdea | null;
+  target_audience: Record<string, any> | null;
+  audience_analysis: Record<string, any> | null;
+  generated_ads: any[] | null;
+}
+
 interface WizardStep {
   name: string;
   description: string;
@@ -52,7 +65,7 @@ const BreadcrumbNav = () => {
         .select("current_step, business_idea, target_audience, audience_analysis, generated_ads")
         .eq("id", projectId)
         .single();
-      return data;
+      return data as ProjectData;
     },
     enabled: !!projectId,
   });
@@ -67,7 +80,7 @@ const BreadcrumbNav = () => {
                  projectData.current_step === 1 ? 'current' : 'upcoming',
           completionData: projectData.business_idea ? {
             hasData: true,
-            summary: projectData.business_idea?.description?.substring(0, 50) + '...'
+            summary: (projectData.business_idea as BusinessIdea)?.description?.substring(0, 50) + '...'
           } : undefined
         },
         {
