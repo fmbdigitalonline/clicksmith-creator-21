@@ -43,7 +43,6 @@ const ProjectList = ({ onStartAdWizard }: ProjectListProps) => {
           throw error;
         }
 
-        // Return only the data, not the entire response
         return data as Project[];
       } catch (error) {
         console.error("Error in queryFn:", error);
@@ -52,6 +51,10 @@ const ProjectList = ({ onStartAdWizard }: ProjectListProps) => {
     },
     retry: false,
   });
+
+  const handleCreateSuccess = (projectId: string) => {
+    refetch();
+  };
 
   const handleCreateProject = () => {
     setIsCreateOpen(true);
@@ -108,10 +111,7 @@ const ProjectList = ({ onStartAdWizard }: ProjectListProps) => {
       <CreateProjectDialog
         open={isCreateOpen}
         onOpenChange={setIsCreateOpen}
-        onSuccess={() => {
-          refetch();
-          setIsCreateOpen(false);
-        }}
+        onSuccess={handleCreateSuccess}
         onStartAdWizard={onStartAdWizard}
       />
     </div>

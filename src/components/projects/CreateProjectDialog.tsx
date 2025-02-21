@@ -137,25 +137,23 @@ const CreateProjectDialog = ({
     }
 
     if (data && data[0]) {
-      setCreatedProjectId(data[0].id);
+      const projectId = data[0].id;
+      setCreatedProjectId(projectId);
+      onSuccess(projectId);
+      
+      if (createMode === 'continue') {
+        if (onStartAdWizard) {
+          onStartAdWizard(projectId);
+          onOpenChange(false);
+        }
+      } else {
+        setShowActions(true);
+      }
       
       toast({
         title: "Project created",
         description: "Your project has been created successfully.",
       });
-      
-      onSuccess(data[0].id);
-
-      if (createMode === 'continue') {
-        // If "Create & Continue" was clicked, start ad wizard immediately
-        if (onStartAdWizard) {
-          onStartAdWizard(data[0].id);
-          onOpenChange(false);
-        }
-      } else {
-        // Show "What's next?" dialog only for regular creation
-        setShowActions(true);
-      }
     }
   };
 
