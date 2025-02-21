@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -14,7 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { validateProjectState } from "@/utils/projectValidation";
-import { Project, TargetAudience, AudienceAnalysis, MarketingCampaign } from "@/types/adWizard";
+import { Project, TargetAudience, AudienceAnalysis, MarketingCampaign, AdHook } from "@/types/adWizard";
 
 type DatabaseProject = Database['public']['Tables']['projects']['Row'];
 
@@ -45,15 +46,19 @@ const ProjectList = ({ onStartAdWizard }: ProjectListProps) => {
           throw error;
         }
 
-        // Transform the data to match our Project type
-        return (data as DatabaseProject[]).map(project => ({
-          ...project,
-          business_idea: project.business_idea as Project['business_idea'],
-          target_audience: project.target_audience as TargetAudience,
-          audience_analysis: project.audience_analysis as AudienceAnalysis,
-          marketing_campaign: project.marketing_campaign as MarketingCampaign,
-          generated_ads: project.generated_ads as any[],
-        } as Project));
+        // Transform the data to match our Project type with proper type safety
+        return (data as DatabaseProject[]).map(project => {
+          const transformedProject = {
+            ...project,
+            business_idea: project.business_idea as Project['business_idea'],
+            target_audience: project.target_audience as unknown as TargetAudience,
+            audience_analysis: project.audience_analysis as unknown as AudienceAnalysis,
+            marketing_campaign: project.marketing_campaign as unknown as MarketingCampaign,
+            selected_hooks: (project.selected_hooks as unknown as AdHook[]) || [],
+            generated_ads: project.generated_ads as unknown as any[],
+          };
+          return transformedProject as unknown as Project;
+        });
       } catch (error) {
         console.error("Error in queryFn:", error);
         throw error;

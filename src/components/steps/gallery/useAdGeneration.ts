@@ -4,7 +4,15 @@ import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { AdVariant, DatabaseAdVariant, Platform, PlatformAdState, AdGenerationState } from "@/types/adGeneration";
+import { 
+  AdVariant, 
+  DatabaseAdVariant, 
+  Platform, 
+  PlatformAdState, 
+  AdGenerationState,
+  convertToAdVariant,
+  convertToDatabaseFormat
+} from "@/types/adGeneration";
 
 export const useAdGeneration = (
   businessIdea: BusinessIdea,
@@ -32,7 +40,6 @@ export const useAdGeneration = (
   const navigate = useNavigate();
   const { projectId } = useParams();
 
-  // Load saved ad variants when component mounts
   useEffect(() => {
     const loadSavedAds = async () => {
       console.log('Loading saved ads for project:', projectId);
@@ -46,12 +53,12 @@ export const useAdGeneration = (
         console.log('Loaded project data:', project);
         
         if (project?.generated_ads && Array.isArray(project.generated_ads)) {
-          const variants = project.generated_ads as unknown as DatabaseAdVariant[];
+          const variants = (project.generated_ads as unknown[])
+            .map(convertToAdVariant)
+            .filter((v): v is AdVariant => v !== null);
+            
           console.log('Setting ad variants from project:', variants);
-          setAdVariants(variants.map(v => ({
-            ...v,
-            platform: v.platform as Platform,
-          })));
+          setAdVariants(variants);
           setState(prev => ({ ...prev, hasSavedAds: true }));
         }
       }
@@ -60,34 +67,6 @@ export const useAdGeneration = (
 
     loadSavedAds();
   }, [projectId]);
-
-  const checkCredits = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('User not authenticated');
-
-    const { data: creditCheck, error } = await supabase.rpc(
-      'check_user_credits',
-      { p_user_id: user.id, required_credits: 1 }
-    );
-
-    if (error) {
-      throw error;
-    }
-
-    const result = creditCheck[0];
-    
-    if (!result.has_credits) {
-      toast({
-        title: "No credits available",
-        description: result.error_message,
-        variant: "destructive",
-      });
-      navigate('/pricing');
-      return false;
-    }
-
-    return true;
-  };
 
   const generateAds = async (selectedPlatform: Platform) => {
     setIsGenerating(true);
@@ -181,10 +160,12 @@ export const useAdGeneration = (
 
       // Save to project if we have a project ID
       if (projectId && projectId !== 'new') {
+        const databaseVariants = validVariants.map(convertToDatabaseFormat);
+        
         const { error: updateError } = await supabase
           .from('projects')
           .update({
-            generated_ads: JSON.parse(JSON.stringify(validVariants))
+            generated_ads: databaseVariants
           })
           .eq('id', projectId);
 
