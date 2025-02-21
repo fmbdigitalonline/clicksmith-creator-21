@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 import { Loader2 } from "lucide-react";
 import StepLoadingState from "./steps/LoadingState";
+import { Button } from "./ui/button";
 
 interface AdWizardProps {
   initialView?: 'gallery';
@@ -39,6 +40,8 @@ const AdWizard = ({ initialView }: AdWizardProps) => {
     handleStartOver,
     canNavigateToStep,
     setCurrentStep,
+    isDataLoaded,
+    error
   } = useAdWizardState(initialView === 'gallery' ? 4 : undefined);
 
   // Handle project initialization
@@ -77,6 +80,18 @@ const AdWizard = ({ initialView }: AdWizardProps) => {
     initializeProject();
   }, [projectId, navigate]);
 
+  // Error handling
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12">
+        <p className="text-red-500 mb-4">{error}</p>
+        <Button onClick={() => navigate(`/ad-wizard/${projectId}`)}>
+          Start from Beginning
+        </Button>
+      </div>
+    );
+  }
+
   const handleCreateProject = () => {
     setShowCreateProject(true);
   };
@@ -104,14 +119,19 @@ const AdWizard = ({ initialView }: AdWizardProps) => {
   const renderStep = () => {
     // For direct gallery access, ensure we have all required data
     if (initialView === 'gallery') {
-      if (!businessIdea || !targetAudience || !audienceAnalysis) {
+      if (!isDataLoaded) {
+        return <StepLoadingState />;
+      }
+
+      if (isDataLoaded && (!businessIdea || !targetAudience || !audienceAnalysis)) {
         navigate(`/ad-wizard/${projectId}`);
         return <StepLoadingState />;
       }
+
       return (
         <AdGalleryStep
-          businessIdea={businessIdea}
-          targetAudience={targetAudience}
+          businessIdea={businessIdea!}
+          targetAudience={targetAudience!}
           adHooks={selectedHooks}
           onStartOver={handleStartOver}
           onBack={handleBack}
@@ -122,6 +142,10 @@ const AdWizard = ({ initialView }: AdWizardProps) => {
     }
 
     // Regular wizard flow
+    if (!isDataLoaded) {
+      return <StepLoadingState />;
+    }
+
     switch (currentStep) {
       case 1:
         return <IdeaStep onNext={handleIdeaSubmit} initialBusinessIdea={businessIdea} />;

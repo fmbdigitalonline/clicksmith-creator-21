@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useEffect } from "react";
 import {
   BusinessIdea,
@@ -17,6 +18,8 @@ export const useAdWizardState = (initialStep?: number) => {
   const [audienceAnalysis, setAudienceAnalysis] = useState<AudienceAnalysis | null>(null);
   const [selectedHooks, setSelectedHooks] = useState<AdHook[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [isCreatingProject, setIsCreatingProject] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -27,11 +30,14 @@ export const useAdWizardState = (initialStep?: number) => {
   // Load existing project data
   useEffect(() => {
     const loadProjectData = async () => {
+      setIsDataLoaded(false);
+      setError(null);
+      
       // Check for state from navigation first
       const routerState = location.state as { businessIdea?: BusinessIdea };
       if (routerState?.businessIdea) {
-        console.log('Setting business idea from router state:', routerState.businessIdea);
         setBusinessIdea(routerState.businessIdea);
+        setIsDataLoaded(true);
         return;
       }
 
@@ -46,6 +52,7 @@ export const useAdWizardState = (initialStep?: number) => {
             .single();
 
           if (error) throw error;
+          
           if (project) {
             console.log('Loaded project data:', project);
             if (project.business_idea) {
@@ -60,14 +67,22 @@ export const useAdWizardState = (initialStep?: number) => {
             if (project.selected_hooks) {
               setSelectedHooks(project.selected_hooks as AdHook[]);
             }
-            // Only set current step if not overridden by initialStep
-            if (project.current_step && !initialStep) {
+            
+            // Prioritize initialStep over project.current_step
+            if (initialStep) {
+              setCurrentStep(initialStep);
+            } else if (project.current_step) {
               setCurrentStep(Number(project.current_step));
             }
           }
         } catch (error) {
           console.error('Error loading project:', error);
+          setError(error instanceof Error ? error.message : 'Failed to load project data');
+        } finally {
+          setIsDataLoaded(true);
         }
+      } else {
+        setIsDataLoaded(true);
       }
     };
 
@@ -318,6 +333,8 @@ export const useAdWizardState = (initialStep?: number) => {
     canNavigateToStep,
     setCurrentStep,
     isLoading,
+    isDataLoaded,
+    error,
     isCreatingProject,
   };
 };
