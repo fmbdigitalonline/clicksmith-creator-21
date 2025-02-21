@@ -92,7 +92,8 @@ export const useAdGeneration = (
       setGenerationStatus("Processing generated content...");
       
       const processedVariants = await Promise.all(variants.map(async (variant: any) => {
-        const imageUrl = variant.imageUrl || variant.image?.url;
+        // Get image URL and prompt using the new structure
+        const imageUrl = variant.image?.url || variant.imageUrl;
         const imagePrompt = variant.image?.prompt || variant.prompt;
 
         if (!imageUrl) {
@@ -109,7 +110,7 @@ export const useAdGeneration = (
             .from('ad_image_variants')
             .insert({
               original_image_url: imageUrl,
-              prompt: imagePrompt,
+              prompt: imagePrompt, // Store the prompt
               metadata: {
                 platform: selectedPlatform,
                 size: variant.size,
@@ -126,6 +127,7 @@ export const useAdGeneration = (
             return null;
           }
 
+          // Ensure we maintain the same structure for all variants
           const newVariant = {
             ...variant,
             id: imageVariant.id,
