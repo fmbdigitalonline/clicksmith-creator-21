@@ -22,13 +22,25 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { Button } from "./ui/button";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 export function AppSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const currentPath = location.pathname;
+  const [isAdmin, setIsAdmin] = useState(false);
 
-  const menuItems = [
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      const { data: isAdminResult } = await supabase.rpc('is_admin');
+      setIsAdmin(!!isAdminResult);
+    };
+
+    checkAdminStatus();
+  }, []);
+
+  const baseMenuItems = [
     {
       title: "Home",
       icon: Home,
@@ -50,16 +62,21 @@ export function AppSidebar() {
       url: "/landing-pages",
     },
     {
-      title: "Blog Admin",
-      icon: FileText,
-      url: "/blog-admin",
-    },
-    {
       title: "Settings",
       icon: Settings,
       url: "/settings",
     },
   ];
+
+  const adminMenuItems = [
+    {
+      title: "Blog Admin",
+      icon: FileText,
+      url: "/blog-admin",
+    },
+  ];
+
+  const menuItems = isAdmin ? [...baseMenuItems, ...adminMenuItems] : baseMenuItems;
 
   const isActive = (path: string) => {
     if (path === "/dashboard") {

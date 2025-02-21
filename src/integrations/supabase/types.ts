@@ -1194,6 +1194,30 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          created_at: string | null
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       wizard_progress: {
         Row: {
           ad_format: Json | null
@@ -1364,6 +1388,16 @@ export type Database = {
           error_message: string
         }[]
       }
+      has_role: {
+        Args: {
+          role_to_check: Database["public"]["Enums"]["app_role"]
+        }
+        Returns: boolean
+      }
+      is_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
       log_credit_operation: {
         Args: {
           p_user_id: string
@@ -1423,6 +1457,7 @@ export type Database = {
     }
     Enums: {
       ad_platform: "facebook" | "google" | "linkedin" | "tiktok"
+      app_role: "admin" | "user"
       backup_type: "auto" | "manual"
       credit_operation_type: "credit_add" | "credit_deduct" | "credit_refund"
       image_generation_status: "pending" | "completed" | "failed"
