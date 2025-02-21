@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -14,6 +13,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { validateProjectState } from "@/utils/projectValidation";
 
 // Use the database types directly and extend them
 type DatabaseProject = Database['public']['Tables']['projects']['Row'];
@@ -88,15 +88,20 @@ const ProjectList = ({ onStartAdWizard }: ProjectListProps) => {
 
   const getRecentProjects = () => {
     if (!projects) return [];
-    return projects.slice(0, 3); // Get most recent 3 projects
+    return projects
+      .filter(project => {
+        const status = validateProjectState(project);
+        return status.state === 'ads_generated' || status.state === 'in_progress';
+      })
+      .slice(0, 3);
   };
 
   const getMostRecentInProgressProject = () => {
     if (!projects) return null;
-    return projects.find(project => 
-      project.current_step > 1 && 
-      (!project.generated_ads || project.generated_ads.length === 0)
-    );
+    return projects.find(project => {
+      const status = validateProjectState(project);
+      return status.state === 'in_progress';
+    });
   };
 
   if (error) {
