@@ -1,13 +1,40 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import Replicate from "https://esm.sh/replicate@0.25.2"
-import { deduceRequiredCredits, generateContent } from "./deepeek.ts"
+import { generateContent } from "./deepeek.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
+
+interface BusinessIdea {
+  description: string;
+  valueProposition: string;
+}
+
+interface TargetAudience {
+  demographics: any;
+  interests: string[];
+  painPoints: string[];
+}
+
+const validateBusinessIdea = (businessIdea: any): businessIdea is BusinessIdea => {
+  return (
+    businessIdea &&
+    typeof businessIdea.description === 'string' &&
+    typeof businessIdea.valueProposition === 'string'
+  );
+};
+
+const validateTargetAudience = (targetAudience: any): targetAudience is TargetAudience => {
+  return (
+    targetAudience &&
+    targetAudience.demographics &&
+    Array.isArray(targetAudience.interests) &&
+    Array.isArray(targetAudience.painPoints)
+  );
+};
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -17,61 +44,54 @@ serve(async (req) => {
 
   try {
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL')
-    const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-    const REPLICATE_API_KEY = Deno.env.get('REPLICATE_API_KEY')
     const DEEPEEK_API_KEY = Deno.env.get('DEEPEEK_API_KEY')
 
-    if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !SUPABASE_SERVICE_ROLE_KEY) {
-      throw new Error('Missing environment variables.')
-    }
-
-    if (!REPLICATE_API_KEY) {
-      throw new Error('REPLICATE_API_KEY is not set')
-    }
-
-    if (!DEEPEEK_API_KEY) {
-      throw new Error('DEEPEEK_API_KEY is not set')
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY || !DEEPEEK_API_KEY) {
+      throw new Error('Missing required environment variables')
     }
 
     // Initialize Supabase client with service role key
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
-    // Initialize Replicate client
-    const replicate = new Replicate({
-      auth: REPLICATE_API_KEY,
-    })
+    const { projectId, businessIdea, targetAudience, userId } = await req.json()
 
-    // Get request body
-    const body = await req.json()
-    const { 
-      projectId, 
-      businessIdea, 
-      targetAudience, 
-      userId,
-      currentContent,
-      iterationNumber = 1,
-      isRefinement = false
-    } = body
-
+    // Validate required parameters
     if (!projectId || !userId) {
-      throw new Error('Missing required parameters: projectId and userId are required')
+      return new Response(
+        JSON.stringify({ error: 'Missing required parameters: projectId and userId' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
     }
 
-    // Calculate required credits based on operation type
-    const requiredCredits = deduceRequiredCredits(isRefinement)
+    // Validate business idea structure
+    if (!validateBusinessIdea(businessIdea)) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid business idea structure' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
 
-    // Check if user has enough credits
+    // Validate target audience structure
+    if (!validateTargetAudience(targetAudience)) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid target audience structure' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Check user credits
     const { data: creditCheck, error: creditError } = await supabase.rpc(
       'check_user_credits',
       { 
         p_user_id: userId,
-        required_credits: requiredCredits
+        required_credits: 2 // Initial generation cost
       }
     )
 
     if (creditError) {
-      throw new Error(`Error checking credits: ${creditError.message}`)
+      console.error('Credit check error:', creditError)
+      throw new Error('Failed to check credits')
     }
 
     if (!creditCheck.has_credits) {
@@ -86,93 +106,74 @@ serve(async (req) => {
       )
     }
 
-    // Deduct credits
-    const { data: deductResult, error: deductError } = await supabase.rpc(
-      'deduct_user_credits',
-      { 
-        input_user_id: userId,
-        credits_to_deduct: requiredCredits
-      }
-    )
-
-    if (deductError) {
-      throw new Error(`Error deducting credits: ${deductError.message}`)
-    }
-
-    if (!deductResult.success) {
-      throw new Error(deductResult.error_message || 'Failed to deduct credits')
-    }
-
-    // Log the generation start
+    // Create generation log
     const { data: log, error: logError } = await supabase
       .from('landing_page_generation_logs')
       .insert({
         project_id: projectId,
         user_id: userId,
         status: 'started',
-        request_payload: {
-          businessIdea,
-          targetAudience,
-          isRefinement,
-          iterationNumber,
-          requiredCredits
-        },
-        api_status_code: 200,
-        success: true,
+        request_payload: { businessIdea, targetAudience },
         step_details: { stage: 'started' }
       })
       .select()
       .single()
 
     if (logError) {
-      console.error('Error logging generation start:', logError)
+      console.error('Error creating generation log:', logError)
     }
 
-    // Generate landing page content
-    const generatedContent = await generateContent({
+    // Generate content
+    const content = await generateContent({
       businessIdea,
       targetAudience,
-      userId,
-      currentContent,
-      iterationNumber,
-      isRefinement
+      userId
     })
 
-    // Save the landing page content
+    // Save generated content
     const { error: saveError } = await supabase
       .from('landing_pages')
       .upsert({
         project_id: projectId,
         user_id: userId,
-        content: generatedContent,
-        content_iterations: iterationNumber
+        content,
+        content_iterations: 1
       })
 
     if (saveError) {
-      throw new Error(`Error saving landing page: ${saveError.message}`)
+      throw new Error(`Failed to save landing page: ${saveError.message}`)
     }
 
-    // Update the log with success
+    // Update log with success
     if (log) {
-      const { error: updateError } = await supabase
+      await supabase
         .from('landing_page_generation_logs')
         .update({
           status: 'completed',
-          response_payload: generatedContent,
+          response_payload: content,
           step_details: { stage: 'completed' }
         })
         .eq('id', log.id)
+    }
 
-      if (updateError) {
-        console.error('Error updating generation log:', updateError)
+    // Deduct credits
+    const { data: deductResult, error: deductError } = await supabase.rpc(
+      'deduct_user_credits',
+      { 
+        input_user_id: userId,
+        credits_to_deduct: 2
       }
+    )
+
+    if (deductError || !deductResult.success) {
+      throw new Error('Failed to deduct credits')
     }
 
     return new Response(
       JSON.stringify({
-        content: generatedContent,
+        content,
         projectId,
-        creditsUsed: requiredCredits,
+        creditsUsed: 2,
         creditsRemaining: deductResult.current_credits
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -181,21 +182,10 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in generate-landing-page function:', error)
 
-    // Try to log the error
-    if (error.message && error.message.includes('user_id') && error.message.includes('credits')) {
-      return new Response(
-        JSON.stringify({ 
-          error: 'Insufficient credits or missing subscription'
-        }),
-        { 
-          status: 402,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      )
-    }
-
     return new Response(
-      JSON.stringify({ error: `Error generating landing page: ${error.message}` }),
+      JSON.stringify({
+        error: error instanceof Error ? error.message : 'An unexpected error occurred'
+      }),
       { 
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
