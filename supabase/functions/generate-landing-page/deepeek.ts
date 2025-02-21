@@ -1,74 +1,106 @@
-import { Configuration, OpenAIApi } from "https://esm.sh/openai@3.2.1";
-
 interface ContentGenerationParams {
-  businessIdea: {
-    description: string;
-    valueProposition: string;
-  };
-  targetAudience: {
-    icp: string;
-    name: string;
-    painPoints: string[];
-    coreMessage: string;
-    description: string;
-    positioning: string;
-    demographics: string;
-    marketingAngle: string;
-    marketingChannels: string[];
-    messagingApproach: string;
-  };
+  businessIdea: any;
+  targetAudience: any;
+  userId: string;
+  currentContent?: any;
   iterationNumber?: number;
+  isRefinement?: boolean;
 }
 
+// Define credit costs for different operations
+const CREDIT_COSTS = {
+  INITIAL_GENERATION: 2,
+  REFINEMENT: 1,
+} as const;
+
+export const deduceRequiredCredits = (isRefinement: boolean = false): number => {
+  return isRefinement ? CREDIT_COSTS.REFINEMENT : CREDIT_COSTS.INITIAL_GENERATION;
+};
+
 export const generateContent = async (params: ContentGenerationParams) => {
-  const configuration = new Configuration({
-    apiKey: Deno.env.get("OPENAI_API_KEY"),
-  });
-  const openai = new OpenAIApi(configuration);
+  const { businessIdea, targetAudience, userId, currentContent, iterationNumber = 1, isRefinement = false } = params;
 
-  const prompt = `Generate landing page content for a business with the following details:
-
-Business Idea: ${params.businessIdea.description}
-Value Proposition: ${params.businessIdea.valueProposition}
-Target Audience: ${params.targetAudience.description}
-Core Message: ${params.targetAudience.coreMessage}
-Pain Points: ${params.targetAudience.painPoints.join(", ")}
-Marketing Angle: ${params.targetAudience.marketingAngle}
-
-Create compelling content for a landing page that includes:
-1. A hero section with a headline, description, and call-to-action
-2. Key features (3-4 items)
-3. Benefits (3-4 items)
-4. Customer testimonials (2-3)
-5. FAQ items (3-4 questions and answers)
-6. A final call-to-action section
-
-Make the content ${params.iterationNumber && params.iterationNumber > 1 ? "more compelling and refined than previous versions" : "compelling and persuasive"}. Focus on addressing the pain points and using the specified marketing angle.`;
-
-  try {
-    const completion = await openai.createChatCompletion({
-      model: "gpt-4",
-      messages: [
-        {
-          role: "system",
-          content: "You are an expert copywriter specializing in landing page content that converts. Generate content in JSON format.",
+  // Mock implementation - replace with actual content generation logic
+  const sections = [
+    {
+      type: 'hero',
+      order: 1,
+      content: {
+        title: `Landing Page Title ${iterationNumber}`,
+        subtitle: `Subtitle for iteration ${iterationNumber}`,
+        imageUrl: 'https://source.unsplash.com/random',
+        primaryCta: {
+          text: 'Learn More',
+          description: 'Click here to learn more'
         },
-        {
-          role: "user",
-          content: prompt,
-        },
-      ],
-      temperature: 0.7,
-    });
-
-    const response = completion.data.choices[0]?.message?.content;
-    if (!response) {
-      throw new Error("No content generated");
+        secondaryCta: {
+          text: 'Sign Up',
+          description: 'Sign up today'
+        }
+      }
+    },
+    {
+      type: 'social-proof',
+      order: 2,
+      content: {
+        title: 'Why Customers Love Us',
+        items: [
+          {
+            title: '5 Stars',
+            description: 'Rated 5 stars by our users'
+          },
+          {
+            title: '99%',
+            description: '99% customer satisfaction'
+          },
+          {
+            title: '10k+',
+            description: 'Trusted by over 10,000 customers'
+          }
+        ]
+      }
+    },
+    {
+      type: 'features',
+      order: 3,
+      content: {
+        title: 'Key Features',
+        items: [
+          {
+            title: 'Feature 1',
+            description: 'Description of feature 1',
+            details: ['Detail 1', 'Detail 2'],
+            highlights: ['Highlight 1', 'Highlight 2']
+          },
+          {
+            title: 'Feature 2',
+            description: 'Description of feature 2',
+            details: ['Detail 1', 'Detail 2'],
+            highlights: ['Highlight 1', 'Highlight 2']
+          }
+        ],
+        layout: {
+          style: 'grid'
+        }
+      }
+    },
+    {
+      type: 'bullet-points',
+      order: 4,
+      content: {
+        title: 'Benefits',
+        points: ['Benefit 1', 'Benefit 2', 'Benefit 3']
+      }
     }
+  ];
 
-    return JSON.parse(response);
-  } catch (error) {
-    console.error("Error generating content:", error);
-    throw error;
-  }
+  return {
+    sections,
+    businessIdea,
+    targetAudience,
+    userId,
+    iterationNumber,
+    isRefinement,
+    currentContent
+  };
 };

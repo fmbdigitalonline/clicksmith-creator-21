@@ -1,7 +1,8 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import Replicate from "https://esm.sh/replicate@0.25.2"
-import { deduceRequiredCredits } from "./deepeek.ts"
+import { deduceRequiredCredits, generateContent } from "./deepeek.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -43,18 +44,29 @@ serve(async (req) => {
 
     // Get request body
     const body = await req.json()
-    const { projectId, businessIdea, targetAudience, userId } = body
+    const { 
+      projectId, 
+      businessIdea, 
+      targetAudience, 
+      userId,
+      currentContent,
+      iterationNumber = 1,
+      isRefinement = false
+    } = body
 
     if (!projectId || !userId) {
       throw new Error('Missing required parameters: projectId and userId are required')
     }
+
+    // Calculate required credits based on operation type
+    const requiredCredits = deduceRequiredCredits(isRefinement)
 
     // Check if user has enough credits
     const { data: creditCheck, error: creditError } = await supabase.rpc(
       'check_user_credits',
       { 
         p_user_id: userId,
-        required_credits: deduceRequiredCredits()
+        required_credits: requiredCredits
       }
     )
 
@@ -79,7 +91,7 @@ serve(async (req) => {
       'deduct_user_credits',
       { 
         input_user_id: userId,
-        credits_to_deduct: deduceRequiredCredits()
+        credits_to_deduct: requiredCredits
       }
     )
 
@@ -98,7 +110,13 @@ serve(async (req) => {
         project_id: projectId,
         user_id: userId,
         status: 'started',
-        request_payload: { businessIdea, targetAudience },
+        request_payload: {
+          businessIdea,
+          targetAudience,
+          isRefinement,
+          iterationNumber,
+          requiredCredits
+        },
         api_status_code: 200,
         success: true,
         step_details: { stage: 'started' }
@@ -111,19 +129,28 @@ serve(async (req) => {
     }
 
     // Generate landing page content
-    const prediction = await replicate.run(
-      "stability-ai/stable-diffusion:db21e94d56c23f988e2a46ade3f903761c2f462bfcb70a03743c241e758e65a3",
-      {
-        input: {
-          prompt: `Generate a landing page for ${businessIdea.description} targeting ${targetAudience.description}. The landing page should be modern, clean, and professional.`,
-        },
-      }
-    );
+    const generatedContent = await generateContent({
+      businessIdea,
+      targetAudience,
+      userId,
+      currentContent,
+      iterationNumber,
+      isRefinement
+    })
 
-    const generatedContent = {
-      message: "Landing page generated successfully!",
-      prediction,
-    };
+    // Save the landing page content
+    const { error: saveError } = await supabase
+      .from('landing_pages')
+      .upsert({
+        project_id: projectId,
+        user_id: userId,
+        content: generatedContent,
+        content_iterations: iterationNumber
+      })
+
+    if (saveError) {
+      throw new Error(`Error saving landing page: ${saveError.message}`)
+    }
 
     // Update the log with success
     if (log) {
@@ -142,7 +169,12 @@ serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify(generatedContent),
+      JSON.stringify({
+        content: generatedContent,
+        projectId,
+        creditsUsed: requiredCredits,
+        creditsRemaining: deductResult.current_credits
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
 
