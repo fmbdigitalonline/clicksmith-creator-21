@@ -20,6 +20,12 @@ interface LandingPageSection {
   content: Record<string, unknown>;
 }
 
+interface GenerationMetadata {
+  error?: string;
+  status?: string;
+  progress?: number;
+}
+
 interface SuccessResponse {
   success: true;
   sections: LandingPageSection[];
@@ -35,6 +41,16 @@ type GenerationResponse = SuccessResponse | ErrorResponse;
 interface GenerationProgress {
   status: string;
   progress: number;
+}
+
+// Type guard for generation metadata
+function isGenerationMetadata(value: unknown): value is GenerationMetadata {
+  return value !== null && typeof value === 'object';
+}
+
+// Type guard for error response
+function isErrorResponse(response: GenerationResponse): response is ErrorResponse {
+  return !response.success;
 }
 
 const LandingPageContent = ({ project, landingPage }: { project: any; landingPage: any }) => {
@@ -67,8 +83,12 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
               queryClient.invalidateQueries({ queryKey: ['landing-page', project.id] });
               break;
             case 'failed':
+              const metadata = page.generation_metadata;
+              const errorMessage = isGenerationMetadata(metadata) && metadata.error 
+                ? metadata.error 
+                : 'Unknown error';
               setGenerationProgress({ 
-                status: `Error: ${page.generation_metadata?.error || 'Unknown error'}`, 
+                status: `Error: ${errorMessage}`, 
                 progress: 0 
               });
               setIsGenerating(false);
@@ -123,9 +143,8 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
         throw new Error('No response data received');
       }
 
-      // Type guard to check if the response is an error
-      if (!data.success) {
-        throw new Error(data.error || 'Unknown error occurred');
+      if (isErrorResponse(data)) {
+        throw new Error(data.error);
       }
 
       toast({
