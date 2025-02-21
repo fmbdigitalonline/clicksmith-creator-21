@@ -1,18 +1,24 @@
 
-import { Auth } from "@supabase/auth-ui-react";
-import { ThemeSupa } from "@supabase/auth-ui-shared";
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate, Link } from "react-router-dom";
 import { useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { BadgeCheck } from "lucide-react";
+import { BadgeCheck, Loader2 } from "lucide-react";
 import LandingNav from "@/components/LandingNav";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 const Login = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
 
   useEffect(() => {
     // Check if user is already logged in
@@ -53,6 +59,49 @@ const Login = () => {
     };
   }, [navigate, toast]);
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setIsLoading(true);
+
+    try {
+      if (isSignUp) {
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/dashboard`,
+          },
+        });
+        if (error) throw error;
+        toast({
+          title: "Account created",
+          description: "Please check your email to verify your account.",
+        });
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+        if (error) throw error;
+      }
+    } catch (error: any) {
+      setError(error.message);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message,
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const toggleView = () => {
+    setIsSignUp(!isSignUp);
+    setError("");
+  };
+
   return (
     <>
       <LandingNav />
@@ -65,53 +114,71 @@ const Login = () => {
             </div>
             <Alert className="bg-primary/5 border-primary/10">
               <AlertDescription className="text-sm">
-                Sign in to your account or create a new one to get started.
+                {isSignUp ? "Create a new account to get started." : "Sign in to your account to continue."}
               </AlertDescription>
             </Alert>
           </div>
-          
-          <Auth
-            supabaseClient={supabase}
-            view="sign_in"
-            appearance={{
-              theme: ThemeSupa,
-              style: {
-                button: { background: 'rgb(59 130 246)', color: 'white' },
-                anchor: { color: 'rgb(59 130 246)' },
-                input: { background: 'white' },
-                message: { color: 'rgb(239 68 68)' },
-              },
-              className: {
-                container: 'space-y-4',
-                button: 'w-full',
-                input: 'w-full',
-                message: 'text-sm font-medium text-destructive',
-              }
-            }}
-            redirectTo={`${window.location.origin}/dashboard`}
-            onlyThirdPartyProviders={false}
-            providers={[]}
-            magicLink={false}
-            showLinks={true}
-            localization={{
-              variables: {
-                sign_in: {
-                  email_label: 'Email address',
-                  password_label: 'Password',
-                  button_label: 'Sign in',
-                  loading_button_label: 'Signing in...',
-                  link_text: 'Need an account? Sign up',
-                },
-                sign_up: {
-                  email_label: 'Email address',
-                  password_label: 'Create a Password',
-                  button_label: 'Sign up',
-                  loading_button_label: 'Creating account...',
-                  link_text: 'Sign in instead',
-                }
-              }
-            }}
-          />
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <label htmlFor="email" className="text-sm font-medium">
+                Email address
+              </label>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Enter your email"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="password" className="text-sm font-medium">
+                {isSignUp ? "Create a Password" : "Password"}
+              </label>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder={isSignUp ? "Minimum 6 characters" : "Enter your password"}
+                required
+                minLength={6}
+              />
+            </div>
+
+            {error && (
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {isSignUp ? "Creating account..." : "Signing in..."}
+                </>
+              ) : (
+                isSignUp ? "Create account" : "Sign in"
+              )}
+            </Button>
+
+            <Button
+              type="button"
+              variant="ghost"
+              className="w-full"
+              onClick={toggleView}
+            >
+              {isSignUp ? "Already have an account? Sign in" : "Need an account? Sign up"}
+            </Button>
+          </form>
           
           <div className="mt-6">
             <Alert className="bg-accent/5 border-accent/10">
