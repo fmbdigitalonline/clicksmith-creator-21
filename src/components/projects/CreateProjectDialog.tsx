@@ -7,6 +7,8 @@ import ProjectForm, { ProjectFormData } from "./ProjectForm";
 import ProjectActions from "./ProjectActions";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Rocket } from "lucide-react";
 
 interface CreateProjectDialogProps {
   open: boolean;
@@ -61,6 +63,7 @@ const CreateProjectDialog = ({
   const [showActions, setShowActions] = useState(false);
   const [createdProjectId, setCreatedProjectId] = useState<string | null>(null);
   const [includeWizardProgress, setIncludeWizardProgress] = useState(true);
+  const [createMode, setCreateMode] = useState<'save' | 'continue'>('save');
   
   useEffect(() => {
     const getCurrentUser = async () => {
@@ -86,7 +89,6 @@ const CreateProjectDialog = ({
       ? values.tags.split(",").map((tag) => tag.trim())
       : [];
 
-    // Generate creative project name based on business idea
     const projectTitle = generateProjectName(values.businessIdea);
 
     let projectData: any = {
@@ -102,7 +104,6 @@ const CreateProjectDialog = ({
     };
 
     if (includeWizardProgress) {
-      // Fetch current wizard progress
       const { data: wizardProgress } = await supabase
         .from('wizard_progress')
         .select('*')
@@ -110,7 +111,6 @@ const CreateProjectDialog = ({
         .single();
 
       if (wizardProgress) {
-        // Include wizard progress data in project
         projectData = {
           ...projectData,
           target_audience: wizardProgress.target_audience,
@@ -138,12 +138,24 @@ const CreateProjectDialog = ({
 
     if (data && data[0]) {
       setCreatedProjectId(data[0].id);
-      setShowActions(true);
+      
       toast({
         title: "Project created",
         description: "Your project has been created successfully.",
       });
+      
       onSuccess(data[0].id);
+
+      if (createMode === 'continue') {
+        // If "Create & Continue" was clicked, start ad wizard immediately
+        if (onStartAdWizard) {
+          onStartAdWizard(data[0].id);
+          onOpenChange(false);
+        }
+      } else {
+        // Show "What's next?" dialog only for regular creation
+        setShowActions(true);
+      }
     }
   };
 
@@ -163,6 +175,7 @@ const CreateProjectDialog = ({
       setShowActions(false);
       setCreatedProjectId(null);
       setIncludeWizardProgress(true);
+      setCreateMode('save');
     }
   }, [open]);
 
@@ -181,13 +194,34 @@ const CreateProjectDialog = ({
           </DialogDescription>
         </DialogHeader>
         {!showActions ? (
-          <>
+          <div className="space-y-6">
             <ProjectForm
-              onSubmit={handleSubmit}
+              onSubmit={(values) => {
+                setCreateMode('save');
+                handleSubmit(values);
+              }}
               onCancel={() => onOpenChange(false)}
               initialBusinessIdea={initialBusinessIdea}
+              additionalActions={
+                <Button 
+                  type="button"
+                  onClick={() => {
+                    setCreateMode('continue');
+                    handleSubmit({
+                      title: "",
+                      description: "",
+                      tags: "",
+                      businessIdea: initialBusinessIdea || "",
+                    });
+                  }}
+                  className="w-full"
+                >
+                  <Rocket className="mr-2 h-4 w-4" />
+                  Create & Continue in Ad Wizard
+                </Button>
+              }
             />
-            <div className="flex items-center space-x-2 mt-4">
+            <div className="flex items-center space-x-2">
               <Checkbox
                 id="includeProgress"
                 checked={includeWizardProgress}
@@ -197,7 +231,7 @@ const CreateProjectDialog = ({
                 Include wizard progress data in the project
               </Label>
             </div>
-          </>
+          </div>
         ) : (
           <ProjectActions
             onGenerateAds={handleGenerateAds}

@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -26,9 +27,10 @@ interface ProjectFormProps {
   onSubmit: (values: ProjectFormData) => void;
   onCancel: () => void;
   initialBusinessIdea?: string;
+  additionalActions?: React.ReactNode;
 }
 
-const ProjectForm = ({ onSubmit, onCancel, initialBusinessIdea }: ProjectFormProps) => {
+const ProjectForm = ({ onSubmit, onCancel, initialBusinessIdea, additionalActions }: ProjectFormProps) => {
   const form = useForm<ProjectFormData>({
     resolver: zodResolver(projectSchema),
     defaultValues: {
@@ -105,15 +107,18 @@ const ProjectForm = ({ onSubmit, onCancel, initialBusinessIdea }: ProjectFormPro
             </FormItem>
           )}
         />
-        <div className="flex justify-end space-x-2">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onCancel}
-          >
-            Cancel
-          </Button>
-          <Button type="submit">Create Project</Button>
+        <div className="space-y-2">
+          {additionalActions}
+          <div className="flex justify-end space-x-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onCancel}
+            >
+              Cancel
+            </Button>
+            <Button type="submit">Create Project</Button>
+          </div>
         </div>
       </form>
     </Form>
