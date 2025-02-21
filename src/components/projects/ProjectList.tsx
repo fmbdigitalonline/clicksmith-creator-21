@@ -52,17 +52,11 @@ const ProjectList = ({ onStartAdWizard }: ProjectListProps) => {
     retry: false,
   });
 
-  const handleProjectCreated = async (projectId: string, shouldNavigate: boolean) => {
-    // Close dialog first
-    setIsCreateOpen(false);
-    
-    // Then refresh the list
-    await refetch();
-    
-    // Finally, navigate if needed
-    if (shouldNavigate && onStartAdWizard) {
-      onStartAdWizard(projectId);
-    }
+  // This function now only handles the dialog and lets CreateProjectDialog
+  // handle the navigation timing
+  const handleProjectCreated = (projectId: string) => {
+    // Just refresh the list after creation
+    refetch();
   };
 
   const handleCreateProject = () => {

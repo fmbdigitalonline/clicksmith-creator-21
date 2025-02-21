@@ -1,3 +1,4 @@
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
@@ -12,7 +13,7 @@ import { Rocket } from "lucide-react";
 interface CreateProjectDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSuccess: (projectId: string, shouldNavigate: boolean) => void;
+  onSuccess: (projectId: string) => void;
   onStartAdWizard?: (projectId?: string) => void;
   initialBusinessIdea?: string;
 }
@@ -63,6 +64,7 @@ const CreateProjectDialog = ({
   const [createdProjectId, setCreatedProjectId] = useState<string | null>(null);
   const [includeWizardProgress, setIncludeWizardProgress] = useState(true);
   const [createMode, setCreateMode] = useState<'save' | 'continue'>('save');
+  const [isCreating, setIsCreating] = useState(false);
   
   useEffect(() => {
     const getCurrentUser = async () => {
@@ -75,82 +77,98 @@ const CreateProjectDialog = ({
   }, []);
 
   const handleSubmit = async (values: ProjectFormData) => {
-    if (!userId) {
+    if (isCreating) return; // Prevent double submission
+    setIsCreating(true);
+
+    try {
+      if (!userId) {
+        toast({
+          title: "Error creating project",
+          description: "You must be logged in to create a project",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const tags = values.tags
+        ? values.tags.split(",").map((tag) => tag.trim())
+        : [];
+
+      const projectTitle = generateProjectName(values.businessIdea);
+
+      let projectData: any = {
+        title: projectTitle,
+        description: values.description || null,
+        tags,
+        user_id: userId,
+        status: "draft",
+        business_idea: {
+          description: values.businessIdea,
+          valueProposition: `Enhanced version of: ${values.businessIdea}`,
+        },
+      };
+
+      if (includeWizardProgress) {
+        const { data: wizardProgress } = await supabase
+          .from('wizard_progress')
+          .select('*')
+          .eq('user_id', userId)
+          .maybeSingle();
+
+        if (wizardProgress) {
+          projectData = {
+            ...projectData,
+            target_audience: wizardProgress.target_audience,
+            audience_analysis: wizardProgress.audience_analysis,
+            selected_hooks: wizardProgress.selected_hooks,
+            ad_format: wizardProgress.ad_format,
+            video_ad_preferences: wizardProgress.video_ad_preferences,
+          };
+        }
+      }
+
+      const { data, error } = await supabase
+        .from("projects")
+        .insert(projectData)
+        .select();
+
+      if (error) {
+        throw error;
+      }
+
+      if (data && data[0]) {
+        const projectId = data[0].id;
+        setCreatedProjectId(projectId);
+        
+        toast({
+          title: "Project created",
+          description: "Your project has been created successfully.",
+        });
+
+        // Notify parent of creation
+        onSuccess(projectId);
+
+        // Handle navigation based on mode
+        if (createMode === 'continue' && onStartAdWizard) {
+          // First navigate
+          onStartAdWizard(projectId);
+          // Then close dialog after a small delay to ensure navigation
+          setTimeout(() => {
+            onOpenChange(false);
+          }, 100);
+        } else {
+          setShowActions(true);
+        }
+      }
+    } catch (error) {
+      console.error('Error creating project:', error);
       toast({
         title: "Error creating project",
-        description: "You must be logged in to create a project",
+        description: error instanceof Error ? error.message : "Failed to create project",
         variant: "destructive",
       });
-      return;
-    }
-
-    const tags = values.tags
-      ? values.tags.split(",").map((tag) => tag.trim())
-      : [];
-
-    const projectTitle = generateProjectName(values.businessIdea);
-
-    let projectData: any = {
-      title: projectTitle,
-      description: values.description || null,
-      tags,
-      user_id: userId,
-      status: "draft",
-      business_idea: {
-        description: values.businessIdea,
-        valueProposition: `Enhanced version of: ${values.businessIdea}`,
-      },
-    };
-
-    if (includeWizardProgress) {
-      const { data: wizardProgress } = await supabase
-        .from('wizard_progress')
-        .select('*')
-        .eq('user_id', userId)
-        .single();
-
-      if (wizardProgress) {
-        projectData = {
-          ...projectData,
-          target_audience: wizardProgress.target_audience,
-          audience_analysis: wizardProgress.audience_analysis,
-          selected_hooks: wizardProgress.selected_hooks,
-          ad_format: wizardProgress.ad_format,
-          video_ad_preferences: wizardProgress.video_ad_preferences,
-        };
-      }
-    }
-
-    const { data, error } = await supabase
-      .from("projects")
-      .insert(projectData)
-      .select();
-
-    if (error) {
-      toast({
-        title: "Error creating project",
-        description: error.message,
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (data && data[0]) {
-      const projectId = data[0].id;
-      setCreatedProjectId(projectId);
-      
-      toast({
-        title: "Project created",
-        description: "Your project has been created successfully.",
-      });
-
-      // Call onSuccess with the navigation flag based on creation mode
-      onSuccess(projectId, createMode === 'continue');
-      
-      // Only show actions if we're not continuing to ad wizard
-      if (createMode !== 'continue') {
-        setShowActions(true);
-      }
+    } finally {
+      setIsCreating(false);
     }
   };
 
@@ -171,6 +189,7 @@ const CreateProjectDialog = ({
       setCreatedProjectId(null);
       setIncludeWizardProgress(true);
       setCreateMode('save');
+      setIsCreating(false);
     }
   }, [open]);
 
@@ -210,11 +229,13 @@ const CreateProjectDialog = ({
                     });
                   }}
                   className="w-full"
+                  disabled={isCreating}
                 >
                   <Rocket className="mr-2 h-4 w-4" />
                   Create & Continue in Ad Wizard
                 </Button>
               }
+              disabled={isCreating}
             />
             <div className="flex items-center space-x-2">
               <Checkbox
