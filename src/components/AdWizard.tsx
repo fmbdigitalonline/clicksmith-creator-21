@@ -1,3 +1,4 @@
+
 import { useAdWizardState } from "@/hooks/useAdWizardState";
 import IdeaStep from "./steps/BusinessIdeaStep";
 import AudienceStep from "./steps/AudienceStep";
@@ -96,9 +97,9 @@ const AdWizard = ({ initialView }: AdWizardProps) => {
     setShowCreateProject(true);
   };
 
-  const handleProjectCreated = (projectId: string) => {
+  const handleProjectCreated = (newProjectId: string) => {
     setShowCreateProject(false);
-    navigate(`/ad-wizard/${projectId}`);
+    navigate(`/ad-wizard/${newProjectId}`);
   };
 
   const handleVideoAdsToggle = async (enabled: boolean) => {
@@ -123,22 +124,24 @@ const AdWizard = ({ initialView }: AdWizardProps) => {
         return <StepLoadingState />;
       }
 
-      if (isDataLoaded && (!businessIdea || !targetAudience || !audienceAnalysis)) {
-        navigate(`/ad-wizard/${projectId}`);
-        return <StepLoadingState />;
+      // If we have ads, allow gallery view
+      if (selectedHooks.length > 0) {
+        return (
+          <AdGalleryStep
+            businessIdea={businessIdea!}
+            targetAudience={targetAudience!}
+            adHooks={selectedHooks}
+            onStartOver={handleStartOver}
+            onBack={handleBack}
+            onCreateProject={handleCreateProject}
+            videoAdsEnabled={videoAdsEnabled}
+          />
+        );
       }
 
-      return (
-        <AdGalleryStep
-          businessIdea={businessIdea!}
-          targetAudience={targetAudience!}
-          adHooks={selectedHooks}
-          onStartOver={handleStartOver}
-          onBack={handleBack}
-          onCreateProject={handleCreateProject}
-          videoAdsEnabled={videoAdsEnabled}
-        />
-      );
+      // If no ads but we're trying to view gallery, redirect to beginning
+      navigate(`/ad-wizard/${projectId}`);
+      return <StepLoadingState />;
     }
 
     // Regular wizard flow
