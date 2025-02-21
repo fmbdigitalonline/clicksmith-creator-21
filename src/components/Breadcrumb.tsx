@@ -27,12 +27,9 @@ interface BusinessIdea {
 // Use the database types directly and extend them
 type DatabaseProject = Database['public']['Tables']['projects']['Row'];
 type Project = Omit<DatabaseProject, 'business_idea' | 'target_audience' | 'audience_analysis' | 'marketing_campaign' | 'generated_ads'> & {
-  business_idea?: {
-    description: string;
-    valueProposition: string;
-  } | null;
-  target_audience?: any;
-  audience_analysis?: any;
+  business_idea?: BusinessIdea | null;
+  target_audience?: Record<string, any> | null;
+  audience_analysis?: Record<string, any> | null;
   generated_ads?: any[];
 };
 
@@ -45,6 +42,21 @@ interface WizardStep {
     summary?: string;
   };
 }
+
+// Type guard for BusinessIdea
+const isBusinessIdea = (value: unknown): value is BusinessIdea => {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'description' in value &&
+    typeof (value as BusinessIdea).description === 'string'
+  );
+};
+
+// Type guard for array
+const isNonEmptyArray = (value: unknown): value is any[] => {
+  return Array.isArray(value) && value.length > 0;
+};
 
 const BreadcrumbNav = () => {
   const location = useLocation();
@@ -77,13 +89,14 @@ const BreadcrumbNav = () => {
           throw error;
         }
 
-        // Transform the data to match our Project type
+        // Transform and validate the data
         return {
           ...data,
-          business_idea: data.business_idea as BusinessIdea,
-          target_audience: data.target_audience,
-          audience_analysis: data.audience_analysis,
-          generated_ads: data.generated_ads as any[],
+          business_idea: isBusinessIdea(data.business_idea) ? data.business_idea : null,
+          target_audience: data.target_audience || null,
+          audience_analysis: data.audience_analysis || null,
+          generated_ads: Array.isArray(data.generated_ads) ? data.generated_ads : [],
+          current_step: typeof data.current_step === 'number' ? data.current_step : 1
         } as Project;
       } catch (error) {
         console.error("Error in queryFn:", error);
@@ -99,11 +112,11 @@ const BreadcrumbNav = () => {
         {
           name: "Business Idea",
           description: "Define your business concept",
-          status: projectData.business_idea ? 'completed' : 
+          status: isBusinessIdea(projectData.business_idea) ? 'completed' : 
                  projectData.current_step === 1 ? 'current' : 'upcoming',
-          completionData: projectData.business_idea ? {
+          completionData: isBusinessIdea(projectData.business_idea) ? {
             hasData: true,
-            summary: projectData.business_idea?.description?.substring(0, 50) + '...'
+            summary: projectData.business_idea.description.substring(0, 50) + '...'
           } : undefined
         },
         {
@@ -131,10 +144,10 @@ const BreadcrumbNav = () => {
         {
           name: "Ad Gallery",
           description: "View and manage generated ads",
-          status: Array.isArray(projectData.generated_ads) && projectData.generated_ads.length > 0 ? 'completed' :
+          status: isNonEmptyArray(projectData.generated_ads) ? 'completed' :
                  projectData.current_step === 4 ? 'current' :
                  projectData.current_step < 4 ? 'locked' : 'upcoming',
-          completionData: Array.isArray(projectData.generated_ads) && projectData.generated_ads.length > 0 ? {
+          completionData: isNonEmptyArray(projectData.generated_ads) ? {
             hasData: true,
             summary: `${projectData.generated_ads.length} ads generated`
           } : undefined
