@@ -1,7 +1,7 @@
+
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
-import { AdminRoute } from "@/components/auth/AdminRoute";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { OnboardingDialog } from "@/components/onboarding/OnboardingDialog";
@@ -61,14 +61,13 @@ function App() {
             <Route
               path="/blog-admin"
               element={
-                <AdminRoute>
+                <ProtectedRoute>
                   <AppLayout>
                     <BlogAdmin />
                   </AppLayout>
-                </AdminRoute>
+                </ProtectedRoute>
               }
             />
-            {/* Other protected routes */}
             <Route
               path="/projects"
               element={

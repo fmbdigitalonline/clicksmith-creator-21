@@ -1,3 +1,4 @@
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
@@ -6,8 +7,6 @@ import ProjectForm, { ProjectFormData } from "./ProjectForm";
 import ProjectActions from "./ProjectActions";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Rocket } from "lucide-react";
 
 interface CreateProjectDialogProps {
   open: boolean;
@@ -62,8 +61,6 @@ const CreateProjectDialog = ({
   const [showActions, setShowActions] = useState(false);
   const [createdProjectId, setCreatedProjectId] = useState<string | null>(null);
   const [includeWizardProgress, setIncludeWizardProgress] = useState(true);
-  const [createMode, setCreateMode] = useState<'save' | 'continue'>('save');
-  const [isCreating, setIsCreating] = useState(false);
   
   useEffect(() => {
     const getCurrentUser = async () => {
@@ -75,98 +72,79 @@ const CreateProjectDialog = ({
     getCurrentUser();
   }, []);
 
-  const handleProjectCreation = async (values: ProjectFormData, mode: 'save' | 'continue') => {
-    if (isCreating) return; // Prevent double submission
-    setIsCreating(true);
-    setCreateMode(mode);
+  const handleSubmit = async (values: ProjectFormData) => {
+    if (!userId) {
+      toast({
+        title: "Error creating project",
+        description: "You must be logged in to create a project",
+        variant: "destructive",
+      });
+      return;
+    }
 
-    try {
-      if (!userId) {
-        throw new Error("You must be logged in to create a project");
-      }
+    const tags = values.tags
+      ? values.tags.split(",").map((tag) => tag.trim())
+      : [];
 
-      const tags = values.tags
-        ? values.tags.split(",").map((tag) => tag.trim())
-        : [];
+    // Generate creative project name based on business idea
+    const projectTitle = generateProjectName(values.businessIdea);
 
-      const projectTitle = generateProjectName(values.businessIdea);
+    let projectData: any = {
+      title: projectTitle,
+      description: values.description || null,
+      tags,
+      user_id: userId,
+      status: "draft",
+      business_idea: {
+        description: values.businessIdea,
+        valueProposition: `Enhanced version of: ${values.businessIdea}`,
+      },
+    };
 
-      let projectData: any = {
-        title: projectTitle,
-        description: values.description || null,
-        tags,
-        user_id: userId,
-        status: "draft",
-        business_idea: {
-          description: values.businessIdea,
-          valueProposition: `Enhanced version of: ${values.businessIdea}`,
-        },
-      };
-
-      if (includeWizardProgress) {
-        const { data: wizardProgress } = await supabase
-          .from('wizard_progress')
-          .select('*')
-          .eq('user_id', userId)
-          .maybeSingle();
-
-        if (wizardProgress) {
-          projectData = {
-            ...projectData,
-            target_audience: wizardProgress.target_audience,
-            audience_analysis: wizardProgress.audience_analysis,
-            selected_hooks: wizardProgress.selected_hooks,
-            ad_format: wizardProgress.ad_format,
-            video_ad_preferences: wizardProgress.video_ad_preferences,
-          };
-        }
-      }
-
-      const { data, error } = await supabase
-        .from("projects")
-        .insert(projectData)
-        .select()
+    if (includeWizardProgress) {
+      // Fetch current wizard progress
+      const { data: wizardProgress } = await supabase
+        .from('wizard_progress')
+        .select('*')
+        .eq('user_id', userId)
         .single();
 
-      if (error) throw error;
+      if (wizardProgress) {
+        // Include wizard progress data in project
+        projectData = {
+          ...projectData,
+          target_audience: wizardProgress.target_audience,
+          audience_analysis: wizardProgress.audience_analysis,
+          selected_hooks: wizardProgress.selected_hooks,
+          ad_format: wizardProgress.ad_format,
+          video_ad_preferences: wizardProgress.video_ad_preferences,
+        };
+      }
+    }
 
-      const projectId = data.id;
-      setCreatedProjectId(projectId);
-      
+    const { data, error } = await supabase
+      .from("projects")
+      .insert(projectData)
+      .select();
+
+    if (error) {
+      toast({
+        title: "Error creating project",
+        description: error.message,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (data && data[0]) {
+      setCreatedProjectId(data[0].id);
+      setShowActions(true);
       toast({
         title: "Project created",
         description: "Your project has been created successfully.",
       });
-
-      // Notify parent of creation
-      onSuccess(projectId);
-
-      // Handle navigation based on mode
-      if (mode === 'continue' && onStartAdWizard) {
-        onStartAdWizard(projectId);
-        // Close dialog immediately after navigation is triggered
-        onOpenChange(false);
-      } else {
-        setShowActions(true);
-      }
-    } catch (error) {
-      console.error('Error creating project:', error);
-      toast({
-        title: "Error creating project",
-        description: error instanceof Error ? error.message : "Failed to create project",
-        variant: "destructive",
-      });
-    } finally {
-      setIsCreating(false);
+      onSuccess(data[0].id);
     }
-  };
-
-  const handleSubmit = async (values: ProjectFormData) => {
-    await handleProjectCreation(values, 'save');
-  };
-
-  const handleCreateAndContinue = async (values: ProjectFormData) => {
-    await handleProjectCreation(values, 'continue');
   };
 
   const handleGenerateAds = () => {
@@ -185,8 +163,6 @@ const CreateProjectDialog = ({
       setShowActions(false);
       setCreatedProjectId(null);
       setIncludeWizardProgress(true);
-      setCreateMode('save');
-      setIsCreating(false);
     }
   }, [open]);
 
@@ -205,30 +181,13 @@ const CreateProjectDialog = ({
           </DialogDescription>
         </DialogHeader>
         {!showActions ? (
-          <div className="space-y-6">
+          <>
             <ProjectForm
               onSubmit={handleSubmit}
               onCancel={() => onOpenChange(false)}
               initialBusinessIdea={initialBusinessIdea}
-              additionalActions={
-                <Button 
-                  type="button"
-                  onClick={() => handleCreateAndContinue({
-                    title: "",
-                    description: "",
-                    tags: "",
-                    businessIdea: initialBusinessIdea || "",
-                  })}
-                  className="w-full"
-                  disabled={isCreating}
-                >
-                  <Rocket className="mr-2 h-4 w-4" />
-                  Create & Continue in Ad Wizard
-                </Button>
-              }
-              disabled={isCreating}
             />
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2 mt-4">
               <Checkbox
                 id="includeProgress"
                 checked={includeWizardProgress}
@@ -238,7 +197,7 @@ const CreateProjectDialog = ({
                 Include wizard progress data in the project
               </Label>
             </div>
-          </div>
+          </>
         ) : (
           <ProjectActions
             onGenerateAds={handleGenerateAds}

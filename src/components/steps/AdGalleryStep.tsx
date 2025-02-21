@@ -8,7 +8,8 @@ import PlatformChangeDialog from "./gallery/PlatformChangeDialog";
 import { usePlatformSwitch } from "@/hooks/usePlatformSwitch";
 import { useAdGeneration } from "./gallery/useAdGeneration";
 import AdGenerationControls from "./gallery/AdGenerationControls";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { AdSizeSelector, AD_FORMATS } from "./gallery/components/AdSizeSelector";
 import { useToast } from "@/hooks/use-toast";
 
 interface AdGalleryStepProps {
@@ -30,6 +31,7 @@ const AdGalleryStep = ({
   onCreateProject,
   videoAdsEnabled = false,
 }: AdGalleryStepProps) => {
+  const [selectedFormat, setSelectedFormat] = useState(AD_FORMATS[0]);
   const { toast } = useToast();
   
   const {
@@ -103,6 +105,10 @@ const AdGalleryStep = ({
     }
   };
 
+  const handleFormatChange = (format: typeof AD_FORMATS[0]) => {
+    setSelectedFormat(format);
+  };
+
   const handleRegenerate = async () => {
     try {
       await generateAds(platform);
@@ -118,11 +124,18 @@ const AdGalleryStep = ({
 
   const renderPlatformContent = (platformName: string) => (
     <TabsContent value={platformName} className="space-y-4">
+      <div className="flex justify-end mb-4">
+        <AdSizeSelector
+          selectedFormat={selectedFormat}
+          onFormatChange={handleFormatChange}
+        />
+      </div>
       <PlatformContent
         platformName={platformName}
         adVariants={adVariants.filter(variant => variant.platform === platformName)}
         onCreateProject={onCreateProject}
         videoAdsEnabled={videoAdsEnabled}
+        selectedFormat={selectedFormat}
       />
     </TabsContent>
   );

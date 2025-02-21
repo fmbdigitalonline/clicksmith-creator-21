@@ -1,5 +1,4 @@
 
-import { useState } from "react";
 import { CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Edit2, Trash2, Layout } from "lucide-react";
@@ -14,9 +13,19 @@ interface ProjectCardActionsProps {
   projectId: string;
   onEdit: () => void;
   onDelete: () => void;
+  onStartAdWizard: () => void;
+  hasCampaign: boolean;
   hasBusinessIdea?: boolean;
   hasTargetAudience?: boolean;
   hasAudienceAnalysis?: boolean;
+}
+
+interface ProjectData {
+  id: string;
+  title: string;
+  business_idea: BusinessIdea | null;
+  target_audience: TargetAudience | null;
+  audience_analysis: any;
 }
 
 const ProjectCardActions = ({ 
@@ -30,28 +39,19 @@ const ProjectCardActions = ({
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [isCreating, setIsCreating] = useState(false);
 
-  const validateProjectData = () => {
+  const handleCreateLandingPage = async () => {
+    console.log("Starting landing page creation for project:", projectId);
+    
     if (!hasBusinessIdea || !hasTargetAudience || !hasAudienceAnalysis) {
       toast({
-        title: "Missing Information",
+        title: "Missing information",
         description: "Please complete the business idea, target audience, and market analysis steps before creating a landing page.",
         variant: "destructive",
       });
-      return false;
+      return;
     }
-    return true;
-  };
 
-  const handleCreateLandingPage = async (e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent event from bubbling up to card
-    
-    if (!validateProjectData()) return;
-    
-    console.log("Starting landing page creation for project:", projectId);
-    setIsCreating(true);
-    
     // Show loading toast
     const loadingToast = toast({
       title: "Creating your landing page",
@@ -78,36 +78,26 @@ const ProjectCardActions = ({
           audience_analysis
         `)
         .eq('id', projectId)
-        .maybeSingle();
+        .single();
 
       if (projectError) throw projectError;
       if (!project) throw new Error('Project not found');
 
-      console.log("Project data retrieved:", project);
-
-      // Validate project data structure
-      if (!project.business_idea || !project.target_audience) {
-        throw new Error('Missing required project data');
-      }
+      const typedProject = project as ProjectData;
+      console.log("Project data retrieved:", typedProject);
 
       // Call the edge function with the correct parameters
       const { data: landingPage, error } = await supabase.functions
         .invoke('generate-landing-page', {
           body: {
             projectId,
-            businessIdea: project.business_idea as BusinessIdea,
-            targetAudience: project.target_audience as TargetAudience,
+            businessIdea: typedProject.business_idea,
+            targetAudience: typedProject.target_audience,
             userId: user.id,
           }
         });
 
-      if (error) {
-        console.error('Edge function error:', error);
-        if (error.message?.includes('402')) {
-          throw new Error('Insufficient credits. Please upgrade your plan to continue.');
-        }
-        throw error;
-      }
+      if (error) throw error;
 
       // Dismiss loading toast and show success
       loadingToast.dismiss();
@@ -125,16 +115,11 @@ const ProjectCardActions = ({
     } catch (error) {
       console.error('Error creating landing page:', error);
       loadingToast.dismiss();
-      
-      // Show appropriate error message based on error type
-      const errorMessage = error instanceof Error ? error.message : "Failed to create landing page";
       toast({
         title: "Error",
-        description: errorMessage,
+        description: error instanceof Error ? error.message : "Failed to create landing page",
         variant: "destructive",
       });
-    } finally {
-      setIsCreating(false);
     }
   };
 
@@ -144,10 +129,7 @@ const ProjectCardActions = ({
         variant="outline"
         size="icon"
         className="h-7 w-7"
-        onClick={(e) => {
-          e.stopPropagation();
-          onEdit();
-        }}
+        onClick={onEdit}
       >
         <Edit2 className="h-3.5 w-3.5" />
       </Button>
@@ -155,10 +137,7 @@ const ProjectCardActions = ({
         variant="outline"
         size="icon"
         className="h-7 w-7"
-        onClick={(e) => {
-          e.stopPropagation();
-          onDelete();
-        }}
+        onClick={onDelete}
       >
         <Trash2 className="h-3.5 w-3.5" />
       </Button>
@@ -166,11 +145,10 @@ const ProjectCardActions = ({
         variant="outline"
         size="sm"
         className="h-7 text-xs"
-        onClick={(e) => handleCreateLandingPage(e)}
-        disabled={isCreating}
+        onClick={handleCreateLandingPage}
       >
         <Layout className="h-3.5 w-3.5 mr-1.5" />
-        {isCreating ? "Creating..." : "Landing Page"}
+        Landing Page
       </Button>
     </CardFooter>
   );

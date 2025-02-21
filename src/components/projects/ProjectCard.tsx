@@ -105,6 +105,8 @@ const ProjectCard = ({ project, onUpdate, onStartAdWizard }: ProjectCardProps) =
           projectId={project.id}
           onEdit={() => setIsEditOpen(true)}
           onDelete={() => setIsDeleteOpen(true)}
+          onStartAdWizard={onStartAdWizard}
+          hasCampaign={!!project.marketing_campaign}
           hasBusinessIdea={!!project.business_idea}
           hasTargetAudience={!!project.target_audience}
           hasAudienceAnalysis={!!project.audience_analysis}

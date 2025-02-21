@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -27,17 +26,9 @@ interface ProjectFormProps {
   onSubmit: (values: ProjectFormData) => void;
   onCancel: () => void;
   initialBusinessIdea?: string;
-  additionalActions?: React.ReactNode;
-  disabled?: boolean;
 }
 
-const ProjectForm = ({ 
-  onSubmit, 
-  onCancel, 
-  initialBusinessIdea, 
-  additionalActions,
-  disabled = false 
-}: ProjectFormProps) => {
+const ProjectForm = ({ onSubmit, onCancel, initialBusinessIdea }: ProjectFormProps) => {
   const form = useForm<ProjectFormData>({
     resolver: zodResolver(projectSchema),
     defaultValues: {
@@ -58,11 +49,7 @@ const ProjectForm = ({
             <FormItem>
               <FormLabel>Project Title</FormLabel>
               <FormControl>
-                <Input 
-                  placeholder="Enter a name for your validation project" 
-                  {...field} 
-                  disabled={disabled}
-                />
+                <Input placeholder="Enter a name for your validation project" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -79,7 +66,6 @@ const ProjectForm = ({
                   placeholder="Describe your business idea in detail..."
                   {...field}
                   rows={4}
-                  disabled={disabled}
                 />
               </FormControl>
               <FormMessage />
@@ -97,7 +83,6 @@ const ProjectForm = ({
                   placeholder="Any additional notes about your project"
                   {...field}
                   rows={3}
-                  disabled={disabled}
                 />
               </FormControl>
               <FormMessage />
@@ -114,26 +99,21 @@ const ProjectForm = ({
                 <Input
                   placeholder="Enter tags separated by commas"
                   {...field}
-                  disabled={disabled}
                 />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
-        <div className="space-y-2">
-          {additionalActions}
-          <div className="flex justify-end space-x-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onCancel}
-              disabled={disabled}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={disabled}>Create Project</Button>
-          </div>
+        <div className="flex justify-end space-x-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onCancel}
+          >
+            Cancel
+          </Button>
+          <Button type="submit">Create Project</Button>
         </div>
       </form>
     </Form>

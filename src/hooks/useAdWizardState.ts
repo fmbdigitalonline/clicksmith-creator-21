@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect } from "react";
 import {
   BusinessIdea,
@@ -112,49 +111,32 @@ export const useAdWizardState = () => {
   };
 
   const handleIdeaSubmit = useCallback(async (idea: BusinessIdea) => {
-    let currentProjectId = projectId;
-    let newProjectCreated = false;
-
-    // Set business idea state immediately
     setBusinessIdea(idea);
     
-    try {
-      // If we're on the 'new' route, create a project
-      if (projectId === 'new') {
-        const newProjectId = await createInitialProject(idea);
-        if (newProjectId) {
-          currentProjectId = newProjectId;
-          setAutoCreatedProjectId(newProjectId);
-          newProjectCreated = true;
-          
-          toast({
-            title: "Project created",
-            description: "Your progress will be saved automatically.",
-          });
-        }
+    let currentProjectId = projectId;
+    
+    // If we're on the 'new' route, create a project now
+    if (projectId === 'new') {
+      const newProjectId = await createInitialProject(idea);
+      if (!newProjectId) {
+        return; // Exit if project creation failed
       }
-
-      // Save progress regardless of project creation success
-      await saveWizardProgress({ 
-        business_idea: idea,
-        current_step: 2
-      }, currentProjectId);
+      setAutoCreatedProjectId(newProjectId);
+      navigate(`/ad-wizard/${newProjectId}`, { replace: true });
+      currentProjectId = newProjectId;
       
-      // Set current step before navigation
-      setCurrentStep(2);
-
-      // Navigate only if new project was created
-      if (newProjectCreated) {
-        navigate(`/ad-wizard/${currentProjectId}`, { replace: true });
-      }
-    } catch (error) {
-      console.error('Error in handleIdeaSubmit:', error);
       toast({
-        title: "Error",
-        description: "An error occurred, but your progress has been saved",
-        variant: "destructive",
+        title: "Project created",
+        description: "Your progress will be saved automatically.",
       });
     }
+
+    await saveWizardProgress({ 
+      business_idea: idea,
+      current_step: 2
+    }, currentProjectId);
+    
+    setCurrentStep(2);
   }, [projectId, navigate]);
 
   const handleAudienceSelect = useCallback(async (audience: TargetAudience) => {
