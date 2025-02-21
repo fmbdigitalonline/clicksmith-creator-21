@@ -30,9 +30,6 @@ export interface AdGenerationState {
   platformSpecificAds: Record<Platform, PlatformAdState>;
 }
 
-// Type for database operations
-export type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
-
 export interface DatabaseAdVariant {
   id: string;
   platform: string;

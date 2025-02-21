@@ -14,19 +14,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { validateProjectState } from "@/utils/projectValidation";
+import { Project, TargetAudience, AudienceAnalysis, MarketingCampaign } from "@/types/adWizard";
 
-// Use the database types directly and extend them
 type DatabaseProject = Database['public']['Tables']['projects']['Row'];
-type Project = Omit<DatabaseProject, 'business_idea' | 'target_audience' | 'audience_analysis' | 'marketing_campaign' | 'generated_ads'> & {
-  business_idea?: {
-    description: string;
-    valueProposition: string;
-  } | null;
-  target_audience?: any;
-  audience_analysis?: any;
-  marketing_campaign?: any;
-  generated_ads?: any[];
-};
 
 interface ProjectListProps {
   onStartAdWizard: (projectId?: string) => void;
@@ -59,11 +49,11 @@ const ProjectList = ({ onStartAdWizard }: ProjectListProps) => {
         return (data as DatabaseProject[]).map(project => ({
           ...project,
           business_idea: project.business_idea as Project['business_idea'],
-          target_audience: project.target_audience,
-          audience_analysis: project.audience_analysis,
-          marketing_campaign: project.marketing_campaign,
+          target_audience: project.target_audience as TargetAudience,
+          audience_analysis: project.audience_analysis as AudienceAnalysis,
+          marketing_campaign: project.marketing_campaign as MarketingCampaign,
           generated_ads: project.generated_ads as any[],
-        }));
+        } as Project));
       } catch (error) {
         console.error("Error in queryFn:", error);
         throw error;

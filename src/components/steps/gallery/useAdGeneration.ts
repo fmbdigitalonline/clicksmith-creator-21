@@ -4,7 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { AdVariant, DatabaseAdVariant, Platform, PlatformAdState } from "@/types/adGeneration";
+import { AdVariant, DatabaseAdVariant, Platform, PlatformAdState, AdGenerationState } from "@/types/adGeneration";
 
 export const useAdGeneration = (
   businessIdea: BusinessIdea,
@@ -20,6 +20,11 @@ export const useAdGeneration = (
     google: { isLoading: false, hasError: false, variants: [] },
     linkedin: { isLoading: false, hasError: false, variants: [] },
     tiktok: { isLoading: false, hasError: false, variants: [] }
+  });
+  const [state, setState] = useState<AdGenerationState>({
+    isInitialLoad: true,
+    hasSavedAds: false,
+    platformSpecificAds: platformStates
   });
 
   const { toast } = useToast();
@@ -41,14 +46,16 @@ export const useAdGeneration = (
         console.log('Loaded project data:', project);
         
         if (project?.generated_ads && Array.isArray(project.generated_ads)) {
-          const variants = project.generated_ads as DatabaseAdVariant[];
+          const variants = project.generated_ads as unknown as DatabaseAdVariant[];
           console.log('Setting ad variants from project:', variants);
           setAdVariants(variants.map(v => ({
             ...v,
             platform: v.platform as Platform,
           })));
+          setState(prev => ({ ...prev, hasSavedAds: true }));
         }
       }
+      setState(prev => ({ ...prev, isInitialLoad: false }));
     };
 
     loadSavedAds();
@@ -177,7 +184,7 @@ export const useAdGeneration = (
         const { error: updateError } = await supabase
           .from('projects')
           .update({
-            generated_ads: validVariants as unknown as DatabaseAdVariant[]
+            generated_ads: JSON.parse(JSON.stringify(validVariants))
           })
           .eq('id', projectId);
 
@@ -187,6 +194,7 @@ export const useAdGeneration = (
       }
       
       setRegenerationCount(prev => prev + 1);
+      setState(prev => ({ ...prev, hasSavedAds: true }));
       
       toast({
         title: "Ads generated successfully",
@@ -233,6 +241,7 @@ export const useAdGeneration = (
     regenerationCount,
     generationStatus,
     generateAds,
-    platformStates
+    platformStates,
+    state
   };
 };
