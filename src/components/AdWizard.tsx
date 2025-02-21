@@ -13,10 +13,12 @@ import { Toggle } from "./ui/toggle";
 import { Video, Image } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
+import { Loader2 } from "lucide-react";
 
 const AdWizard = () => {
   const [showCreateProject, setShowCreateProject] = useState(false);
   const [videoAdsEnabled, setVideoAdsEnabled] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
   const { projectId } = useParams();
   
@@ -38,30 +40,37 @@ const AdWizard = () => {
   // Handle project initialization
   useEffect(() => {
     const initializeProject = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      setIsLoading(true);
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
 
-      if (projectId === "new") {
-        // Clear any existing wizard progress when starting new
-        await supabase
-          .from('wizard_progress')
-          .delete()
-          .eq('user_id', user.id);
-      } else if (projectId) {
-        // If it's an existing project, fetch its data
-        const { data: project } = await supabase
-          .from('projects')
-          .select('*')
-          .eq('id', projectId)
-          .single();
+        if (projectId === "new") {
+          // Clear any existing wizard progress when starting new
+          await supabase
+            .from('wizard_progress')
+            .delete()
+            .eq('user_id', user.id);
+        } else if (projectId) {
+          // If it's an existing project, fetch its data
+          const { data: project } = await supabase
+            .from('projects')
+            .select('*')
+            .eq('id', projectId)
+            .single();
 
-        if (!project) {
-          // If project doesn't exist, redirect to new project
-          navigate('/ad-wizard/new');
-        } else {
-          // Set video ads enabled based on project settings
-          setVideoAdsEnabled(project.video_ads_enabled || false);
+          if (!project) {
+            // If project doesn't exist, redirect to new project
+            navigate('/ad-wizard/new');
+          } else {
+            // Set video ads enabled based on project settings
+            setVideoAdsEnabled(project.video_ads_enabled || false);
+          }
         }
+      } catch (error) {
+        console.error("Error initializing project:", error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -81,11 +90,22 @@ const AdWizard = () => {
     // Disabled for now - will be implemented in future
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-facebook" />
+          <p className="text-gray-600">Loading project data...</p>
+        </div>
+      </div>
+    );
+  }
+
   // Memoize the current step component to prevent unnecessary re-renders
   const currentStepComponent = useMemo(() => {
     switch (currentStep) {
       case 1:
-        return <IdeaStep onNext={handleIdeaSubmit} />;
+        return <IdeaStep onNext={handleIdeaSubmit} initialBusinessIdea={businessIdea} />;
       case 2:
         return businessIdea ? (
           <AudienceStep

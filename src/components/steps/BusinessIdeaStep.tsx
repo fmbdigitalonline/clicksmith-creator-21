@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { BusinessIdea } from "@/types/adWizard";
@@ -7,14 +7,25 @@ import { useToast } from "@/components/ui/use-toast";
 import { Wand2, Lightbulb, ArrowRight, Loader2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 
+interface BusinessIdeaStepProps {
+  onNext: (idea: BusinessIdea) => void;
+  initialBusinessIdea?: BusinessIdea;
+}
+
 const BusinessIdeaStep = ({
   onNext,
-}: {
-  onNext: (idea: BusinessIdea) => void;
-}) => {
+  initialBusinessIdea,
+}: BusinessIdeaStepProps) => {
   const [description, setDescription] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+
+  // Set initial description when component mounts or initialBusinessIdea changes
+  useEffect(() => {
+    if (initialBusinessIdea?.description) {
+      setDescription(initialBusinessIdea.description);
+    }
+  }, [initialBusinessIdea]);
 
   const handleSubmit = async () => {
     if (isSubmitting) return; // Prevent double submission
@@ -82,9 +93,14 @@ const BusinessIdeaStep = ({
       </div>
 
       <div>
-        <h2 className="text-xl md:text-2xl font-semibold mb-2">Describe your Idea, Product, Concept or Service</h2>
+        <h2 className="text-xl md:text-2xl font-semibold mb-2">
+          {initialBusinessIdea ? "Review or Edit Your Idea" : "Describe your Idea, Product, Concept or Service"}
+        </h2>
         <p className="text-gray-600">
-          Share your vision and we'll help you validate it through targeted market testing.
+          {initialBusinessIdea 
+            ? "You can edit your existing idea or continue with it as is."
+            : "Share your vision and we'll help you validate it through targeted market testing."
+          }
         </p>
       </div>
 
