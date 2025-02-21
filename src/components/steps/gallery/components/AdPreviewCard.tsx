@@ -88,21 +88,36 @@ const AdPreviewCard = ({
     );
   }, [adVariants]);
 
-  const generateNewImage = async () => {
-    let prompt = variant.image?.prompt;
-    
-    // If no prompt is available in the variant, try to find it in adVariants
-    if (!prompt) {
-      const originalVariant = adVariants.find(v => 
-        v.image?.url === getImageUrl() || v.imageUrl === getImageUrl()
-      );
-      prompt = originalVariant?.image?.prompt;
+  const findPromptForImage = (imageUrl: string) => {
+    // Try to find prompt in current variant first
+    if (variant.image?.prompt && variant.image?.url === imageUrl) {
+      return variant.image.prompt;
     }
 
+    // Look for prompt in other variants
+    const variantWithPrompt = adVariants.find(v => 
+      (v.imageUrl === imageUrl || v.image?.url === imageUrl) && v.image?.prompt
+    );
+
+    return variantWithPrompt?.image?.prompt || null;
+  };
+
+  const generateNewImage = async () => {
+    const imageUrl = getImageUrl();
+    if (!imageUrl) {
+      toast({
+        title: "Error",
+        description: "No image URL available for regeneration",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const prompt = findPromptForImage(imageUrl);
     if (!prompt) {
       toast({
         title: "Error",
-        description: "No image prompt available for generation",
+        description: "No image prompt available for generation. Please try with a different image.",
         variant: "destructive",
       });
       return;
@@ -127,6 +142,7 @@ const AdPreviewCard = ({
           variant.image = { url: data.images[0].url, prompt };
         } else {
           variant.image.url = data.images[0].url;
+          variant.image.prompt = prompt;
         }
         
         // Save to ad_image_variants
@@ -293,15 +309,18 @@ const AdPreviewCard = ({
   };
 
   const handleImageSelect = (imageData: { url: string; prompt: string | null }) => {
+    const prompt = findPromptForImage(imageData.url) || imageData.prompt;
+    
     variant.imageUrl = imageData.url;
-    if (imageData.prompt) {
+    if (prompt) {
       if (!variant.image) {
-        variant.image = { url: imageData.url, prompt: imageData.prompt };
+        variant.image = { url: imageData.url, prompt };
       } else {
         variant.image.url = imageData.url;
-        variant.image.prompt = imageData.prompt;
+        variant.image.prompt = prompt;
       }
     }
+    
     setIsSelectingImage(false);
     toast({
       title: "Image updated",
