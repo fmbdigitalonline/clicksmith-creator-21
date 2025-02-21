@@ -1,3 +1,4 @@
+
 import { useLocation } from "react-router-dom";
 import {
   Breadcrumb,
@@ -52,6 +53,11 @@ const isBusinessIdea = (value: unknown): value is BusinessIdea => {
   );
 };
 
+// Type guard for Record<string, any>
+const isRecord = (value: unknown): value is Record<string, any> => {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+};
+
 // Type guard for array
 const isNonEmptyArray = (value: unknown): value is any[] => {
   return Array.isArray(value) && value.length > 0;
@@ -92,8 +98,8 @@ const BreadcrumbNav = () => {
         const typedData: BreadcrumbProjectData = {
           current_step: typeof data.current_step === 'number' ? data.current_step : 1,
           business_idea: isBusinessIdea(data.business_idea) ? data.business_idea : null,
-          target_audience: data.target_audience || null,
-          audience_analysis: data.audience_analysis || null,
+          target_audience: isRecord(data.target_audience) ? data.target_audience : null,
+          audience_analysis: isRecord(data.audience_analysis) ? data.audience_analysis : null,
           generated_ads: Array.isArray(data.generated_ads) ? data.generated_ads : []
         };
 
