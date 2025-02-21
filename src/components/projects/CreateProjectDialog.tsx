@@ -139,6 +139,7 @@ const CreateProjectDialog = ({
       if (data && data[0]) {
         const newProjectId = data[0].id;
         setCreatedProjectId(newProjectId);
+        onSuccess(newProjectId);
         
         // If we have wizard progress and it's included, start the ad wizard immediately
         if (hasWizardProgress && includeWizardProgress && onStartAdWizard) {
@@ -146,9 +147,11 @@ const CreateProjectDialog = ({
             title: "Project created",
             description: "Starting Ad Wizard with your progress...",
           });
-          onSuccess(newProjectId);
-          onStartAdWizard(newProjectId);
-          onOpenChange(false);
+          // Use setTimeout to ensure the navigation happens after state updates
+          setTimeout(() => {
+            onStartAdWizard(newProjectId);
+            onOpenChange(false);
+          }, 0);
         } else {
           // Show actions dialog for projects without wizard progress
           setShowActions(true);
@@ -156,7 +159,6 @@ const CreateProjectDialog = ({
             title: "Project created",
             description: "Your project has been created successfully.",
           });
-          onSuccess(newProjectId);
         }
       }
     } catch (error) {

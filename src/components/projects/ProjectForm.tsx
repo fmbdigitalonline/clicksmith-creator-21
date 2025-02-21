@@ -27,7 +27,7 @@ interface ProjectFormProps {
   onSubmit: (values: ProjectFormData) => void;
   onCancel: () => void;
   initialBusinessIdea?: string;
-  disabled?: boolean; // Add the disabled prop to the interface
+  disabled?: boolean;
 }
 
 const ProjectForm = ({ onSubmit, onCancel, initialBusinessIdea, disabled }: ProjectFormProps) => {
