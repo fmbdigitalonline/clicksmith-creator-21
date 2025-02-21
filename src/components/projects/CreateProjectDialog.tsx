@@ -1,4 +1,3 @@
-
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
@@ -76,18 +75,14 @@ const CreateProjectDialog = ({
     getCurrentUser();
   }, []);
 
-  const handleSubmit = async (values: ProjectFormData) => {
+  const handleProjectCreation = async (values: ProjectFormData, mode: 'save' | 'continue') => {
     if (isCreating) return; // Prevent double submission
     setIsCreating(true);
+    setCreateMode(mode);
 
     try {
       if (!userId) {
-        toast({
-          title: "Error creating project",
-          description: "You must be logged in to create a project",
-          variant: "destructive",
-        });
-        return;
+        throw new Error("You must be logged in to create a project");
       }
 
       const tags = values.tags
@@ -130,35 +125,29 @@ const CreateProjectDialog = ({
       const { data, error } = await supabase
         .from("projects")
         .insert(projectData)
-        .select();
+        .select()
+        .single();
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
-      if (data && data[0]) {
-        const projectId = data[0].id;
-        setCreatedProjectId(projectId);
-        
-        toast({
-          title: "Project created",
-          description: "Your project has been created successfully.",
-        });
+      const projectId = data.id;
+      setCreatedProjectId(projectId);
+      
+      toast({
+        title: "Project created",
+        description: "Your project has been created successfully.",
+      });
 
-        // Notify parent of creation
-        onSuccess(projectId);
+      // Notify parent of creation
+      onSuccess(projectId);
 
-        // Handle navigation based on mode
-        if (createMode === 'continue' && onStartAdWizard) {
-          // First navigate
-          onStartAdWizard(projectId);
-          // Then close dialog after a small delay to ensure navigation
-          setTimeout(() => {
-            onOpenChange(false);
-          }, 100);
-        } else {
-          setShowActions(true);
-        }
+      // Handle navigation based on mode
+      if (mode === 'continue' && onStartAdWizard) {
+        onStartAdWizard(projectId);
+        // Close dialog immediately after navigation is triggered
+        onOpenChange(false);
+      } else {
+        setShowActions(true);
       }
     } catch (error) {
       console.error('Error creating project:', error);
@@ -170,6 +159,14 @@ const CreateProjectDialog = ({
     } finally {
       setIsCreating(false);
     }
+  };
+
+  const handleSubmit = async (values: ProjectFormData) => {
+    await handleProjectCreation(values, 'save');
+  };
+
+  const handleCreateAndContinue = async (values: ProjectFormData) => {
+    await handleProjectCreation(values, 'continue');
   };
 
   const handleGenerateAds = () => {
@@ -210,24 +207,18 @@ const CreateProjectDialog = ({
         {!showActions ? (
           <div className="space-y-6">
             <ProjectForm
-              onSubmit={(values) => {
-                setCreateMode('save');
-                handleSubmit(values);
-              }}
+              onSubmit={handleSubmit}
               onCancel={() => onOpenChange(false)}
               initialBusinessIdea={initialBusinessIdea}
               additionalActions={
                 <Button 
                   type="button"
-                  onClick={() => {
-                    setCreateMode('continue');
-                    handleSubmit({
-                      title: "",
-                      description: "",
-                      tags: "",
-                      businessIdea: initialBusinessIdea || "",
-                    });
-                  }}
+                  onClick={() => handleCreateAndContinue({
+                    title: "",
+                    description: "",
+                    tags: "",
+                    businessIdea: initialBusinessIdea || "",
+                  })}
                   className="w-full"
                   disabled={isCreating}
                 >
