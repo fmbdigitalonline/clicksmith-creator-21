@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { generateAudiences } from "./handlers/audienceGeneration.ts";
 import { generateHooks } from "./handlers/hookGeneration.ts";
@@ -27,7 +28,6 @@ const sanitizeJson = (obj: unknown): unknown => {
   return obj;
 };
 
-// Valid generation types
 const VALID_GENERATION_TYPES = [
   'audience',
   'hooks',
@@ -36,6 +36,61 @@ const VALID_GENERATION_TYPES = [
   'audience_analysis',
   'images'
 ];
+
+type AdCopy = {
+  type: string;
+  content: string;
+};
+
+type AdVariant = {
+  platform: string;
+  headline: string;
+  description: string;
+  imageUrl: string;
+  size: {
+    width: number;
+    height: number;
+    label: string;
+  };
+};
+
+// New function to distribute variations across platforms
+const distributeVariations = (
+  headlines: string[], 
+  adCopies: AdCopy[], 
+  images: Array<{ url: string; width: number; height: number; label: string }>,
+  platforms: string[]
+): AdVariant[] => {
+  const variants: AdVariant[] = [];
+  let variationIndex = 0;
+
+  // Distribute variations across platforms and images
+  for (const platform of platforms) {
+    for (const image of images) {
+      // Get two unique variations for each image
+      for (let i = 0; i < 2; i++) {
+        // Use modulo to cycle through variations if we run out
+        const currentIndex = variationIndex % 6;
+        
+        variants.push({
+          platform,
+          headline: headlines[currentIndex],
+          description: adCopies[currentIndex].content,
+          imageUrl: image.url,
+          size: {
+            width: image.width,
+            height: image.height,
+            label: image.label
+          }
+        });
+
+        variationIndex++;
+      }
+    }
+  }
+
+  return variants;
+};
 
 serve(async (req) => {
   try {
@@ -105,35 +160,27 @@ serve(async (req) => {
       case 'video_ads':
         console.log('Generating complete ad campaign with params:', { businessIdea, targetAudience, campaign });
         try {
+          // Generate campaign content (6 unique variations)
           const campaignData = await generateCampaign(businessIdea, targetAudience);
           console.log('Campaign data generated:', campaignData);
           
+          // Generate image data
           const imageData = await generateImagePrompts(businessIdea, targetAudience, campaignData.campaign);
           console.log('Image data generated:', imageData);
 
-          // Create 2 variants for each of the 3 images across all platforms
+          // Define platforms
           const platforms = ['facebook', 'google', 'linkedin', 'tiktok'];
-          const variants = platforms.flatMap(platform => 
-            imageData.images.flatMap((image, imageIndex) => {
-              // Take only first two headlines/copies for each image
-              const headlines = campaignData.campaign.headlines.slice(0, 2);
-              const adCopies = campaignData.campaign.adCopies.slice(0, 2);
-              
-              return headlines.map((headline, variantIndex) => ({
-                platform,
-                headline,
-                description: adCopies[variantIndex].content,
-                imageUrl: image.url,
-                size: {
-                  width: image.width,
-                  height: image.height,
-                  label: image.label
-                }
-              }));
-            })
+
+          // Use all 6 variations and distribute them across platforms and images
+          const variants = distributeVariations(
+            campaignData.campaign.headlines,
+            campaignData.campaign.adCopies,
+            imageData.images,
+            platforms
           );
           
           responseData = sanitizeJson({ variants });
+          console.log('Generated variants:', responseData);
           
         } catch (error) {
           console.error('Error generating ad content:', error);
