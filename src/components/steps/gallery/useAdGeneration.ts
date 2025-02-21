@@ -1,3 +1,4 @@
+
 import { BusinessIdea, TargetAudience, AdHook } from "@/types/adWizard";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -40,9 +41,39 @@ export const useAdGeneration = (
   const navigate = useNavigate();
   const { projectId } = useParams();
 
+  const checkCredits = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data, error } = await supabase.rpc('check_user_credits', {
+        p_user_id: user?.id,
+        required_credits: 1
+      });
+
+      if (error) throw error;
+
+      if (data && data[0].has_credits) {
+        return true;
+      } else {
+        toast({
+          title: "Insufficient credits",
+          description: data?.[0]?.error_message || "Please upgrade to continue generating ads",
+          variant: "destructive",
+        });
+        return false;
+      }
+    } catch (error) {
+      console.error('Error checking credits:', error);
+      toast({
+        title: "Error",
+        description: "Failed to check credits. Please try again.",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
   useEffect(() => {
     const loadSavedAds = async () => {
-      console.log('Loading saved ads for project:', projectId);
       if (projectId && projectId !== 'new') {
         const { data: project } = await supabase
           .from('projects')
@@ -50,14 +81,11 @@ export const useAdGeneration = (
           .eq('id', projectId)
           .single();
         
-        console.log('Loaded project data:', project);
-        
-        if (project?.generated_ads && Array.isArray(project.generated_ads)) {
+        if (project?.generated_ads) {
           const variants = (project.generated_ads as unknown[])
             .map(convertToAdVariant)
             .filter((v): v is AdVariant => v !== null);
             
-          console.log('Setting ad variants from project:', variants);
           setAdVariants(variants);
           setState(prev => ({ ...prev, hasSavedAds: true }));
         }
@@ -84,30 +112,23 @@ export const useAdGeneration = (
       }
 
       setGenerationStatus(`Initializing ${selectedPlatform} ad generation...`);
-      console.log('Generating ads for platform:', selectedPlatform, 'with target audience:', targetAudience);
       
       const { data, error } = await supabase.functions.invoke('generate-ad-content', {
         body: {
           type: 'complete_ads',
           platform: selectedPlatform,
           businessIdea,
-          targetAudience: {
-            ...targetAudience,
-            name: targetAudience.name,
-            description: targetAudience.description,
-            demographics: targetAudience.demographics,
-            painPoints: targetAudience.painPoints
-          },
+          targetAudience,
           adHooks,
         },
       });
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
-      console.log('Generation response:', data);
-      const variants = validateResponse(data);
+      const rawVariants = data?.variants || [];
+      const variants = rawVariants
+        .map(convertToAdVariant)
+        .filter((v): v is AdVariant => v !== null);
 
       setGenerationStatus("Processing generated content...");
       
@@ -140,15 +161,12 @@ export const useAdGeneration = (
           };
         } catch (error) {
           console.error('Error processing variant:', error);
-          throw error;
+          return null;
         }
       }));
 
-      // Filter out any null values
       const validVariants = processedVariants.filter((v): v is AdVariant => v !== null);
-      console.log('Successfully processed variants:', validVariants);
       
-      // Update platform state
       setPlatformStates(prev => ({
         ...prev,
         [selectedPlatform]: {
@@ -158,7 +176,6 @@ export const useAdGeneration = (
         }
       }));
 
-      // Save to project if we have a project ID
       if (projectId && projectId !== 'new') {
         const databaseVariants = validVariants.map(convertToDatabaseFormat);
         
@@ -201,19 +218,6 @@ export const useAdGeneration = (
       setIsGenerating(false);
       setGenerationStatus("");
     }
-  };
-
-  const validateResponse = (data: any): AdVariant[] => {
-    if (!data) {
-      throw new Error("No data received from generation");
-    }
-
-    const variants = data.variants;
-    if (!Array.isArray(variants) || variants.length === 0) {
-      throw new Error("Invalid or empty variants received");
-    }
-
-    return variants;
   };
 
   return {

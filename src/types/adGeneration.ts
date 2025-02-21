@@ -47,8 +47,19 @@ export interface DatabaseAdVariant {
 }
 
 // Type guards and conversion utilities
+export const isValidSize = (value: unknown): value is AdSize => {
+  if (!value || typeof value !== 'object') return false;
+  const size = value as Record<string, unknown>;
+  return (
+    typeof size.width === 'number' &&
+    typeof size.height === 'number' &&
+    typeof size.label === 'string'
+  );
+};
+
 export const isValidAdVariant = (data: unknown): data is AdVariant => {
-  const d = data as AdVariant;
+  if (!data || typeof data !== 'object') return false;
+  const d = data as Record<string, unknown>;
   return Boolean(
     d &&
     typeof d.id === 'string' &&
@@ -56,10 +67,7 @@ export const isValidAdVariant = (data: unknown): data is AdVariant => {
     typeof d.imageUrl === 'string' &&
     typeof d.headline === 'string' &&
     typeof d.description === 'string' &&
-    d.size &&
-    typeof d.size.width === 'number' &&
-    typeof d.size.height === 'number' &&
-    typeof d.size.label === 'string'
+    isValidSize(d.size)
   );
 };
 
@@ -98,7 +106,11 @@ export const convertToDatabaseFormat = (variant: AdVariant): Json => {
     imageUrl: variant.imageUrl,
     headline: variant.headline,
     description: variant.description,
-    size: variant.size,
+    size: {
+      width: variant.size.width,
+      height: variant.size.height,
+      label: variant.size.label
+    },
     resizedUrls: variant.resizedUrls || {}
   };
 };
