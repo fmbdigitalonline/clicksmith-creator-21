@@ -82,7 +82,7 @@ export const useAdGeneration = (
           .single();
         
         if (project?.generated_ads) {
-          const variants = (project.generated_ads as unknown[])
+          const variants = ((project.generated_ads as unknown[]) || [])
             .map(convertToAdVariant)
             .filter((v): v is AdVariant => v !== null);
             
@@ -182,7 +182,7 @@ export const useAdGeneration = (
         const { error: updateError } = await supabase
           .from('projects')
           .update({
-            generated_ads: databaseVariants
+            generated_ads: databaseVariants as Json[]
           })
           .eq('id', projectId);
 

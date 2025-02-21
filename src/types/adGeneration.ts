@@ -49,25 +49,25 @@ export interface DatabaseAdVariant {
 // Type guards and conversion utilities
 export const isValidSize = (value: unknown): value is AdSize => {
   if (!value || typeof value !== 'object') return false;
-  const size = value as Record<string, unknown>;
+  const obj = value as Record<string, unknown>;
   return (
-    typeof size.width === 'number' &&
-    typeof size.height === 'number' &&
-    typeof size.label === 'string'
+    typeof obj?.width === 'number' &&
+    typeof obj?.height === 'number' &&
+    typeof obj?.label === 'string'
   );
 };
 
 export const isValidAdVariant = (data: unknown): data is AdVariant => {
   if (!data || typeof data !== 'object') return false;
-  const d = data as Record<string, unknown>;
+  const obj = data as Record<string, unknown>;
   return Boolean(
-    d &&
-    typeof d.id === 'string' &&
-    typeof d.platform === 'string' &&
-    typeof d.imageUrl === 'string' &&
-    typeof d.headline === 'string' &&
-    typeof d.description === 'string' &&
-    isValidSize(d.size)
+    obj &&
+    typeof obj?.id === 'string' &&
+    typeof obj?.platform === 'string' &&
+    typeof obj?.imageUrl === 'string' &&
+    typeof obj?.headline === 'string' &&
+    typeof obj?.description === 'string' &&
+    obj?.size && isValidSize(obj.size)
   );
 };
 
@@ -75,22 +75,26 @@ export const convertToAdVariant = (data: unknown): AdVariant | null => {
   if (!data || typeof data !== 'object') return null;
   
   try {
-    const parsed = data as Record<string, unknown>;
+    const obj = data as Record<string, unknown>;
+    const sizeObj = obj?.size as Record<string, unknown>;
+
+    if (!sizeObj) return null;
+
     const variant: AdVariant = {
-      id: String(parsed.id || ''),
-      platform: String(parsed.platform || 'facebook') as Platform,
-      imageUrl: String(parsed.imageUrl || ''),
-      headline: String(parsed.headline || ''),
-      description: String(parsed.description || ''),
+      id: String(obj?.id || ''),
+      platform: String(obj?.platform || 'facebook') as Platform,
+      imageUrl: String(obj?.imageUrl || ''),
+      headline: String(obj?.headline || ''),
+      description: String(obj?.description || ''),
       size: {
-        width: Number(parsed.size?.width || 0),
-        height: Number(parsed.size?.height || 0),
-        label: String(parsed.size?.label || '')
+        width: Number(sizeObj?.width || 0),
+        height: Number(sizeObj?.height || 0),
+        label: String(sizeObj?.label || '')
       }
     };
     
-    if (parsed.resizedUrls && typeof parsed.resizedUrls === 'object') {
-      variant.resizedUrls = parsed.resizedUrls as Record<string, string>;
+    if (obj?.resizedUrls && typeof obj.resizedUrls === 'object') {
+      variant.resizedUrls = obj.resizedUrls as Record<string, string>;
     }
     
     return isValidAdVariant(variant) ? variant : null;
@@ -99,7 +103,7 @@ export const convertToAdVariant = (data: unknown): AdVariant | null => {
   }
 };
 
-export const convertToDatabaseFormat = (variant: AdVariant): Json => {
+export const convertToDatabaseFormat = (variant: AdVariant): Record<string, Json> => {
   return {
     id: variant.id,
     platform: variant.platform,
