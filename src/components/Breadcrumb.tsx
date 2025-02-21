@@ -17,19 +17,24 @@ import {
 } from "@/components/ui/tooltip";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { Database } from "@/integrations/supabase/types";
 
 interface BusinessIdea {
   description: string;
   valueProposition?: string;
 }
 
-interface ProjectData {
-  current_step: number;
-  business_idea: BusinessIdea | null;
-  target_audience: Record<string, any> | null;
-  audience_analysis: Record<string, any> | null;
-  generated_ads: any[] | null;
-}
+// Use the database types directly and extend them
+type DatabaseProject = Database['public']['Tables']['projects']['Row'];
+type Project = Omit<DatabaseProject, 'business_idea' | 'target_audience' | 'audience_analysis' | 'marketing_campaign' | 'generated_ads'> & {
+  business_idea?: {
+    description: string;
+    valueProposition: string;
+  } | null;
+  target_audience?: any;
+  audience_analysis?: any;
+  generated_ads?: any[];
+};
 
 interface WizardStep {
   name: string;
@@ -59,13 +64,31 @@ const BreadcrumbNav = () => {
   const { data: projectData, isLoading: isProjectLoading } = useQuery({
     queryKey: ["project", projectId],
     queryFn: async () => {
-      if (!projectId) return null;
-      const { data } = await supabase
-        .from("projects")
-        .select("current_step, business_idea, target_audience, audience_analysis, generated_ads")
-        .eq("id", projectId)
-        .single();
-      return data as ProjectData;
+      try {
+        if (!projectId) return null;
+        const { data, error } = await supabase
+          .from("projects")
+          .select("current_step, business_idea, target_audience, audience_analysis, generated_ads")
+          .eq("id", projectId)
+          .single();
+
+        if (error) {
+          console.error("Error fetching project:", error);
+          throw error;
+        }
+
+        // Transform the data to match our Project type
+        return {
+          ...data,
+          business_idea: data.business_idea as BusinessIdea,
+          target_audience: data.target_audience,
+          audience_analysis: data.audience_analysis,
+          generated_ads: data.generated_ads as any[],
+        } as Project;
+      } catch (error) {
+        console.error("Error in queryFn:", error);
+        throw error;
+      }
     },
     enabled: !!projectId,
   });
@@ -80,7 +103,7 @@ const BreadcrumbNav = () => {
                  projectData.current_step === 1 ? 'current' : 'upcoming',
           completionData: projectData.business_idea ? {
             hasData: true,
-            summary: (projectData.business_idea as BusinessIdea)?.description?.substring(0, 50) + '...'
+            summary: projectData.business_idea?.description?.substring(0, 50) + '...'
           } : undefined
         },
         {
@@ -108,10 +131,10 @@ const BreadcrumbNav = () => {
         {
           name: "Ad Gallery",
           description: "View and manage generated ads",
-          status: projectData.generated_ads?.length ? 'completed' :
+          status: Array.isArray(projectData.generated_ads) && projectData.generated_ads.length > 0 ? 'completed' :
                  projectData.current_step === 4 ? 'current' :
                  projectData.current_step < 4 ? 'locked' : 'upcoming',
-          completionData: projectData.generated_ads?.length ? {
+          completionData: Array.isArray(projectData.generated_ads) && projectData.generated_ads.length > 0 ? {
             hasData: true,
             summary: `${projectData.generated_ads.length} ads generated`
           } : undefined
