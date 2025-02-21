@@ -2,18 +2,30 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, ArrowRight, History } from "lucide-react";
 import ProjectCard from "./ProjectCard";
 import CreateProjectDialog from "./CreateProjectDialog";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Database } from "@/integrations/supabase/types";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
-type Project = Database['public']['Tables']['projects']['Row'] & {
+// Use the database types directly and extend them
+type DatabaseProject = Database['public']['Tables']['projects']['Row'];
+type Project = Omit<DatabaseProject, 'business_idea' | 'target_audience' | 'audience_analysis' | 'marketing_campaign' | 'generated_ads'> & {
   business_idea?: {
     description: string;
     valueProposition: string;
   } | null;
+  target_audience?: any;
+  audience_analysis?: any;
+  marketing_campaign?: any;
+  generated_ads?: any[];
 };
 
 interface ProjectListProps {
@@ -43,7 +55,15 @@ const ProjectList = ({ onStartAdWizard }: ProjectListProps) => {
           throw error;
         }
 
-        return data as Project[];
+        // Transform the data to match our Project type
+        return (data as DatabaseProject[]).map(project => ({
+          ...project,
+          business_idea: project.business_idea as Project['business_idea'],
+          target_audience: project.target_audience,
+          audience_analysis: project.audience_analysis,
+          marketing_campaign: project.marketing_campaign,
+          generated_ads: project.generated_ads as any[],
+        }));
       } catch (error) {
         console.error("Error in queryFn:", error);
         throw error;
@@ -71,6 +91,14 @@ const ProjectList = ({ onStartAdWizard }: ProjectListProps) => {
     return projects.slice(0, 3); // Get most recent 3 projects
   };
 
+  const getMostRecentInProgressProject = () => {
+    if (!projects) return null;
+    return projects.find(project => 
+      project.current_step > 1 && 
+      (!project.generated_ads || project.generated_ads.length === 0)
+    );
+  };
+
   if (error) {
     return (
       <div className="text-center py-8">
@@ -88,6 +116,7 @@ const ProjectList = ({ onStartAdWizard }: ProjectListProps) => {
   }
 
   const recentProjects = getRecentProjects();
+  const mostRecentInProgress = getMostRecentInProgressProject();
 
   return (
     <div className="space-y-8">
@@ -115,12 +144,32 @@ const ProjectList = ({ onStartAdWizard }: ProjectListProps) => {
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <h2 className="text-2xl font-bold tracking-tight">All Projects</h2>
           <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-            <Button 
-              onClick={() => onStartAdWizard()} 
-              className="w-full sm:w-auto whitespace-nowrap"
-            >
-              <Plus className="mr-2 h-4 w-4" /> New Ad Campaign
-            </Button>
+            {mostRecentInProgress ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button className="w-full sm:w-auto">
+                    <Plus className="mr-2 h-4 w-4" /> Start Ad Campaign
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-[200px]">
+                  <DropdownMenuItem onClick={() => onStartAdWizard(mostRecentInProgress.id)}>
+                    <History className="mr-2 h-4 w-4" />
+                    <span>Continue "{mostRecentInProgress.title}"</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onStartAdWizard()}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    <span>Start New Campaign</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Button 
+                onClick={() => onStartAdWizard()} 
+                className="w-full sm:w-auto whitespace-nowrap"
+              >
+                <Plus className="mr-2 h-4 w-4" /> New Ad Campaign
+              </Button>
+            )}
             <Button 
               onClick={handleCreateProject} 
               variant="outline"
