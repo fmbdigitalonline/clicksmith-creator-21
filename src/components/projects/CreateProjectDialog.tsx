@@ -1,4 +1,3 @@
-
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
@@ -108,7 +107,6 @@ const CreateProjectDialog = ({
       let hasWizardProgress = false;
 
       if (includeWizardProgress) {
-        // Fetch current wizard progress
         const { data: wizardProgress } = await supabase
           .from('wizard_progress')
           .select('*')
@@ -117,7 +115,6 @@ const CreateProjectDialog = ({
 
         if (wizardProgress) {
           hasWizardProgress = true;
-          // Include wizard progress data in project
           projectData = {
             ...projectData,
             target_audience: wizardProgress.target_audience,
@@ -140,30 +137,19 @@ const CreateProjectDialog = ({
         const newProjectId = data[0].id;
         setCreatedProjectId(newProjectId);
 
-        // Call onSuccess first to handle any state updates in parent
-        onSuccess(newProjectId);
-
         if (hasWizardProgress && includeWizardProgress && onStartAdWizard) {
-          // Close dialog before navigation
-          onOpenChange(false);
-          
-          // Show toast and start ad wizard after a brief delay
           toast({
             title: "Project created",
             description: "Starting Ad Wizard with your progress...",
           });
-          
-          // Use requestAnimationFrame to ensure UI updates complete before navigation
-          requestAnimationFrame(() => {
-            onStartAdWizard(newProjectId);
-          });
+          onStartAdWizard(newProjectId);
         } else {
-          // Show actions dialog for projects without wizard progress
           setShowActions(true);
           toast({
             title: "Project created",
             description: "Your project has been created successfully.",
           });
+          onSuccess(newProjectId);
         }
       }
     } catch (error) {
@@ -180,15 +166,14 @@ const CreateProjectDialog = ({
 
   const handleGenerateAds = () => {
     if (createdProjectId && onStartAdWizard) {
-      onOpenChange(false);
-      // Use requestAnimationFrame to ensure dialog closes before navigation
-      requestAnimationFrame(() => {
-        onStartAdWizard(createdProjectId);
-      });
+      onStartAdWizard(createdProjectId);
     }
   };
 
   const handleBackToProjects = () => {
+    if (createdProjectId) {
+      onSuccess(createdProjectId);
+    }
     onOpenChange(false);
   };
 

@@ -22,6 +22,7 @@ interface ProjectListProps {
 
 const ProjectList = ({ onStartAdWizard }: ProjectListProps) => {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [pendingNavigation, setPendingNavigation] = useState<string | null>(null);
   const { toast } = useToast();
 
   const { data: projects, refetch, error, isLoading } = useQuery({
@@ -43,7 +44,6 @@ const ProjectList = ({ onStartAdWizard }: ProjectListProps) => {
           throw error;
         }
 
-        // Return only the data, not the entire response
         return data as Project[];
       } catch (error) {
         console.error("Error in queryFn:", error);
@@ -55,6 +55,26 @@ const ProjectList = ({ onStartAdWizard }: ProjectListProps) => {
 
   const handleCreateProject = () => {
     setIsCreateOpen(true);
+  };
+
+  const handleProjectSuccess = (projectId: string, shouldNavigate: boolean = false) => {
+    if (shouldNavigate) {
+      setPendingNavigation(projectId);
+    }
+    refetch();
+    setIsCreateOpen(false);
+  };
+
+  // Effect to handle navigation after state updates
+  const handleDialogOpenChange = (open: boolean) => {
+    setIsCreateOpen(open);
+    if (!open && pendingNavigation) {
+      // Schedule navigation after dialog close animation
+      setTimeout(() => {
+        onStartAdWizard(pendingNavigation);
+        setPendingNavigation(null);
+      }, 100);
+    }
   };
 
   if (error) {
@@ -107,12 +127,9 @@ const ProjectList = ({ onStartAdWizard }: ProjectListProps) => {
 
       <CreateProjectDialog
         open={isCreateOpen}
-        onOpenChange={setIsCreateOpen}
-        onSuccess={() => {
-          refetch();
-          setIsCreateOpen(false);
-        }}
-        onStartAdWizard={onStartAdWizard}
+        onOpenChange={handleDialogOpenChange}
+        onSuccess={(projectId) => handleProjectSuccess(projectId)}
+        onStartAdWizard={(projectId) => handleProjectSuccess(projectId, true)}
       />
     </div>
   );
