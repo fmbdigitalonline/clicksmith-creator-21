@@ -1,4 +1,3 @@
-
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
@@ -138,20 +137,19 @@ const CreateProjectDialog = ({
         const newProjectId = data[0].id;
         setCreatedProjectId(newProjectId);
 
+        // Close dialog first
+        onOpenChange(false);
+
         if (hasWizardProgress && includeWizardProgress && onStartAdWizard) {
-          // First initiate navigation
-          onStartAdWizard(newProjectId);
-          // Then close dialog after a small delay
-          setTimeout(() => {
-            onOpenChange(false);
-          }, 100);
-          
           toast({
             title: "Project created",
             description: "Starting Ad Wizard with your progress...",
           });
+          // Navigate after dialog is closed
+          onStartAdWizard(newProjectId);
         } else {
           setShowActions(true);
+          onSuccess(newProjectId);
           toast({
             title: "Project created",
             description: "Your project has been created successfully.",
@@ -172,12 +170,10 @@ const CreateProjectDialog = ({
 
   const handleGenerateAds = () => {
     if (createdProjectId && onStartAdWizard) {
-      // First initiate navigation
+      // Close dialog first
+      onOpenChange(false);
+      // Then navigate
       onStartAdWizard(createdProjectId);
-      // Then close dialog after navigation starts
-      setTimeout(() => {
-        onOpenChange(false);
-      }, 100);
     }
   };
 
