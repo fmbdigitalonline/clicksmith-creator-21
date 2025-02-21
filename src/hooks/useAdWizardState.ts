@@ -10,8 +10,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { saveWizardProgress, clearWizardProgress } from "@/utils/wizardProgress";
 
-export const useAdWizardState = () => {
-  const [currentStep, setCurrentStep] = useState<number>(1);
+export const useAdWizardState = (initialStep?: number) => {
+  const [currentStep, setCurrentStep] = useState<number>(initialStep || 1);
   const [businessIdea, setBusinessIdea] = useState<BusinessIdea | null>(null);
   const [targetAudience, setTargetAudience] = useState<TargetAudience | null>(null);
   const [audienceAnalysis, setAudienceAnalysis] = useState<AudienceAnalysis | null>(null);
@@ -60,7 +60,8 @@ export const useAdWizardState = () => {
             if (project.selected_hooks) {
               setSelectedHooks(project.selected_hooks as AdHook[]);
             }
-            if (project.current_step) {
+            // Only set current step if not overridden by initialStep
+            if (project.current_step && !initialStep) {
               setCurrentStep(Number(project.current_step));
             }
           }
@@ -71,7 +72,7 @@ export const useAdWizardState = () => {
     };
 
     loadProjectData();
-  }, [projectId, autoCreatedProjectId, location.state]);
+  }, [projectId, autoCreatedProjectId, location.state, initialStep]);
 
   const createInitialProject = async (idea: BusinessIdea) => {
     try {

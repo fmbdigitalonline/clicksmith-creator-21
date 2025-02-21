@@ -1,4 +1,3 @@
-
 import { useAdWizardState } from "@/hooks/useAdWizardState";
 import IdeaStep from "./steps/BusinessIdeaStep";
 import AudienceStep from "./steps/AudienceStep";
@@ -16,7 +15,11 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/t
 import { Loader2 } from "lucide-react";
 import StepLoadingState from "./steps/LoadingState";
 
-const AdWizard = () => {
+interface AdWizardProps {
+  initialView?: 'gallery';
+}
+
+const AdWizard = ({ initialView }: AdWizardProps) => {
   const [showCreateProject, setShowCreateProject] = useState(false);
   const [videoAdsEnabled, setVideoAdsEnabled] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -36,7 +39,7 @@ const AdWizard = () => {
     handleStartOver,
     canNavigateToStep,
     setCurrentStep,
-  } = useAdWizardState();
+  } = useAdWizardState(initialView === 'gallery' ? 4 : undefined);
 
   // Handle project initialization
   useEffect(() => {
@@ -99,6 +102,26 @@ const AdWizard = () => {
   }
 
   const renderStep = () => {
+    // For direct gallery access, ensure we have all required data
+    if (initialView === 'gallery') {
+      if (!businessIdea || !targetAudience || !audienceAnalysis) {
+        navigate(`/ad-wizard/${projectId}`);
+        return <StepLoadingState />;
+      }
+      return (
+        <AdGalleryStep
+          businessIdea={businessIdea}
+          targetAudience={targetAudience}
+          adHooks={selectedHooks}
+          onStartOver={handleStartOver}
+          onBack={handleBack}
+          onCreateProject={handleCreateProject}
+          videoAdsEnabled={videoAdsEnabled}
+        />
+      );
+    }
+
+    // Regular wizard flow
     switch (currentStep) {
       case 1:
         return <IdeaStep onNext={handleIdeaSubmit} initialBusinessIdea={businessIdea} />;

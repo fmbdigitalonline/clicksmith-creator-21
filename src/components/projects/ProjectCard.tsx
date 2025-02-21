@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -46,7 +45,7 @@ interface Project {
 interface ProjectCardProps {
   project: Project;
   onUpdate: () => void;
-  onStartAdWizard: () => void;
+  onStartAdWizard: (projectId?: string, view?: string) => void;
   showProgress?: boolean;
   isRecent?: boolean;
 }
@@ -78,6 +77,10 @@ const ProjectCard = ({ project, onUpdate, onStartAdWizard, showProgress = false,
       description: "Your project has been deleted successfully.",
     });
     onUpdate();
+  };
+
+  const handleAdNavigation = () => {
+    onStartAdWizard(project.id, project.generated_ads?.length ? 'gallery' : undefined);
   };
 
   const getValidationProgress = () => {
@@ -152,7 +155,7 @@ const ProjectCard = ({ project, onUpdate, onStartAdWizard, showProgress = false,
           )}
 
           <Button 
-            onClick={onStartAdWizard}
+            onClick={handleAdNavigation}
             className="w-full mt-2 gap-2"
             variant={project.generated_ads?.length > 0 ? "secondary" : "default"}
           >
@@ -165,7 +168,7 @@ const ProjectCard = ({ project, onUpdate, onStartAdWizard, showProgress = false,
           projectId={project.id}
           onEdit={() => setIsEditOpen(true)}
           onDelete={() => setIsDeleteOpen(true)}
-          onStartAdWizard={onStartAdWizard}
+          onStartAdWizard={handleAdNavigation}
           hasCampaign={!!project.marketing_campaign}
           hasBusinessIdea={!!project.business_idea}
           hasTargetAudience={!!project.target_audience}

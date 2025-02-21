@@ -1,4 +1,3 @@
-
 import ProjectList from "@/components/projects/ProjectList";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -15,6 +14,7 @@ interface Project {
   target_audience: TargetAudience | null;
   audience_analysis: AudienceAnalysis | null;
   marketing_campaign: any | null;
+  generated_ads?: any[];
 }
 
 const Projects = () => {
@@ -41,10 +41,10 @@ const Projects = () => {
     enabled: !!projectId
   });
 
-  const handleStartAdWizard = (projectId?: string) => {
+  const handleStartAdWizard = (projectId?: string, view?: string) => {
     if (projectId) {
       // Use replace to prevent back button issues
-      navigate(`/ad-wizard/${projectId}`, { replace: true });
+      navigate(view ? `/ad-wizard/${projectId}/${view}` : `/ad-wizard/${projectId}`, { replace: true });
     } else {
       navigate("/ad-wizard/new", { replace: true });
     }
@@ -86,10 +86,10 @@ const Projects = () => {
             <div className="space-y-6">
               <div className="flex items-center gap-2">
                 <Button 
-                  onClick={() => handleStartAdWizard(project.id)}
+                  onClick={() => handleStartAdWizard(project.id, project.generated_ads?.length ? 'gallery' : undefined)}
                   className="w-full sm:w-auto"
                 >
-                  Continue Ad Creation
+                  {project.generated_ads?.length ? 'View Generated Ads' : 'Continue Ad Creation'}
                 </Button>
                 <Button 
                   variant="outline"
