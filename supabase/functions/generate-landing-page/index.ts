@@ -14,9 +14,16 @@ interface BusinessIdea {
 }
 
 interface TargetAudience {
-  demographics: any;
-  interests: string[];
+  name: string;
+  description: string;
+  demographics: string;
   painPoints: string[];
+  icp: string;
+  coreMessage: string;
+  positioning: string;
+  marketingAngle: string;
+  messagingApproach: string;
+  marketingChannels: string[];
 }
 
 const validateBusinessIdea = (businessIdea: any): businessIdea is BusinessIdea => {
@@ -30,9 +37,16 @@ const validateBusinessIdea = (businessIdea: any): businessIdea is BusinessIdea =
 const validateTargetAudience = (targetAudience: any): targetAudience is TargetAudience => {
   return (
     targetAudience &&
-    targetAudience.demographics &&
-    Array.isArray(targetAudience.interests) &&
-    Array.isArray(targetAudience.painPoints)
+    typeof targetAudience.name === 'string' &&
+    typeof targetAudience.description === 'string' &&
+    typeof targetAudience.demographics === 'string' &&
+    Array.isArray(targetAudience.painPoints) &&
+    typeof targetAudience.icp === 'string' &&
+    typeof targetAudience.coreMessage === 'string' &&
+    typeof targetAudience.positioning === 'string' &&
+    typeof targetAudience.marketingAngle === 'string' &&
+    typeof targetAudience.messagingApproach === 'string' &&
+    Array.isArray(targetAudience.marketingChannels)
   );
 };
 
@@ -56,6 +70,8 @@ serve(async (req) => {
 
     const { projectId, businessIdea, targetAudience, userId } = await req.json()
 
+    console.log('Received request with data:', { projectId, businessIdea, targetAudience, userId });
+
     // Validate required parameters
     if (!projectId || !userId) {
       return new Response(
@@ -66,6 +82,7 @@ serve(async (req) => {
 
     // Validate business idea structure
     if (!validateBusinessIdea(businessIdea)) {
+      console.error('Invalid business idea:', businessIdea);
       return new Response(
         JSON.stringify({ error: 'Invalid business idea structure' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -74,6 +91,7 @@ serve(async (req) => {
 
     // Validate target audience structure
     if (!validateTargetAudience(targetAudience)) {
+      console.error('Invalid target audience:', targetAudience);
       return new Response(
         JSON.stringify({ error: 'Invalid target audience structure' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
