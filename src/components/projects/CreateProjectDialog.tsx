@@ -137,25 +137,20 @@ const CreateProjectDialog = ({
         const newProjectId = data[0].id;
         setCreatedProjectId(newProjectId);
 
-        // Always close the dialog first
-        onOpenChange(false);
-        
-        // Then handle navigation after a short delay
-        setTimeout(() => {
-          if (hasWizardProgress && includeWizardProgress && onStartAdWizard) {
-            toast({
-              title: "Project created",
-              description: "Starting Ad Wizard with your progress...",
-            });
-            onStartAdWizard(newProjectId);
-          } else {
-            toast({
-              title: "Project created",
-              description: "Your project has been created successfully.",
-            });
-            onSuccess(newProjectId);
-          }
-        }, 100);
+        if (hasWizardProgress && includeWizardProgress && onStartAdWizard) {
+          toast({
+            title: "Project created",
+            description: "Starting Ad Wizard with your progress...",
+          });
+          onStartAdWizard(newProjectId);
+        } else {
+          setShowActions(true);
+          toast({
+            title: "Project created",
+            description: "Your project has been created successfully.",
+          });
+          onSuccess(newProjectId);
+        }
       }
     } catch (error) {
       console.error('Error creating project:', error);
