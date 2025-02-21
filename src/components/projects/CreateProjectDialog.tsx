@@ -140,18 +140,23 @@ const CreateProjectDialog = ({
         const newProjectId = data[0].id;
         setCreatedProjectId(newProjectId);
 
-        // Handle success paths
+        // Call onSuccess first to handle any state updates in parent
+        onSuccess(newProjectId);
+
         if (hasWizardProgress && includeWizardProgress && onStartAdWizard) {
-          // Start ad wizard directly
+          // Close dialog before navigation
+          onOpenChange(false);
+          
+          // Show toast and start ad wizard after a brief delay
           toast({
             title: "Project created",
             description: "Starting Ad Wizard with your progress...",
           });
-          onStartAdWizard(newProjectId);
-          // Close dialog after navigation is triggered
-          onOpenChange(false);
-          // Call onSuccess after navigation
-          onSuccess(newProjectId);
+          
+          // Use requestAnimationFrame to ensure UI updates complete before navigation
+          requestAnimationFrame(() => {
+            onStartAdWizard(newProjectId);
+          });
         } else {
           // Show actions dialog for projects without wizard progress
           setShowActions(true);
@@ -159,8 +164,6 @@ const CreateProjectDialog = ({
             title: "Project created",
             description: "Your project has been created successfully.",
           });
-          // Call onSuccess immediately since we're staying in the dialog
-          onSuccess(newProjectId);
         }
       }
     } catch (error) {
@@ -177,8 +180,11 @@ const CreateProjectDialog = ({
 
   const handleGenerateAds = () => {
     if (createdProjectId && onStartAdWizard) {
-      onStartAdWizard(createdProjectId);
       onOpenChange(false);
+      // Use requestAnimationFrame to ensure dialog closes before navigation
+      requestAnimationFrame(() => {
+        onStartAdWizard(createdProjectId);
+      });
     }
   };
 
