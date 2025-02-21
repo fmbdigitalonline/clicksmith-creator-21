@@ -36,7 +36,7 @@ const ProjectList = ({ onStartAdWizard }: ProjectListProps) => {
         const { data, error } = await supabase
           .from("projects")
           .select("*")
-          .order("created_at", { ascending: false });
+          .order("updated_at", { ascending: false });
 
         if (error) {
           console.error("Error fetching projects:", error);
@@ -61,10 +61,14 @@ const ProjectList = ({ onStartAdWizard }: ProjectListProps) => {
     setIsCreateOpen(false);
   };
 
-  // Separate handler for ad wizard navigation
   const handleAdWizardNavigation = (projectId: string) => {
-    setIsCreateOpen(false); // Close dialog first
-    onStartAdWizard(projectId); // Navigate after dialog is closed
+    setIsCreateOpen(false);
+    onStartAdWizard(projectId);
+  };
+
+  const getRecentProjects = () => {
+    if (!projects) return [];
+    return projects.slice(0, 3); // Get most recent 3 projects
   };
 
   if (error) {
@@ -83,36 +87,61 @@ const ProjectList = ({ onStartAdWizard }: ProjectListProps) => {
     );
   }
 
-  return (
-    <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Your Projects</h2>
-        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-          <Button 
-            onClick={() => onStartAdWizard()} 
-            className="w-full sm:w-auto whitespace-nowrap"
-          >
-            <Plus className="mr-2 h-4 w-4" /> New Ad Campaign
-          </Button>
-          <Button 
-            onClick={handleCreateProject} 
-            variant="outline"
-            className="w-full sm:w-auto whitespace-nowrap"
-          >
-            <Plus className="mr-2 h-4 w-4" /> New Project
-          </Button>
-        </div>
-      </div>
+  const recentProjects = getRecentProjects();
 
-      <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-        {projects?.map((project) => (
-          <ProjectCard 
-            key={project.id} 
-            project={project} 
-            onUpdate={refetch}
-            onStartAdWizard={() => onStartAdWizard(project.id)} 
-          />
-        ))}
+  return (
+    <div className="space-y-8">
+      {/* Recent Projects Section */}
+      {recentProjects.length > 0 && (
+        <div className="space-y-4">
+          <h2 className="text-2xl font-bold tracking-tight">Recent Projects</h2>
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
+            {recentProjects.map((project) => (
+              <ProjectCard 
+                key={project.id} 
+                project={project} 
+                onUpdate={refetch}
+                onStartAdWizard={() => onStartAdWizard(project.id)}
+                showProgress
+                isRecent
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* All Projects Section */}
+      <div className="space-y-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <h2 className="text-2xl font-bold tracking-tight">All Projects</h2>
+          <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+            <Button 
+              onClick={() => onStartAdWizard()} 
+              className="w-full sm:w-auto whitespace-nowrap"
+            >
+              <Plus className="mr-2 h-4 w-4" /> New Ad Campaign
+            </Button>
+            <Button 
+              onClick={handleCreateProject} 
+              variant="outline"
+              className="w-full sm:w-auto whitespace-nowrap"
+            >
+              <Plus className="mr-2 h-4 w-4" /> New Project
+            </Button>
+          </div>
+        </div>
+
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+          {projects?.slice(3).map((project) => (
+            <ProjectCard 
+              key={project.id} 
+              project={project} 
+              onUpdate={refetch}
+              onStartAdWizard={() => onStartAdWizard(project.id)}
+              showProgress
+            />
+          ))}
+        </div>
       </div>
 
       <CreateProjectDialog

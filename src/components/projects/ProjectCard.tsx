@@ -20,6 +20,10 @@ import EditProjectDialog from "./EditProjectDialog";
 import ProjectCardHeader from "./card/ProjectCardHeader";
 import ProjectCardActions from "./card/ProjectCardActions";
 import ProjectProgressDetails from "./ProjectProgressDetails";
+import { Progress } from "@/components/ui/progress";
+import { ArrowRight, Play, CheckCircle, Clock } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { formatDistanceToNow } from "date-fns";
 
 interface Project {
   id: string;
@@ -27,6 +31,8 @@ interface Project {
   description: string | null;
   tags: string[];
   status: string;
+  current_step: number;
+  updated_at: string;
   business_idea?: {
     description: string;
     valueProposition: string;
@@ -34,15 +40,18 @@ interface Project {
   target_audience?: any;
   audience_analysis?: any;
   marketing_campaign?: any;
+  generated_ads?: any[];
 }
 
 interface ProjectCardProps {
   project: Project;
   onUpdate: () => void;
   onStartAdWizard: () => void;
+  showProgress?: boolean;
+  isRecent?: boolean;
 }
 
-const ProjectCard = ({ project, onUpdate, onStartAdWizard }: ProjectCardProps) => {
+const ProjectCard = ({ project, onUpdate, onStartAdWizard, showProgress = false, isRecent = false }: ProjectCardProps) => {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
@@ -80,17 +89,58 @@ const ProjectCard = ({ project, onUpdate, onStartAdWizard }: ProjectCardProps) =
     return progress;
   };
 
+  const getStepStatusIcon = () => {
+    if (project.generated_ads?.length > 0) {
+      return <CheckCircle className="h-4 w-4 text-green-500" />;
+    }
+    if (project.current_step > 1) {
+      return <Clock className="h-4 w-4 text-yellow-500" />;
+    }
+    return <Play className="h-4 w-4 text-blue-500" />;
+  };
+
+  const getStatusText = () => {
+    if (project.generated_ads?.length > 0) {
+      return "Ads Generated";
+    }
+    if (project.current_step > 1) {
+      return `Step ${project.current_step} of 4`;
+    }
+    return "Not Started";
+  };
+
+  const progressValue = getValidationProgress();
+
   return (
     <>
-      <Card className="cursor-pointer transition-all hover:shadow-md" onClick={() => setShowDetails(true)}>
+      <Card className={`
+        transition-all hover:shadow-md relative overflow-hidden
+        ${isRecent ? 'border-primary/20' : ''}
+      `}>
         <ProjectCardHeader 
           title={project.title} 
-          validationProgress={getValidationProgress()} 
+          validationProgress={progressValue}
         />
-        <CardContent className="p-3 pt-2">
-          <p className="text-xs text-muted-foreground mb-2 line-clamp-2 leading-relaxed">
+        <CardContent className="p-4 space-y-3">
+          {showProgress && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <div className="flex items-center gap-2">
+                  {getStepStatusIcon()}
+                  <span className="text-muted-foreground">{getStatusText()}</span>
+                </div>
+                <span className="text-xs text-muted-foreground">
+                  Updated {formatDistanceToNow(new Date(project.updated_at), { addSuffix: true })}
+                </span>
+              </div>
+              <Progress value={progressValue} className="h-1" />
+            </div>
+          )}
+          
+          <p className="text-sm text-muted-foreground line-clamp-2">
             {project.business_idea?.description || project.description || "No description provided"}
           </p>
+
           {project.tags && project.tags.length > 0 && (
             <div className="flex flex-wrap gap-1">
               {project.tags.map((tag) => (
@@ -100,7 +150,17 @@ const ProjectCard = ({ project, onUpdate, onStartAdWizard }: ProjectCardProps) =
               ))}
             </div>
           )}
+
+          <Button 
+            onClick={onStartAdWizard}
+            className="w-full mt-2 gap-2"
+            variant={project.generated_ads?.length > 0 ? "secondary" : "default"}
+          >
+            {project.generated_ads?.length > 0 ? "View Generated Ads" : "Continue"}
+            <ArrowRight className="h-4 w-4" />
+          </Button>
         </CardContent>
+
         <ProjectCardActions
           projectId={project.id}
           onEdit={() => setIsEditOpen(true)}
