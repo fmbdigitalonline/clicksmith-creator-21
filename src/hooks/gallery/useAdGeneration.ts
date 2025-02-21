@@ -1,10 +1,16 @@
-
 import { useState, useEffect } from "react";
 import { BusinessIdea, TargetAudience, AdHook } from "@/types/adWizard";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate, useParams } from "react-router-dom";
-import { AdGenerationState, PlatformAdState, AdVariant } from "@/types/adGeneration";
+import { 
+  AdGenerationState, 
+  PlatformAdState, 
+  AdVariant, 
+  Platform, 
+  DatabaseAdVariant 
+} from "@/types/adGeneration";
+import { AD_FORMATS } from "@/components/steps/gallery/components/AdSizeSelector";
 
 const initialPlatformState: PlatformAdState = {
   isLoading: false,
@@ -13,21 +19,23 @@ const initialPlatformState: PlatformAdState = {
   variants: [],
 };
 
+const initialState: AdGenerationState = {
+  isInitialLoad: true,
+  hasSavedAds: false,
+  platformSpecificAds: {
+    facebook: { ...initialPlatformState },
+    google: { ...initialPlatformState },
+    linkedin: { ...initialPlatformState },
+    tiktok: { ...initialPlatformState },
+  },
+};
+
 export const useAdGeneration = (
   businessIdea: BusinessIdea,
   targetAudience: TargetAudience,
   adHooks: AdHook[]
 ) => {
-  const [state, setState] = useState<AdGenerationState>({
-    isInitialLoad: true,
-    hasSavedAds: false,
-    platformSpecificAds: {
-      facebook: { ...initialPlatformState },
-      google: { ...initialPlatformState },
-      linkedin: { ...initialPlatformState },
-      tiktok: { ...initialPlatformState },
-    },
-  });
+  const [state, setState] = useState<AdGenerationState>(initialState);
   const [generationStatus, setGenerationStatus] = useState<string>("");
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -36,7 +44,10 @@ export const useAdGeneration = (
   // Load saved ads when component mounts
   useEffect(() => {
     const loadSavedAds = async () => {
-      if (!projectId || projectId === 'new') return;
+      if (!projectId || projectId === 'new') {
+        setState(prev => ({ ...prev, isInitialLoad: false }));
+        return;
+      }
 
       console.log("Loading saved ads for project:", projectId);
       try {
@@ -49,13 +60,20 @@ export const useAdGeneration = (
         if (project?.generated_ads && Array.isArray(project.generated_ads)) {
           console.log('Found saved ads:', project.generated_ads);
           
-          // Group ads by platform
-          const platformAds: Record<string, AdVariant[]> = {};
-          project.generated_ads.forEach((ad: AdVariant) => {
-            if (!platformAds[ad.platform]) {
-              platformAds[ad.platform] = [];
+          // Group ads by platform and ensure proper typing
+          const platformAds: Partial<Record<Platform, AdVariant[]>> = {};
+          (project.generated_ads as DatabaseAdVariant[]).forEach((ad) => {
+            const platform = ad.platform as Platform;
+            if (!platformAds[platform]) {
+              platformAds[platform] = [];
             }
-            platformAds[ad.platform].push(ad);
+            // Ensure each ad has a size
+            const adWithSize: AdVariant = {
+              ...ad,
+              platform,
+              size: ad.size || AD_FORMATS[0]
+            };
+            platformAds[platform]?.push(adWithSize);
           });
 
           // Update state for each platform
@@ -63,13 +81,16 @@ export const useAdGeneration = (
             ...prev,
             isInitialLoad: false,
             hasSavedAds: true,
-            platformSpecificAds: Object.keys(platformAds).reduce((acc, platform) => ({
-              ...acc,
-              [platform]: {
-                ...initialPlatformState,
-                variants: platformAds[platform],
-              }
-            }), prev.platformSpecificAds)
+            platformSpecificAds: {
+              ...prev.platformSpecificAds,
+              ...(Object.entries(platformAds).reduce((acc, [platform, variants]) => ({
+                ...acc,
+                [platform]: {
+                  ...initialPlatformState,
+                  variants: variants || []
+                }
+              }), {}) as Record<Platform, PlatformAdState>)
+            }
           }));
         } else {
           setState(prev => ({ ...prev, isInitialLoad: false }));
@@ -92,7 +113,9 @@ export const useAdGeneration = (
       { p_user_id: user.id, required_credits: 1 }
     );
 
-    if (error) throw error;
+    if (error) {
+      throw error;
+    }
 
     const result = creditCheck[0];
     
@@ -109,8 +132,8 @@ export const useAdGeneration = (
     return true;
   };
 
-  const generateAds = async (selectedPlatform: string) => {
-    // Skip generation if we already have ads for this platform and no regeneration was requested
+  const generateAds = async (selectedPlatform: Platform) => {
+    // Skip generation if we already have ads for this platform
     if (state.platformSpecificAds[selectedPlatform]?.variants.length > 0) {
       console.log(`Using existing ads for ${selectedPlatform}`);
       return;
@@ -151,7 +174,7 @@ export const useAdGeneration = (
 
       setGenerationStatus("Processing generated content...");
       
-      const processedVariants = await Promise.all(data.variants.map(async (variant: any) => {
+      const processedVariants = await Promise.all((data.variants as DatabaseAdVariant[]).map(async (variant) => {
         if (!variant.imageUrl) {
           console.warn('Variant missing imageUrl:', variant);
           return null;
@@ -174,22 +197,23 @@ export const useAdGeneration = (
             return null;
           }
 
-          return {
+          const adVariant: AdVariant = {
             ...variant,
             id: imageVariant.id,
-            imageUrl: variant.imageUrl,
-            resizedUrls: variant.resizedUrls || {},
-            platform: selectedPlatform
+            platform: selectedPlatform,
+            size: variant.size || AD_FORMATS[0]
           };
+
+          return adVariant;
         } catch (error) {
           console.error('Error processing variant:', error);
           return null;
         }
       }));
 
-      const validVariants = processedVariants.filter(Boolean);
+      const validVariants = processedVariants.filter((v): v is AdVariant => v !== null);
       
-      // Update state with new variants for the specific platform
+      // Update state with new variants
       setState(prev => ({
         ...prev,
         platformSpecificAds: {
@@ -204,9 +228,12 @@ export const useAdGeneration = (
 
       // Save to project if we have a project ID
       if (projectId && projectId !== 'new') {
-        const allVariants = Object.values(state.platformSpecificAds)
-          .flatMap(p => p.variants)
-          .concat(validVariants);
+        const allVariants = [
+          ...Object.values(state.platformSpecificAds)
+            .flatMap(p => p.variants)
+            .filter(v => v.platform !== selectedPlatform),
+          ...validVariants
+        ];
 
         const { error: updateError } = await supabase
           .from('projects')

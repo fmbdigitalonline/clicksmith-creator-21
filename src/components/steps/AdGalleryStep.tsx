@@ -11,6 +11,7 @@ import AdGenerationControls from "./gallery/AdGenerationControls";
 import { useEffect, useState } from "react";
 import { AdSizeSelector, AD_FORMATS } from "./gallery/components/AdSizeSelector";
 import { useToast } from "@/hooks/use-toast";
+import { Platform } from "@/types/adGeneration";
 
 interface AdGalleryStepProps {
   businessIdea: BusinessIdea;
@@ -53,7 +54,7 @@ const AdGalleryStep = ({
     const initializeAdsIfNeeded = async () => {
       if (!state.isInitialLoad && !state.hasSavedAds) {
         try {
-          await generateAds(platform);
+          await generateAds(platform as Platform);
         } catch (error) {
           console.error("Error generating initial ads:", error);
           toast({
@@ -66,14 +67,14 @@ const AdGalleryStep = ({
     };
 
     initializeAdsIfNeeded();
-  }, [state.isInitialLoad, state.hasSavedAds, platform]);
+  }, [state.isInitialLoad, state.hasSavedAds, platform, generateAds]);
 
   const onPlatformChange = async (newPlatform: string) => {
-    handlePlatformChange(newPlatform, state.platformSpecificAds[newPlatform]?.variants.length > 0);
+    handlePlatformChange(newPlatform as Platform, state.platformSpecificAds[newPlatform as Platform]?.variants.length > 0);
   };
 
   const onConfirmPlatformChange = async () => {
-    const newPlatform = confirmPlatformChange();
+    const newPlatform = confirmPlatformChange() as Platform;
     if (!state.platformSpecificAds[newPlatform]?.variants.length) {
       await generateAds(newPlatform);
     }
@@ -81,7 +82,7 @@ const AdGalleryStep = ({
 
   const handleRegenerate = async () => {
     try {
-      await generateAds(platform);
+      await generateAds(platform as Platform);
     } catch (error) {
       console.error("Error regenerating ads:", error);
       toast({
@@ -110,7 +111,7 @@ const AdGalleryStep = ({
         onBack={onBack}
         onStartOver={onStartOver}
         onRegenerate={handleRegenerate}
-        isGenerating={state.platformSpecificAds[platform]?.isLoading || false}
+        isGenerating={state.platformSpecificAds[platform as Platform]?.isLoading || false}
         generationStatus={generationStatus}
       />
 

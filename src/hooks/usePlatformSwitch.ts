@@ -1,6 +1,6 @@
-import { useState } from "react";
 
-type Platform = "facebook" | "google" | "linkedin" | "tiktok";
+import { useState } from "react";
+import { Platform } from "@/types/adGeneration";
 
 export const usePlatformSwitch = (initialPlatform: Platform = "facebook") => {
   const [platform, setPlatform] = useState<Platform>(initialPlatform);
@@ -11,7 +11,7 @@ export const usePlatformSwitch = (initialPlatform: Platform = "facebook") => {
     if (hasExistingAds && newPlatform !== platform) {
       setPendingPlatform(newPlatform);
       setShowPlatformChangeDialog(true);
-      return platform; // Return current platform to maintain tab selection
+      return platform;
     } else {
       setPlatform(newPlatform);
       return newPlatform;
@@ -32,7 +32,7 @@ export const usePlatformSwitch = (initialPlatform: Platform = "facebook") => {
   const cancelPlatformChange = () => {
     setPendingPlatform(null);
     setShowPlatformChangeDialog(false);
-    return platform; // Return the current platform to maintain tab selection
+    return platform;
   };
 
   return {

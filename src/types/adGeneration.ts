@@ -1,15 +1,20 @@
 
+export type Platform = 'facebook' | 'google' | 'linkedin' | 'tiktok';
+
+export interface AdSize {
+  width: number;
+  height: number;
+  label: string;
+}
+
 export interface AdVariant {
   id: string;
-  platform: string;
+  platform: Platform;
   imageUrl: string;
   headline: string;
   description: string;
-  size?: {
-    width: number;
-    height: number;
-    label: string;
-  };
+  size: AdSize;
+  resizedUrls?: Record<string, string>;
 }
 
 export interface PlatformAdState {
@@ -22,5 +27,22 @@ export interface PlatformAdState {
 export interface AdGenerationState {
   isInitialLoad: boolean;
   hasSavedAds: boolean;
-  platformSpecificAds: Record<string, PlatformAdState>;
+  platformSpecificAds: Record<Platform, PlatformAdState>;
+}
+
+// Type for database operations
+export type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
+
+export interface DatabaseAdVariant extends JsonValue {
+  id: string;
+  platform: string;
+  imageUrl: string;
+  headline: string;
+  description: string;
+  size: {
+    width: number;
+    height: number;
+    label: string;
+  };
+  resizedUrls?: Record<string, string>;
 }
