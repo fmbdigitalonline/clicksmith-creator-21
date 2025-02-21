@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
@@ -44,20 +43,20 @@ const Login = () => {
     setIsLoading(true);
     try {
       if (isSignUp) {
-        const { error } = await supabase.auth.signUp({
+        const { data: signUpData, error } = await supabase.auth.signUp({
           email: data.email,
-          password: data.password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/dashboard`
-          }
+          password: data.password
         });
         
         if (error) throw error;
         
-        toast({
-          title: "Account created!",
-          description: "Please check your email to confirm your account.",
-        });
+        if (signUpData.user) {
+          toast({
+            title: "Welcome!",
+            description: "Your account has been created successfully.",
+          });
+          navigate('/dashboard');
+        }
       } else {
         const { error } = await supabase.auth.signInWithPassword({
           email: data.email,
