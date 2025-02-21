@@ -4,26 +4,41 @@ import { BusinessIdea, TargetAudience, AdHook } from "@/types/adWizard";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate, useParams } from "react-router-dom";
-import { useAdPersistence } from "./useAdPersistence";
+import { AdGenerationState, PlatformAdState, AdVariant } from "@/types/adGeneration";
+
+const initialPlatformState: PlatformAdState = {
+  isLoading: false,
+  hasError: false,
+  errorMessage: undefined,
+  variants: [],
+};
 
 export const useAdGeneration = (
   businessIdea: BusinessIdea,
   targetAudience: TargetAudience,
   adHooks: AdHook[]
 ) => {
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [state, setState] = useState<AdGenerationState>({
+    isInitialLoad: true,
+    hasSavedAds: false,
+    platformSpecificAds: {
+      facebook: { ...initialPlatformState },
+      google: { ...initialPlatformState },
+      linkedin: { ...initialPlatformState },
+      tiktok: { ...initialPlatformState },
+    },
+  });
   const [generationStatus, setGenerationStatus] = useState<string>("");
   const { toast } = useToast();
   const navigate = useNavigate();
   const { projectId } = useParams();
-  const [adVariants, setAdVariants] = useState<any[]>([]);
 
   // Load saved ads when component mounts
   useEffect(() => {
     const loadSavedAds = async () => {
       if (!projectId || projectId === 'new') return;
 
-      setGenerationStatus("Loading saved ads...");
+      console.log("Loading saved ads for project:", projectId);
       try {
         const { data: project } = await supabase
           .from('projects')
@@ -32,12 +47,36 @@ export const useAdGeneration = (
           .single();
         
         if (project?.generated_ads && Array.isArray(project.generated_ads)) {
-          setAdVariants(project.generated_ads);
+          console.log('Found saved ads:', project.generated_ads);
+          
+          // Group ads by platform
+          const platformAds: Record<string, AdVariant[]> = {};
+          project.generated_ads.forEach((ad: AdVariant) => {
+            if (!platformAds[ad.platform]) {
+              platformAds[ad.platform] = [];
+            }
+            platformAds[ad.platform].push(ad);
+          });
+
+          // Update state for each platform
+          setState(prev => ({
+            ...prev,
+            isInitialLoad: false,
+            hasSavedAds: true,
+            platformSpecificAds: Object.keys(platformAds).reduce((acc, platform) => ({
+              ...acc,
+              [platform]: {
+                ...initialPlatformState,
+                variants: platformAds[platform],
+              }
+            }), prev.platformSpecificAds)
+          }));
+        } else {
+          setState(prev => ({ ...prev, isInitialLoad: false }));
         }
       } catch (error) {
         console.error('Error loading saved ads:', error);
-      } finally {
-        setGenerationStatus("");
+        setState(prev => ({ ...prev, isInitialLoad: false }));
       }
     };
 
@@ -71,14 +110,32 @@ export const useAdGeneration = (
   };
 
   const generateAds = async (selectedPlatform: string) => {
-    setIsGenerating(true);
+    // Skip generation if we already have ads for this platform and no regeneration was requested
+    if (state.platformSpecificAds[selectedPlatform]?.variants.length > 0) {
+      console.log(`Using existing ads for ${selectedPlatform}`);
+      return;
+    }
+
+    // Update loading state for the specific platform
+    setState(prev => ({
+      ...prev,
+      platformSpecificAds: {
+        ...prev.platformSpecificAds,
+        [selectedPlatform]: {
+          ...prev.platformSpecificAds[selectedPlatform],
+          isLoading: true,
+          hasError: false,
+        }
+      }
+    }));
+
     setGenerationStatus("Checking credits availability...");
     
     try {
       const hasCredits = await checkCredits();
       if (!hasCredits) return;
 
-      setGenerationStatus("Initializing ad generation...");
+      setGenerationStatus(`Generating ${selectedPlatform} ads...`);
       
       const { data, error } = await supabase.functions.invoke('generate-ad-content', {
         body: {
@@ -132,13 +189,29 @@ export const useAdGeneration = (
 
       const validVariants = processedVariants.filter(Boolean);
       
+      // Update state with new variants for the specific platform
+      setState(prev => ({
+        ...prev,
+        platformSpecificAds: {
+          ...prev.platformSpecificAds,
+          [selectedPlatform]: {
+            isLoading: false,
+            hasError: false,
+            variants: validVariants
+          }
+        }
+      }));
+
       // Save to project if we have a project ID
       if (projectId && projectId !== 'new') {
-        const newVariants = [...adVariants, ...validVariants];
+        const allVariants = Object.values(state.platformSpecificAds)
+          .flatMap(p => p.variants)
+          .concat(validVariants);
+
         const { error: updateError } = await supabase
           .from('projects')
           .update({
-            generated_ads: newVariants
+            generated_ads: allVariants
           })
           .eq('id', projectId);
 
@@ -146,32 +219,40 @@ export const useAdGeneration = (
           console.error('Error updating project:', updateError);
           throw updateError;
         }
-        
-        setAdVariants(newVariants);
-      } else {
-        setAdVariants(prev => [...prev, ...validVariants]);
       }
 
       toast({
         title: "Ads generated successfully",
-        description: "Your new ad variants are ready!",
+        description: `Your new ${selectedPlatform} ad variants are ready!`,
       });
     } catch (error: any) {
       console.error('Ad generation error:', error);
+      
+      setState(prev => ({
+        ...prev,
+        platformSpecificAds: {
+          ...prev.platformSpecificAds,
+          [selectedPlatform]: {
+            ...prev.platformSpecificAds[selectedPlatform],
+            isLoading: false,
+            hasError: true,
+            errorMessage: error.message
+          }
+        }
+      }));
+
       toast({
         title: "Error generating ads",
         description: error.message || "Failed to generate ads. Please try again.",
         variant: "destructive",
       });
     } finally {
-      setIsGenerating(false);
       setGenerationStatus("");
     }
   };
 
   return {
-    isGenerating,
-    adVariants,
+    state,
     generationStatus,
     generateAds,
   };

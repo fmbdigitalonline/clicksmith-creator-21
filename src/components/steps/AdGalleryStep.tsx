@@ -44,15 +44,14 @@ const AdGalleryStep = ({
   } = usePlatformSwitch();
 
   const {
-    isGenerating,
-    adVariants,
+    state,
     generationStatus,
     generateAds,
   } = useAdGeneration(businessIdea, targetAudience, adHooks);
 
   useEffect(() => {
-    const initializeAds = async () => {
-      if (adVariants.length === 0) {
+    const initializeAdsIfNeeded = async () => {
+      if (!state.isInitialLoad && !state.hasSavedAds) {
         try {
           await generateAds(platform);
         } catch (error) {
@@ -66,47 +65,18 @@ const AdGalleryStep = ({
       }
     };
 
-    initializeAds();
-  }, [platform, videoAdsEnabled]);
+    initializeAdsIfNeeded();
+  }, [state.isInitialLoad, state.hasSavedAds, platform]);
 
-  const onPlatformChange = async (newPlatform: "facebook" | "google" | "linkedin" | "tiktok") => {
-    try {
-      handlePlatformChange(newPlatform, adVariants.length > 0);
-    } catch (error) {
-      console.error("Error changing platform:", error);
-      toast({
-        title: "Error changing platform",
-        description: "There was an error changing the platform. Please try again.",
-        variant: "destructive",
-      });
-    }
+  const onPlatformChange = async (newPlatform: string) => {
+    handlePlatformChange(newPlatform, state.platformSpecificAds[newPlatform]?.variants.length > 0);
   };
 
   const onConfirmPlatformChange = async () => {
-    try {
-      const newPlatform = confirmPlatformChange();
+    const newPlatform = confirmPlatformChange();
+    if (!state.platformSpecificAds[newPlatform]?.variants.length) {
       await generateAds(newPlatform);
-    } catch (error) {
-      console.error("Error confirming platform change:", error);
-      toast({
-        title: "Error generating ads",
-        description: "There was an error generating ads for the new platform. Please try again.",
-        variant: "destructive",
-      });
     }
-  };
-
-  const onCancelPlatformChange = () => {
-    const currentPlatform = cancelPlatformChange();
-    // Force update the PlatformTabs to stay on the current platform
-    const tabsElement = document.querySelector(`[data-state="active"][value="${currentPlatform}"]`);
-    if (tabsElement) {
-      (tabsElement as HTMLElement).click();
-    }
-  };
-
-  const handleFormatChange = (format: typeof AD_FORMATS[0]) => {
-    setSelectedFormat(format);
   };
 
   const handleRegenerate = async () => {
@@ -122,53 +92,82 @@ const AdGalleryStep = ({
     }
   };
 
-  const renderPlatformContent = (platformName: string) => (
-    <TabsContent value={platformName} className="space-y-4">
+  const handleFormatChange = (format: typeof AD_FORMATS[0]) => {
+    setSelectedFormat(format);
+    toast({
+      title: "Format updated",
+      description: `Ad format changed to ${format.label}`,
+    });
+  };
+
+  if (state.isInitialLoad) {
+    return <LoadingState />;
+  }
+
+  return (
+    <div className="space-y-6">
+      <AdGenerationControls
+        onBack={onBack}
+        onStartOver={onStartOver}
+        onRegenerate={handleRegenerate}
+        isGenerating={state.platformSpecificAds[platform]?.isLoading || false}
+        generationStatus={generationStatus}
+      />
+
       <div className="flex justify-end mb-4">
         <AdSizeSelector
           selectedFormat={selectedFormat}
           onFormatChange={handleFormatChange}
         />
       </div>
-      <PlatformContent
-        platformName={platformName}
-        adVariants={adVariants.filter(variant => variant.platform === platformName)}
-        onCreateProject={onCreateProject}
-        videoAdsEnabled={videoAdsEnabled}
-        selectedFormat={selectedFormat}
-      />
-    </TabsContent>
-  );
 
-  return (
-    <div className="space-y-6 md:space-y-8">
-      <AdGenerationControls
-        onBack={onBack}
-        onStartOver={onStartOver}
-        onRegenerate={handleRegenerate}
-        isGenerating={isGenerating}
-        generationStatus={generationStatus}
-      />
-
-      {isGenerating ? (
-        <LoadingState />
-      ) : (
-        <PlatformTabs 
-          platform={platform} 
-          onPlatformChange={onPlatformChange}
-        >
-          {renderPlatformContent('facebook')}
-          {renderPlatformContent('google')}
-          {renderPlatformContent('linkedin')}
-          {renderPlatformContent('tiktok')}
-        </PlatformTabs>
-      )}
+      <PlatformTabs 
+        platform={platform} 
+        onPlatformChange={onPlatformChange}
+      >
+        <TabsContent value="facebook">
+          <PlatformContent
+            platformName="facebook"
+            platformState={state.platformSpecificAds.facebook}
+            onCreateProject={onCreateProject}
+            videoAdsEnabled={videoAdsEnabled}
+            selectedFormat={selectedFormat}
+          />
+        </TabsContent>
+        <TabsContent value="google">
+          <PlatformContent
+            platformName="google"
+            platformState={state.platformSpecificAds.google}
+            onCreateProject={onCreateProject}
+            videoAdsEnabled={videoAdsEnabled}
+            selectedFormat={selectedFormat}
+          />
+        </TabsContent>
+        <TabsContent value="linkedin">
+          <PlatformContent
+            platformName="linkedin"
+            platformState={state.platformSpecificAds.linkedin}
+            onCreateProject={onCreateProject}
+            videoAdsEnabled={videoAdsEnabled}
+            selectedFormat={selectedFormat}
+          />
+        </TabsContent>
+        <TabsContent value="tiktok">
+          <PlatformContent
+            platformName="tiktok"
+            platformState={state.platformSpecificAds.tiktok}
+            onCreateProject={onCreateProject}
+            videoAdsEnabled={videoAdsEnabled}
+            selectedFormat={selectedFormat}
+          />
+        </TabsContent>
+      </PlatformTabs>
 
       <PlatformChangeDialog
         open={showPlatformChangeDialog}
         onOpenChange={setShowPlatformChangeDialog}
         onConfirm={onConfirmPlatformChange}
-        onCancel={onCancelPlatformChange}
+        onCancel={cancelPlatformChange}
       />
     </div>
   );
