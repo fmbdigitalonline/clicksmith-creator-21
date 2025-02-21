@@ -12,9 +12,16 @@ import AdDetails from "./AdDetails";
 import DownloadControls from "./DownloadControls";
 import { AdFeedbackControls } from "./AdFeedbackControls";
 import { convertImage } from "@/utils/imageUtils";
-import { Pencil, Image, Check, X } from "lucide-react";
+import { Loader2, Pencil, Image, Check, X, ImagePlus } from "lucide-react";
 import { useAdPersistence } from "@/hooks/gallery/useAdPersistence";
-import { AdSizeSelector, AD_FORMATS } from "../components/AdSizeSelector";
+import { AdSizeSelector, AD_FORMATS } from "./AdSizeSelector";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 
 interface AdPreviewCardProps {
   variant: {
@@ -48,6 +55,7 @@ const AdPreviewCard = ({
 }: AdPreviewCardProps) => {
   const [downloadFormat, setDownloadFormat] = useState<"jpg" | "png" | "pdf" | "docx">("jpg");
   const [isSaving, setIsSaving] = useState(false);
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [isEditingText, setIsEditingText] = useState(false);
   const [isSelectingImage, setIsSelectingImage] = useState(false);
   const [editedHeadline, setEditedHeadline] = useState(variant.headline);
@@ -64,6 +72,51 @@ const AdPreviewCard = ({
       return variant.imageUrl;
     }
     return null;
+  };
+
+  const generateNewImage = async () => {
+    const prompt = variant.image?.prompt;
+    if (!prompt) {
+      toast({
+        title: "Error",
+        description: "No image prompt available for generation",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsGeneratingImage(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-images', {
+        body: {
+          prompt,
+          size: selectedFormat,
+          platform: variant.platform
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.images?.[0]?.url) {
+        variant.imageUrl = data.images[0].url;
+        toast({
+          title: "Success",
+          description: "New image generated successfully",
+        });
+      } else {
+        throw new Error('No image URL in response');
+      }
+    } catch (error) {
+      console.error('Error generating image:', error);
+      toast({
+        title: "Error",
+        description: "Failed to generate new image. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingImage(false);
+      setIsSelectingImage(false);
+    }
   };
 
   const handleSave = async () => {
@@ -267,19 +320,45 @@ const AdPreviewCard = ({
               isVideo={isVideo}
               format={selectedFormat}
             />
-            <Button
-              variant="secondary"
-              size="sm"
-              className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-              onClick={() => setIsSelectingImage(!isSelectingImage)}
-            >
-              <Image className="h-4 w-4 mr-1" /> Change Image
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                  disabled={isGeneratingImage}
+                >
+                  {isGeneratingImage ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Image className="h-4 w-4 mr-1" />
+                  )}
+                  Change Image
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem
+                  onClick={() => setIsSelectingImage(!isSelectingImage)}
+                  disabled={uniqueImages.length === 0}
+                >
+                  <Image className="h-4 w-4 mr-2" />
+                  Choose Existing
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={generateNewImage}
+                  disabled={!variant.image?.prompt || isGeneratingImage}
+                >
+                  <ImagePlus className="h-4 w-4 mr-2" />
+                  Generate New
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
-          {/* Image Selection Dropdown */}
+          {/* Image Selection Grid */}
           {isSelectingImage && uniqueImages.length > 0 && (
-            <div className="absolute top-2 right-2 bg-white rounded-lg shadow-lg p-2 z-10">
+            <div className="absolute top-12 right-2 bg-white rounded-lg shadow-lg p-2 z-10">
               <div className="grid grid-cols-2 gap-2">
                 {uniqueImages.map((imageUrl, idx) => (
                   <button
@@ -343,3 +422,4 @@ const AdPreviewCard = ({
 };
 
 export default AdPreviewCard;
+
