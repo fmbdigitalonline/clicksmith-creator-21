@@ -1,3 +1,4 @@
+
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
@@ -80,6 +81,7 @@ const Terms = () => {
             </section>
           </div>
         </ScrollArea>
+        </div>
       </div>
     </div>
   );
