@@ -166,7 +166,7 @@ const ProjectCardActions = ({
         variant="outline"
         size="sm"
         className="h-7 text-xs"
-        onClick={handleCreateLandingPage}
+        onClick={(e) => handleCreateLandingPage(e)}
         disabled={isCreating}
       >
         <Layout className="h-3.5 w-3.5 mr-1.5" />
@@ -177,3 +177,4 @@ const ProjectCardActions = ({
 };
 
 export default ProjectCardActions;
+
