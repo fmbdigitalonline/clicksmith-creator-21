@@ -29,14 +29,11 @@ const PlatformContent = ({
     platformVariants.forEach(variant => {
       const imageUrl = variant.imageUrl || variant.image?.url;
       if (!uniqueImages.has(imageUrl)) {
-        uniqueImages.set(imageUrl, []);
-      }
-      if (uniqueImages.get(imageUrl).length < 2) { // Limit to 2 variants per image
-        uniqueImages.get(imageUrl).push(variant);
+        uniqueImages.set(imageUrl, variant); // Store the full variant
       }
     });
 
-    return Array.from(uniqueImages.values()).flat();
+    return Array.from(uniqueImages.values());
   })();
 
   if (filteredVariants.length === 0) {
@@ -62,7 +59,7 @@ const PlatformContent = ({
           <AdPreviewCard
             key={`${platformName}-${index}-${variant.imageUrl || variant.image?.url}`}
             variant={variant}
-            adVariants={adVariants} // Pass all variants for image selection
+            adVariants={adVariants}
             onCreateProject={onCreateProject}
             isVideo={videoAdsEnabled}
             selectedFormat={selectedFormat}
@@ -74,4 +71,3 @@ const PlatformContent = ({
 };
 
 export default PlatformContent;
-

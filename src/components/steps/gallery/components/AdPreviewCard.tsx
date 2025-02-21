@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
@@ -72,6 +72,21 @@ const AdPreviewCard = ({
     }
     return null;
   };
+
+  // Get unique images from all variants
+  const uniqueImages = useMemo(() => {
+    return Array.from(
+      new Map(
+        adVariants
+          .map(v => ({
+            url: v.imageUrl || v.image?.url,
+            prompt: v.image?.prompt || null
+          }))
+          .filter(v => v.url) // Filter out any undefined URLs
+          .map(v => [v.url, v])
+      ).values()
+    );
+  }, [adVariants]);
 
   const generateNewImage = async () => {
     let prompt = variant.image?.prompt;
@@ -277,20 +292,22 @@ const AdPreviewCard = ({
     });
   };
 
-  // Get unique images from all variants, including their prompts
-  const uniqueImages = Array.from(
-    new Map(
-      adVariants
-        .filter(v => v.imageUrl || v.image?.url)
-        .map(v => {
-          const imageUrl = v.imageUrl || v.image?.url;
-          return [imageUrl, { 
-            url: imageUrl, 
-            prompt: v.image?.prompt || null 
-          }];
-        })
-    ).values()
-  );
+  const handleImageSelect = (imageData: { url: string; prompt: string | null }) => {
+    variant.imageUrl = imageData.url;
+    if (imageData.prompt) {
+      if (!variant.image) {
+        variant.image = { url: imageData.url, prompt: imageData.prompt };
+      } else {
+        variant.image.url = imageData.url;
+        variant.image.prompt = imageData.prompt;
+      }
+    }
+    setIsSelectingImage(false);
+    toast({
+      title: "Image updated",
+      description: "Your ad image has been changed.",
+    });
+  };
 
   return (
     <Card className="overflow-hidden">
@@ -396,28 +413,12 @@ const AdPreviewCard = ({
           {/* Image Selection Grid */}
           {isSelectingImage && uniqueImages.length > 1 && (
             <div className="absolute top-12 right-2 bg-white rounded-lg shadow-lg p-2 z-10">
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-2 max-h-[300px] overflow-y-auto">
                 {uniqueImages.map((imageData, idx) => (
                   <button
                     key={idx}
                     className="w-20 h-20 rounded overflow-hidden border-2 hover:border-primary transition-colors"
-                    onClick={() => {
-                      // Update variant with selected image while preserving prompt
-                      variant.imageUrl = imageData.url;
-                      if (imageData.prompt) {
-                        if (!variant.image) {
-                          variant.image = { url: imageData.url, prompt: imageData.prompt };
-                        } else {
-                          variant.image.url = imageData.url;
-                          variant.image.prompt = imageData.prompt;
-                        }
-                      }
-                      setIsSelectingImage(false);
-                      toast({
-                        title: "Image updated",
-                        description: "Your ad image has been changed.",
-                      });
-                    }}
+                    onClick={() => handleImageSelect(imageData)}
                   >
                     <img
                       src={imageData.url}
