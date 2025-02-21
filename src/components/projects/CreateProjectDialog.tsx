@@ -7,6 +7,7 @@ import ProjectForm, { ProjectFormData } from "./ProjectForm";
 import ProjectActions from "./ProjectActions";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Loader2 } from "lucide-react";
 
 interface CreateProjectDialogProps {
   open: boolean;
@@ -61,6 +62,7 @@ const CreateProjectDialog = ({
   const [showActions, setShowActions] = useState(false);
   const [createdProjectId, setCreatedProjectId] = useState<string | null>(null);
   const [includeWizardProgress, setIncludeWizardProgress] = useState(true);
+  const [isProcessing, setIsProcessing] = useState(false);
   
   useEffect(() => {
     const getCurrentUser = async () => {
@@ -82,68 +84,90 @@ const CreateProjectDialog = ({
       return;
     }
 
-    const tags = values.tags
-      ? values.tags.split(",").map((tag) => tag.trim())
-      : [];
+    setIsProcessing(true);
 
-    // Generate creative project name based on business idea
-    const projectTitle = generateProjectName(values.businessIdea);
+    try {
+      const tags = values.tags
+        ? values.tags.split(",").map((tag) => tag.trim())
+        : [];
 
-    let projectData: any = {
-      title: projectTitle,
-      description: values.description || null,
-      tags,
-      user_id: userId,
-      status: "draft",
-      business_idea: {
-        description: values.businessIdea,
-        valueProposition: `Enhanced version of: ${values.businessIdea}`,
-      },
-    };
+      const projectTitle = generateProjectName(values.businessIdea);
 
-    if (includeWizardProgress) {
-      // Fetch current wizard progress
-      const { data: wizardProgress } = await supabase
-        .from('wizard_progress')
-        .select('*')
-        .eq('user_id', userId)
-        .single();
+      let projectData: any = {
+        title: projectTitle,
+        description: values.description || null,
+        tags,
+        user_id: userId,
+        status: "draft",
+        business_idea: {
+          description: values.businessIdea,
+          valueProposition: `Enhanced version of: ${values.businessIdea}`,
+        },
+      };
 
-      if (wizardProgress) {
-        // Include wizard progress data in project
-        projectData = {
-          ...projectData,
-          target_audience: wizardProgress.target_audience,
-          audience_analysis: wizardProgress.audience_analysis,
-          selected_hooks: wizardProgress.selected_hooks,
-          ad_format: wizardProgress.ad_format,
-          video_ad_preferences: wizardProgress.video_ad_preferences,
-        };
+      let hasWizardProgress = false;
+
+      if (includeWizardProgress) {
+        // Fetch current wizard progress
+        const { data: wizardProgress } = await supabase
+          .from('wizard_progress')
+          .select('*')
+          .eq('user_id', userId)
+          .single();
+
+        if (wizardProgress) {
+          hasWizardProgress = true;
+          // Include wizard progress data in project
+          projectData = {
+            ...projectData,
+            target_audience: wizardProgress.target_audience,
+            audience_analysis: wizardProgress.audience_analysis,
+            selected_hooks: wizardProgress.selected_hooks,
+            ad_format: wizardProgress.ad_format,
+            video_ad_preferences: wizardProgress.video_ad_preferences,
+          };
+        }
       }
-    }
 
-    const { data, error } = await supabase
-      .from("projects")
-      .insert(projectData)
-      .select();
+      const { data, error } = await supabase
+        .from("projects")
+        .insert(projectData)
+        .select();
 
-    if (error) {
+      if (error) throw error;
+
+      if (data && data[0]) {
+        const newProjectId = data[0].id;
+        setCreatedProjectId(newProjectId);
+        
+        // If we have wizard progress and it's included, start the ad wizard immediately
+        if (hasWizardProgress && includeWizardProgress && onStartAdWizard) {
+          toast({
+            title: "Project created",
+            description: "Starting Ad Wizard with your progress...",
+          });
+          onSuccess(newProjectId);
+          onStartAdWizard(newProjectId);
+          onOpenChange(false);
+        } else {
+          // Show actions dialog for projects without wizard progress
+          setShowActions(true);
+          toast({
+            title: "Project created",
+            description: "Your project has been created successfully.",
+          });
+          onSuccess(newProjectId);
+        }
+      }
+    } catch (error) {
+      console.error('Error creating project:', error);
       toast({
         title: "Error creating project",
-        description: error.message,
+        description: error instanceof Error ? error.message : "An unexpected error occurred",
         variant: "destructive",
       });
-      return;
-    }
-
-    if (data && data[0]) {
-      setCreatedProjectId(data[0].id);
-      setShowActions(true);
-      toast({
-        title: "Project created",
-        description: "Your project has been created successfully.",
-      });
-      onSuccess(data[0].id);
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -163,6 +187,7 @@ const CreateProjectDialog = ({
       setShowActions(false);
       setCreatedProjectId(null);
       setIncludeWizardProgress(true);
+      setIsProcessing(false);
     }
   }, [open]);
 
@@ -186,17 +211,25 @@ const CreateProjectDialog = ({
               onSubmit={handleSubmit}
               onCancel={() => onOpenChange(false)}
               initialBusinessIdea={initialBusinessIdea}
+              disabled={isProcessing}
             />
             <div className="flex items-center space-x-2 mt-4">
               <Checkbox
                 id="includeProgress"
                 checked={includeWizardProgress}
                 onCheckedChange={(checked) => setIncludeWizardProgress(checked as boolean)}
+                disabled={isProcessing}
               />
-              <Label htmlFor="includeProgress">
+              <Label htmlFor="includeProgress" className={isProcessing ? "opacity-50" : ""}>
                 Include wizard progress data in the project
               </Label>
             </div>
+            {isProcessing && (
+              <div className="flex items-center justify-center mt-4">
+                <Loader2 className="h-5 w-5 animate-spin text-gray-500 mr-2" />
+                <span className="text-sm text-gray-500">Creating project...</span>
+              </div>
+            )}
           </>
         ) : (
           <ProjectActions
