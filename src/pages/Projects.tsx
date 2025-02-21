@@ -43,9 +43,10 @@ const Projects = () => {
 
   const handleStartAdWizard = (projectId?: string) => {
     if (projectId) {
-      navigate(`/ad-wizard/${projectId}`);
+      // Use replace to prevent back button issues
+      navigate(`/ad-wizard/${projectId}`, { replace: true });
     } else {
-      navigate("/ad-wizard/new");
+      navigate("/ad-wizard/new", { replace: true });
     }
   };
 
