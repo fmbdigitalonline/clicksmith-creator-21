@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Database } from "@/integrations/supabase/types";
 
 type Project = Database['public']['Tables']['projects']['Row'] & {
-  business_idea: {
+  business_idea?: {
     description: string;
     valueProposition: string;
   } | null;
