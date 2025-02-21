@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,6 +12,12 @@ import { HeroSection } from "./components/HeroSection";
 import { SocialProofSection } from "./components/SocialProofSection";
 import { DynamicSection } from "./components/DynamicSection";
 import { Progress } from "@/components/ui/progress";
+
+interface GenerationResponse {
+  error?: string;
+  message?: string;
+  status?: string;
+}
 
 interface GenerationProgress {
   status: string;
@@ -86,8 +91,7 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
         throw new Error('Authentication required');
       }
 
-      // Update to use supabase.functions.invoke
-      const { data, error } = await supabase.functions.invoke('generate-landing-content', {
+      const { data, error } = await supabase.functions.invoke<GenerationResponse>('generate-landing-content', {
         body: {
           projectData: {
             business_idea: project.business_idea,
@@ -103,7 +107,7 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
         throw new Error(error.message || 'Failed to generate content');
       }
 
-      if (data.error) {
+      if (data?.error) {
         throw new Error(data.error);
       }
 
@@ -112,7 +116,6 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
         description: "Your landing page content is being generated. This may take a moment."
       });
 
-      // Start polling for updates
       const checkInterval = setInterval(async () => {
         const { data: pageData } = await supabase
           .from('landing_pages')
@@ -143,7 +146,6 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
         }
       }, 2000);
 
-      // Cleanup interval after 5 minutes (timeout)
       setTimeout(() => {
         clearInterval(checkInterval);
         if (isGenerating) {

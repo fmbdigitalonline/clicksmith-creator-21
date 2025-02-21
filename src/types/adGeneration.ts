@@ -48,7 +48,11 @@ export interface DatabaseAdVariant {
 
 // Type guards and conversion utilities
 export const isValidAdVariant = (data: unknown): data is AdVariant => {
-  const d = data as AdVariant;
+  if (!data || typeof data !== 'object') return false;
+  
+  const d = data as Record<string, unknown>;
+  const size = d.size as Record<string, unknown>;
+  
   return Boolean(
     d &&
     typeof d.id === 'string' &&
@@ -56,10 +60,10 @@ export const isValidAdVariant = (data: unknown): data is AdVariant => {
     typeof d.imageUrl === 'string' &&
     typeof d.headline === 'string' &&
     typeof d.description === 'string' &&
-    d.size &&
-    typeof d.size.width === 'number' &&
-    typeof d.size.height === 'number' &&
-    typeof d.size.label === 'string'
+    size &&
+    typeof size.width === 'number' &&
+    typeof size.height === 'number' &&
+    typeof size.label === 'string'
   );
 };
 
@@ -68,6 +72,10 @@ export const convertToAdVariant = (data: unknown): AdVariant | null => {
   
   try {
     const parsed = data as Record<string, unknown>;
+    const size = parsed.size as Record<string, unknown>;
+    
+    if (!size || typeof size !== 'object') return null;
+    
     const variant: AdVariant = {
       id: String(parsed.id || ''),
       platform: String(parsed.platform || 'facebook') as Platform,
@@ -75,9 +83,9 @@ export const convertToAdVariant = (data: unknown): AdVariant | null => {
       headline: String(parsed.headline || ''),
       description: String(parsed.description || ''),
       size: {
-        width: Number(parsed.size?.width || 0),
-        height: Number(parsed.size?.height || 0),
-        label: String(parsed.size?.label || '')
+        width: Number(size.width || 0),
+        height: Number(size.height || 0),
+        label: String(size.label || '')
       }
     };
     
@@ -98,7 +106,11 @@ export const convertToDatabaseFormat = (variant: AdVariant): Json => {
     imageUrl: variant.imageUrl,
     headline: variant.headline,
     description: variant.description,
-    size: variant.size,
+    size: {
+      width: variant.size.width,
+      height: variant.size.height,
+      label: variant.size.label
+    },
     resizedUrls: variant.resizedUrls || {}
-  };
+  } as Json;
 };
