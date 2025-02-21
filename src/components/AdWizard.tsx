@@ -6,7 +6,7 @@ import AudienceAnalysisStep from "./steps/AudienceAnalysisStep";
 import AdGalleryStep from "./steps/AdGalleryStep";
 import WizardHeader from "./wizard/WizardHeader";
 import WizardProgress from "./WizardProgress";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useEffect } from "react";
 import CreateProjectDialog from "./projects/CreateProjectDialog";
 import { useNavigate, useParams } from "react-router-dom";
 import { Toggle } from "./ui/toggle";
@@ -14,6 +14,7 @@ import { Video, Image } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 import { Loader2 } from "lucide-react";
+import StepLoadingState from "./steps/LoadingState";
 
 const AdWizard = () => {
   const [showCreateProject, setShowCreateProject] = useState(false);
@@ -46,13 +47,11 @@ const AdWizard = () => {
         if (!user) return;
 
         if (projectId === "new") {
-          // Clear any existing wizard progress when starting new
           await supabase
             .from('wizard_progress')
             .delete()
             .eq('user_id', user.id);
         } else if (projectId) {
-          // If it's an existing project, fetch its data
           const { data: project } = await supabase
             .from('projects')
             .select('*')
@@ -60,10 +59,8 @@ const AdWizard = () => {
             .single();
 
           if (!project) {
-            // If project doesn't exist, redirect to new project
             navigate('/ad-wizard/new');
           } else {
-            // Set video ads enabled based on project settings
             setVideoAdsEnabled(project.video_ads_enabled || false);
           }
         }
@@ -101,30 +98,38 @@ const AdWizard = () => {
     );
   }
 
-  // Memoize the current step component to prevent unnecessary re-renders
-  const currentStepComponent = useMemo(() => {
+  const renderStep = () => {
     switch (currentStep) {
       case 1:
         return <IdeaStep onNext={handleIdeaSubmit} initialBusinessIdea={businessIdea} />;
       case 2:
-        return businessIdea ? (
+        if (!businessIdea) {
+          return <StepLoadingState />;
+        }
+        return (
           <AudienceStep
             businessIdea={businessIdea}
             onNext={handleAudienceSelect}
             onBack={handleBack}
           />
-        ) : null;
+        );
       case 3:
-        return businessIdea && targetAudience ? (
+        if (!businessIdea || !targetAudience) {
+          return <StepLoadingState />;
+        }
+        return (
           <AudienceAnalysisStep
             businessIdea={businessIdea}
             targetAudience={targetAudience}
             onNext={handleAnalysisComplete}
             onBack={handleBack}
           />
-        ) : null;
+        );
       case 4:
-        return businessIdea && targetAudience && audienceAnalysis ? (
+        if (!businessIdea || !targetAudience || !audienceAnalysis) {
+          return <StepLoadingState />;
+        }
+        return (
           <AdGalleryStep
             businessIdea={businessIdea}
             targetAudience={targetAudience}
@@ -134,11 +139,11 @@ const AdWizard = () => {
             onCreateProject={handleCreateProject}
             videoAdsEnabled={videoAdsEnabled}
           />
-        ) : null;
+        );
       default:
-        return null;
+        return <StepLoadingState />;
     }
-  }, [currentStep, businessIdea, targetAudience, audienceAnalysis, selectedHooks, videoAdsEnabled]);
+  };
 
   return (
     <div className="container max-w-6xl mx-auto px-4 py-8">
@@ -185,7 +190,7 @@ const AdWizard = () => {
         <span className="text-xs text-gray-500 italic ml-1">Coming Soon!</span>
       </div>
 
-      {currentStepComponent}
+      {renderStep()}
 
       <CreateProjectDialog
         open={showCreateProject}
