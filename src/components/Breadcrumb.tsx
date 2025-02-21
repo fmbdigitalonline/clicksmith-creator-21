@@ -1,4 +1,3 @@
-
 import { useLocation } from "react-router-dom";
 import {
   Breadcrumb,
@@ -24,14 +23,14 @@ interface BusinessIdea {
   valueProposition?: string;
 }
 
-// Use the database types directly and extend them
-type DatabaseProject = Database['public']['Tables']['projects']['Row'];
-type Project = Omit<DatabaseProject, 'business_idea' | 'target_audience' | 'audience_analysis' | 'marketing_campaign' | 'generated_ads'> & {
-  business_idea?: BusinessIdea | null;
-  target_audience?: Record<string, any> | null;
-  audience_analysis?: Record<string, any> | null;
-  generated_ads?: any[];
-};
+// Create a specific type for breadcrumb data
+interface BreadcrumbProjectData {
+  current_step: number;
+  business_idea: BusinessIdea | null;
+  target_audience: Record<string, any> | null;
+  audience_analysis: Record<string, any> | null;
+  generated_ads: any[];
+}
 
 interface WizardStep {
   name: string;
@@ -72,7 +71,7 @@ const BreadcrumbNav = () => {
   const projectId = pathSegments.find(isUUID) || null;
   const { title: projectTitle, isLoading: isTitleLoading } = useProjectTitle(projectId);
 
-  // Fetch project data for step status
+  // Fetch project data for step status using the new type
   const { data: projectData, isLoading: isProjectLoading } = useQuery({
     queryKey: ["project", projectId],
     queryFn: async () => {
@@ -89,15 +88,16 @@ const BreadcrumbNav = () => {
           throw error;
         }
 
-        // Transform and validate the data
-        return {
-          ...data,
+        // Transform and validate the data as BreadcrumbProjectData
+        const typedData: BreadcrumbProjectData = {
+          current_step: typeof data.current_step === 'number' ? data.current_step : 1,
           business_idea: isBusinessIdea(data.business_idea) ? data.business_idea : null,
           target_audience: data.target_audience || null,
           audience_analysis: data.audience_analysis || null,
-          generated_ads: Array.isArray(data.generated_ads) ? data.generated_ads : [],
-          current_step: typeof data.current_step === 'number' ? data.current_step : 1
-        } as Project;
+          generated_ads: Array.isArray(data.generated_ads) ? data.generated_ads : []
+        };
+
+        return typedData;
       } catch (error) {
         console.error("Error in queryFn:", error);
         throw error;
@@ -160,19 +160,6 @@ const BreadcrumbNav = () => {
       };
     }
     return null;
-  };
-
-  const getStepIcon = (status: WizardStep['status']) => {
-    switch (status) {
-      case 'completed':
-        return <Check className="h-3 w-3 text-green-500" />;
-      case 'current':
-        return <CircleDot className="h-3 w-3 text-facebook animate-pulse" />;
-      case 'locked':
-        return <Lock className="h-3 w-3 text-muted-foreground/50" />;
-      default:
-        return <CircleDot className="h-3 w-3 text-muted-foreground/30" />;
-    }
   };
 
   const getDisplayName = (segment: string, index: number) => {
@@ -260,6 +247,19 @@ const BreadcrumbNav = () => {
       }
       default:
         return segment.charAt(0).toUpperCase() + segment.slice(1);
+    }
+  };
+
+  const getStepIcon = (status: WizardStep['status']) => {
+    switch (status) {
+      case 'completed':
+        return <Check className="h-3 w-3 text-green-500" />;
+      case 'current':
+        return <CircleDot className="h-3 w-3 text-facebook animate-pulse" />;
+      case 'locked':
+        return <Lock className="h-3 w-3 text-muted-foreground/50" />;
+      default:
+        return <CircleDot className="h-3 w-3 text-muted-foreground/30" />;
     }
   };
 
