@@ -98,21 +98,16 @@ const Login = () => {
                 sign_in: {
                   email_label: 'Email address',
                   password_label: 'Password',
-                  email_input_placeholder: 'Your email address',
-                  password_input_placeholder: 'Enter your password',
                   button_label: 'Sign in',
-                  loading_button_label: 'Signing in ...',
-                  link_text: "Don't have an account? Sign up"
+                  loading_button_label: 'Signing in...',
+                  link_text: 'Need an account? Sign up',
                 },
                 sign_up: {
                   email_label: 'Email address',
                   password_label: 'Create a Password',
-                  email_input_placeholder: 'Your email address',
-                  password_input_placeholder: 'Password (minimum 6 characters)',
-                  button_label: 'Create account',
-                  loading_button_label: 'Creating account ...',
-                  link_text: "Already have an account? Sign in",
-                  confirmation_text: 'Check your email for the confirmation link'
+                  button_label: 'Sign up',
+                  loading_button_label: 'Creating account...',
+                  link_text: 'Sign in instead',
                 }
               }
             }}
