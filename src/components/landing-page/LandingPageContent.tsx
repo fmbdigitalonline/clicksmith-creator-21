@@ -92,7 +92,9 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
         throw new Error('Authentication required');
       }
 
-      const { data: responseData, error: functionError } = await supabase.functions.invoke<GenerationResponse>('generate-landing-content', {
+      type EdgeFunctionResponse = { error: string } | { success: true };
+
+      const { data, error: functionError } = await supabase.functions.invoke<EdgeFunctionResponse>('generate-landing-content', {
         body: {
           projectData: {
             business_idea: project.business_idea,
@@ -108,8 +110,9 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
         throw new Error(functionError.message || 'Failed to generate content');
       }
 
-      if (responseData && 'error' in responseData) {
-        throw new Error(responseData.error || 'Unknown error occurred');
+      // Type guard to check if the response contains an error
+      if (data && typeof data === 'object' && 'error' in data) {
+        throw new Error(data.error);
       }
 
       toast({
