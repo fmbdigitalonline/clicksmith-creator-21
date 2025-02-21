@@ -6,38 +6,40 @@ import { generateCampaign } from "./handlers/campaignGeneration.ts";
 import { analyzeAudience } from "./handlers/audienceAnalysis.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 
-// Helper function to sanitize JSON strings
-const sanitizeJson = (obj: unknown): unknown => {
-  if (typeof obj === 'string') {
-    return obj.replace(/[\u0000-\u001F\u007F-\u009F]/g, '')
-             .replace(/\\/g, '\\\\')
-             .replace(/"/g, '\\"')
-             .replace(/\n/g, '\\n')
-             .replace(/\r/g, '\\r')
-             .replace(/\t/g, '\\t');
-  }
-  if (Array.isArray(obj)) {
-    return obj.map(sanitizeJson);
-  }
-  if (obj && typeof obj === 'object') {
-    return Object.fromEntries(
-      Object.entries(obj).map(([key, value]) => [key, sanitizeJson(value)])
-    );
-  }
-  return obj;
+type BusinessIdea = {
+  description: string;
+  valueProposition: string;
 };
 
-const VALID_GENERATION_TYPES = [
-  'audience',
-  'hooks',
-  'complete_ads',
-  'video_ads',
-  'audience_analysis',
-  'images'
-];
+type TargetAudience = {
+  name: string;
+  description: string;
+  demographics: string;
+  painPoints: string[];
+  icp: string;
+  coreMessage: string;
+  positioning: string;
+  marketingAngle: string;
+  messagingApproach: string;
+  marketingChannels: string[];
+};
+
+type AdHook = {
+  text: string;
+  description: string;
+};
+
+type AudienceAnalysis = {
+  expandedDefinition: string;
+  marketDesire: string;
+  awarenessLevel: string;
+  sophisticationLevel: string;
+  deepPainPoints: string[];
+  potentialObjections: string[];
+};
 
 type AdCopy = {
-  type: string;
+  type: "story" | "short" | "aida";
   content: string;
 };
 
@@ -46,10 +48,7 @@ type AdVariant = {
   headline: string;
   description: string;
   imageUrl: string;
-  image?: {
-    url: string;
-    prompt: string | null;
-  };
+	prompt: string;
   size: {
     width: number;
     height: number;
@@ -57,11 +56,121 @@ type AdVariant = {
   };
 };
 
-// New function to distribute variations across platforms
+const sanitizeJson = (jsonString: string): string => {
+  return jsonString.replace(/[\u007F-\uFFFF]/g, (chr) => {
+    return "\\u" + ("0000" + chr.charCodeAt(0).toString(16)).substr(-4);
+  });
+};
+
+serve(async (req) => {
+  // This is needed if you're planning to invoke your function from a browser.
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
+
+  try {
+    const { type, platform, businessIdea, targetAudience, adHooks } = await req
+      .json();
+
+    if (type === "audience_analysis") {
+      const analysis = await analyzeAudience(
+        businessIdea as BusinessIdea,
+        targetAudience as TargetAudience
+      );
+      return new Response(sanitizeJson(JSON.stringify(analysis)), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (type === "target_audiences") {
+      const audiences = await generateAudiences(businessIdea as BusinessIdea);
+      return new Response(sanitizeJson(JSON.stringify(audiences)), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (type === "ad_hooks") {
+      const hooks = await generateHooks(
+        businessIdea as BusinessIdea,
+        targetAudience as TargetAudience
+      );
+      return new Response(sanitizeJson(JSON.stringify(hooks)), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (type === "image_prompts") {
+      const imagePrompts = await generateImagePrompts(
+        businessIdea as BusinessIdea,
+        targetAudience as TargetAudience,
+        adHooks as AdHook[]
+      );
+      return new Response(sanitizeJson(JSON.stringify(imagePrompts)), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (type === "complete_ads") {
+      const platforms = [platform];
+      const imageCount = 3;
+
+      // Generate marketing campaign
+      const { headlines, adCopies } = await generateCampaign(
+        businessIdea as BusinessIdea,
+        targetAudience as TargetAudience,
+        adHooks as AdHook[]
+      );
+
+      // Generate image prompts
+      const imagePrompts = await generateImagePrompts(
+        businessIdea as BusinessIdea,
+        targetAudience as TargetAudience,
+        adHooks as AdHook[]
+      );
+
+      // Map image prompts to the desired format with platform-specific sizes
+      const images = imagePrompts.map((prompt, index) => {
+        const size = { width: 1080, height: 1080, label: "Square" }; // Default size
+
+        if (platform === "google") {
+          if (index % 3 === 0) size.width = 300, size.height = 250, size.label = "Medium Rectangle";
+          if (index % 3 === 1) size.width = 336, size.height = 280, size.label = "Large Rectangle";
+          if (index % 3 === 2) size.width = 728, size.height = 90, size.label = "Leaderboard";
+        } else if (platform === "linkedin") {
+          size.width = 1200, size.height = 627, size.label = "LinkedIn Feed";
+        } else if (platform === "tiktok") {
+          size.width = 1080, size.height = 1920, size.label = "TikTok Vertical";
+        }
+
+        return {
+          url: `https://source.unsplash.com/random/1080x1080?${prompt.prompt.replace(/\s+/g, ",")}`,
+          width: size.width,
+          height: size.height,
+          label: size.label,
+					prompt: prompt.prompt
+        };
+      }).slice(0, imageCount);
+
+      const variants = distributeVariations(headlines, adCopies, images, platforms);
+
+      return new Response(
+        sanitizeJson(JSON.stringify({ variants })),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+  } catch (e) {
+    console.error("Failed to generate data:", e);
+    return new Response(JSON.stringify({ error: e.message }), {
+      status: 400,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+});
+
 const distributeVariations = (
   headlines: string[], 
   adCopies: AdCopy[], 
-  images: Array<{ url: string; width: number; height: number; label: string; prompt?: string }>,
+  images: Array<{ url: string; width: number; height: number; label: string; prompt: string }>,
   platforms: string[]
 ): AdVariant[] => {
   const variants: AdVariant[] = [];
@@ -77,10 +186,7 @@ const distributeVariations = (
           headline: headlines[currentIndex],
           description: adCopies[currentIndex].content,
           imageUrl: image.url,
-          image: {
-            url: image.url,
-            prompt: image.prompt || null // Preserve prompt in image object
-          },
+					prompt: image.prompt, // Store prompt directly on variant
           size: {
             width: image.width,
             height: image.height,
@@ -95,136 +201,3 @@ const distributeVariations = (
 
   return variants;
 };
-
-serve(async (req) => {
-  try {
-    console.log('Edge Function received request:', { 
-      method: req.method,
-      url: req.url,
-      headers: Object.fromEntries(req.headers.entries())
-    });
-
-    if (req.method === 'OPTIONS') {
-      return new Response(null, { 
-        status: 204,
-        headers: {
-          ...corsHeaders,
-          'Access-Control-Max-Age': '86400',
-          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-        }
-      });
-    }
-
-    if (!['GET', 'POST'].includes(req.method)) {
-      throw new Error(`Method ${req.method} not allowed. Only GET and POST requests are accepted.`);
-    }
-
-    let body;
-    try {
-      const text = await req.text();
-      console.log('Raw request body:', text);
-      
-      if (text) {
-        body = JSON.parse(text);
-        body = sanitizeJson(body);
-        console.log('Sanitized request body:', body);
-      }
-    } catch (e) {
-      console.error('Error parsing request body:', e);
-      throw new Error(`Invalid JSON in request body: ${e.message}`);
-    }
-
-    if (!body) {
-      throw new Error('Empty request body');
-    }
-
-    const { type, businessIdea, targetAudience, regenerationCount = 0, timestamp, forceRegenerate = false, campaign } = body;
-    
-    if (!type) {
-      throw new Error('type is required in request body');
-    }
-
-    if (!VALID_GENERATION_TYPES.includes(type)) {
-      throw new Error(`Invalid generation type: ${type}. Valid types are: ${VALID_GENERATION_TYPES.join(', ')}`);
-    }
-
-    console.log('Processing request:', { type, timestamp });
-
-    let responseData;
-    switch (type) {
-      case 'audience':
-        console.log('Generating audiences with params:', { businessIdea, regenerationCount, timestamp, forceRegenerate });
-        responseData = await generateAudiences(businessIdea, regenerationCount, forceRegenerate);
-        break;
-      case 'hooks':
-        console.log('Generating hooks with params:', { businessIdea, targetAudience });
-        responseData = await generateHooks(businessIdea, targetAudience);
-        break;
-      case 'complete_ads':
-      case 'video_ads':
-        console.log('Generating complete ad campaign with params:', { businessIdea, targetAudience, campaign });
-        try {
-          // Generate campaign content (6 unique variations)
-          const campaignData = await generateCampaign(businessIdea, targetAudience);
-          console.log('Campaign data generated:', campaignData);
-          
-          // Generate image data
-          const imageData = await generateImagePrompts(businessIdea, targetAudience, campaignData.campaign);
-          console.log('Image data generated:', imageData);
-
-          // Define platforms
-          const platforms = ['facebook', 'google', 'linkedin', 'tiktok'];
-
-          // Use all 6 variations and distribute them across platforms and images
-          const variants = distributeVariations(
-            campaignData.campaign.headlines,
-            campaignData.campaign.adCopies,
-            imageData.images,
-            platforms
-          );
-          
-          responseData = sanitizeJson({ variants });
-          console.log('Generated variants:', responseData);
-          
-        } catch (error) {
-          console.error('Error generating ad content:', error);
-          throw error;
-        }
-        break;
-      case 'audience_analysis':
-        console.log('Analyzing audience with params:', { businessIdea, targetAudience, regenerationCount });
-        responseData = await analyzeAudience(businessIdea, targetAudience, regenerationCount);
-        break;
-      case 'images':
-        console.log('Generating images with params:', { businessIdea, targetAudience, campaign });
-        responseData = await generateImagePrompts(businessIdea, targetAudience, campaign);
-        break;
-      default:
-        throw new Error(`Unsupported generation type: ${type}`);
-    }
-
-    const sanitizedResponse = sanitizeJson(responseData);
-    console.log('Edge Function response data:', sanitizedResponse);
-
-    return new Response(JSON.stringify(sanitizedResponse), {
-      status: 200,
-      headers: { 
-        ...corsHeaders,
-        'Content-Type': 'application/json',
-      },
-    });
-  } catch (error) {
-    console.error('Error in generate-ad-content function:', error);
-    
-    return new Response(JSON.stringify({
-      error: error.message,
-      details: error.stack
-    }), {
-      status: error.status || 400,
-      headers: { 
-        ...corsHeaders,
-        'Content-Type': 'application/json',
-      },
-    });
-  }
-});
