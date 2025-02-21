@@ -128,6 +128,17 @@ function App() {
                 </ProtectedRoute>
               }
             />
+            {/* Ad Wizard Routes */}
+            <Route
+              path="/ad-wizard/new"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <AdWizard />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/ad-wizard/:projectId"
               element={

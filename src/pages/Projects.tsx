@@ -1,4 +1,3 @@
-
 import ProjectList from "@/components/projects/ProjectList";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -42,10 +41,11 @@ const Projects = () => {
   });
 
   const handleStartAdWizard = (projectId?: string) => {
+    console.log("Starting ad wizard with project:", projectId);
     if (projectId) {
-      navigate(`/ad-wizard/${projectId}`);
+      navigate(`/ad-wizard/${projectId}`, { replace: true });
     } else {
-      navigate("/ad-wizard/new");
+      navigate("/ad-wizard/new", { replace: true });
     }
   };
 
