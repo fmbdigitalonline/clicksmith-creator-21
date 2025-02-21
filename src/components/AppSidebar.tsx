@@ -22,13 +22,15 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { Button } from "./ui/button";
+import { useAdminStatus } from "@/hooks/useAdminStatus";
 
 export function AppSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const currentPath = location.pathname;
+  const { data: adminStatus } = useAdminStatus();
 
-  const menuItems = [
+  const baseMenuItems = [
     {
       title: "Home",
       icon: Home,
@@ -49,17 +51,26 @@ export function AppSidebar() {
       icon: Layout,
       url: "/landing-pages",
     },
-    {
-      title: "Blog Admin",
-      icon: FileText,
-      url: "/blog-admin",
-    },
-    {
-      title: "Settings",
-      icon: Settings,
-      url: "/settings",
-    },
   ];
+
+  // Only add Blog Admin to menu items if user is admin
+  const menuItems = adminStatus?.isAdmin
+    ? [
+        ...baseMenuItems,
+        {
+          title: "Blog Admin",
+          icon: FileText,
+          url: "/blog-admin",
+        },
+      ]
+    : baseMenuItems;
+
+  // Always add Settings as the last item
+  menuItems.push({
+    title: "Settings",
+    icon: Settings,
+    url: "/settings",
+  });
 
   const isActive = (path: string) => {
     if (path === "/dashboard") {
