@@ -28,9 +28,16 @@ interface ProjectFormProps {
   onCancel: () => void;
   initialBusinessIdea?: string;
   additionalActions?: React.ReactNode;
+  disabled?: boolean;
 }
 
-const ProjectForm = ({ onSubmit, onCancel, initialBusinessIdea, additionalActions }: ProjectFormProps) => {
+const ProjectForm = ({ 
+  onSubmit, 
+  onCancel, 
+  initialBusinessIdea, 
+  additionalActions,
+  disabled = false 
+}: ProjectFormProps) => {
   const form = useForm<ProjectFormData>({
     resolver: zodResolver(projectSchema),
     defaultValues: {
@@ -51,7 +58,11 @@ const ProjectForm = ({ onSubmit, onCancel, initialBusinessIdea, additionalAction
             <FormItem>
               <FormLabel>Project Title</FormLabel>
               <FormControl>
-                <Input placeholder="Enter a name for your validation project" {...field} />
+                <Input 
+                  placeholder="Enter a name for your validation project" 
+                  {...field} 
+                  disabled={disabled}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -68,6 +79,7 @@ const ProjectForm = ({ onSubmit, onCancel, initialBusinessIdea, additionalAction
                   placeholder="Describe your business idea in detail..."
                   {...field}
                   rows={4}
+                  disabled={disabled}
                 />
               </FormControl>
               <FormMessage />
@@ -85,6 +97,7 @@ const ProjectForm = ({ onSubmit, onCancel, initialBusinessIdea, additionalAction
                   placeholder="Any additional notes about your project"
                   {...field}
                   rows={3}
+                  disabled={disabled}
                 />
               </FormControl>
               <FormMessage />
@@ -101,6 +114,7 @@ const ProjectForm = ({ onSubmit, onCancel, initialBusinessIdea, additionalAction
                 <Input
                   placeholder="Enter tags separated by commas"
                   {...field}
+                  disabled={disabled}
                 />
               </FormControl>
               <FormMessage />
@@ -114,10 +128,11 @@ const ProjectForm = ({ onSubmit, onCancel, initialBusinessIdea, additionalAction
               type="button"
               variant="outline"
               onClick={onCancel}
+              disabled={disabled}
             >
               Cancel
             </Button>
-            <Button type="submit">Create Project</Button>
+            <Button type="submit" disabled={disabled}>Create Project</Button>
           </div>
         </div>
       </form>
