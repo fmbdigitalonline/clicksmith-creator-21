@@ -772,8 +772,12 @@ export type Database = {
         Row: {
           content: Json | null
           content_iterations: number | null
+          content_version: number | null
           created_at: string | null
+          generation_metadata: Json | null
+          generation_status: string | null
           id: string
+          last_generated_from: Json | null
           project_id: string | null
           published: boolean | null
           theme_settings: Json | null
@@ -785,8 +789,12 @@ export type Database = {
         Insert: {
           content?: Json | null
           content_iterations?: number | null
+          content_version?: number | null
           created_at?: string | null
+          generation_metadata?: Json | null
+          generation_status?: string | null
           id?: string
+          last_generated_from?: Json | null
           project_id?: string | null
           published?: boolean | null
           theme_settings?: Json | null
@@ -798,8 +806,12 @@ export type Database = {
         Update: {
           content?: Json | null
           content_iterations?: number | null
+          content_version?: number | null
           created_at?: string | null
+          generation_metadata?: Json | null
+          generation_status?: string | null
           id?: string
+          last_generated_from?: Json | null
           project_id?: string | null
           published?: boolean | null
           theme_settings?: Json | null
