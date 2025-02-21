@@ -3,26 +3,23 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
-import LandingNav from "@/components/LandingNav";
 
 const Terms = () => {
   return (
-    <div className="min-h-screen">
-      <LandingNav />
-      <div className="container mx-auto py-8 px-4 mt-16">
-        <div className="max-w-3xl mx-auto">
-          <div className="mb-8">
-            <Button variant="ghost" asChild className="mb-4">
-              <Link to="/login" className="flex items-center gap-2">
-                <ArrowLeft className="h-4 w-4" />
-                Back to Login
-              </Link>
-            </Button>
-            <h1 className="text-3xl font-bold mb-2">Terms of Service</h1>
-            <p className="text-muted-foreground">Last updated: {new Date().toLocaleDateString()}</p>
-          </div>
-          
-          <ScrollArea className="h-[70vh] rounded-md border p-6">
+    <div className="container mx-auto py-8 px-4">
+      <div className="max-w-3xl mx-auto">
+        <div className="mb-8">
+          <Button variant="ghost" asChild className="mb-4">
+            <Link to="/login" className="flex items-center gap-2">
+              <ArrowLeft className="h-4 w-4" />
+              Back to Login
+            </Link>
+          </Button>
+          <h1 className="text-3xl font-bold mb-2">Terms of Service</h1>
+          <p className="text-muted-foreground">Last updated: {new Date().toLocaleDateString()}</p>
+        </div>
+        
+        <ScrollArea className="h-[70vh] rounded-md border p-6">
           <div className="space-y-6">
             <section>
               <h2 className="text-xl font-semibold mb-3">1. Acceptance of Terms</h2>
@@ -81,7 +78,6 @@ const Terms = () => {
             </section>
           </div>
         </ScrollArea>
-        </div>
       </div>
     </div>
   );

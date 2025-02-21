@@ -1,3 +1,4 @@
+
 import { Json } from "@/integrations/supabase/types";
 
 export type Platform = 'facebook' | 'google' | 'linkedin' | 'tiktok';
@@ -46,54 +47,42 @@ export interface DatabaseAdVariant {
 }
 
 // Type guards and conversion utilities
-export const isValidSize = (value: unknown): value is AdSize => {
-  if (!value || typeof value !== 'object') return false;
-  const obj = value as Record<string, unknown>;
-  return (
-    typeof obj?.width === 'number' &&
-    typeof obj?.height === 'number' &&
-    typeof obj?.label === 'string'
-  );
-};
-
 export const isValidAdVariant = (data: unknown): data is AdVariant => {
-  if (!data || typeof data !== 'object') return false;
-  const obj = data as Record<string, unknown>;
+  const d = data as AdVariant;
   return Boolean(
-    obj &&
-    typeof obj?.id === 'string' &&
-    typeof obj?.platform === 'string' &&
-    typeof obj?.imageUrl === 'string' &&
-    typeof obj?.headline === 'string' &&
-    typeof obj?.description === 'string' &&
-    obj?.size && isValidSize(obj.size)
+    d &&
+    typeof d.id === 'string' &&
+    typeof d.platform === 'string' &&
+    typeof d.imageUrl === 'string' &&
+    typeof d.headline === 'string' &&
+    typeof d.description === 'string' &&
+    d.size &&
+    typeof d.size.width === 'number' &&
+    typeof d.size.height === 'number' &&
+    typeof d.size.label === 'string'
   );
 };
 
-export const convertToAdVariant = (data: DatabaseAdVariant | unknown): AdVariant | null => {
+export const convertToAdVariant = (data: unknown): AdVariant | null => {
   if (!data || typeof data !== 'object') return null;
   
   try {
-    const obj = data as Record<string, unknown>;
-    const sizeObj = obj?.size as Record<string, unknown>;
-
-    if (!sizeObj) return null;
-
+    const parsed = data as Record<string, unknown>;
     const variant: AdVariant = {
-      id: String(obj?.id || ''),
-      platform: String(obj?.platform || 'facebook') as Platform,
-      imageUrl: String(obj?.imageUrl || ''),
-      headline: String(obj?.headline || ''),
-      description: String(obj?.description || ''),
+      id: String(parsed.id || ''),
+      platform: String(parsed.platform || 'facebook') as Platform,
+      imageUrl: String(parsed.imageUrl || ''),
+      headline: String(parsed.headline || ''),
+      description: String(parsed.description || ''),
       size: {
-        width: Number(sizeObj?.width || 0),
-        height: Number(sizeObj?.height || 0),
-        label: String(sizeObj?.label || '')
+        width: Number(parsed.size?.width || 0),
+        height: Number(parsed.size?.height || 0),
+        label: String(parsed.size?.label || '')
       }
     };
     
-    if (obj?.resizedUrls && typeof obj.resizedUrls === 'object') {
-      variant.resizedUrls = obj.resizedUrls as Record<string, string>;
+    if (parsed.resizedUrls && typeof parsed.resizedUrls === 'object') {
+      variant.resizedUrls = parsed.resizedUrls as Record<string, string>;
     }
     
     return isValidAdVariant(variant) ? variant : null;
@@ -102,18 +91,14 @@ export const convertToAdVariant = (data: DatabaseAdVariant | unknown): AdVariant
   }
 };
 
-export const convertToDatabaseFormat = (variant: AdVariant): DatabaseAdVariant => {
+export const convertToDatabaseFormat = (variant: AdVariant): Json => {
   return {
     id: variant.id,
     platform: variant.platform,
     imageUrl: variant.imageUrl,
     headline: variant.headline,
     description: variant.description,
-    size: {
-      width: variant.size.width,
-      height: variant.size.height,
-      label: variant.size.label
-    },
+    size: variant.size,
     resizedUrls: variant.resizedUrls || {}
   };
 };
