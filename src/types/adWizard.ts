@@ -1,3 +1,4 @@
+
 export type BusinessIdea = {
   description: string;
   valueProposition: string;
@@ -60,3 +61,19 @@ export type AdImage = {
 };
 
 export type Step = "idea" | "audience" | "analysis" | "campaign" | "format" | "size" | "hook" | "complete";
+
+export interface Project {
+  id: string;
+  title: string;
+  description: string | null;
+  business_idea?: BusinessIdea;
+  target_audience?: TargetAudience;
+  audience_analysis?: AudienceAnalysis;
+  marketing_campaign?: MarketingCampaign;
+  selected_hooks?: AdHook[];
+  generated_ads?: any[];
+  current_step: number;
+  updated_at: string;
+  tags: string[];
+  status: string;
+}

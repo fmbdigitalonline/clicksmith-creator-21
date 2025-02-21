@@ -1,10 +1,10 @@
-
 import { BusinessIdea, TargetAudience, AdHook } from "@/types/adWizard";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
+import { AdVariant, DatabaseAdVariant, Platform, PlatformAdState } from "@/types/adGeneration";
 
 export const useAdGeneration = (
   businessIdea: BusinessIdea,
@@ -12,9 +12,16 @@ export const useAdGeneration = (
   adHooks: AdHook[]
 ) => {
   const [isGenerating, setIsGenerating] = useState(false);
-  const [adVariants, setAdVariants] = useState<any[]>([]);
+  const [adVariants, setAdVariants] = useState<AdVariant[]>([]);
   const [regenerationCount, setRegenerationCount] = useState(0);
   const [generationStatus, setGenerationStatus] = useState<string>("");
+  const [platformStates, setPlatformStates] = useState<Record<Platform, PlatformAdState>>({
+    facebook: { isLoading: false, hasError: false, variants: [] },
+    google: { isLoading: false, hasError: false, variants: [] },
+    linkedin: { isLoading: false, hasError: false, variants: [] },
+    tiktok: { isLoading: false, hasError: false, variants: [] }
+  });
+
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -34,8 +41,12 @@ export const useAdGeneration = (
         console.log('Loaded project data:', project);
         
         if (project?.generated_ads && Array.isArray(project.generated_ads)) {
-          console.log('Setting ad variants from project:', project.generated_ads);
-          setAdVariants(project.generated_ads);
+          const variants = project.generated_ads as DatabaseAdVariant[];
+          console.log('Setting ad variants from project:', variants);
+          setAdVariants(variants.map(v => ({
+            ...v,
+            platform: v.platform as Platform,
+          })));
         }
       }
     };
@@ -71,8 +82,12 @@ export const useAdGeneration = (
     return true;
   };
 
-  const generateAds = async (selectedPlatform: string) => {
+  const generateAds = async (selectedPlatform: Platform) => {
     setIsGenerating(true);
+    setPlatformStates(prev => ({
+      ...prev,
+      [selectedPlatform]: { ...prev[selectedPlatform], isLoading: true, hasError: false }
+    }));
     setGenerationStatus("Checking credits availability...");
     
     try {
@@ -110,7 +125,7 @@ export const useAdGeneration = (
 
       setGenerationStatus("Processing generated content...");
       
-      const processedVariants = await Promise.all(variants.map(async (variant: any) => {
+      const processedVariants = await Promise.all(variants.map(async (variant: AdVariant) => {
         if (!variant.imageUrl) {
           console.warn('Variant missing imageUrl:', variant);
           return null;
@@ -133,49 +148,43 @@ export const useAdGeneration = (
             return null;
           }
 
-          const newVariant = {
+          return {
             ...variant,
             id: imageVariant.id,
-            imageUrl: variant.imageUrl,
-            resizedUrls: variant.resizedUrls || {},
-            platform: selectedPlatform
           };
-
-          // Save to project if we have a project ID
-          if (projectId && projectId !== 'new') {
-            // Merge new variants with existing ones
-            const updatedVariants = [...adVariants, newVariant];
-            console.log('Saving updated variants to project:', updatedVariants);
-            
-            const { error: updateError } = await supabase
-              .from('projects')
-              .update({
-                generated_ads: updatedVariants
-              })
-              .eq('id', projectId);
-
-            if (updateError) {
-              console.error('Error updating project:', updateError);
-            }
-          }
-
-          return newVariant;
         } catch (error) {
           console.error('Error processing variant:', error);
-          throw error; // Let the error bubble up
+          throw error;
         }
       }));
 
-      // Filter out any null values and combine with existing variants
-      const validVariants = processedVariants.filter(Boolean);
+      // Filter out any null values
+      const validVariants = processedVariants.filter((v): v is AdVariant => v !== null);
       console.log('Successfully processed variants:', validVariants);
       
-      // Update state with new variants
-      setAdVariants(prev => {
-        // Remove old variants for the same platform
-        const filteredPrev = prev.filter(v => v.platform !== selectedPlatform);
-        return [...filteredPrev, ...validVariants];
-      });
+      // Update platform state
+      setPlatformStates(prev => ({
+        ...prev,
+        [selectedPlatform]: {
+          isLoading: false,
+          hasError: false,
+          variants: validVariants
+        }
+      }));
+
+      // Save to project if we have a project ID
+      if (projectId && projectId !== 'new') {
+        const { error: updateError } = await supabase
+          .from('projects')
+          .update({
+            generated_ads: validVariants as unknown as DatabaseAdVariant[]
+          })
+          .eq('id', projectId);
+
+        if (updateError) {
+          console.error('Error updating project:', updateError);
+        }
+      }
       
       setRegenerationCount(prev => prev + 1);
       
@@ -185,6 +194,15 @@ export const useAdGeneration = (
       });
     } catch (error: any) {
       console.error('Ad generation error:', error);
+      setPlatformStates(prev => ({
+        ...prev,
+        [selectedPlatform]: {
+          ...prev[selectedPlatform],
+          isLoading: false,
+          hasError: true,
+          errorMessage: error.message
+        }
+      }));
       toast({
         title: "Error generating ads",
         description: error.message || "Failed to generate ads. Please try again.",
@@ -196,7 +214,7 @@ export const useAdGeneration = (
     }
   };
 
-  const validateResponse = (data: any) => {
+  const validateResponse = (data: any): AdVariant[] => {
     if (!data) {
       throw new Error("No data received from generation");
     }
@@ -215,5 +233,6 @@ export const useAdGeneration = (
     regenerationCount,
     generationStatus,
     generateAds,
+    platformStates
   };
 };
