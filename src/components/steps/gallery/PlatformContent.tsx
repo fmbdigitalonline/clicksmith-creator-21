@@ -17,9 +17,9 @@ const PlatformContent = ({
   videoAdsEnabled = false,
   selectedFormat
 }: PlatformContentProps) => {
-  // Filter variants by platform and ensure we only show 2 variants per unique image
+  // Filter variants by platform but preserve all variants for image selection
   const filteredVariants = (() => {
-    // First, filter by platform
+    // Filter by platform
     const platformVariants = Array.isArray(adVariants) 
       ? adVariants.filter(v => v.platform === platformName)
       : [];
@@ -36,7 +36,6 @@ const PlatformContent = ({
       }
     });
 
-    // Flatten the map back to an array
     return Array.from(uniqueImages.values()).flat();
   })();
 
@@ -63,6 +62,7 @@ const PlatformContent = ({
           <AdPreviewCard
             key={`${platformName}-${index}-${variant.imageUrl || variant.image?.url}`}
             variant={variant}
+            adVariants={adVariants} // Pass all variants for image selection
             onCreateProject={onCreateProject}
             isVideo={videoAdsEnabled}
             selectedFormat={selectedFormat}
@@ -74,3 +74,4 @@ const PlatformContent = ({
 };
 
 export default PlatformContent;
+

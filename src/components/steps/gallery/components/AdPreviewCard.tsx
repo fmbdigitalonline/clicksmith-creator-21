@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useParams } from "react-router-dom";
@@ -75,7 +74,16 @@ const AdPreviewCard = ({
   };
 
   const generateNewImage = async () => {
-    const prompt = variant.image?.prompt;
+    let prompt = variant.image?.prompt;
+    
+    // If no prompt is available in the variant, try to find it in adVariants
+    if (!prompt) {
+      const originalVariant = adVariants.find(v => 
+        v.image?.url === getImageUrl() || v.imageUrl === getImageUrl()
+      );
+      prompt = originalVariant?.image?.prompt;
+    }
+
     if (!prompt) {
       toast({
         title: "Error",
@@ -98,7 +106,28 @@ const AdPreviewCard = ({
       if (error) throw error;
 
       if (data?.images?.[0]?.url) {
+        // Update the variant with new image and preserve the prompt
         variant.imageUrl = data.images[0].url;
+        if (!variant.image) {
+          variant.image = { url: data.images[0].url, prompt };
+        } else {
+          variant.image.url = data.images[0].url;
+        }
+        
+        // Save to ad_image_variants
+        await supabase
+          .from('ad_image_variants')
+          .insert({
+            original_image_url: data.images[0].url,
+            prompt: prompt,
+            metadata: {
+              platform: variant.platform,
+              size: selectedFormat
+            },
+            project_id: projectId,
+            user_id: (await supabase.auth.getUser()).data.user?.id
+          });
+
         toast({
           title: "Success",
           description: "New image generated successfully",
@@ -248,12 +277,20 @@ const AdPreviewCard = ({
     });
   };
 
-  // Get unique images from all variants
-  const uniqueImages = Array.from(new Set(
-    adVariants
-      .map(v => v.imageUrl || v.image?.url)
-      .filter(Boolean)
-  ));
+  // Get unique images from all variants, including their prompts
+  const uniqueImages = Array.from(
+    new Map(
+      adVariants
+        .filter(v => v.imageUrl || v.image?.url)
+        .map(v => {
+          const imageUrl = v.imageUrl || v.image?.url;
+          return [imageUrl, { 
+            url: imageUrl, 
+            prompt: v.image?.prompt || null 
+          }];
+        })
+    ).values()
+  );
 
   return (
     <Card className="overflow-hidden">
@@ -339,7 +376,7 @@ const AdPreviewCard = ({
               <DropdownMenuContent>
                 <DropdownMenuItem
                   onClick={() => setIsSelectingImage(!isSelectingImage)}
-                  disabled={uniqueImages.length === 0}
+                  disabled={uniqueImages.length <= 1}
                 >
                   <Image className="h-4 w-4 mr-2" />
                   Choose Existing
@@ -347,7 +384,7 @@ const AdPreviewCard = ({
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onClick={generateNewImage}
-                  disabled={!variant.image?.prompt || isGeneratingImage}
+                  disabled={isGeneratingImage}
                 >
                   <ImagePlus className="h-4 w-4 mr-2" />
                   Generate New
@@ -357,15 +394,24 @@ const AdPreviewCard = ({
           </div>
 
           {/* Image Selection Grid */}
-          {isSelectingImage && uniqueImages.length > 0 && (
+          {isSelectingImage && uniqueImages.length > 1 && (
             <div className="absolute top-12 right-2 bg-white rounded-lg shadow-lg p-2 z-10">
               <div className="grid grid-cols-2 gap-2">
-                {uniqueImages.map((imageUrl, idx) => (
+                {uniqueImages.map((imageData, idx) => (
                   <button
                     key={idx}
                     className="w-20 h-20 rounded overflow-hidden border-2 hover:border-primary transition-colors"
                     onClick={() => {
-                      variant.imageUrl = imageUrl;
+                      // Update variant with selected image while preserving prompt
+                      variant.imageUrl = imageData.url;
+                      if (imageData.prompt) {
+                        if (!variant.image) {
+                          variant.image = { url: imageData.url, prompt: imageData.prompt };
+                        } else {
+                          variant.image.url = imageData.url;
+                          variant.image.prompt = imageData.prompt;
+                        }
+                      }
                       setIsSelectingImage(false);
                       toast({
                         title: "Image updated",
@@ -374,7 +420,7 @@ const AdPreviewCard = ({
                     }}
                   >
                     <img
-                      src={imageUrl}
+                      src={imageData.url}
                       alt={`Option ${idx + 1}`}
                       className="w-full h-full object-cover"
                     />
@@ -422,4 +468,3 @@ const AdPreviewCard = ({
 };
 
 export default AdPreviewCard;
-
