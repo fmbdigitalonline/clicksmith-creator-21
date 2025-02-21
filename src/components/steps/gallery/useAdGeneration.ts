@@ -1,6 +1,8 @@
+
 import { BusinessIdea, TargetAudience, AdHook } from "@/types/adWizard";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
 
@@ -14,12 +16,14 @@ export const useAdGeneration = (
   const [regenerationCount, setRegenerationCount] = useState(0);
   const [generationStatus, setGenerationStatus] = useState<string>("");
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { projectId } = useParams();
 
   // Load saved ad variants when component mounts
   useEffect(() => {
     const loadSavedAds = async () => {
+      console.log('Loading saved ads for project:', projectId);
       if (projectId && projectId !== 'new') {
         const { data: project } = await supabase
           .from('projects')
@@ -27,7 +31,10 @@ export const useAdGeneration = (
           .eq('id', projectId)
           .single();
         
+        console.log('Loaded project data:', project);
+        
         if (project?.generated_ads && Array.isArray(project.generated_ads)) {
+          console.log('Setting ad variants from project:', project.generated_ads);
           setAdVariants(project.generated_ads);
         }
       }
@@ -45,7 +52,9 @@ export const useAdGeneration = (
       { p_user_id: user.id, required_credits: 1 }
     );
 
-    if (error) throw error;
+    if (error) {
+      throw error;
+    }
 
     const result = creditCheck[0];
     
@@ -68,22 +77,33 @@ export const useAdGeneration = (
     
     try {
       const hasCredits = await checkCredits();
-      if (!hasCredits) return;
+      if (!hasCredits) {
+        setIsGenerating(false);
+        return;
+      }
 
-      setGenerationStatus("Initializing ad generation...");
-      console.log('Generating ads for platform:', selectedPlatform);
+      setGenerationStatus(`Initializing ${selectedPlatform} ad generation...`);
+      console.log('Generating ads for platform:', selectedPlatform, 'with target audience:', targetAudience);
       
       const { data, error } = await supabase.functions.invoke('generate-ad-content', {
         body: {
           type: 'complete_ads',
           platform: selectedPlatform,
           businessIdea,
-          targetAudience,
+          targetAudience: {
+            ...targetAudience,
+            name: targetAudience.name,
+            description: targetAudience.description,
+            demographics: targetAudience.demographics,
+            painPoints: targetAudience.painPoints
+          },
           adHooks,
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
 
       console.log('Generation response:', data);
       const variants = validateResponse(data);
@@ -91,11 +111,8 @@ export const useAdGeneration = (
       setGenerationStatus("Processing generated content...");
       
       const processedVariants = await Promise.all(variants.map(async (variant: any) => {
-        const imageUrl = variant.imageUrl || variant.image?.url;
-        const imagePrompt = variant.image?.prompt || variant.prompt;
-
-        if (!imageUrl) {
-          console.warn('Variant missing image URL:', variant);
+        if (!variant.imageUrl) {
+          console.warn('Variant missing imageUrl:', variant);
           return null;
         }
 
@@ -103,13 +120,8 @@ export const useAdGeneration = (
           const { data: imageVariant, error: storeError } = await supabase
             .from('ad_image_variants')
             .insert({
-              original_image_url: imageUrl,
-              prompt: imagePrompt,
-              metadata: {
-                platform: selectedPlatform,
-                size: variant.size,
-                originalVariant: variant
-              },
+              original_image_url: variant.imageUrl,
+              resized_image_urls: variant.resizedUrls || {},
               user_id: (await supabase.auth.getUser()).data.user?.id,
               project_id: projectId !== 'new' ? projectId : null
             })
@@ -124,17 +136,16 @@ export const useAdGeneration = (
           const newVariant = {
             ...variant,
             id: imageVariant.id,
-            imageUrl: imageUrl,
-            image: {
-              url: imageUrl,
-              prompt: imagePrompt
-            },
+            imageUrl: variant.imageUrl,
+            resizedUrls: variant.resizedUrls || {},
             platform: selectedPlatform
           };
 
           // Save to project if we have a project ID
           if (projectId && projectId !== 'new') {
+            // Merge new variants with existing ones
             const updatedVariants = [...adVariants, newVariant];
+            console.log('Saving updated variants to project:', updatedVariants);
             
             const { error: updateError } = await supabase
               .from('projects')
@@ -151,14 +162,17 @@ export const useAdGeneration = (
           return newVariant;
         } catch (error) {
           console.error('Error processing variant:', error);
-          return null;
+          throw error; // Let the error bubble up
         }
       }));
 
       // Filter out any null values and combine with existing variants
       const validVariants = processedVariants.filter(Boolean);
+      console.log('Successfully processed variants:', validVariants);
       
+      // Update state with new variants
       setAdVariants(prev => {
+        // Remove old variants for the same platform
         const filteredPrev = prev.filter(v => v.platform !== selectedPlatform);
         return [...filteredPrev, ...validVariants];
       });

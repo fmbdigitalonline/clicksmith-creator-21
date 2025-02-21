@@ -197,10 +197,8 @@ export type Database = {
         Row: {
           created_at: string
           id: string
-          metadata: Json | null
           original_image_url: string
           project_id: string | null
-          prompt: string | null
           resized_image_urls: Json
           updated_at: string
           user_id: string | null
@@ -208,10 +206,8 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
-          metadata?: Json | null
           original_image_url: string
           project_id?: string | null
-          prompt?: string | null
           resized_image_urls?: Json
           updated_at?: string
           user_id?: string | null
@@ -219,10 +215,8 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
-          metadata?: Json | null
           original_image_url?: string
           project_id?: string | null
-          prompt?: string | null
           resized_image_urls?: Json
           updated_at?: string
           user_id?: string | null
