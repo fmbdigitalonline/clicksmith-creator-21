@@ -14,11 +14,23 @@ import { SocialProofSection } from "./components/SocialProofSection";
 import { DynamicSection } from "./components/DynamicSection";
 import { Progress } from "@/components/ui/progress";
 
-interface GenerationResponse {
-  error?: string;
-  message?: string;
-  status?: string;
+interface LandingPageSection {
+  type: 'hero' | 'features' | 'social-proof';
+  order: number;
+  content: Record<string, unknown>;
 }
+
+interface SuccessResponse {
+  success: true;
+  sections: LandingPageSection[];
+}
+
+interface ErrorResponse {
+  success: false;
+  error: string;
+}
+
+type GenerationResponse = SuccessResponse | ErrorResponse;
 
 interface GenerationProgress {
   status: string;
@@ -92,9 +104,7 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
         throw new Error('Authentication required');
       }
 
-      type EdgeFunctionResponse = { error: string } | { success: true };
-
-      const { data, error: functionError } = await supabase.functions.invoke<EdgeFunctionResponse>('generate-landing-content', {
+      const { data, error: functionError } = await supabase.functions.invoke<GenerationResponse>('generate-landing-content', {
         body: {
           projectData: {
             business_idea: project.business_idea,
@@ -106,13 +116,16 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
       });
 
       if (functionError) {
-        console.error('Function error:', functionError);
         throw new Error(functionError.message || 'Failed to generate content');
       }
 
-      // Type guard to check if the response contains an error
-      if (data && typeof data === 'object' && 'error' in data) {
-        throw new Error(data.error);
+      if (!data) {
+        throw new Error('No response data received');
+      }
+
+      // Type guard to check if the response is an error
+      if (!data.success) {
+        throw new Error(data.error || 'Unknown error occurred');
       }
 
       toast({
