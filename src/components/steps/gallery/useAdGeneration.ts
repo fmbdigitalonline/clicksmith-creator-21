@@ -92,13 +92,14 @@ export const useAdGeneration = (
       setGenerationStatus("Processing generated content...");
       
       const processedVariants = await Promise.all(variants.map(async (variant: any) => {
-        if (!variant.imageUrl && !variant.image?.url) {
+        const imageUrl = variant.imageUrl || variant.image?.url;
+        const imagePrompt = variant.image?.prompt || variant.prompt;
+
+        if (!imageUrl) {
           console.warn('Variant missing image URL:', variant);
           return null;
         }
 
-        // Ensure we have the prompt from either source
-        const imagePrompt = variant.image?.prompt || variant.prompt;
         if (!imagePrompt) {
           console.warn('Variant missing prompt:', variant);
         }
@@ -107,12 +108,12 @@ export const useAdGeneration = (
           const { data: imageVariant, error: storeError } = await supabase
             .from('ad_image_variants')
             .insert({
-              original_image_url: variant.imageUrl || variant.image?.url,
-              prompt: imagePrompt, // Store the prompt
+              original_image_url: imageUrl,
+              prompt: imagePrompt,
               metadata: {
                 platform: selectedPlatform,
                 size: variant.size,
-                originalVariant: variant // Store the complete original variant
+                originalVariant: variant
               },
               user_id: (await supabase.auth.getUser()).data.user?.id,
               project_id: projectId !== 'new' ? projectId : null
@@ -128,9 +129,9 @@ export const useAdGeneration = (
           const newVariant = {
             ...variant,
             id: imageVariant.id,
-            imageUrl: variant.imageUrl || variant.image?.url,
+            imageUrl: imageUrl,
             image: {
-              url: variant.imageUrl || variant.image?.url,
+              url: imageUrl,
               prompt: imagePrompt
             },
             platform: selectedPlatform

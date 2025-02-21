@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { generateAudiences } from "./handlers/audienceGeneration.ts";
 import { generateHooks } from "./handlers/hookGeneration.ts";
@@ -47,6 +46,10 @@ type AdVariant = {
   headline: string;
   description: string;
   imageUrl: string;
+  image?: {
+    url: string;
+    prompt: string | null;
+  };
   size: {
     width: number;
     height: number;
@@ -58,18 +61,15 @@ type AdVariant = {
 const distributeVariations = (
   headlines: string[], 
   adCopies: AdCopy[], 
-  images: Array<{ url: string; width: number; height: number; label: string }>,
+  images: Array<{ url: string; width: number; height: number; label: string; prompt?: string }>,
   platforms: string[]
 ): AdVariant[] => {
   const variants: AdVariant[] = [];
   let variationIndex = 0;
 
-  // Distribute variations across platforms and images
   for (const platform of platforms) {
     for (const image of images) {
-      // Get two unique variations for each image
       for (let i = 0; i < 2; i++) {
-        // Use modulo to cycle through variations if we run out
         const currentIndex = variationIndex % 6;
         
         variants.push({
@@ -77,6 +77,10 @@ const distributeVariations = (
           headline: headlines[currentIndex],
           description: adCopies[currentIndex].content,
           imageUrl: image.url,
+          image: {
+            url: image.url,
+            prompt: image.prompt || null // Preserve prompt in image object
+          },
           size: {
             width: image.width,
             height: image.height,
