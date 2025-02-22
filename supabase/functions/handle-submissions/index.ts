@@ -39,7 +39,8 @@ serve(async (req) => {
       throw new Error('Missing required fields')
     }
 
-    const { error } = await supabase
+    // Store the submission in the database
+    const { error: dbError } = await supabase
       .from('contact_submissions')
       .insert({
         name: body.name,
@@ -53,9 +54,9 @@ serve(async (req) => {
         }
       })
 
-    if (error) {
-      console.error('Database error:', error)
-      throw error
+    if (dbError) {
+      console.error('Database error:', dbError)
+      throw dbError
     }
 
     // Here you would typically add code to send email notifications

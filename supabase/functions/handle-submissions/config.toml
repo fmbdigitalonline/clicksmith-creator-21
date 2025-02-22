@@ -1,0 +1,5 @@
+
+project_id = "xorlfvflpihtafugltni"
+
+[functions.handle-submissions]
+verify_jwt = false
