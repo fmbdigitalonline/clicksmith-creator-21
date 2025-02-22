@@ -21,6 +21,13 @@ interface ContactSubmission {
   }>;
 }
 
+interface NewsletterSubmission {
+  type: string;
+  email: string;
+}
+
+type Submission = ContactSubmission | NewsletterSubmission;
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -28,41 +35,84 @@ serve(async (req) => {
   }
 
   try {
-    console.log('Handling contact submission...')
+    console.log('Processing submission...')
     
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    const body = await req.json() as ContactSubmission
+    const body = await req.json() as Submission
     console.log('Received submission:', body)
 
-    if (!body.type || !body.name || !body.email || !body.message) {
+    if (!body.type || !body.email) {
       throw new Error('Missing required fields')
     }
 
-    // Store the submission in the database
-    const { error: dbError } = await supabase
-      .from('contact_submissions')
-      .insert({
-        name: body.name,
-        email: body.email,
-        message: body.message,
-        attachments: body.attachments || [],
-        status: 'pending',
-        metadata: {
-          userAgent: req.headers.get('user-agent'),
-          timestamp: new Date().toISOString()
+    if (body.type === 'contact') {
+      if (!body.name || !body.message) {
+        throw new Error('Missing required fields for contact submission')
+      }
+
+      // Store the contact submission
+      const { error: dbError } = await supabase
+        .from('contact_submissions')
+        .insert({
+          name: body.name,
+          email: body.email,
+          message: body.message,
+          attachments: body.attachments || [],
+          status: 'pending',
+          metadata: {
+            userAgent: req.headers.get('user-agent'),
+            timestamp: new Date().toISOString()
+          }
+        })
+
+      if (dbError) {
+        console.error('Database error:', dbError)
+        throw dbError
+      }
+
+      console.log('Successfully stored contact submission')
+    } else if (body.type === 'newsletter') {
+      // Handle newsletter subscription
+      const { error: dbError } = await supabase
+        .from('newsletter_subscriptions')
+        .insert({
+          email: body.email,
+          status: 'pending',
+          metadata: {
+            userAgent: req.headers.get('user-agent'),
+            timestamp: new Date().toISOString(),
+            source: 'website_footer'
+          }
+        })
+        .select()
+        .single()
+
+      if (dbError) {
+        // Check if it's a unique violation (email already exists)
+        if (dbError.code === '23505') {
+          return new Response(
+            JSON.stringify({
+              success: false,
+              message: 'This email is already subscribed to our newsletter.'
+            }),
+            {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              status: 400
+            }
+          )
         }
-      })
+        console.error('Database error:', dbError)
+        throw dbError
+      }
 
-    if (dbError) {
-      console.error('Database error:', dbError)
-      throw dbError
+      console.log('Successfully stored newsletter subscription')
+    } else {
+      throw new Error('Invalid submission type')
     }
-
-    console.log('Successfully stored submission in database')
 
     return new Response(
       JSON.stringify({ 
