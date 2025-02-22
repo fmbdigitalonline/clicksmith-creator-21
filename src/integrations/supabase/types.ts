@@ -437,6 +437,7 @@ export type Database = {
       }
       contact_submissions: {
         Row: {
+          attachments: Json | null
           created_at: string
           email: string
           id: string
@@ -446,6 +447,7 @@ export type Database = {
           status: Database["public"]["Enums"]["submission_status"] | null
         }
         Insert: {
+          attachments?: Json | null
           created_at?: string
           email: string
           id?: string
@@ -455,6 +457,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["submission_status"] | null
         }
         Update: {
+          attachments?: Json | null
           created_at?: string
           email?: string
           id?: string
