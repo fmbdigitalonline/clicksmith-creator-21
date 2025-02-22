@@ -18,6 +18,8 @@ import Dashboard from "@/pages/Dashboard";
 import { SavedAdsGallery } from "@/components/gallery/SavedAdsGallery";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Index from "@/pages/Index";
+import LandingPage from "@/pages/LandingPage";
+import LandingPages from "@/pages/LandingPages";
 import Referral from "@/pages/Referral";
 import Affiliate from "@/pages/Affiliate";
 import Share from "@/pages/Share";
@@ -82,6 +84,26 @@ function App() {
                 <ProtectedRoute>
                   <AppLayout>
                     <Projects />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/projects/:projectId/landing-page"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <LandingPage />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/landing-pages"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <LandingPages />
                   </AppLayout>
                 </ProtectedRoute>
               }

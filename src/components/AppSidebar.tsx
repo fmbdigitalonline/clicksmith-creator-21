@@ -8,6 +8,7 @@ import {
   PlusCircle,
   Home,
   BookmarkIcon,
+  Layout,
   FileText,
 } from "lucide-react";
 import {
@@ -54,6 +55,11 @@ export function AppSidebar() {
       title: "Saved Ads",
       icon: BookmarkIcon,
       url: "/saved-ads",
+    },
+    {
+      title: "Landing Pages",
+      icon: Layout,
+      url: "/landing-pages",
     },
     {
       title: "Settings",
