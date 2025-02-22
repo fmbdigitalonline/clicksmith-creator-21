@@ -1540,6 +1540,7 @@ export type Database = {
       ad_platform: "facebook" | "google" | "linkedin" | "tiktok"
       app_role: "admin" | "user"
       backup_type: "auto" | "manual"
+      contact_submission_status: "pending" | "processed" | "completed"
       credit_operation_type: "credit_add" | "credit_deduct" | "credit_refund"
       image_generation_status: "pending" | "completed" | "failed"
       landing_page_generation_status:
