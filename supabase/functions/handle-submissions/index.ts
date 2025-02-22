@@ -2,7 +2,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
-// Initialize Supabase client
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const supabase = createClient(supabaseUrl, supabaseKey);
@@ -17,6 +16,12 @@ interface ContactSubmission {
   name: string;
   email: string;
   message: string;
+  attachments?: Array<{
+    name: string;
+    size: number;
+    type: string;
+    url: string;
+  }>;
 }
 
 interface NewsletterSubscription {
@@ -24,7 +29,10 @@ interface NewsletterSubscription {
 }
 
 async function handleContactSubmission(submission: ContactSubmission) {
-  console.log("Processing contact submission:", submission);
+  console.log("Processing contact submission:", {
+    ...submission,
+    attachments: submission.attachments?.length || 0
+  });
   
   try {
     const { error } = await supabase
@@ -33,7 +41,12 @@ async function handleContactSubmission(submission: ContactSubmission) {
         name: submission.name,
         email: submission.email,
         message: submission.message,
-        status: 'pending'
+        status: 'pending',
+        attachments: submission.attachments || [],
+        metadata: {
+          hasAttachments: submission.attachments && submission.attachments.length > 0,
+          submittedAt: new Date().toISOString()
+        }
       }]);
 
     if (error) {
@@ -74,7 +87,6 @@ async function handleNewsletterSubscription(subscription: NewsletterSubscription
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, { 
       headers: corsHeaders,
@@ -83,9 +95,8 @@ serve(async (req) => {
   }
 
   try {
-    console.log("Received request:", req.method);
     const { type, ...data } = await req.json();
-    console.log("Request type:", type);
+    console.log("Processing request type:", type);
 
     let result;
     if (type === "contact") {
@@ -102,8 +113,6 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error("Error in handle-submissions function:", error);
-    
-    // Return a more detailed error response
     return new Response(
       JSON.stringify({ 
         error: error.message,

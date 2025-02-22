@@ -3,28 +3,77 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/use-toast";
-import { Mail } from "lucide-react";
+import { Mail, Upload, X } from "lucide-react";
 import Navigation from "@/components/Navigation";
 import IndexFooter from "@/components/IndexFooter";
 import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
+import { uploadMedia } from "@/utils/uploadUtils";
 
 const Contact = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [attachments, setAttachments] = useState<File[]>([]);
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    // Limit to 3 files and 5MB per file
+    const validFiles = files.filter(file => file.size <= 5 * 1024 * 1024);
+    
+    if (validFiles.length + attachments.length > 3) {
+      toast({
+        title: "Too many files",
+        description: "You can only upload up to 3 files",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (validFiles.length !== files.length) {
+      toast({
+        title: "File too large",
+        description: "Each file must be less than 5MB",
+        variant: "destructive",
+      });
+    }
+
+    setAttachments(prev => [...prev, ...validFiles]);
+  };
+
+  const removeAttachment = (index: number) => {
+    setAttachments(prev => prev.filter((_, i) => i !== index));
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
-
-    const formData = new FormData(e.currentTarget);
-    const data = {
-      type: "contact",
-      name: formData.get("name") as string,
-      email: formData.get("email") as string,
-      message: formData.get("message") as string,
-    };
+    setUploadProgress(0);
 
     try {
+      // Upload attachments first
+      const uploadedFiles = [];
+      if (attachments.length > 0) {
+        for (const file of attachments) {
+          const fileUrl = await uploadMedia(file);
+          uploadedFiles.push({
+            name: file.name,
+            size: file.size,
+            type: file.type,
+            url: fileUrl
+          });
+          setUploadProgress((uploadedFiles.length / attachments.length) * 100);
+        }
+      }
+
+      const formData = new FormData(e.currentTarget);
+      const data = {
+        type: "contact",
+        name: formData.get("name") as string,
+        email: formData.get("email") as string,
+        message: formData.get("message") as string,
+        attachments: uploadedFiles
+      };
+
       const { data: responseData, error } = await supabase.functions.invoke("handle-submissions", {
         body: JSON.stringify(data),
       });
@@ -42,6 +91,9 @@ const Contact = () => {
         title: "Message sent!",
         description: "We'll get back to you as soon as possible.",
       });
+      
+      setAttachments([]);
+      setUploadProgress(0);
       (e.target as HTMLFormElement).reset();
     } catch (error) {
       console.error("Error details:", error);
@@ -109,6 +161,66 @@ const Contact = () => {
                   rows={6}
                 />
               </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Attachments (Optional)
+                </label>
+                <div className="space-y-4">
+                  {attachments.length > 0 && (
+                    <div className="space-y-2">
+                      {attachments.map((file, index) => (
+                        <div key={index} className="flex items-center justify-between p-2 bg-muted rounded">
+                          <span className="text-sm truncate">{file.name}</span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeAttachment(index)}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {attachments.length < 3 && (
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="file"
+                        onChange={handleFileChange}
+                        accept="image/*,.pdf"
+                        className="hidden"
+                        id="file-upload"
+                        multiple
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => document.getElementById('file-upload')?.click()}
+                        className="w-full"
+                      >
+                        <Upload className="h-4 w-4 mr-2" />
+                        Add Screenshots
+                      </Button>
+                    </div>
+                  )}
+                  
+                  <p className="text-xs text-muted-foreground">
+                    You can upload up to 3 files (images or PDFs, max 5MB each)
+                  </p>
+                </div>
+              </div>
+
+              {uploadProgress > 0 && uploadProgress < 100 && (
+                <div className="w-full bg-muted rounded-full h-2">
+                  <div
+                    className="bg-primary h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${uploadProgress}%` }}
+                  />
+                </div>
+              )}
 
               <Button type="submit" className="w-full" disabled={isSubmitting}>
                 {isSubmitting ? "Sending..." : "Send Message"}
