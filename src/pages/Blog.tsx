@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Helmet } from "react-helmet";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,6 +11,7 @@ import { Link } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import Navigation from "@/components/Navigation";
+import IndexFooter from "@/components/IndexFooter";
 
 const Blog = () => {
   const [posts, setPosts] = useState<any[]>([]);
@@ -61,7 +63,6 @@ const Blog = () => {
     e.preventDefault();
     const email = (e.currentTarget.elements.namedItem('email') as HTMLInputElement).value;
     
-    // Here you would typically handle the newsletter subscription
     toast({
       title: "Subscribed!",
       description: "Thank you for subscribing to our newsletter.",
@@ -81,7 +82,7 @@ const Blog = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen flex flex-col">
       <Helmet>
         <title>Our Blog - Latest Updates and Insights</title>
         <meta name="description" content="Stay up to date with our latest product updates, marketing tips, and industry insights." />
@@ -89,7 +90,7 @@ const Blog = () => {
 
       <Navigation />
 
-      <main className="container mx-auto px-4 py-8 mt-16">
+      <main className="flex-grow container mx-auto px-4 py-8 mt-16">
         <div className="flex flex-col md:flex-row gap-8">
           {/* Main Content */}
           <div className="md:w-2/3">
@@ -209,46 +210,7 @@ const Blog = () => {
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="bg-white border-t mt-16">
-        <div className="container mx-auto px-4 py-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div>
-              <h3 className="font-semibold text-gray-900 mb-4">Quick Links</h3>
-              <div className="space-y-2">
-                <Link to="/privacy" className="block text-gray-600 hover:text-primary">Privacy Policy</Link>
-                <Link to="/terms" className="block text-gray-600 hover:text-primary">Terms of Service</Link>
-                <Link to="/contact" className="block text-gray-600 hover:text-primary">Contact Us</Link>
-              </div>
-            </div>
-            <div>
-              <h3 className="font-semibold text-gray-900 mb-4">Categories</h3>
-              <div className="space-y-2">
-                {categories.slice(0, 5).map((category) => (
-                  <Link
-                    key={category.id}
-                    to={`/blog/category/${category.slug}`}
-                    className="block text-gray-600 hover:text-primary"
-                  >
-                    {category.name}
-                  </Link>
-                ))}
-              </div>
-            </div>
-            <div>
-              <h3 className="font-semibold text-gray-900 mb-4">Follow Us</h3>
-              <div className="flex space-x-4">
-                <a href="#" className="text-gray-600 hover:text-primary">Twitter</a>
-                <a href="#" className="text-gray-600 hover:text-primary">LinkedIn</a>
-                <a href="#" className="text-gray-600 hover:text-primary">Facebook</a>
-              </div>
-            </div>
-          </div>
-          <div className="border-t mt-8 pt-8 text-center text-gray-600">
-            <p>© {new Date().getFullYear()} Your Company. All rights reserved.</p>
-          </div>
-        </div>
-      </footer>
+      <IndexFooter />
     </div>
   );
 };
