@@ -1,12 +1,49 @@
 
 import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
+import { useState } from "react";
+import { toast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface IndexFooterProps {
   className?: string;
 }
 
 const IndexFooter = ({ className }: IndexFooterProps) => {
+  const [isSubscribing, setIsSubscribing] = useState(false);
+  const [email, setEmail] = useState("");
+
+  const handleSubscribe = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsSubscribing(true);
+
+    try {
+      const { error } = await supabase.functions.invoke("handle-submissions", {
+        body: JSON.stringify({
+          type: "newsletter",
+          email: email
+        }),
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Successfully subscribed!",
+        description: "Thank you for subscribing to our newsletter.",
+      });
+      setEmail("");
+    } catch (error) {
+      console.error("Error subscribing to newsletter:", error);
+      toast({
+        title: "Subscription failed",
+        description: "Please try again later.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubscribing(false);
+    }
+  };
+
   const links = {
     company: [
       { label: "About", to: "/about" },
@@ -83,14 +120,21 @@ const IndexFooter = ({ className }: IndexFooterProps) => {
             <p className="text-gray-400 mb-4">
               Subscribe to our newsletter for updates and exclusive content.
             </p>
-            <form className="flex flex-col sm:flex-row gap-2 w-full">
+            <form onSubmit={handleSubscribe} className="flex flex-col sm:flex-row gap-2 w-full">
               <input
                 type="email"
                 placeholder="Enter your email"
                 className="bg-gray-800 text-white px-4 py-2 rounded-lg w-full"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
               />
-              <button className="bg-primary hover:bg-primary/90 text-white px-6 py-2 rounded-lg whitespace-nowrap">
-                Subscribe
+              <button 
+                type="submit"
+                disabled={isSubscribing}
+                className="bg-primary hover:bg-primary/90 text-white px-6 py-2 rounded-lg whitespace-nowrap disabled:opacity-50"
+              >
+                {isSubscribing ? "Subscribing..." : "Subscribe"}
               </button>
             </form>
           </div>
