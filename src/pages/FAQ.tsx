@@ -1,15 +1,16 @@
-
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
-import { AppLayout } from "@/components/layout/AppLayout";
-import { Button } from "@/components/ui/button";
 import { MessageSquare } from "lucide-react";
 import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import Navigation from "@/components/Navigation";
+import IndexFooter from "@/components/IndexFooter";
 
 const FAQ = () => {
   return (
-    <AppLayout>
-      <div className="container mx-auto px-4 py-8">
+    <div className="flex flex-col min-h-screen">
+      <Navigation />
+      <div className="container mx-auto px-4 py-8 mt-16 flex-grow">
         <h1 className="text-3xl font-bold mb-8">Frequently Asked Questions</h1>
         
         <Tabs defaultValue="getting-started" className="space-y-6">
@@ -141,7 +142,8 @@ const FAQ = () => {
           </Card>
         </div>
       </div>
-    </AppLayout>
+      <IndexFooter />
+    </div>
   );
 };
 

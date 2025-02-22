@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
 import Navigation from "@/components/Navigation";
+import IndexFooter from "@/components/IndexFooter";
 
 const BlogPost = () => {
   const { slug } = useParams();
@@ -55,6 +56,7 @@ const BlogPost = () => {
             <Skeleton className="h-4 w-3/4" />
           </div>
         </div>
+        <IndexFooter />
       </div>
     );
   }
@@ -67,6 +69,7 @@ const BlogPost = () => {
           <h1 className="text-2xl font-bold">Post not found</h1>
           <p className="mt-2 text-gray-600">The post you're looking for doesn't exist or has been removed.</p>
         </div>
+        <IndexFooter />
       </div>
     );
   }
@@ -78,9 +81,9 @@ const BlogPost = () => {
   };
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen flex flex-col">
       <Navigation />
-      <article className="bg-white mt-16">
+      <article className="bg-white mt-16 flex-grow">
         <Helmet>
           <title>{post.title}</title>
           <meta name="description" content={post.meta_description || post.description} />
@@ -147,6 +150,7 @@ const BlogPost = () => {
           </div>
         </div>
       </article>
+      <IndexFooter />
     </div>
   );
 };

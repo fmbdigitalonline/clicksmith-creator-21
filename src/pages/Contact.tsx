@@ -4,7 +4,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/use-toast";
 import { Mail } from "lucide-react";
-import { AppLayout } from "@/components/layout/AppLayout";
+import Navigation from "@/components/Navigation";
+import IndexFooter from "@/components/IndexFooter";
 
 const Contact = () => {
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -18,8 +19,9 @@ const Contact = () => {
   };
 
   return (
-    <AppLayout>
-      <div className="container mx-auto px-4">
+    <div className="flex flex-col min-h-screen">
+      <Navigation />
+      <div className="flex-grow container mx-auto px-4 mt-16">
         <div className="max-w-2xl mx-auto">
           <div className="text-center mb-12">
             <div className="flex justify-center mb-4">
@@ -83,7 +85,8 @@ const Contact = () => {
           </div>
         </div>
       </div>
-    </AppLayout>
+      <IndexFooter />
+    </div>
   );
 };
 
