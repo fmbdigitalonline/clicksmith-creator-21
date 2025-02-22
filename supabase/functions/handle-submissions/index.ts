@@ -88,8 +88,6 @@ serve(async (req) => {
             source: 'website_footer'
           }
         })
-        .select()
-        .single()
 
       if (dbError) {
         // Check if it's a unique violation (email already exists)
