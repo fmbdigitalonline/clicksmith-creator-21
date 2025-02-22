@@ -79,17 +79,26 @@ const Contact = () => {
       }
 
       const formData = new FormData(e.currentTarget);
-      const { error } = await supabase
-        .from('contact_submissions')
-        .insert({
-          name: formData.get('name') as string,
-          email: formData.get('email') as string,
-          message: formData.get('message') as string,
-          attachments: uploadedFiles,
-          status: 'pending'
-        });
+      const submissionData = {
+        type: "contact",
+        name: formData.get('name') as string,
+        email: formData.get('email') as string,
+        message: formData.get('message') as string,
+        attachments: uploadedFiles
+      };
+
+      const { data: responseData, error } = await supabase.functions.invoke(
+        'handle-submissions',
+        {
+          body: JSON.stringify(submissionData)
+        }
+      );
 
       if (error) throw error;
+
+      if (!responseData?.success) {
+        throw new Error(responseData?.message || 'Submission failed');
+      }
 
       toast({
         title: "Message sent!",
@@ -244,3 +253,4 @@ const Contact = () => {
 };
 
 export default Contact;
+
