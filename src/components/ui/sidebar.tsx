@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react"
 import { useCookies } from "react-cookie"
 import { cn } from "@/lib/utils"
@@ -5,7 +6,8 @@ import { Button } from "@/components/ui/button"
 import { ChevronLeft } from "lucide-react"
 import { createContext, useContext } from "react"
 
-const SIDEBAR_COOKIE_NAME = "sidebar:state"
+// Changed cookie name to use only valid characters
+const SIDEBAR_COOKIE_NAME = "sidebar_state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
 const SIDEBAR_WIDTH = "12rem"
 const SIDEBAR_WIDTH_MOBILE = "14rem"
@@ -42,6 +44,7 @@ export function SidebarProvider({ children }: SidebarProviderProps) {
     setCookie(SIDEBAR_COOKIE_NAME, !isCollapsed, {
       path: "/",
       maxAge: SIDEBAR_COOKIE_MAX_AGE,
+      sameSite: "strict"
     })
   }
 
