@@ -7,12 +7,23 @@ import { Mail, Upload, X } from "lucide-react";
 import Navigation from "@/components/Navigation";
 import IndexFooter from "@/components/IndexFooter";
 import { supabase } from "@/integrations/supabase/client";
-import { useState } from "react";
+import { useState, FormEvent } from "react";
+
+interface ContactFormData {
+  name: string;
+  email: string;
+  message: string;
+}
 
 const Contact = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [attachments, setAttachments] = useState<File[]>([]);
   const [uploadProgress, setUploadProgress] = useState<number>(0);
+  const [formData, setFormData] = useState<ContactFormData>({
+    name: '',
+    email: '',
+    message: ''
+  });
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -43,7 +54,15 @@ const Contact = () => {
     setAttachments(prev => prev.filter((_, i) => i !== index));
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
     setUploadProgress(0);
@@ -78,12 +97,11 @@ const Contact = () => {
         }
       }
 
-      const formData = new FormData(e.currentTarget);
       const submissionData = {
         type: "contact",
-        name: formData.get('name') as string,
-        email: formData.get('email') as string,
-        message: formData.get('message') as string,
+        name: formData.name,
+        email: formData.email,
+        message: formData.message,
         attachments: uploadedFiles
       };
 
@@ -107,7 +125,11 @@ const Contact = () => {
       
       setAttachments([]);
       setUploadProgress(0);
-      (e.target as HTMLFormElement).reset();
+      setFormData({
+        name: '',
+        email: '',
+        message: ''
+      });
     } catch (error) {
       console.error("Error details:", error);
       toast({
@@ -144,6 +166,8 @@ const Contact = () => {
                 <Input
                   id="name"
                   name="name"
+                  value={formData.name}
+                  onChange={handleInputChange}
                   required
                   placeholder="Your name"
                 />
@@ -157,6 +181,8 @@ const Contact = () => {
                   id="email"
                   name="email"
                   type="email"
+                  value={formData.email}
+                  onChange={handleInputChange}
                   required
                   placeholder="you@example.com"
                 />
@@ -169,6 +195,8 @@ const Contact = () => {
                 <Textarea
                   id="message"
                   name="message"
+                  value={formData.message}
+                  onChange={handleInputChange}
                   required
                   placeholder="Your message..."
                   rows={6}
@@ -253,4 +281,3 @@ const Contact = () => {
 };
 
 export default Contact;
-
