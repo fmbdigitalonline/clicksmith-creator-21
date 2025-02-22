@@ -9,9 +9,9 @@ interface IndexFooterProps {
 const IndexFooter = ({ className }: IndexFooterProps) => {
   const links = {
     company: [
-      { label: "About", to: "/" },
+      { label: "About", to: "/about" },
       { label: "Contact", to: "/contact" },
-      { label: "Careers", to: "/" },
+      { label: "Careers", to: "/careers" },
       { label: "Terms", to: "/terms" },
       { label: "Privacy", to: "/privacy" }
     ],
