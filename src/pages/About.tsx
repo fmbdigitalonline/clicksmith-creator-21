@@ -1,7 +1,7 @@
 
 import Navigation from "@/components/Navigation";
 import IndexFooter from "@/components/IndexFooter";
-import { Building, Users, HandShake, BookOpen } from "lucide-react";
+import { Building, Users, Handshake, BookOpen } from "lucide-react";
 
 const About = () => {
   return (
@@ -42,7 +42,7 @@ const About = () => {
                 <p className="text-muted-foreground">Diverse experts in AI, marketing, and business</p>
               </div>
               <div className="flex flex-col items-center text-center p-6 rounded-lg bg-card hover:shadow-lg transition-shadow">
-                <HandShake className="w-12 h-12 text-primary mb-4" />
+                <Handshake className="w-12 h-12 text-primary mb-4" />
                 <h3 className="text-xl font-semibold mb-2">Partners</h3>
                 <p className="text-muted-foreground">Trusted by leading businesses worldwide</p>
               </div>
