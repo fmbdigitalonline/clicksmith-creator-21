@@ -6,7 +6,7 @@ import AudienceAnalysisStep from "./steps/AudienceAnalysisStep";
 import AdGalleryStep from "./steps/AdGalleryStep";
 import WizardHeader from "./wizard/WizardHeader";
 import WizardProgress from "./WizardProgress";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import CreateProjectDialog from "./projects/CreateProjectDialog";
 import { useNavigate, useParams } from "react-router-dom";
 import { Toggle } from "./ui/toggle";
@@ -15,11 +15,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 import { Loader2 } from "lucide-react";
 import StepLoadingState from "./steps/LoadingState";
+import { ScrollArea } from "./ui/scroll-area";
 
 const AdWizard = () => {
   const [showCreateProject, setShowCreateProject] = useState(false);
   const [videoAdsEnabled, setVideoAdsEnabled] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const contentRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const { projectId } = useParams();
   
@@ -73,6 +75,13 @@ const AdWizard = () => {
 
     initializeProject();
   }, [projectId, navigate]);
+
+  // Scroll to content when step changes
+  useEffect(() => {
+    if (contentRef.current) {
+      contentRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [currentStep]);
 
   const handleCreateProject = () => {
     setShowCreateProject(true);
@@ -146,51 +155,57 @@ const AdWizard = () => {
   };
 
   return (
-    <div className="container max-w-6xl mx-auto px-4 py-8">
-      <WizardHeader
-        title="Idea Wizard"
-        description="Quickly go from idea to ready-to-run ads by testing different audience segments with AI-powered Facebook ad campaigns."
-      />
-
-      <div className="mb-8">
-        <WizardProgress
-          currentStep={currentStep}
-          onStepClick={setCurrentStep}
-          canNavigateToStep={canNavigateToStep}
+    <div className="flex flex-col h-[calc(100vh-4rem)]">
+      <div className="flex-none bg-white border-b border-border px-4 py-4 sticky top-0 z-10">
+        <WizardHeader
+          title="Idea Wizard"
+          description="Quickly go from idea to ready-to-run ads by testing different audience segments with AI-powered Facebook ad campaigns."
         />
+
+        <div className="mt-4">
+          <WizardProgress
+            currentStep={currentStep}
+            onStepClick={setCurrentStep}
+            canNavigateToStep={canNavigateToStep}
+          />
+        </div>
+
+        <div className="flex items-center justify-end mt-4 space-x-2">
+          <span className="text-sm text-gray-600 font-bold">Image Ads</span>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div>
+                  <Toggle
+                    pressed={videoAdsEnabled}
+                    onPressedChange={handleVideoAdsToggle}
+                    aria-label="Toggle video ads"
+                    className="data-[state=on]:bg-gray-300 cursor-not-allowed opacity-50"
+                    disabled
+                  >
+                    {videoAdsEnabled ? (
+                      <Video className="h-4 w-4" />
+                    ) : (
+                      <Image className="h-4 w-4" />
+                    )}
+                  </Toggle>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Video Ads - Coming Soon!</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          <span className="text-sm text-gray-600">Video Ads</span>
+          <span className="text-xs text-gray-500 italic ml-1">Coming Soon!</span>
+        </div>
       </div>
 
-      <div className="flex items-center justify-end mb-6 space-x-2">
-        <span className="text-sm text-gray-600 font-bold">Image Ads</span>
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div>
-                <Toggle
-                  pressed={videoAdsEnabled}
-                  onPressedChange={handleVideoAdsToggle}
-                  aria-label="Toggle video ads"
-                  className="data-[state=on]:bg-gray-300 cursor-not-allowed opacity-50"
-                  disabled
-                >
-                  {videoAdsEnabled ? (
-                    <Video className="h-4 w-4" />
-                  ) : (
-                    <Image className="h-4 w-4" />
-                  )}
-                </Toggle>
-              </div>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Video Ads - Coming Soon!</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-        <span className="text-sm text-gray-600">Video Ads</span>
-        <span className="text-xs text-gray-500 italic ml-1">Coming Soon!</span>
-      </div>
-
-      {renderStep()}
+      <ScrollArea className="flex-grow px-4 py-6">
+        <div ref={contentRef} className="max-w-6xl mx-auto">
+          {renderStep()}
+        </div>
+      </ScrollArea>
 
       <CreateProjectDialog
         open={showCreateProject}
@@ -203,3 +218,4 @@ const AdWizard = () => {
 };
 
 export default AdWizard;
+
