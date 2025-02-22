@@ -1,147 +1,78 @@
 
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent } from "@/components/ui/card";
-import { AppLayout } from "@/components/layout/AppLayout";
-import { Button } from "@/components/ui/button";
-import { MessageSquare } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import Navigation from "@/components/Navigation";
+import IndexFooter from "@/components/IndexFooter";
 
 const FAQ = () => {
+  const faqs = [
+    {
+      question: "What is Viable?",
+      answer: "Viable is an AI-powered platform that helps entrepreneurs and businesses validate their ideas before investing significant time and resources. Our tools use advanced analytics and market data to test concept viability and provide actionable insights."
+    },
+    {
+      question: "How does the platform work?",
+      answer: "Our platform uses AI to analyze your business idea across multiple dimensions. You input your concept, and we generate detailed market analysis, potential customer profiles, and viability scores. We also provide customized recommendations for improving your idea's chances of success."
+    },
+    {
+      question: "What kind of businesses can use Viable?",
+      answer: "Viable is designed for a wide range of businesses, from startups to established companies. Whether you're launching a new product, entering a new market, or pivoting your business model, our platform can help validate your decisions."
+    },
+    {
+      question: "How accurate are the results?",
+      answer: "Our AI models are trained on extensive market data and real business outcomes. While no prediction is 100% certain, our platform provides evidence-based insights that significantly improve decision-making compared to gut instinct alone."
+    },
+    {
+      question: "What's included in the free trial?",
+      answer: "The free trial includes access to our basic idea validation tools, including market analysis and customer profile generation. Premium features like detailed competitor analysis and custom reports are available in paid plans."
+    },
+    {
+      question: "How do I get started?",
+      answer: "Getting started is easy! Simply sign up for a free account, describe your business idea, and our AI will begin analyzing its viability. The entire process takes just a few minutes to complete."
+    }
+  ];
+
   return (
-    <AppLayout>
-      <div className="container mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold mb-8">Frequently Asked Questions</h1>
-        
-        <Tabs defaultValue="getting-started" className="space-y-6">
-          <TabsList className="w-full flex flex-wrap justify-start gap-2">
-            <TabsTrigger value="getting-started">Getting Started</TabsTrigger>
-            <TabsTrigger value="projects">Projects</TabsTrigger>
-            <TabsTrigger value="ad-creation">Ad Creation</TabsTrigger>
-            <TabsTrigger value="landing-pages">Landing Pages</TabsTrigger>
-            <TabsTrigger value="social-media">Social Media</TabsTrigger>
-            <TabsTrigger value="credits">Credits & Billing</TabsTrigger>
-            <TabsTrigger value="referrals">Referrals</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="getting-started">
-            <div className="grid gap-4">
-              <Card>
-                <CardContent className="pt-6">
-                  <h3 className="font-semibold mb-2">How do I get started with Viable?</h3>
-                  <p className="text-muted-foreground">Create an account, complete the onboarding process where you'll specify your user type (business owner, creator, or affiliate), and you'll be ready to create your first project.</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="pt-6">
-                  <h3 className="font-semibold mb-2">What can I create with Viable?</h3>
-                  <p className="text-muted-foreground">You can create AI-powered ad campaigns, landing pages, and social media content. Our platform helps you generate engaging content tailored to your target audience.</p>
-                </CardContent>
-              </Card>
+    <div className="min-h-screen flex flex-col">
+      <Navigation />
+      
+      <main className="flex-1">
+        <div className="container mx-auto px-4 py-8 mt-16">
+          <div className="max-w-3xl mx-auto">
+            <div className="text-center mb-12">
+              <h1 className="text-4xl font-bold tracking-tight mb-4">Frequently Asked Questions</h1>
+              <p className="text-xl text-muted-foreground">
+                Find answers to common questions about our platform and services.
+              </p>
             </div>
-          </TabsContent>
 
-          <TabsContent value="projects">
-            <div className="grid gap-4">
-              <Card>
-                <CardContent className="pt-6">
-                  <h3 className="font-semibold mb-2">How do I create a new project?</h3>
-                  <p className="text-muted-foreground">Click on the "New Project" button in your dashboard, enter your project details, and choose your project type. You can then start creating content within your project.</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="pt-6">
-                  <h3 className="font-semibold mb-2">Can I collaborate with others on my projects?</h3>
-                  <p className="text-muted-foreground">Currently, projects are individual, but you can export and share your generated content with team members through our sharing features.</p>
-                </CardContent>
-              </Card>
+            <Accordion type="single" collapsible className="w-full">
+              {faqs.map((faq, index) => (
+                <AccordionItem key={index} value={`item-${index}`}>
+                  <AccordionTrigger className="text-left">
+                    {faq.question}
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    {faq.answer}
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+
+            <div className="mt-12 text-center">
+              <p className="text-muted-foreground">
+                Still have questions? Feel free to{" "}
+                <a href="/contact" className="text-primary hover:underline">
+                  contact us
+                </a>
+                .
+              </p>
             </div>
-          </TabsContent>
-
-          <TabsContent value="ad-creation">
-            <div className="grid gap-4">
-              <Card>
-                <CardContent className="pt-6">
-                  <h3 className="font-semibold mb-2">How does the Ad Wizard work?</h3>
-                  <p className="text-muted-foreground">The Ad Wizard guides you through defining your business idea, identifying target audiences, and generating customized ad content. It uses AI to create variations optimized for different platforms.</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="pt-6">
-                  <h3 className="font-semibold mb-2">What ad formats are supported?</h3>
-                  <p className="text-muted-foreground">We support various formats for Facebook, Google, and LinkedIn ads, including image ads, carousel ads, and text ads. Each format is optimized for the specific platform.</p>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="landing-pages">
-            <div className="grid gap-4">
-              <Card>
-                <CardContent className="pt-6">
-                  <h3 className="font-semibold mb-2">How do I create a landing page?</h3>
-                  <p className="text-muted-foreground">Navigate to the Landing Pages section, click "Create New," and follow our step-by-step wizard. You can customize sections, add content, and preview your page before publishing.</p>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="social-media">
-            <div className="grid gap-4">
-              <Card>
-                <CardContent className="pt-6">
-                  <h3 className="font-semibold mb-2">How do I connect my Facebook account?</h3>
-                  <p className="text-muted-foreground">Go to Settings, select "Connected Accounts," and click on "Connect Facebook." Follow the authentication process to link your account.</p>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="credits">
-            <div className="grid gap-4">
-              <Card>
-                <CardContent className="pt-6">
-                  <h3 className="font-semibold mb-2">How do credits work?</h3>
-                  <p className="text-muted-foreground">Credits are used to generate AI content. Each generation consumes one credit. You can purchase credits through our pricing plans or earn them through referrals.</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="pt-6">
-                  <h3 className="font-semibold mb-2">How do I purchase more credits?</h3>
-                  <p className="text-muted-foreground">Visit our Pricing page to view available plans and purchase credits. You can choose from monthly subscriptions or one-time purchases.</p>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="referrals">
-            <div className="grid gap-4">
-              <Card>
-                <CardContent className="pt-6">
-                  <h3 className="font-semibold mb-2">How does the referral program work?</h3>
-                  <p className="text-muted-foreground">Share your unique referral link with others. When they sign up and make a purchase, you'll earn bonus credits. The more people you refer, the more credits you earn.</p>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-        </Tabs>
-
-        {/* Contact Support CTA */}
-        <div className="mt-12 text-center">
-          <Card className="max-w-2xl mx-auto">
-            <CardContent className="py-6">
-              <h3 className="text-lg font-semibold mb-2">Can't find what you're looking for?</h3>
-              <p className="text-muted-foreground mb-4">Our support team is here to help you with any questions you may have.</p>
-              <Button asChild>
-                <Link to="/contact" className="inline-flex items-center gap-2">
-                  <MessageSquare className="h-4 w-4" />
-                  Contact Support
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
+          </div>
         </div>
-      </div>
-    </AppLayout>
+      </main>
+
+      <IndexFooter />
+    </div>
   );
 };
 
