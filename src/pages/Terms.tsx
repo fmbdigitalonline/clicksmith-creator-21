@@ -1,12 +1,13 @@
 
 import { ScrollArea } from "@/components/ui/scroll-area";
 import Navigation from "@/components/Navigation";
+import IndexFooter from "@/components/IndexFooter";
 
 const Terms = () => {
   return (
     <div className="flex flex-col w-full min-h-screen">
       <Navigation />
-      <div className="container mx-auto py-8 px-4 mt-16">
+      <div className="container mx-auto py-8 px-4 mt-16 flex-grow">
         <div className="max-w-3xl mx-auto">
           <div className="mb-8">
             <h1 className="text-3xl font-bold mb-2">Terms of Service</h1>
@@ -74,6 +75,7 @@ const Terms = () => {
           </ScrollArea>
         </div>
       </div>
+      <IndexFooter />
     </div>
   );
 };
