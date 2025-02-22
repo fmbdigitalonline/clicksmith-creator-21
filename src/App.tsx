@@ -31,6 +31,7 @@ import Settings from "@/pages/Settings";
 import LandingPages from "@/pages/LandingPages";
 import LandingPage from "@/pages/LandingPage";
 import SavedAds from "@/pages/SavedAds";
+import { AdWizard } from "@/components/AdWizard";
 
 // Admin Pages
 import BlogAdmin from "@/pages/BlogAdmin";
@@ -117,6 +118,14 @@ function App() {
               element={
                 <ProtectedLayout>
                   <SavedAds />
+                </ProtectedLayout>
+              }
+            />
+            <Route
+              path="/ad-wizard/*"
+              element={
+                <ProtectedLayout>
+                  <AdWizard />
                 </ProtectedLayout>
               }
             />
