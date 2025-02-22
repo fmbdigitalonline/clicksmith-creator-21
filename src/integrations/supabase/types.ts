@@ -435,6 +435,39 @@ export type Database = {
           },
         ]
       }
+      contact_submissions: {
+        Row: {
+          attachments: Json | null
+          created_at: string
+          email: string
+          id: string
+          message: string
+          metadata: Json | null
+          name: string
+          status: Database["public"]["Enums"]["submission_status"] | null
+        }
+        Insert: {
+          attachments?: Json | null
+          created_at?: string
+          email: string
+          id?: string
+          message: string
+          metadata?: Json | null
+          name: string
+          status?: Database["public"]["Enums"]["submission_status"] | null
+        }
+        Update: {
+          attachments?: Json | null
+          created_at?: string
+          email?: string
+          id?: string
+          message?: string
+          metadata?: Json | null
+          name?: string
+          status?: Database["public"]["Enums"]["submission_status"] | null
+        }
+        Relationships: []
+      }
       credit_operations: {
         Row: {
           created_at: string
@@ -772,8 +805,12 @@ export type Database = {
         Row: {
           content: Json | null
           content_iterations: number | null
+          content_version: number | null
           created_at: string | null
+          generation_metadata: Json | null
+          generation_status: string | null
           id: string
+          last_generated_from: Json | null
           project_id: string | null
           published: boolean | null
           theme_settings: Json | null
@@ -785,8 +822,12 @@ export type Database = {
         Insert: {
           content?: Json | null
           content_iterations?: number | null
+          content_version?: number | null
           created_at?: string | null
+          generation_metadata?: Json | null
+          generation_status?: string | null
           id?: string
+          last_generated_from?: Json | null
           project_id?: string | null
           published?: boolean | null
           theme_settings?: Json | null
@@ -798,8 +839,12 @@ export type Database = {
         Update: {
           content?: Json | null
           content_iterations?: number | null
+          content_version?: number | null
           created_at?: string | null
+          generation_metadata?: Json | null
+          generation_status?: string | null
           id?: string
+          last_generated_from?: Json | null
           project_id?: string | null
           published?: boolean | null
           theme_settings?: Json | null
@@ -842,6 +887,36 @@ export type Database = {
           lock_type?: string
           metadata?: Json | null
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      newsletter_subscriptions: {
+        Row: {
+          confirmation_token: string | null
+          confirmed: boolean | null
+          created_at: string
+          email: string
+          id: string
+          metadata: Json | null
+          status: Database["public"]["Enums"]["submission_status"] | null
+        }
+        Insert: {
+          confirmation_token?: string | null
+          confirmed?: boolean | null
+          created_at?: string
+          email: string
+          id?: string
+          metadata?: Json | null
+          status?: Database["public"]["Enums"]["submission_status"] | null
+        }
+        Update: {
+          confirmation_token?: string | null
+          confirmed?: boolean | null
+          created_at?: string
+          email?: string
+          id?: string
+          metadata?: Json | null
+          status?: Database["public"]["Enums"]["submission_status"] | null
         }
         Relationships: []
       }
@@ -1465,6 +1540,7 @@ export type Database = {
       ad_platform: "facebook" | "google" | "linkedin" | "tiktok"
       app_role: "admin" | "user"
       backup_type: "auto" | "manual"
+      contact_submission_status: "pending" | "processed" | "completed"
       credit_operation_type: "credit_add" | "credit_deduct" | "credit_refund"
       image_generation_status: "pending" | "completed" | "failed"
       landing_page_generation_status:
@@ -1474,6 +1550,7 @@ export type Database = {
         | "applying_styles"
         | "completed"
         | "failed"
+      submission_status: "pending" | "processed" | "failed"
       update_type: "feature" | "update" | "incident" | "announcement"
     }
     CompositeTypes: {
