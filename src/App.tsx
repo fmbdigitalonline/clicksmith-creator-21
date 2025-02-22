@@ -20,6 +20,7 @@ import Careers from "@/pages/Careers";
 import Affiliate from "@/pages/Affiliate";
 import Referral from "@/pages/Referral";
 import Share from "@/pages/Share";
+import Login from "@/pages/Login";
 
 // Protected Pages
 import Dashboard from "@/pages/Dashboard";
@@ -55,6 +56,7 @@ function App() {
           <Route path="/affiliate" element={<Affiliate />} />
           <Route path="/referral" element={<Referral />} />
           <Route path="/share" element={<Share />} />
+          <Route path="/login" element={<Login />} />
 
           {/* Protected Routes */}
           <Route
@@ -115,3 +117,4 @@ function App() {
 }
 
 export default App;
+
