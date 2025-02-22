@@ -7,9 +7,9 @@ import { createContext, useContext } from "react"
 
 const SIDEBAR_COOKIE_NAME = "sidebar:state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
-const SIDEBAR_WIDTH = "12rem"
-const SIDEBAR_WIDTH_MOBILE = "14rem"
-const SIDEBAR_WIDTH_ICON = "3rem"
+const SIDEBAR_WIDTH = "10rem"         // Reduced from 12rem to 10rem (160px)
+const SIDEBAR_WIDTH_MOBILE = "12rem"  // Reduced from 14rem to 12rem (192px)
+const SIDEBAR_WIDTH_ICON = "3rem"     // Keep collapsed width at 3rem (48px)
 const SIDEBAR_KEYBOARD_SHORTCUT = "b"
 
 type SidebarContextType = {
@@ -76,7 +76,7 @@ export function Sidebar({ children, className }: SidebarProps) {
     <aside
       className={cn(
         "group/sidebar relative h-screen border-r bg-background pt-16 will-change-transform",
-        isCollapsed ? "w-[3rem]" : "w-[12rem] md:w-[12rem]",
+        isCollapsed ? "w-[3rem]" : "w-[10rem] md:w-[10rem]",
         className
       )}
     >
