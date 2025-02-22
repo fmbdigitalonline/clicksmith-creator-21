@@ -6,9 +6,6 @@ import { PricingCard } from "@/components/pricing/PricingCard";
 import { PricingFAQ } from "@/components/pricing/PricingFAQ";
 import { useToast } from "@/hooks/use-toast";
 import { AppLayout } from "@/components/layout/AppLayout";
-import IndexFooter from "@/components/IndexFooter";
-import { useEffect, useState } from "react";
-import Navigation from "@/components/Navigation";
 
 interface Plan {
   id: string;
@@ -22,16 +19,7 @@ interface Plan {
 
 const Pricing = () => {
   const { toast } = useToast();
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   
-  useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setIsAuthenticated(!!session);
-    };
-    checkAuth();
-  }, []);
-
   const { data: plans, isLoading, error } = useQuery({
     queryKey: ['plans'],
     queryFn: async () => {
@@ -91,70 +79,44 @@ const Pricing = () => {
     }
   };
 
-  const content = (
-    <div className="container mx-auto py-6">
-      <PricingHeader />
-
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
-        {plans?.map((plan) => (
-          <PricingCard
-            key={plan.id}
-            plan={plan}
-            onSubscribe={handleSubscribe}
-          />
-        ))}
-      </div>
-
-      <PricingFAQ />
-    </div>
-  );
-
   if (isLoading) {
-    return isAuthenticated ? (
+    return (
       <AppLayout>
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="animate-pulse text-lg">Loading plans...</div>
         </div>
       </AppLayout>
-    ) : (
-      <div className="flex flex-col min-h-screen">
-        <Navigation />
-        <div className="flex items-center justify-center min-h-[60vh] mt-16">
-          <div className="animate-pulse text-lg">Loading plans...</div>
-        </div>
-        <IndexFooter />
-      </div>
     );
   }
 
   if (error) {
-    return isAuthenticated ? (
+    return (
       <AppLayout>
         <div className="flex items-center justify-center min-h-[60vh] text-red-500">
           Failed to load pricing plans
         </div>
       </AppLayout>
-    ) : (
-      <div className="flex flex-col min-h-screen">
-        <Navigation />
-        <div className="flex items-center justify-center min-h-[60vh] mt-16 text-red-500">
-          Failed to load pricing plans
-        </div>
-        <IndexFooter />
-      </div>
     );
   }
 
-  return isAuthenticated ? (
-    <AppLayout>{content}</AppLayout>
-  ) : (
-    <div className="flex flex-col min-h-screen">
-      <Navigation />
-      <main className="flex-grow mt-16">
-        {content}
-      </main>
-      <IndexFooter />
-    </div>
+  return (
+    <AppLayout>
+      <div className="container mx-auto py-6">
+        <PricingHeader />
+
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
+          {plans?.map((plan) => (
+            <PricingCard
+              key={plan.id}
+              plan={plan}
+              onSubscribe={handleSubscribe}
+            />
+          ))}
+        </div>
+
+        <PricingFAQ />
+      </div>
+    </AppLayout>
   );
 };
 

@@ -3,8 +3,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Share2, Twitter, Facebook, Linkedin, Copy } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-import Navigation from "@/components/Navigation";
-import IndexFooter from "@/components/IndexFooter";
 
 const Share = () => {
   const { toast } = useToast();
@@ -40,70 +38,66 @@ const Share = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Navigation />
-      <div className="flex-grow container mx-auto px-4 py-8">
-        <h1 className="text-4xl font-bold mb-6 flex items-center gap-2">
-          <Share2 className="h-8 w-8 text-primary" />
-          Share with Your Network
-        </h1>
+    <div className="container mx-auto px-4 py-8">
+      <h1 className="text-4xl font-bold mb-6 flex items-center gap-2">
+        <Share2 className="h-8 w-8 text-primary" />
+        Share with Your Network
+      </h1>
 
-        <div className="grid gap-6 md:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Share on Social Media</CardTitle>
-              <CardDescription>Choose your preferred platform to share</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Button
-                variant="outline"
-                className="w-full justify-start gap-2"
-                onClick={() => handleShare("twitter")}
-              >
-                <Twitter className="h-5 w-5 text-[#1DA1F2]" />
-                Share on Twitter
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full justify-start gap-2"
-                onClick={() => handleShare("facebook")}
-              >
-                <Facebook className="h-5 w-5 text-[#1877F2]" />
-                Share on Facebook
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full justify-start gap-2"
-                onClick={() => handleShare("linkedin")}
-              >
-                <Linkedin className="h-5 w-5 text-[#0A66C2]" />
-                Share on LinkedIn
-              </Button>
-            </CardContent>
-          </Card>
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Share on Social Media</CardTitle>
+            <CardDescription>Choose your preferred platform to share</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Button
+              variant="outline"
+              className="w-full justify-start gap-2"
+              onClick={() => handleShare("twitter")}
+            >
+              <Twitter className="h-5 w-5 text-[#1DA1F2]" />
+              Share on Twitter
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full justify-start gap-2"
+              onClick={() => handleShare("facebook")}
+            >
+              <Facebook className="h-5 w-5 text-[#1877F2]" />
+              Share on Facebook
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full justify-start gap-2"
+              onClick={() => handleShare("linkedin")}
+            >
+              <Linkedin className="h-5 w-5 text-[#0A66C2]" />
+              Share on LinkedIn
+            </Button>
+          </CardContent>
+        </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Direct Link</CardTitle>
-              <CardDescription>Copy and share the link directly</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center gap-2">
-                <input
-                  type="text"
-                  value={shareUrl}
-                  readOnly
-                  className="flex-1 p-2 border rounded-md bg-muted"
-                />
-                <Button onClick={copyLink}>
-                  <Copy className="h-4 w-4" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Direct Link</CardTitle>
+            <CardDescription>Copy and share the link directly</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={shareUrl}
+                readOnly
+                className="flex-1 p-2 border rounded-md bg-muted"
+              />
+              <Button onClick={copyLink}>
+                <Copy className="h-4 w-4" />
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
-      <IndexFooter />
     </div>
   );
 };

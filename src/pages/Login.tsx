@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
@@ -176,6 +175,15 @@ const Login = () => {
                     </div>
                   )}
                 />
+                
+                {!isSignUp && (
+                  <Link
+                    to="/reset-password"
+                    className="text-sm font-medium text-primary hover:underline"
+                  >
+                    Forgot password?
+                  </Link>
+                )}
               </div>
 
               <Button

@@ -2,46 +2,24 @@
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { CreditCard, HelpCircle, MessageSquare, BookOpen, BookOpen as BlogIcon, LogIn, User } from "lucide-react";
+import { CreditCard, HelpCircle, MessageSquare, BookOpen, BookOpen as BlogIcon } from "lucide-react";
 import { CreditDisplay } from "./CreditDisplay";
-import { useSession, useSupabaseClient } from "@supabase/auth-helpers-react";
-import { useToast } from "@/hooks/use-toast";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
 const Navigation = () => {
   const location = useLocation();
   const currentPath = location.pathname;
-  const session = useSession();
-  const supabase = useSupabaseClient();
-  const { toast } = useToast();
   
   const isActive = (path: string) => {
     if (path === "/ad-wizard") {
       return currentPath.includes('/ad-wizard');
     }
     return currentPath === path;
-  };
-
-  const handleSignOut = async () => {
-    try {
-      await supabase.auth.signOut();
-      toast({
-        title: "Signed out successfully",
-        description: "You have been logged out of your account",
-      });
-    } catch (error) {
-      toast({
-        title: "Error signing out",
-        description: "There was a problem signing out. Please try again.",
-        variant: "destructive",
-      });
-    }
   };
   
   return (
@@ -54,24 +32,7 @@ const Navigation = () => {
             </span>
           </Link>
           <div className="flex items-center gap-4">
-            {session && (
-              <>
-                <CreditDisplay />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  asChild
-                  className={cn(
-                    "gap-2",
-                    isActive("/dashboard") && "bg-accent"
-                  )}
-                >
-                  <Link to="/dashboard">
-                    Dashboard
-                  </Link>
-                </Button>
-              </>
-            )}
+            <CreditDisplay />
             <Button
               variant="ghost"
               size="sm"
@@ -122,41 +83,6 @@ const Navigation = () => {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-
-            {session ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="gap-2">
-                    <User className="h-4 w-4" />
-                    <span>Account</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem asChild>
-                    <Link to="/projects">My Projects</Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link to="/settings">Settings</Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleSignOut}>
-                    Sign Out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : (
-              <Button
-                variant="default"
-                size="sm"
-                asChild
-                className="gap-2"
-              >
-                <Link to="/login">
-                  <LogIn className="h-4 w-4" />
-                  Sign In
-                </Link>
-              </Button>
-            )}
           </div>
         </div>
       </div>
