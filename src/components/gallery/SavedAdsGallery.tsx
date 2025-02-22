@@ -93,8 +93,8 @@ export const SavedAdsGallery = () => {
     return (
       <div className="flex flex-col items-center justify-center py-12">
         <Loader2 className="w-8 h-8 animate-spin text-facebook mb-4" />
-        <p className="text-gray-600">Generating your ad variations...</p>
-        <p className="text-sm text-gray-500">We're crafting engaging ad content for your campaign</p>
+        <p className="text-gray-600">Loading your saved ads...</p>
+        <p className="text-sm text-gray-500">Please wait while we fetch your saved content</p>
       </div>
     );
   }

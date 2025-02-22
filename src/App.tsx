@@ -30,6 +30,7 @@ import Projects from "@/pages/Projects";
 import Settings from "@/pages/Settings";
 import LandingPages from "@/pages/LandingPages";
 import LandingPage from "@/pages/LandingPage";
+import SavedAds from "@/pages/SavedAds";
 
 // Admin Pages
 import BlogAdmin from "@/pages/BlogAdmin";
@@ -108,6 +109,14 @@ function App() {
               element={
                 <ProtectedLayout>
                   <LandingPage />
+                </ProtectedLayout>
+              }
+            />
+            <Route
+              path="/saved-ads"
+              element={
+                <ProtectedLayout>
+                  <SavedAds />
                 </ProtectedLayout>
               }
             />
