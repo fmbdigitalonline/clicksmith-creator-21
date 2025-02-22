@@ -26,6 +26,8 @@ import BlogAdmin from "@/pages/BlogAdmin";
 import Blog from "@/pages/Blog";
 import BlogPost from "@/pages/BlogPost";
 import About from "@/pages/About";
+import Careers from "@/pages/Careers";
+import Help from "@/pages/Help";
 
 const queryClient = new QueryClient();
 
@@ -46,6 +48,8 @@ function App() {
             <Route path="/blog/:slug" element={<BlogPost />} />
             <Route path="/blog/category/:categorySlug" element={<Blog />} />
             <Route path="/about" element={<About />} />
+            <Route path="/careers" element={<Careers />} />
+            <Route path="/help" element={<Help />} />
             <Route path="/" element={<Index />} />
 
             {/* Protected routes */}
