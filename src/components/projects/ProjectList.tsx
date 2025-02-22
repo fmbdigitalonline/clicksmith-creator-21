@@ -46,7 +46,6 @@ const ProjectList = ({ onStartAdWizard }: ProjectListProps) => {
           throw error;
         }
 
-        // Transform the data to match our Project type with proper type safety
         return (data as DatabaseProject[]).map(project => {
           const transformedProject = {
             ...project,
@@ -120,6 +119,46 @@ const ProjectList = ({ onStartAdWizard }: ProjectListProps) => {
 
   return (
     <div className="space-y-8">
+      {/* Header with Action Buttons */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <h1 className="text-2xl font-bold tracking-tight">Projects</h1>
+        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+          {mostRecentInProgress ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button className="w-full sm:w-auto">
+                  <Plus className="mr-2 h-4 w-4" /> Start Ad Campaign
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-[200px]">
+                <DropdownMenuItem onClick={() => onStartAdWizard(mostRecentInProgress.id)}>
+                  <History className="mr-2 h-4 w-4" />
+                  <span>Continue "{mostRecentInProgress.title}"</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onStartAdWizard()}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  <span>Start New Campaign</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Button 
+              onClick={() => onStartAdWizard()} 
+              className="w-full sm:w-auto whitespace-nowrap"
+            >
+              <Plus className="mr-2 h-4 w-4" /> New Ad Campaign
+            </Button>
+          )}
+          <Button 
+            onClick={handleCreateProject} 
+            variant="outline"
+            className="w-full sm:w-auto whitespace-nowrap"
+          >
+            <Plus className="mr-2 h-4 w-4" /> New Project
+          </Button>
+        </div>
+      </div>
+
       {/* Recent Projects Section */}
       {recentProjects.length > 0 && (
         <div className="space-y-4">
@@ -141,45 +180,7 @@ const ProjectList = ({ onStartAdWizard }: ProjectListProps) => {
 
       {/* All Projects Section */}
       <div className="space-y-4">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <h2 className="text-2xl font-bold tracking-tight">All Projects</h2>
-          <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-            {mostRecentInProgress ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button className="w-full sm:w-auto">
-                    <Plus className="mr-2 h-4 w-4" /> Start Ad Campaign
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-[200px]">
-                  <DropdownMenuItem onClick={() => onStartAdWizard(mostRecentInProgress.id)}>
-                    <History className="mr-2 h-4 w-4" />
-                    <span>Continue "{mostRecentInProgress.title}"</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => onStartAdWizard()}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    <span>Start New Campaign</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : (
-              <Button 
-                onClick={() => onStartAdWizard()} 
-                className="w-full sm:w-auto whitespace-nowrap"
-              >
-                <Plus className="mr-2 h-4 w-4" /> New Ad Campaign
-              </Button>
-            )}
-            <Button 
-              onClick={handleCreateProject} 
-              variant="outline"
-              className="w-full sm:w-auto whitespace-nowrap"
-            >
-              <Plus className="mr-2 h-4 w-4" /> New Project
-            </Button>
-          </div>
-        </div>
-
+        <h2 className="text-2xl font-bold tracking-tight">All Projects</h2>
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
           {projects?.slice(3).map((project) => (
             <ProjectCard 
