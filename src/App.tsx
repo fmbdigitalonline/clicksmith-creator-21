@@ -6,6 +6,7 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { AdminRoute } from "@/components/auth/AdminRoute";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppLayout } from "@/components/layout/AppLayout";
+import RootLayout from "@/components/layout/RootLayout";
 
 // Public Pages
 import Index from "@/pages/Index";
@@ -55,94 +56,95 @@ function App() {
       <SidebarProvider>
         <Router>
           <Routes>
-            {/* Public Routes */}
-            <Route path="/" element={<Index />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/contact" element={<Contact />} />
-            <Route path="/blog" element={<Blog />} />
-            <Route path="/blog/:slug" element={<BlogPost />} />
-            <Route path="/pricing" element={<Pricing />} />
-            <Route path="/terms" element={<Terms />} />
-            <Route path="/privacy" element={<Privacy />} />
-            <Route path="/faq" element={<FAQ />} />
-            <Route path="/help" element={<Help />} />
-            <Route path="/careers" element={<Careers />} />
-            <Route path="/affiliate" element={<Affiliate />} />
-            <Route path="/referral" element={<Referral />} />
-            <Route path="/share" element={<Share />} />
-            <Route path="/login" element={<Login />} />
+            <Route element={<RootLayout />}>
+              {/* Public Routes */}
+              <Route path="/" element={<Index />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/contact" element={<Contact />} />
+              <Route path="/blog" element={<Blog />} />
+              <Route path="/blog/:slug" element={<BlogPost />} />
+              <Route path="/pricing" element={<Pricing />} />
+              <Route path="/terms" element={<Terms />} />
+              <Route path="/privacy" element={<Privacy />} />
+              <Route path="/faq" element={<FAQ />} />
+              <Route path="/help" element={<Help />} />
+              <Route path="/careers" element={<Careers />} />
+              <Route path="/affiliate" element={<Affiliate />} />
+              <Route path="/referral" element={<Referral />} />
+              <Route path="/share" element={<Share />} />
+              <Route path="/login" element={<Login />} />
 
-            {/* Protected Routes */}
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedLayout>
-                  <Dashboard />
-                </ProtectedLayout>
-              }
-            />
-            <Route
-              path="/projects"
-              element={
-                <ProtectedLayout>
-                  <Projects />
-                </ProtectedLayout>
-              }
-            />
-            <Route
-              path="/settings"
-              element={
-                <ProtectedLayout>
-                  <Settings />
-                </ProtectedLayout>
-              }
-            />
-            <Route
-              path="/landing-pages"
-              element={
-                <ProtectedLayout>
-                  <LandingPages />
-                </ProtectedLayout>
-              }
-            />
-            <Route
-              path="/landing-page/:id"
-              element={
-                <ProtectedLayout>
-                  <LandingPage />
-                </ProtectedLayout>
-              }
-            />
-            <Route
-              path="/saved-ads"
-              element={
-                <ProtectedLayout>
-                  <SavedAds />
-                </ProtectedLayout>
-              }
-            />
-            <Route
-              path="/ad-wizard/*"
-              element={
-                <ProtectedLayout>
-                  <AdWizard />
-                </ProtectedLayout>
-              }
-            />
+              {/* Protected Routes */}
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedLayout>
+                    <Dashboard />
+                  </ProtectedLayout>
+                }
+              />
+              <Route
+                path="/projects"
+                element={
+                  <ProtectedLayout>
+                    <Projects />
+                  </ProtectedLayout>
+                }
+              />
+              <Route
+                path="/settings"
+                element={
+                  <ProtectedLayout>
+                    <Settings />
+                  </ProtectedLayout>
+                }
+              />
+              <Route
+                path="/landing-pages"
+                element={
+                  <ProtectedLayout>
+                    <LandingPages />
+                  </ProtectedLayout>
+                }
+              />
+              <Route
+                path="/landing-page/:id"
+                element={
+                  <ProtectedLayout>
+                    <LandingPage />
+                  </ProtectedLayout>
+                }
+              />
+              <Route
+                path="/saved-ads"
+                element={
+                  <ProtectedLayout>
+                    <SavedAds />
+                  </ProtectedLayout>
+                }
+              />
+              <Route
+                path="/ad-wizard/*"
+                element={
+                  <ProtectedLayout>
+                    <AdWizard />
+                  </ProtectedLayout>
+                }
+              />
 
-            {/* Admin Routes */}
-            <Route
-              path="/blog/admin"
-              element={
-                <AdminRoute>
-                  <AppLayout>
-                    <BlogAdmin />
-                  </AppLayout>
-                </AdminRoute>
-              }
-            />
+              {/* Admin Routes */}
+              <Route
+                path="/blog/admin"
+                element={
+                  <AdminRoute>
+                    <AppLayout>
+                      <BlogAdmin />
+                    </AppLayout>
+                  </AdminRoute>
+                }
+              />
+            </Route>
           </Routes>
-          <Toaster />
         </Router>
       </SidebarProvider>
     </QueryClientProvider>
