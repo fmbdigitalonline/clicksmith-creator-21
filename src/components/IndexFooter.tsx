@@ -9,15 +9,15 @@ interface IndexFooterProps {
 const IndexFooter = ({ className }: IndexFooterProps) => {
   const links = {
     company: [
-      { label: "About", to: "/about" },
+      { label: "About", to: "/" },
       { label: "Contact", to: "/contact" },
-      { label: "Careers", to: "/careers" },
+      { label: "Careers", to: "/" },
       { label: "Terms", to: "/terms" },
       { label: "Privacy", to: "/privacy" }
     ],
     resources: [
       { label: "Blog", to: "/blog" },
-      { label: "Help Center", to: "/help" },
+      { label: "Help Center", to: "/" },
       { label: "Support", to: "/contact" },
       { label: "FAQ", to: "/faq" },
       { label: "Pricing", to: "/pricing" }
