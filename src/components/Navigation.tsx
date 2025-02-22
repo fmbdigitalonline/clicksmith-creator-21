@@ -2,7 +2,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { CreditCard, HelpCircle, MessageSquare, BookOpen, BookOpen as BlogIcon } from "lucide-react";
+import { CreditCard, HelpCircle, MessageSquare, BookOpen as BlogIcon } from "lucide-react";
 import { CreditDisplay } from "./CreditDisplay";
 import {
   DropdownMenu,
@@ -22,6 +22,9 @@ const Navigation = () => {
     return currentPath === path;
   };
   
+  // Only show credit display if not on public pages
+  const isPublicPage = ["/", "/about", "/help", "/careers", "/privacy", "/terms", "/faq", "/contact", "/blog"].includes(currentPath);
+  
   return (
     <nav className="fixed top-0 left-0 right-0 h-16 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50">
       <div className="container h-full">
@@ -32,7 +35,7 @@ const Navigation = () => {
             </span>
           </Link>
           <div className="flex items-center gap-4">
-            <CreditDisplay />
+            {!isPublicPage && <CreditDisplay />}
             <Button
               variant="ghost"
               size="sm"
@@ -70,9 +73,9 @@ const Navigation = () => {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem asChild>
-                  <Link to="/faq" className="flex items-center gap-2">
+                  <Link to="/help" className="flex items-center gap-2">
                     <BookOpen className="h-4 w-4" />
-                    FAQ
+                    Help Center
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
@@ -83,6 +86,15 @@ const Navigation = () => {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            {!isPublicPage ? (
+              <Button asChild>
+                <Link to="/dashboard">Dashboard</Link>
+              </Button>
+            ) : (
+              <Button asChild>
+                <Link to="/login">Login</Link>
+              </Button>
+            )}
           </div>
         </div>
       </div>
