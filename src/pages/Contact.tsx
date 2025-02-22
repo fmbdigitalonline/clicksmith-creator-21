@@ -25,11 +25,18 @@ const Contact = () => {
     };
 
     try {
-      const { error } = await supabase.functions.invoke("handle-submissions", {
+      const { data: responseData, error } = await supabase.functions.invoke("handle-submissions", {
         body: JSON.stringify(data),
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Function error:", error);
+        throw error;
+      }
+
+      if (!responseData?.success) {
+        throw new Error("Submission failed");
+      }
 
       toast({
         title: "Message sent!",
@@ -37,10 +44,10 @@ const Contact = () => {
       });
       (e.target as HTMLFormElement).reset();
     } catch (error) {
-      console.error("Error sending message:", error);
+      console.error("Error details:", error);
       toast({
         title: "Error sending message",
-        description: "Please try again later.",
+        description: "Please try again later. If the problem persists, contact support.",
         variant: "destructive",
       });
     } finally {

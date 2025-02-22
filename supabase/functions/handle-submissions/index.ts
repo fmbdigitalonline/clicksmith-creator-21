@@ -24,12 +24,24 @@ interface NewsletterSubscription {
 }
 
 async function handleContactSubmission(submission: ContactSubmission) {
+  console.log("Processing contact submission:", submission);
+  
   try {
     const { error } = await supabase
       .from("contact_submissions")
-      .insert([submission]);
+      .insert([{
+        name: submission.name,
+        email: submission.email,
+        message: submission.message,
+        status: 'pending'
+      }]);
 
-    if (error) throw error;
+    if (error) {
+      console.error("Database error:", error);
+      throw error;
+    }
+    
+    console.log("Successfully stored contact submission");
     return { success: true };
   } catch (error) {
     console.error("Error handling contact submission:", error);
@@ -38,12 +50,22 @@ async function handleContactSubmission(submission: ContactSubmission) {
 }
 
 async function handleNewsletterSubscription(subscription: NewsletterSubscription) {
+  console.log("Processing newsletter subscription:", subscription);
+  
   try {
     const { error } = await supabase
       .from("newsletter_subscriptions")
-      .insert([subscription]);
+      .insert([{
+        email: subscription.email,
+        status: 'pending'
+      }]);
 
-    if (error) throw error;
+    if (error) {
+      console.error("Database error:", error);
+      throw error;
+    }
+    
+    console.log("Successfully stored newsletter subscription");
     return { success: true };
   } catch (error) {
     console.error("Error handling newsletter subscription:", error);
@@ -54,11 +76,16 @@ async function handleNewsletterSubscription(subscription: NewsletterSubscription
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { 
+      headers: corsHeaders,
+      status: 200
+    });
   }
 
   try {
+    console.log("Received request:", req.method);
     const { type, ...data } = await req.json();
+    console.log("Request type:", type);
 
     let result;
     if (type === "contact") {
@@ -75,10 +102,16 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error("Error in handle-submissions function:", error);
+    
+    // Return a more detailed error response
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        details: error.details || null,
+        code: error.code || null
+      }),
       {
-        status: 500,
+        status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );
