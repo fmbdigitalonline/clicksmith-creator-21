@@ -8,7 +8,6 @@ import Navigation from "@/components/Navigation";
 import IndexFooter from "@/components/IndexFooter";
 import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
-import { uploadMedia } from "@/utils/uploadUtils";
 
 const Contact = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -53,39 +52,44 @@ const Contact = () => {
       // Upload attachments first
       const uploadedFiles = [];
       if (attachments.length > 0) {
-        for (const file of attachments) {
-          const fileUrl = await uploadMedia(file);
+        for (let i = 0; i < attachments.length; i++) {
+          const file = attachments[i];
+          const fileExt = file.name.split('.').pop();
+          const fileName = `${crypto.randomUUID()}.${fileExt}`;
+          
+          const { error: uploadError, data } = await supabase.storage
+            .from('contact-attachments')
+            .upload(fileName, file);
+
+          if (uploadError) throw uploadError;
+
+          const { data: { publicUrl } } = supabase.storage
+            .from('contact-attachments')
+            .getPublicUrl(fileName);
+
           uploadedFiles.push({
             name: file.name,
             size: file.size,
             type: file.type,
-            url: fileUrl
+            url: publicUrl
           });
-          setUploadProgress((uploadedFiles.length / attachments.length) * 100);
+
+          setUploadProgress(((i + 1) / attachments.length) * 100);
         }
       }
 
       const formData = new FormData(e.currentTarget);
-      const data = {
-        type: "contact",
-        name: formData.get("name") as string,
-        email: formData.get("email") as string,
-        message: formData.get("message") as string,
-        attachments: uploadedFiles
-      };
+      const { error } = await supabase
+        .from('contact_submissions')
+        .insert({
+          name: formData.get('name') as string,
+          email: formData.get('email') as string,
+          message: formData.get('message') as string,
+          attachments: uploadedFiles,
+          status: 'pending'
+        });
 
-      const { data: responseData, error } = await supabase.functions.invoke("handle-submissions", {
-        body: JSON.stringify(data),
-      });
-
-      if (error) {
-        console.error("Function error:", error);
-        throw error;
-      }
-
-      if (!responseData?.success) {
-        throw new Error("Submission failed");
-      }
+      if (error) throw error;
 
       toast({
         title: "Message sent!",
