@@ -14,43 +14,15 @@ import { SocialProofSection } from "./components/SocialProofSection";
 import { DynamicSection } from "./components/DynamicSection";
 import { Progress } from "@/components/ui/progress";
 
-interface LandingPageSection {
-  type: 'hero' | 'features' | 'social-proof';
-  order: number;
-  content: Record<string, unknown>;
-}
-
-interface GenerationMetadata {
+interface GenerationResponse {
   error?: string;
+  message?: string;
   status?: string;
-  progress?: number;
 }
-
-interface SuccessResponse {
-  success: true;
-  sections: LandingPageSection[];
-}
-
-interface ErrorResponse {
-  success: false;
-  error: string;
-}
-
-type GenerationResponse = SuccessResponse | ErrorResponse;
 
 interface GenerationProgress {
   status: string;
   progress: number;
-}
-
-// Type guard for generation metadata
-function isGenerationMetadata(value: unknown): value is GenerationMetadata {
-  return value !== null && typeof value === 'object';
-}
-
-// Type guard for error response
-function isErrorResponse(response: GenerationResponse): response is ErrorResponse {
-  return !response.success;
 }
 
 const LandingPageContent = ({ project, landingPage }: { project: any; landingPage: any }) => {
@@ -83,12 +55,8 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
               queryClient.invalidateQueries({ queryKey: ['landing-page', project.id] });
               break;
             case 'failed':
-              const metadata = page.generation_metadata;
-              const errorMessage = isGenerationMetadata(metadata) && metadata.error 
-                ? metadata.error 
-                : 'Unknown error';
               setGenerationProgress({ 
-                status: `Error: ${errorMessage}`, 
+                status: `Error: ${page.generation_metadata?.error || 'Unknown error'}`, 
                 progress: 0 
               });
               setIsGenerating(false);
@@ -124,7 +92,7 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
         throw new Error('Authentication required');
       }
 
-      const { data, error: functionError } = await supabase.functions.invoke<GenerationResponse>('generate-landing-content', {
+      const { data: responseData, error: functionError } = await supabase.functions.invoke<GenerationResponse>('generate-landing-content', {
         body: {
           projectData: {
             business_idea: project.business_idea,
@@ -136,15 +104,12 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
       });
 
       if (functionError) {
+        console.error('Function error:', functionError);
         throw new Error(functionError.message || 'Failed to generate content');
       }
 
-      if (!data) {
-        throw new Error('No response data received');
-      }
-
-      if (isErrorResponse(data)) {
-        throw new Error(data.error);
+      if (responseData && 'error' in responseData) {
+        throw new Error(responseData.error || 'Unknown error occurred');
       }
 
       toast({
