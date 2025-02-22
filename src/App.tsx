@@ -1,4 +1,3 @@
-
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
@@ -26,6 +25,7 @@ import Share from "@/pages/Share";
 import BlogAdmin from "@/pages/BlogAdmin";
 import Blog from "@/pages/Blog";
 import BlogPost from "@/pages/BlogPost";
+import About from "@/pages/About";
 
 const queryClient = new QueryClient();
 
@@ -45,6 +45,7 @@ function App() {
             <Route path="/blog" element={<Blog />} />
             <Route path="/blog/:slug" element={<BlogPost />} />
             <Route path="/blog/category/:categorySlug" element={<Blog />} />
+            <Route path="/about" element={<About />} />
             <Route path="/" element={<Index />} />
 
             {/* Protected routes */}
