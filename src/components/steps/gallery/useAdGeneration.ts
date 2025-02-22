@@ -1,17 +1,10 @@
+
 import { BusinessIdea, TargetAudience, AdHook } from "@/types/adWizard";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { 
-  AdVariant, 
-  Platform, 
-  PlatformAdState, 
-  AdGenerationState,
-  convertToAdVariant,
-  convertToDatabaseFormat
-} from "@/types/adGeneration";
 
 export const useAdGeneration = (
   businessIdea: BusinessIdea,
@@ -19,69 +12,15 @@ export const useAdGeneration = (
   adHooks: AdHook[]
 ) => {
   const [isGenerating, setIsGenerating] = useState(false);
-  const [adVariants, setAdVariants] = useState<AdVariant[]>([]);
+  const [adVariants, setAdVariants] = useState<any[]>([]);
   const [regenerationCount, setRegenerationCount] = useState(0);
   const [generationStatus, setGenerationStatus] = useState<string>("");
-  const [platformStates, setPlatformStates] = useState<Record<Platform, PlatformAdState>>({
-    facebook: { isLoading: false, hasError: false, variants: [] },
-    google: { isLoading: false, hasError: false, variants: [] },
-    linkedin: { isLoading: false, hasError: false, variants: [] },
-    tiktok: { isLoading: false, hasError: false, variants: [] }
-  });
-  const [state, setState] = useState<AdGenerationState>({
-    isInitialLoad: true,
-    hasSavedAds: false,
-    platformSpecificAds: platformStates
-  });
-
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { projectId } = useParams();
 
-  const checkCredits = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user?.id) {
-        toast({
-          title: "Authentication Required",
-          description: "Please sign in to generate ads",
-          variant: "destructive"
-        });
-        return false;
-      }
-
-      const { data, error } = await supabase.rpc('check_user_credits', {
-        p_user_id: user.id,
-        required_credits: 1
-      });
-
-      if (error) {
-        console.error('Error checking credits:', error);
-        toast({
-          title: "Error",
-          description: "Failed to check credits availability",
-          variant: "destructive"
-        });
-        return false;
-      }
-
-      if (!data?.[0]?.has_credits) {
-        toast({
-          title: "Insufficient Credits",
-          description: data?.[0]?.error_message || "Please purchase more credits to continue",
-          variant: "destructive"
-        });
-        return false;
-      }
-
-      return true;
-    } catch (error) {
-      console.error('Error in checkCredits:', error);
-      return false;
-    }
-  };
-
+  // Load saved ad variants when component mounts
   useEffect(() => {
     const loadSavedAds = async () => {
       console.log('Loading saved ads for project:', projectId);
@@ -95,27 +34,46 @@ export const useAdGeneration = (
         console.log('Loaded project data:', project);
         
         if (project?.generated_ads && Array.isArray(project.generated_ads)) {
-          const variants = (project.generated_ads as unknown[])
-            .map(convertToAdVariant)
-            .filter((v): v is AdVariant => v !== null);
-            
-          console.log('Setting ad variants from project:', variants);
-          setAdVariants(variants);
-          setState(prev => ({ ...prev, hasSavedAds: true }));
+          console.log('Setting ad variants from project:', project.generated_ads);
+          setAdVariants(project.generated_ads);
         }
       }
-      setState(prev => ({ ...prev, isInitialLoad: false }));
     };
 
     loadSavedAds();
   }, [projectId]);
 
-  const generateAds = async (selectedPlatform: Platform) => {
+  const checkCredits = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    const { data: creditCheck, error } = await supabase.rpc(
+      'check_user_credits',
+      { p_user_id: user.id, required_credits: 1 }
+    );
+
+    if (error) {
+      throw error;
+    }
+
+    const result = creditCheck[0];
+    
+    if (!result.has_credits) {
+      toast({
+        title: "No credits available",
+        description: result.error_message,
+        variant: "destructive",
+      });
+      navigate('/pricing');
+      return false;
+    }
+
+    return true;
+  };
+
+  const generateAds = async (selectedPlatform: string) => {
     setIsGenerating(true);
-    setPlatformStates(prev => ({
-      ...prev,
-      [selectedPlatform]: { ...prev[selectedPlatform], isLoading: true, hasError: false }
-    }));
+    setGenerationStatus("Checking credits availability...");
     
     try {
       const hasCredits = await checkCredits();
@@ -124,40 +82,102 @@ export const useAdGeneration = (
         return;
       }
 
+      setGenerationStatus(`Initializing ${selectedPlatform} ad generation...`);
+      console.log('Generating ads for platform:', selectedPlatform, 'with target audience:', targetAudience);
+      
       const { data, error } = await supabase.functions.invoke('generate-ad-content', {
         body: {
           type: 'complete_ads',
           platform: selectedPlatform,
           businessIdea,
-          targetAudience,
-          adHooks
-        }
+          targetAudience: {
+            ...targetAudience,
+            name: targetAudience.name,
+            description: targetAudience.description,
+            demographics: targetAudience.demographics,
+            painPoints: targetAudience.painPoints
+          },
+          adHooks,
+        },
       });
 
-      if (error) throw error;
-
-      const variants = (Array.isArray(data) ? data : [])
-        .map(item => convertToAdVariant(item))
-        .filter((v): v is AdVariant => v !== null);
-
-      // Save to project if we have a project ID
-      if (projectId && projectId !== 'new') {
-        const databaseVariants = variants.map(convertToDatabaseFormat);
-        
-        const { error: updateError } = await supabase
-          .from('projects')
-          .update({
-            generated_ads: databaseVariants
-          })
-          .eq('id', projectId);
-
-        if (updateError) {
-          console.error('Error updating project:', updateError);
-        }
+      if (error) {
+        throw error;
       }
+
+      console.log('Generation response:', data);
+      const variants = validateResponse(data);
+
+      setGenerationStatus("Processing generated content...");
+      
+      const processedVariants = await Promise.all(variants.map(async (variant: any) => {
+        if (!variant.imageUrl) {
+          console.warn('Variant missing imageUrl:', variant);
+          return null;
+        }
+
+        try {
+          const { data: imageVariant, error: storeError } = await supabase
+            .from('ad_image_variants')
+            .insert({
+              original_image_url: variant.imageUrl,
+              resized_image_urls: variant.resizedUrls || {},
+              user_id: (await supabase.auth.getUser()).data.user?.id,
+              project_id: projectId !== 'new' ? projectId : null
+            })
+            .select()
+            .single();
+
+          if (storeError) {
+            console.error('Error storing image variant:', storeError);
+            return null;
+          }
+
+          const newVariant = {
+            ...variant,
+            id: imageVariant.id,
+            imageUrl: variant.imageUrl,
+            resizedUrls: variant.resizedUrls || {},
+            platform: selectedPlatform
+          };
+
+          // Save to project if we have a project ID
+          if (projectId && projectId !== 'new') {
+            // Merge new variants with existing ones
+            const updatedVariants = [...adVariants, newVariant];
+            console.log('Saving updated variants to project:', updatedVariants);
+            
+            const { error: updateError } = await supabase
+              .from('projects')
+              .update({
+                generated_ads: updatedVariants
+              })
+              .eq('id', projectId);
+
+            if (updateError) {
+              console.error('Error updating project:', updateError);
+            }
+          }
+
+          return newVariant;
+        } catch (error) {
+          console.error('Error processing variant:', error);
+          throw error; // Let the error bubble up
+        }
+      }));
+
+      // Filter out any null values and combine with existing variants
+      const validVariants = processedVariants.filter(Boolean);
+      console.log('Successfully processed variants:', validVariants);
+      
+      // Update state with new variants
+      setAdVariants(prev => {
+        // Remove old variants for the same platform
+        const filteredPrev = prev.filter(v => v.platform !== selectedPlatform);
+        return [...filteredPrev, ...validVariants];
+      });
       
       setRegenerationCount(prev => prev + 1);
-      setState(prev => ({ ...prev, hasSavedAds: true }));
       
       toast({
         title: "Ads generated successfully",
@@ -165,15 +185,6 @@ export const useAdGeneration = (
       });
     } catch (error: any) {
       console.error('Ad generation error:', error);
-      setPlatformStates(prev => ({
-        ...prev,
-        [selectedPlatform]: {
-          ...prev[selectedPlatform],
-          isLoading: false,
-          hasError: true,
-          errorMessage: error.message
-        }
-      }));
       toast({
         title: "Error generating ads",
         description: error.message || "Failed to generate ads. Please try again.",
@@ -185,7 +196,7 @@ export const useAdGeneration = (
     }
   };
 
-  const validateResponse = (data: any): AdVariant[] => {
+  const validateResponse = (data: any) => {
     if (!data) {
       throw new Error("No data received from generation");
     }
@@ -204,7 +215,5 @@ export const useAdGeneration = (
     regenerationCount,
     generationStatus,
     generateAds,
-    platformStates,
-    state
   };
 };

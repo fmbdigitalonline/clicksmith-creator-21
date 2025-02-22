@@ -8,21 +8,26 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import LoadingStateLandingPage from "./LoadingStateLandingPage";
-import { Loader2, RefreshCw } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { HeroSection } from "./components/HeroSection";
 import { SocialProofSection } from "./components/SocialProofSection";
 import { DynamicSection } from "./components/DynamicSection";
-import { Progress } from "@/components/ui/progress";
-
-interface GenerationResponse {
-  error?: string;
-  message?: string;
-  status?: string;
-}
 
 interface GenerationProgress {
   status: string;
   progress: number;
+}
+
+interface StepDetails {
+  stage: 'started' | 'content_generated' | 'images_generated' | string;
+  [key: string]: any;
+}
+
+interface GenerationLog {
+  success: boolean;
+  error_message?: string;
+  status?: string;
+  step_details?: StepDetails;
 }
 
 const LandingPageContent = ({ project, landingPage }: { project: any; landingPage: any }) => {
@@ -38,48 +43,54 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
   const { isLoading: isTemplateLoading } = useLandingPageTemplate();
 
   useEffect(() => {
-    if (isGenerating && project?.id) {
+    if ((isGenerating || isRefining) && project?.id) {
       const interval = setInterval(async () => {
-        const { data: page } = await supabase
-          .from('landing_pages')
-          .select('generation_status, generation_metadata')
-          .eq('id', landingPage.id)
+        const { data: logs, error } = await supabase
+          .from('landing_page_generation_logs')
+          .select('*')
+          .eq('project_id', project.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
           .single();
 
-        if (page) {
-          switch (page.generation_status) {
-            case 'completed':
-              setGenerationProgress({ status: "Success!", progress: 100 });
-              setIsGenerating(false);
-              clearInterval(interval);
-              queryClient.invalidateQueries({ queryKey: ['landing-page', project.id] });
-              break;
-            case 'failed':
-              setGenerationProgress({ 
-                status: `Error: ${page.generation_metadata?.error || 'Unknown error'}`, 
-                progress: 0 
-              });
-              setIsGenerating(false);
-              clearInterval(interval);
-              break;
-            case 'generating':
-              setGenerationProgress({ 
-                status: "Generating content...", 
-                progress: 50 
-              });
-              break;
-            default:
-              setGenerationProgress({ 
-                status: page.generation_status, 
-                progress: 25 
-              });
+        if (error) {
+          console.error('Error fetching generation logs:', error);
+          return;
+        }
+
+        if (logs) {
+          const logData = logs as unknown as GenerationLog;
+          
+          if (logData.success) {
+            setGenerationProgress({ status: "Success!", progress: 100 });
+            clearInterval(interval);
+          } else if (logData.error_message) {
+            setGenerationProgress({ 
+              status: `Error: ${logData.error_message}`, 
+              progress: 0 
+            });
+            clearInterval(interval);
+          } else {
+            const stepDetails = logData.step_details;
+            let progress = 0;
+
+            if (stepDetails) {
+              progress = stepDetails.stage === 'started' ? 25 :
+                        stepDetails.stage === 'content_generated' ? 50 :
+                        stepDetails.stage === 'images_generated' ? 75 : 0;
+            }
+            
+            setGenerationProgress({ 
+              status: `${logData.status?.replace(/_/g, ' ') || 'Processing'}...`, 
+              progress 
+            });
           }
         }
       }, 1000);
 
       return () => clearInterval(interval);
     }
-  }, [isGenerating, project?.id, landingPage?.id, queryClient]);
+  }, [isGenerating, isRefining, project?.id]);
 
   const generateLandingPageContent = async () => {
     setIsGenerating(true);
@@ -92,74 +103,28 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
         throw new Error('Authentication required');
       }
 
-      const { data: responseData, error: functionError } = await supabase.functions.invoke<GenerationResponse>('generate-landing-content', {
+      const { data, error } = await supabase.functions.invoke('generate-landing-page', {
         body: {
-          projectData: {
-            business_idea: project.business_idea,
-            target_audience: project.target_audience,
-            audience_analysis: project.audience_analysis
-          },
-          landingPageId: landingPage.id
+          projectId: project.id,
+          businessIdea: project.business_idea,
+          targetAudience: project.target_audience,
+          userId: user.id,
+          iterationNumber: landingPage?.content_iterations || 1
         }
       });
 
-      if (functionError) {
-        console.error('Function error:', functionError);
-        throw new Error(functionError.message || 'Failed to generate content');
+      if (error) throw error;
+
+      if (data && data.content) {
+        console.log("Received new content:", data);
+        toast({
+          title: "Content Generated",
+          description: "Your landing page content has been updated."
+        });
+
+        queryClient.invalidateQueries({ queryKey: ['landing-page', project.id] });
+        window.location.reload();
       }
-
-      if (responseData && 'error' in responseData) {
-        throw new Error(responseData.error || 'Unknown error occurred');
-      }
-
-      toast({
-        title: "Content Generation Started",
-        description: "Your landing page content is being generated. This may take a moment."
-      });
-
-      const checkInterval = setInterval(async () => {
-        const { data: pageData } = await supabase
-          .from('landing_pages')
-          .select('generation_status, content')
-          .eq('id', landingPage.id)
-          .single();
-
-        if (pageData?.generation_status === 'completed' && pageData?.content) {
-          clearInterval(checkInterval);
-          setIsGenerating(false);
-          setGenerationProgress({ status: "Success!", progress: 100 });
-          queryClient.invalidateQueries({ queryKey: ['landing-page', project.id] });
-          
-          toast({
-            title: "Content Generated",
-            description: "Your landing page content has been updated."
-          });
-        } else if (pageData?.generation_status === 'failed') {
-          clearInterval(checkInterval);
-          setIsGenerating(false);
-          setGenerationProgress({ status: "", progress: 0 });
-          
-          toast({
-            title: "Generation Failed",
-            description: "Failed to generate landing page content. Please try again.",
-            variant: "destructive"
-          });
-        }
-      }, 2000);
-
-      setTimeout(() => {
-        clearInterval(checkInterval);
-        if (isGenerating) {
-          setIsGenerating(false);
-          setGenerationProgress({ status: "", progress: 0 });
-          toast({
-            title: "Generation Timeout",
-            description: "The generation process took too long. Please try again.",
-            variant: "destructive"
-          });
-        }
-      }, 300000);
-
     } catch (error) {
       console.error('Error generating content:', error);
       toast({
@@ -167,6 +132,7 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
         description: error instanceof Error ? error.message : "Failed to generate landing page content",
         variant: "destructive"
       });
+    } finally {
       setIsGenerating(false);
       setGenerationProgress({ status: "", progress: 0 });
     }
@@ -196,21 +162,18 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
                     {generationProgress.status}
                   </>
                 ) : (
-                  <>
-                    <RefreshCw className="mr-2 h-4 w-4" />
-                    Generate Content
-                  </>
+                  "Generate Content"
                 )}
               </Button>
             </div>
           </div>
 
           {generationProgress.progress > 0 && generationProgress.progress < 100 && (
-            <div className="w-full space-y-2 mb-4">
-              <Progress value={generationProgress.progress} />
-              <p className="text-sm text-muted-foreground text-center">
-                {generationProgress.status}
-              </p>
+            <div className="w-full bg-gray-200 rounded-full h-2.5 mb-4">
+              <div 
+                className="bg-blue-600 h-2.5 rounded-full transition-all duration-500"
+                style={{ width: `${generationProgress.progress}%` }}
+              ></div>
             </div>
           )}
         </div>

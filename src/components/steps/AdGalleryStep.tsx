@@ -11,7 +11,6 @@ import AdGenerationControls from "./gallery/AdGenerationControls";
 import { useEffect, useState } from "react";
 import { AdSizeSelector, AD_FORMATS } from "./gallery/components/AdSizeSelector";
 import { useToast } from "@/hooks/use-toast";
-import { Platform } from "@/types/adGeneration";
 
 interface AdGalleryStepProps {
   businessIdea: BusinessIdea;
@@ -45,16 +44,17 @@ const AdGalleryStep = ({
   } = usePlatformSwitch();
 
   const {
-    state,
+    isGenerating,
+    adVariants,
     generationStatus,
     generateAds,
   } = useAdGeneration(businessIdea, targetAudience, adHooks);
 
   useEffect(() => {
-    const initializeAdsIfNeeded = async () => {
-      if (!state.isInitialLoad && !state.hasSavedAds) {
+    const initializeAds = async () => {
+      if (adVariants.length === 0) {
         try {
-          await generateAds(platform as Platform);
+          await generateAds(platform);
         } catch (error) {
           console.error("Error generating initial ads:", error);
           toast({
@@ -66,23 +66,52 @@ const AdGalleryStep = ({
       }
     };
 
-    initializeAdsIfNeeded();
-  }, [state.isInitialLoad, state.hasSavedAds, platform, generateAds]);
+    initializeAds();
+  }, [platform, videoAdsEnabled]);
 
-  const onPlatformChange = async (newPlatform: string) => {
-    handlePlatformChange(newPlatform as Platform, state.platformSpecificAds[newPlatform as Platform]?.variants.length > 0);
+  const onPlatformChange = async (newPlatform: "facebook" | "google" | "linkedin" | "tiktok") => {
+    try {
+      handlePlatformChange(newPlatform, adVariants.length > 0);
+    } catch (error) {
+      console.error("Error changing platform:", error);
+      toast({
+        title: "Error changing platform",
+        description: "There was an error changing the platform. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const onConfirmPlatformChange = async () => {
-    const newPlatform = confirmPlatformChange() as Platform;
-    if (!state.platformSpecificAds[newPlatform]?.variants.length) {
+    try {
+      const newPlatform = confirmPlatformChange();
       await generateAds(newPlatform);
+    } catch (error) {
+      console.error("Error confirming platform change:", error);
+      toast({
+        title: "Error generating ads",
+        description: "There was an error generating ads for the new platform. Please try again.",
+        variant: "destructive",
+      });
     }
+  };
+
+  const onCancelPlatformChange = () => {
+    const currentPlatform = cancelPlatformChange();
+    // Force update the PlatformTabs to stay on the current platform
+    const tabsElement = document.querySelector(`[data-state="active"][value="${currentPlatform}"]`);
+    if (tabsElement) {
+      (tabsElement as HTMLElement).click();
+    }
+  };
+
+  const handleFormatChange = (format: typeof AD_FORMATS[0]) => {
+    setSelectedFormat(format);
   };
 
   const handleRegenerate = async () => {
     try {
-      await generateAds(platform as Platform);
+      await generateAds(platform);
     } catch (error) {
       console.error("Error regenerating ads:", error);
       toast({
@@ -93,82 +122,53 @@ const AdGalleryStep = ({
     }
   };
 
-  const handleFormatChange = (format: typeof AD_FORMATS[0]) => {
-    setSelectedFormat(format);
-    toast({
-      title: "Format updated",
-      description: `Ad format changed to ${format.label}`,
-    });
-  };
-
-  if (state.isInitialLoad) {
-    return <LoadingState />;
-  }
-
-  return (
-    <div className="space-y-6">
-      <AdGenerationControls
-        onBack={onBack}
-        onStartOver={onStartOver}
-        onRegenerate={handleRegenerate}
-        isGenerating={state.platformSpecificAds[platform as Platform]?.isLoading || false}
-        generationStatus={generationStatus}
-      />
-
+  const renderPlatformContent = (platformName: string) => (
+    <TabsContent value={platformName} className="space-y-4">
       <div className="flex justify-end mb-4">
         <AdSizeSelector
           selectedFormat={selectedFormat}
           onFormatChange={handleFormatChange}
         />
       </div>
+      <PlatformContent
+        platformName={platformName}
+        adVariants={adVariants.filter(variant => variant.platform === platformName)}
+        onCreateProject={onCreateProject}
+        videoAdsEnabled={videoAdsEnabled}
+        selectedFormat={selectedFormat}
+      />
+    </TabsContent>
+  );
 
-      <PlatformTabs 
-        platform={platform} 
-        onPlatformChange={onPlatformChange}
-      >
-        <TabsContent value="facebook">
-          <PlatformContent
-            platformName="facebook"
-            platformState={state.platformSpecificAds.facebook}
-            onCreateProject={onCreateProject}
-            videoAdsEnabled={videoAdsEnabled}
-            selectedFormat={selectedFormat}
-          />
-        </TabsContent>
-        <TabsContent value="google">
-          <PlatformContent
-            platformName="google"
-            platformState={state.platformSpecificAds.google}
-            onCreateProject={onCreateProject}
-            videoAdsEnabled={videoAdsEnabled}
-            selectedFormat={selectedFormat}
-          />
-        </TabsContent>
-        <TabsContent value="linkedin">
-          <PlatformContent
-            platformName="linkedin"
-            platformState={state.platformSpecificAds.linkedin}
-            onCreateProject={onCreateProject}
-            videoAdsEnabled={videoAdsEnabled}
-            selectedFormat={selectedFormat}
-          />
-        </TabsContent>
-        <TabsContent value="tiktok">
-          <PlatformContent
-            platformName="tiktok"
-            platformState={state.platformSpecificAds.tiktok}
-            onCreateProject={onCreateProject}
-            videoAdsEnabled={videoAdsEnabled}
-            selectedFormat={selectedFormat}
-          />
-        </TabsContent>
-      </PlatformTabs>
+  return (
+    <div className="space-y-6 md:space-y-8">
+      <AdGenerationControls
+        onBack={onBack}
+        onStartOver={onStartOver}
+        onRegenerate={handleRegenerate}
+        isGenerating={isGenerating}
+        generationStatus={generationStatus}
+      />
+
+      {isGenerating ? (
+        <LoadingState />
+      ) : (
+        <PlatformTabs 
+          platform={platform} 
+          onPlatformChange={onPlatformChange}
+        >
+          {renderPlatformContent('facebook')}
+          {renderPlatformContent('google')}
+          {renderPlatformContent('linkedin')}
+          {renderPlatformContent('tiktok')}
+        </PlatformTabs>
+      )}
 
       <PlatformChangeDialog
         open={showPlatformChangeDialog}
         onOpenChange={setShowPlatformChangeDialog}
         onConfirm={onConfirmPlatformChange}
-        onCancel={cancelPlatformChange}
+        onCancel={onCancelPlatformChange}
       />
     </div>
   );

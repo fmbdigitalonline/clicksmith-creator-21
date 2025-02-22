@@ -21,10 +21,9 @@ import ProjectCardHeader from "./card/ProjectCardHeader";
 import ProjectCardActions from "./card/ProjectCardActions";
 import ProjectProgressDetails from "./ProjectProgressDetails";
 import { Progress } from "@/components/ui/progress";
-import { ArrowRight, Play, CheckCircle, Clock, RefreshCw } from "lucide-react";
+import { ArrowRight, Play, CheckCircle, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatDistanceToNow } from "date-fns";
-import { validateProjectState, getProjectStateText } from "@/utils/projectValidation";
 
 interface Project {
   id: string;
@@ -47,7 +46,7 @@ interface Project {
 interface ProjectCardProps {
   project: Project;
   onUpdate: () => void;
-  onStartAdWizard: (projectId?: string, view?: string) => void;
+  onStartAdWizard: () => void;
   showProgress?: boolean;
   isRecent?: boolean;
 }
@@ -58,8 +57,6 @@ const ProjectCard = ({ project, onUpdate, onStartAdWizard, showProgress = false,
   const [showDetails, setShowDetails] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
-
-  const projectStatus = validateProjectState(project);
 
   const handleDelete = async () => {
     const { error } = await supabase
@@ -83,52 +80,33 @@ const ProjectCard = ({ project, onUpdate, onStartAdWizard, showProgress = false,
     onUpdate();
   };
 
-  const handleAdNavigation = () => {
-    if (projectStatus.state === 'needs_regeneration') {
-      toast({
-        title: "Regeneration needed",
-        description: "Your ads need to be regenerated. Starting from the last completed step.",
-        duration: 5000,
-      });
-    }
-    onStartAdWizard(
-      project.id, 
-      projectStatus.hasValidAds ? 'gallery' : undefined
-    );
-  };
-
   const getValidationProgress = () => {
-    return (projectStatus.completedSteps / 4) * 100;
+    let progress = 0;
+    if (project.business_idea) progress += 25;
+    if (project.target_audience) progress += 25;
+    if (project.audience_analysis) progress += 25;
+    if (project.marketing_campaign) progress += 25;
+    return progress;
   };
 
   const getStepStatusIcon = () => {
-    switch (projectStatus.state) {
-      case 'ads_generated':
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case 'needs_regeneration':
-        return <RefreshCw className="h-4 w-4 text-yellow-500 animate-spin" />;
-      case 'in_progress':
-        return <Clock className="h-4 w-4 text-yellow-500" />;
-      default:
-        return <Play className="h-4 w-4 text-blue-500" />;
+    if (project.generated_ads?.length > 0) {
+      return <CheckCircle className="h-4 w-4 text-green-500" />;
     }
+    if (project.current_step > 1) {
+      return <Clock className="h-4 w-4 text-yellow-500" />;
+    }
+    return <Play className="h-4 w-4 text-blue-500" />;
   };
 
   const getStatusText = () => {
-    return getProjectStateText(projectStatus.state);
-  };
-
-  const getButtonText = () => {
-    switch (projectStatus.state) {
-      case 'ads_generated':
-        return "View Generated Ads";
-      case 'needs_regeneration':
-        return "Regenerate Ads";
-      case 'in_progress':
-        return "Continue";
-      default:
-        return "Start";
+    if (project.generated_ads?.length > 0) {
+      return "Ads Generated";
     }
+    if (project.current_step > 1) {
+      return `Step ${project.current_step} of 4`;
+    }
+    return "Not Started";
   };
 
   const progressValue = getValidationProgress();
@@ -174,11 +152,11 @@ const ProjectCard = ({ project, onUpdate, onStartAdWizard, showProgress = false,
           )}
 
           <Button 
-            onClick={handleAdNavigation}
+            onClick={onStartAdWizard}
             className="w-full mt-2 gap-2"
-            variant={projectStatus.hasValidAds ? "secondary" : "default"}
+            variant={project.generated_ads?.length > 0 ? "secondary" : "default"}
           >
-            {getButtonText()}
+            {project.generated_ads?.length > 0 ? "View Generated Ads" : "Continue"}
             <ArrowRight className="h-4 w-4" />
           </Button>
         </CardContent>
@@ -187,7 +165,7 @@ const ProjectCard = ({ project, onUpdate, onStartAdWizard, showProgress = false,
           projectId={project.id}
           onEdit={() => setIsEditOpen(true)}
           onDelete={() => setIsDeleteOpen(true)}
-          onStartAdWizard={handleAdNavigation}
+          onStartAdWizard={onStartAdWizard}
           hasCampaign={!!project.marketing_campaign}
           hasBusinessIdea={!!project.business_idea}
           hasTargetAudience={!!project.target_audience}

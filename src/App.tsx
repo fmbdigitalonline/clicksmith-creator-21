@@ -1,3 +1,4 @@
+
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
@@ -127,7 +128,6 @@ function App() {
                 </ProtectedRoute>
               }
             />
-            {/* Ad Wizard Routes */}
             <Route
               path="/ad-wizard/:projectId"
               element={
@@ -138,18 +138,7 @@ function App() {
                 </ProtectedRoute>
               }
             />
-            <Route
-              path="/ad-wizard/:projectId/gallery"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <AdWizard initialView="gallery" />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-
-            {/* Other Protected Routes */}
+            {/* New protected routes */}
             <Route
               path="/referral"
               element={

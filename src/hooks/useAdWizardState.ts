@@ -10,15 +10,13 @@ import { useToast } from "@/hooks/use-toast";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { saveWizardProgress, clearWizardProgress } from "@/utils/wizardProgress";
 
-export const useAdWizardState = (initialStep?: number) => {
-  const [currentStep, setCurrentStep] = useState<number>(initialStep || 1);
+export const useAdWizardState = () => {
+  const [currentStep, setCurrentStep] = useState<number>(1);
   const [businessIdea, setBusinessIdea] = useState<BusinessIdea | null>(null);
   const [targetAudience, setTargetAudience] = useState<TargetAudience | null>(null);
   const [audienceAnalysis, setAudienceAnalysis] = useState<AudienceAnalysis | null>(null);
   const [selectedHooks, setSelectedHooks] = useState<AdHook[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [isDataLoaded, setIsDataLoaded] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [isCreatingProject, setIsCreatingProject] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -26,50 +24,14 @@ export const useAdWizardState = (initialStep?: number) => {
   const location = useLocation();
   const [autoCreatedProjectId, setAutoCreatedProjectId] = useState<string | null>(null);
 
-  const determineCurrentStep = useCallback((project: any, requestedStep?: number) => {
-    // If ads exist, always return step 4
-    if (project?.generated_ads?.length > 0) {
-      return 4;
-    }
-
-    // If initialStep is provided and valid, use it
-    if (requestedStep && requestedStep <= (project?.current_step || 1)) {
-      return requestedStep;
-    }
-
-    // Use the project's current step
-    return project?.current_step || 1;
-  }, []);
-
-  // Update project step in database
-  const updateProjectStep = useCallback(async (step: number) => {
-    const currentProjectId = autoCreatedProjectId || projectId;
-    if (currentProjectId && currentProjectId !== 'new') {
-      try {
-        const { error } = await supabase
-          .from('projects')
-          .update({ current_step: step })
-          .eq('id', currentProjectId);
-
-        if (error) throw error;
-        console.log(`Updated project ${currentProjectId} step to ${step}`);
-      } catch (error) {
-        console.error('Error updating project step:', error);
-      }
-    }
-  }, [projectId, autoCreatedProjectId]);
-
   // Load existing project data
   useEffect(() => {
     const loadProjectData = async () => {
-      setIsDataLoaded(false);
-      setError(null);
-      
       // Check for state from navigation first
       const routerState = location.state as { businessIdea?: BusinessIdea };
       if (routerState?.businessIdea) {
+        console.log('Setting business idea from router state:', routerState.businessIdea);
         setBusinessIdea(routerState.businessIdea);
-        setIsDataLoaded(true);
         return;
       }
 
@@ -84,7 +46,6 @@ export const useAdWizardState = (initialStep?: number) => {
             .single();
 
           if (error) throw error;
-          
           if (project) {
             console.log('Loaded project data:', project);
             if (project.business_idea) {
@@ -99,28 +60,18 @@ export const useAdWizardState = (initialStep?: number) => {
             if (project.selected_hooks) {
               setSelectedHooks(project.selected_hooks as AdHook[]);
             }
-            
-            const validatedStep = determineCurrentStep(project, initialStep);
-            setCurrentStep(validatedStep);
-            
-            // Update the project's current_step if it's not correct
-            if (project.current_step !== validatedStep) {
-              await updateProjectStep(validatedStep);
+            if (project.current_step) {
+              setCurrentStep(Number(project.current_step));
             }
           }
         } catch (error) {
           console.error('Error loading project:', error);
-          setError(error instanceof Error ? error.message : 'Failed to load project data');
-        } finally {
-          setIsDataLoaded(true);
         }
-      } else {
-        setIsDataLoaded(true);
       }
     };
 
     loadProjectData();
-  }, [projectId, autoCreatedProjectId, location.state, initialStep, determineCurrentStep, updateProjectStep]);
+  }, [projectId, autoCreatedProjectId, location.state]);
 
   const createInitialProject = async (idea: BusinessIdea) => {
     try {
@@ -247,34 +198,6 @@ export const useAdWizardState = (initialStep?: number) => {
     }
   };
 
-  const canNavigateToStep = useCallback((step: number): boolean => {
-    // If ads exist, only allow step 4
-    if (selectedHooks.length > 0) {
-      return step === 4;
-    }
-
-    // Otherwise, check normal progression
-    switch (step) {
-      case 1:
-        return true;
-      case 2:
-        return !!businessIdea;
-      case 3:
-        return !!businessIdea && !!targetAudience;
-      case 4:
-        return !!businessIdea && !!targetAudience && !!audienceAnalysis;
-      default:
-        return false;
-    }
-  }, [businessIdea, targetAudience, audienceAnalysis, selectedHooks.length]);
-
-  const handleStepChange = useCallback(async (newStep: number) => {
-    if (canNavigateToStep(newStep)) {
-      setCurrentStep(newStep);
-      await updateProjectStep(newStep);
-    }
-  }, [canNavigateToStep, updateProjectStep]);
-
   const handleAnalysisComplete = useCallback(async (analysis: AudienceAnalysis) => {
     if (isLoading || !businessIdea || !targetAudience) {
       console.log('Skipping: already processing or missing required data');
@@ -285,17 +208,19 @@ export const useAdWizardState = (initialStep?: number) => {
     
     try {
       setAudienceAnalysis(analysis);
-      
-      // Generate hooks and update step to 4
-      const hooks = await generateHooks(businessIdea, targetAudience, analysis);
-      setSelectedHooks(hooks);
-      
       await saveWizardProgress({ 
         audience_analysis: analysis,
+        current_step: 3
+      }, autoCreatedProjectId || projectId);
+
+      const hooks = await generateHooks(businessIdea, targetAudience, analysis);
+      
+      await saveWizardProgress({ 
         selected_hooks: hooks,
         current_step: 4
       }, autoCreatedProjectId || projectId);
       
+      setSelectedHooks(hooks);
       setCurrentStep(4);
     } catch (error) {
       console.error('Error in handleAnalysisComplete:', error);
@@ -363,6 +288,21 @@ export const useAdWizardState = (initialStep?: number) => {
     }
   }, [projectId, autoCreatedProjectId, navigate, toast]);
 
+  const canNavigateToStep = useCallback((step: number): boolean => {
+    switch (step) {
+      case 1:
+        return true;
+      case 2:
+        return !!businessIdea;
+      case 3:
+        return !!businessIdea && !!targetAudience;
+      case 4:
+        return !!businessIdea && !!targetAudience && !!audienceAnalysis && selectedHooks.length > 0;
+      default:
+        return false;
+    }
+  }, [businessIdea, targetAudience, audienceAnalysis, selectedHooks]);
+
   return {
     currentStep,
     businessIdea,
@@ -375,10 +315,8 @@ export const useAdWizardState = (initialStep?: number) => {
     handleBack,
     handleStartOver,
     canNavigateToStep,
-    setCurrentStep: handleStepChange,
+    setCurrentStep,
     isLoading,
-    isDataLoaded,
-    error,
     isCreatingProject,
   };
 };

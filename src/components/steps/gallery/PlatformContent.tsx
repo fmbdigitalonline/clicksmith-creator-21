@@ -1,12 +1,10 @@
 
 import { AdHook } from "@/types/adWizard";
 import AdPreviewCard from "./components/AdPreviewCard";
-import { Loader2 } from "lucide-react";
-import { PlatformAdState } from "@/types/adGeneration";
 
 interface PlatformContentProps {
   platformName: string;
-  platformState: PlatformAdState;
+  adVariants: any[];
   onCreateProject: () => void;
   videoAdsEnabled?: boolean;
   selectedFormat?: { width: number; height: number; label: string };
@@ -14,33 +12,38 @@ interface PlatformContentProps {
 
 const PlatformContent = ({ 
   platformName, 
-  platformState,
+  adVariants = [], 
   onCreateProject,
   videoAdsEnabled = false,
   selectedFormat
 }: PlatformContentProps) => {
-  if (platformState.isLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 animate-spin text-facebook mb-4" />
-        <p className="text-gray-600">Generating {platformName} ads...</p>
-      </div>
-    );
-  }
+  // Filter variants by platform and ensure we only show 2 variants per unique image
+  const filteredVariants = (() => {
+    // First, filter by platform
+    const platformVariants = Array.isArray(adVariants) 
+      ? adVariants.filter(v => v.platform === platformName)
+      : [];
 
-  if (platformState.hasError) {
+    // Group by image URL to ensure we don't show duplicate images
+    const uniqueImages = new Map();
+    platformVariants.forEach(variant => {
+      const imageUrl = variant.imageUrl || variant.image?.url;
+      if (!uniqueImages.has(imageUrl)) {
+        uniqueImages.set(imageUrl, []);
+      }
+      if (uniqueImages.get(imageUrl).length < 2) { // Limit to 2 variants per image
+        uniqueImages.get(imageUrl).push(variant);
+      }
+    });
+
+    // Flatten the map back to an array
+    return Array.from(uniqueImages.values()).flat();
+  })();
+
+  if (filteredVariants.length === 0) {
     return (
       <div className="text-center py-8">
-        <p className="text-red-500">Error: {platformState.errorMessage}</p>
-        <p className="text-gray-500 mt-2">Please try regenerating the ads.</p>
-      </div>
-    );
-  }
-
-  if (!platformState.variants.length) {
-    return (
-      <div className="text-center py-8">
-        <p className="text-gray-500">No ad variants available. Please try generating ads.</p>
+        <p className="text-gray-500">No ad variants available. Please try regenerating the ads.</p>
       </div>
     );
   }
@@ -56,9 +59,9 @@ const PlatformContent = ({
     <div className="space-y-6">
       <p className="text-sm text-gray-600 mb-4">{platformSpecificMessage}</p>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {platformState.variants.map((variant, index) => (
+        {filteredVariants.map((variant, index) => (
           <AdPreviewCard
-            key={`${platformName}-${variant.id || index}`}
+            key={`${platformName}-${index}-${variant.imageUrl || variant.image?.url}`}
             variant={variant}
             onCreateProject={onCreateProject}
             isVideo={videoAdsEnabled}

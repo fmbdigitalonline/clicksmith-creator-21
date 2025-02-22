@@ -14,10 +14,19 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { validateProjectState } from "@/utils/projectValidation";
-import { Project, TargetAudience, AudienceAnalysis, MarketingCampaign, AdHook } from "@/types/adWizard";
 
+// Use the database types directly and extend them
 type DatabaseProject = Database['public']['Tables']['projects']['Row'];
+type Project = Omit<DatabaseProject, 'business_idea' | 'target_audience' | 'audience_analysis' | 'marketing_campaign' | 'generated_ads'> & {
+  business_idea?: {
+    description: string;
+    valueProposition: string;
+  } | null;
+  target_audience?: any;
+  audience_analysis?: any;
+  marketing_campaign?: any;
+  generated_ads?: any[];
+};
 
 interface ProjectListProps {
   onStartAdWizard: (projectId?: string) => void;
@@ -46,19 +55,15 @@ const ProjectList = ({ onStartAdWizard }: ProjectListProps) => {
           throw error;
         }
 
-        // Transform the data to match our Project type with proper type safety
-        return (data as DatabaseProject[]).map(project => {
-          const transformedProject = {
-            ...project,
-            business_idea: project.business_idea as Project['business_idea'],
-            target_audience: project.target_audience as unknown as TargetAudience,
-            audience_analysis: project.audience_analysis as unknown as AudienceAnalysis,
-            marketing_campaign: project.marketing_campaign as unknown as MarketingCampaign,
-            selected_hooks: (project.selected_hooks as unknown as AdHook[]) || [],
-            generated_ads: project.generated_ads as unknown as any[],
-          };
-          return transformedProject as unknown as Project;
-        });
+        // Transform the data to match our Project type
+        return (data as DatabaseProject[]).map(project => ({
+          ...project,
+          business_idea: project.business_idea as Project['business_idea'],
+          target_audience: project.target_audience,
+          audience_analysis: project.audience_analysis,
+          marketing_campaign: project.marketing_campaign,
+          generated_ads: project.generated_ads as any[],
+        }));
       } catch (error) {
         console.error("Error in queryFn:", error);
         throw error;
@@ -83,20 +88,15 @@ const ProjectList = ({ onStartAdWizard }: ProjectListProps) => {
 
   const getRecentProjects = () => {
     if (!projects) return [];
-    return projects
-      .filter(project => {
-        const status = validateProjectState(project);
-        return status.state === 'ads_generated' || status.state === 'in_progress';
-      })
-      .slice(0, 3);
+    return projects.slice(0, 3); // Get most recent 3 projects
   };
 
   const getMostRecentInProgressProject = () => {
     if (!projects) return null;
-    return projects.find(project => {
-      const status = validateProjectState(project);
-      return status.state === 'in_progress';
-    });
+    return projects.find(project => 
+      project.current_step > 1 && 
+      (!project.generated_ads || project.generated_ads.length === 0)
+    );
   };
 
   if (error) {

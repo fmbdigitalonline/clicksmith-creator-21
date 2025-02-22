@@ -15,13 +15,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 import { Loader2 } from "lucide-react";
 import StepLoadingState from "./steps/LoadingState";
-import { Button } from "./ui/button";
 
-interface AdWizardProps {
-  initialView?: 'gallery';
-}
-
-const AdWizard = ({ initialView }: AdWizardProps) => {
+const AdWizard = () => {
   const [showCreateProject, setShowCreateProject] = useState(false);
   const [videoAdsEnabled, setVideoAdsEnabled] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -41,9 +36,7 @@ const AdWizard = ({ initialView }: AdWizardProps) => {
     handleStartOver,
     canNavigateToStep,
     setCurrentStep,
-    isDataLoaded,
-    error
-  } = useAdWizardState(initialView === 'gallery' ? 4 : undefined);
+  } = useAdWizardState();
 
   // Handle project initialization
   useEffect(() => {
@@ -81,25 +74,13 @@ const AdWizard = ({ initialView }: AdWizardProps) => {
     initializeProject();
   }, [projectId, navigate]);
 
-  // Error handling
-  if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center py-12">
-        <p className="text-red-500 mb-4">{error}</p>
-        <Button onClick={() => navigate(`/ad-wizard/${projectId}`)}>
-          Start from Beginning
-        </Button>
-      </div>
-    );
-  }
-
   const handleCreateProject = () => {
     setShowCreateProject(true);
   };
 
-  const handleProjectCreated = (newProjectId: string) => {
+  const handleProjectCreated = (projectId: string) => {
     setShowCreateProject(false);
-    navigate(`/ad-wizard/${newProjectId}`);
+    navigate(`/ad-wizard/${projectId}`);
   };
 
   const handleVideoAdsToggle = async (enabled: boolean) => {
@@ -118,37 +99,6 @@ const AdWizard = ({ initialView }: AdWizardProps) => {
   }
 
   const renderStep = () => {
-    // For direct gallery access, ensure we have all required data
-    if (initialView === 'gallery') {
-      if (!isDataLoaded) {
-        return <StepLoadingState />;
-      }
-
-      // If we have ads, allow gallery view
-      if (selectedHooks.length > 0) {
-        return (
-          <AdGalleryStep
-            businessIdea={businessIdea!}
-            targetAudience={targetAudience!}
-            adHooks={selectedHooks}
-            onStartOver={handleStartOver}
-            onBack={handleBack}
-            onCreateProject={handleCreateProject}
-            videoAdsEnabled={videoAdsEnabled}
-          />
-        );
-      }
-
-      // If no ads but we're trying to view gallery, redirect to beginning
-      navigate(`/ad-wizard/${projectId}`);
-      return <StepLoadingState />;
-    }
-
-    // Regular wizard flow
-    if (!isDataLoaded) {
-      return <StepLoadingState />;
-    }
-
     switch (currentStep) {
       case 1:
         return <IdeaStep onNext={handleIdeaSubmit} initialBusinessIdea={businessIdea} />;
