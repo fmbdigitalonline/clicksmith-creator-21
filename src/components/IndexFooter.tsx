@@ -11,6 +11,7 @@ const IndexFooter = ({ className }: IndexFooterProps) => {
     company: [
       { label: "About", to: "/about" },
       { label: "Contact", to: "/contact" },
+      { label: "Careers", to: "/careers" },
       { label: "Terms", to: "/terms" },
       { label: "Privacy", to: "/privacy" }
     ],
