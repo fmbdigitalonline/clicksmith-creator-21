@@ -435,6 +435,36 @@ export type Database = {
           },
         ]
       }
+      contact_submissions: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          message: string
+          metadata: Json | null
+          name: string
+          status: Database["public"]["Enums"]["submission_status"] | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          message: string
+          metadata?: Json | null
+          name: string
+          status?: Database["public"]["Enums"]["submission_status"] | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          message?: string
+          metadata?: Json | null
+          name?: string
+          status?: Database["public"]["Enums"]["submission_status"] | null
+        }
+        Relationships: []
+      }
       credit_operations: {
         Row: {
           created_at: string
@@ -854,6 +884,36 @@ export type Database = {
           lock_type?: string
           metadata?: Json | null
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      newsletter_subscriptions: {
+        Row: {
+          confirmation_token: string | null
+          confirmed: boolean | null
+          created_at: string
+          email: string
+          id: string
+          metadata: Json | null
+          status: Database["public"]["Enums"]["submission_status"] | null
+        }
+        Insert: {
+          confirmation_token?: string | null
+          confirmed?: boolean | null
+          created_at?: string
+          email: string
+          id?: string
+          metadata?: Json | null
+          status?: Database["public"]["Enums"]["submission_status"] | null
+        }
+        Update: {
+          confirmation_token?: string | null
+          confirmed?: boolean | null
+          created_at?: string
+          email?: string
+          id?: string
+          metadata?: Json | null
+          status?: Database["public"]["Enums"]["submission_status"] | null
         }
         Relationships: []
       }
@@ -1486,6 +1546,7 @@ export type Database = {
         | "applying_styles"
         | "completed"
         | "failed"
+      submission_status: "pending" | "processed" | "failed"
       update_type: "feature" | "update" | "incident" | "announcement"
     }
     CompositeTypes: {
