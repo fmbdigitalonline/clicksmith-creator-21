@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -55,7 +56,8 @@ export default {
         },
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        sans: ['Montserrat', 'system-ui', 'sans-serif'],
+        display: ['Playfair Display', 'serif'],
       },
       fontSize: {
         'h1': ['32px', { lineHeight: '1.4', letterSpacing: '-0.02em', fontWeight: '700' }],
