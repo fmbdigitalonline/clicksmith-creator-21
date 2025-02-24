@@ -19,8 +19,10 @@ interface GenerationResponse {
   error?: string;
 }
 
+type GenerationState = 'idle' | 'checking_credits' | 'generating' | 'error';
+
 export const useAdGeneration = () => {
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [generationState, setGenerationState] = useState<GenerationState>('idle');
   const [error, setError] = useState<string | null>(null);
   const [adVariants, setAdVariants] = useState<AdVariant[]>([]);
   const [generationStatus, setGenerationStatus] = useState<string>("");
@@ -31,6 +33,8 @@ export const useAdGeneration = () => {
   const isMountedRef = useRef(true);
   // Track the debounce timeout
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // Track active toast IDs
+  const activeToastRef = useRef<string | null>(null);
 
   // Cleanup function
   const cleanup = () => {
@@ -39,6 +43,24 @@ export const useAdGeneration = () => {
       debounceTimeoutRef.current = null;
     }
   };
+
+  // Function to handle toasts with deduplication
+  const showToast = useCallback((title: string, description: string, variant: "default" | "destructive" = "default") => {
+    // Dismiss previous toast if it exists
+    if (activeToastRef.current) {
+      toast.dismiss(activeToastRef.current);
+    }
+    
+    // Show new toast and store its ID
+    const { id } = toast({
+      title,
+      description,
+      variant,
+      duration: 3000, // 3 seconds
+    });
+    
+    activeToastRef.current = id;
+  }, [toast]);
 
   // Function to handle network errors with exponential backoff
   const handleNetworkError = async (error: any, retryCount: number = 0): Promise<GenerationResponse> => {
@@ -50,7 +72,13 @@ export const useAdGeneration = () => {
       const delay = baseDelay * Math.pow(2, retryCount);
       console.log(`Retrying after ${delay}ms (attempt ${retryCount + 1}/${maxRetries})`);
       await new Promise((resolve) => setTimeout(resolve, delay));
-      // Return a proper GenerationResponse to trigger a retry
+      
+      showToast(
+        "Retrying Connection",
+        `Attempt ${retryCount + 1} of ${maxRetries}...`,
+        "default"
+      );
+      
       return { success: false, error: 'Retrying due to network error' };
     }
     throw error;
@@ -58,7 +86,7 @@ export const useAdGeneration = () => {
 
   const generateAds = useCallback(async (platform: string) => {
     // Don't start a new request if one is already in progress
-    if (isGenerating) {
+    if (generationState !== 'idle') {
       console.log('Generation already in progress, skipping request');
       return null;
     }
@@ -78,15 +106,18 @@ export const useAdGeneration = () => {
       debounceTimeoutRef.current = setTimeout(async () => {
         if (!isMountedRef.current) return null;
 
-        setIsGenerating(true);
-        setGenerationStatus("Generating ads...");
-
-        let retryCount = 0;
-        
         try {
+          setGenerationState('checking_credits');
+          setGenerationStatus("Checking credits availability...");
+
+          let retryCount = 0;
+          
           const result = await generateWithCredits<AdVariant[]>(
             async (): Promise<GenerationResponse> => {
               try {
+                setGenerationState('generating');
+                setGenerationStatus("Generating ads...");
+
                 const { data, error: functionError } = await supabase.functions.invoke(
                   'generate-ad-content',
                   {
@@ -129,16 +160,18 @@ export const useAdGeneration = () => {
           if (!isMountedRef.current) return null;
 
           if (!result) {
+            setGenerationState('error');
             setError('Failed to generate ads');
             return null;
           }
 
           setAdVariants(result);
+          setGenerationState('idle');
           
-          toast({
-            title: "Ads Generated Successfully",
-            description: "Your ads have been created and credits have been deducted.",
-          });
+          showToast(
+            "Ads Generated Successfully",
+            "Your ads have been created and credits have been deducted."
+          );
 
           resolve(result);
         } catch (error) {
@@ -148,31 +181,40 @@ export const useAdGeneration = () => {
           const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
           
           setError(errorMessage);
-          toast({
-            title: "Generation Failed",
-            description: errorMessage,
-            variant: "destructive",
-          });
+          setGenerationState('error');
+          
+          showToast(
+            "Generation Failed",
+            errorMessage,
+            "destructive"
+          );
 
           resolve(null);
         } finally {
           if (isMountedRef.current) {
-            setIsGenerating(false);
             setGenerationStatus("");
+            // Only reset to idle if we're not in an error state
+            if (generationState !== 'error') {
+              setGenerationState('idle');
+            }
           }
         }
       }, 500); // 500ms debounce delay
     });
-  }, [generateWithCredits, isGenerating, toast]);
+  }, [generateWithCredits, generationState, showToast]);
 
   // Cleanup on unmount
   const destroy = useCallback(() => {
     isMountedRef.current = false;
     cleanup();
-  }, []);
+    // Dismiss any active toasts
+    if (activeToastRef.current) {
+      toast.dismiss(activeToastRef.current);
+    }
+  }, [toast]);
 
   return {
-    isGenerating,
+    isGenerating: generationState !== 'idle',
     error,
     adVariants,
     generationStatus,
