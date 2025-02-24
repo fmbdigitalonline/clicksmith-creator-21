@@ -1,3 +1,4 @@
+
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
@@ -51,6 +52,11 @@ function App() {
             <Route path="/careers" element={<Careers />} />
             <Route path="/help" element={<Help />} />
             <Route path="/" element={<Index />} />
+            
+            {/* Moving these routes to public */}
+            <Route path="/affiliate" element={<AppLayout><Affiliate /></AppLayout>} />
+            <Route path="/referral" element={<AppLayout><Referral /></AppLayout>} />
+            <Route path="/share" element={<AppLayout><Share /></AppLayout>} />
 
             {/* Protected routes */}
             <Route
@@ -139,37 +145,6 @@ function App() {
                 <ProtectedRoute>
                   <AppLayout>
                     <AdWizard />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            {/* New protected routes */}
-            <Route
-              path="/referral"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <Referral />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/affiliate"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <Affiliate />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/share"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <Share />
                   </AppLayout>
                 </ProtectedRoute>
               }
