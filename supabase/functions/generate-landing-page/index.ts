@@ -7,84 +7,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-interface ContentGenerationParams {
-  businessIdea: {
-    description: string;
-    valueProposition: string;
-  };
-  targetAudience: {
-    description: string;
-    coreMessage: string;
-    painPoints: string[];
-    marketingAngle: string;
-  };
-  projectId: string;
-  userId: string;
-}
-
-interface ThemeConfig {
-  fonts: {
-    heading: string;
-    body: string;
-  };
-  colors: {
-    primary: string;
-    secondary: string;
-    accent: string;
-  };
-  style: {
-    borderRadius: string;
-    spacing: string;
-  };
-}
-
-const businessThemes: { [key: string]: ThemeConfig } = {
-  technology: {
-    fonts: {
-      heading: 'Roboto',
-      body: 'Open Sans',
-    },
-    colors: {
-      primary: '#1A1F2C',
-      secondary: '#D6BCFA',
-      accent: '#8B5CF6',
-    },
-    style: {
-      borderRadius: 'rounded-md',
-      spacing: 'compact',
-    },
-  },
-  fashion: {
-    fonts: {
-      heading: 'Playfair Display',
-      body: 'Lora',
-    },
-    colors: {
-      primary: '#333333',
-      secondary: '#F5E6CC',
-      accent: '#A68B70',
-    },
-    style: {
-      borderRadius: 'rounded-full',
-      spacing: 'spacious',
-    },
-  },
-  food: {
-    fonts: {
-      heading: 'Montserrat',
-      body: 'Source Sans Pro',
-    },
-    colors: {
-      primary: '#4A5568',
-      secondary: '#EDF2F7',
-      accent: '#F6AD55',
-    },
-    style: {
-      borderRadius: 'rounded-xl',
-      spacing: 'comfortable',
-    },
-  },
-  default: {
+// Business themes definition
+const businessThemes = {
+  luxury: {
     fonts: {
       heading: 'Playfair Display',
       body: 'Montserrat',
@@ -99,21 +24,68 @@ const businessThemes: { [key: string]: ThemeConfig } = {
       spacing: 'spacious',
     },
   },
+  technology: {
+    fonts: {
+      heading: 'Inter',
+      body: 'Inter',
+    },
+    colors: {
+      primary: '#2563EB',
+      secondary: '#E2E8F0',
+      accent: '#3B82F6',
+    },
+    style: {
+      borderRadius: 'rounded-md',
+      spacing: 'compact',
+    },
+  },
+  // ... Add more themes as needed
 };
 
-async function determineBusinessCategory(businessDescription: string): Promise<string> {
-  const description = businessDescription.toLowerCase();
-
-  if (description.includes("tech") || description.includes("software") || description.includes("ai")) {
-    return "technology";
-  } else if (description.includes("fashion") || description.includes("clothing") || description.includes("style")) {
-    return "fashion";
-  } else if (description.includes("food") || description.includes("restaurant") || description.includes("cooking")) {
-    return "food";
-  } else {
-    return "default";
+const determineBusinessCategory = async (description: string): Promise<string> => {
+  console.log('Determining business category for:', description);
+  
+  const apiKey = Deno.env.get("OPENAI_API_KEY");
+  if (!apiKey) {
+    console.error('OpenAI API key not found');
+    return 'technology'; // Default fallback
   }
-}
+
+  try {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        messages: [
+          {
+            role: "system",
+            content: "You are a business categorization expert. Categorize the business into one of these categories: luxury, technology. Return ONLY the category name, nothing else.",
+          },
+          {
+            role: "user",
+            content: description,
+          },
+        ],
+        temperature: 0.3,
+      }),
+    });
+
+    if (!response.ok) {
+      console.error('OpenAI API error:', await response.text());
+      return 'technology';
+    }
+
+    const data = await response.json();
+    return data.choices[0]?.message?.content?.toLowerCase().trim() || 'technology';
+  } catch (error) {
+    console.error('Error determining business category:', error);
+    return 'technology';
+  }
+};
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -121,9 +93,8 @@ serve(async (req) => {
   }
 
   try {
-    const { projectId, businessIdea, targetAudience, userId } = await req.json() as ContentGenerationParams;
-
-    console.log('Received request with:', { projectId, businessIdea, targetAudience, userId });
+    const { projectId, businessIdea, targetAudience, userId } = await req.json();
+    console.log('Received request:', { projectId, businessIdea, targetAudience, userId });
 
     if (!projectId || !businessIdea || !targetAudience || !userId) {
       throw new Error('Missing required parameters');
@@ -138,22 +109,7 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // First, fetch the project title
-    const { data: project, error: projectError } = await supabase
-      .from('projects')
-      .select('title')
-      .eq('id', projectId)
-      .single();
-
-    if (projectError) {
-      throw new Error('Failed to fetch project details');
-    }
-
-    if (!project?.title) {
-      throw new Error('Project title not found');
-    }
-
-    // Log generation attempt
+    // Log the start of generation
     await supabase
       .from('landing_page_generation_logs')
       .insert({
@@ -163,11 +119,22 @@ serve(async (req) => {
         step_details: { stage: 'started' }
       });
 
+    // Fetch project title
+    const { data: project, error: projectError } = await supabase
+      .from('projects')
+      .select('title')
+      .eq('id', projectId)
+      .single();
+
+    if (projectError) {
+      throw new Error(`Failed to fetch project details: ${projectError.message}`);
+    }
+
     const category = await determineBusinessCategory(businessIdea.description);
-    console.log('Determined business category:', category);
+    console.log('Determined category:', category);
 
     const theme = businessThemes[category] || businessThemes.technology;
-
+    
     const content = {
       theme,
       sections: [
@@ -175,38 +142,49 @@ serve(async (req) => {
           type: 'hero',
           order: 1,
           content: {
-            headline: `${businessIdea.valueProposition}`,
-            subheadline: `${targetAudience.coreMessage}`,
-            ctaText: "Get Started Now"
+            title: businessIdea.valueProposition,
+            subtitle: targetAudience.coreMessage,
+            primaryCta: {
+              text: "Get Started Now",
+              description: "Begin your journey today"
+            }
           }
         },
         {
           type: 'social-proof',
           order: 2,
           content: {
-            headline: "Trusted by Businesses Like Yours",
-            testimonials: []
+            title: "Trusted by Businesses Like Yours",
+            subtitle: "See what others are saying",
+            testimonials: [
+              {
+                quote: "This transformed our business approach",
+                author: "John Doe",
+                role: "CEO"
+              }
+            ]
           }
         }
       ]
     };
 
-    // Update landing page with title
+    // Create or update landing page
     const { data: landingPage, error: updateError } = await supabase
       .from('landing_pages')
       .upsert({
         project_id: projectId,
         user_id: userId,
-        title: project.title, // Add the title from the project
+        title: project.title || 'Landing Page',
         content,
         theme_settings: theme,
-        version: 1
+        version: 1,
+        generation_status: 'completed'
       })
       .select()
       .single();
 
     if (updateError) {
-      throw updateError;
+      throw new Error(`Failed to update landing page: ${updateError.message}`);
     }
 
     // Log successful generation
@@ -226,7 +204,24 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Error:', error.message);
+    console.error('Error in generate-landing-page function:', error);
+    
+    // Log the error
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    if (supabaseUrl && supabaseKey) {
+      const supabase = createClient(supabaseUrl, supabaseKey);
+      await supabase
+        .from('landing_page_generation_logs')
+        .insert({
+          status: 'error',
+          success: false,
+          error_message: error.message,
+          step_details: { stage: 'error', error: error.message }
+        });
+    }
+
     return new Response(
       JSON.stringify({ 
         success: false, 
