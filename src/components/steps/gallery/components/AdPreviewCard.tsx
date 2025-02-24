@@ -12,7 +12,7 @@ import AdDetails from "./AdDetails";
 import DownloadControls from "./DownloadControls";
 import { AdFeedbackControls } from "./AdFeedbackControls";
 import { convertImage } from "@/utils/imageUtils";
-import { Pencil, Image, Check, X } from "lucide-react";
+import { Pencil, Check, X } from "lucide-react";
 import { useAdPersistence } from "@/hooks/gallery/useAdPersistence";
 import { AdSizeSelector, AD_FORMATS } from "../components/AdSizeSelector";
 
@@ -49,7 +49,6 @@ const AdPreviewCard = ({
   const [downloadFormat, setDownloadFormat] = useState<"jpg" | "png" | "pdf" | "docx">("jpg");
   const [isSaving, setIsSaving] = useState(false);
   const [isEditingText, setIsEditingText] = useState(false);
-  const [isSelectingImage, setIsSelectingImage] = useState(false);
   const [editedHeadline, setEditedHeadline] = useState(variant.headline);
   const [editedDescription, setEditedDescription] = useState(variant.description);
   const [selectedFormat, setSelectedFormat] = useState(initialFormat || variant.size);
@@ -195,13 +194,6 @@ const AdPreviewCard = ({
     });
   };
 
-  // Get unique images from all variants
-  const uniqueImages = Array.from(new Set(
-    adVariants
-      .map(v => v.imageUrl || v.image?.url)
-      .filter(Boolean)
-  ));
-
   return (
     <Card className="overflow-hidden">
       <div className="p-4 space-y-4">
@@ -260,50 +252,14 @@ const AdPreviewCard = ({
               aspectRatio: `${selectedFormat.width} / ${selectedFormat.height}`,
               maxHeight: '600px'
             }} 
-            className="relative group rounded-lg overflow-hidden"
+            className="relative rounded-lg overflow-hidden"
           >
             <MediaPreview
               imageUrl={getImageUrl()}
               isVideo={isVideo}
               format={selectedFormat}
             />
-            <Button
-              variant="secondary"
-              size="sm"
-              className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-              onClick={() => setIsSelectingImage(!isSelectingImage)}
-            >
-              <Image className="h-4 w-4 mr-1" /> Change Image
-            </Button>
           </div>
-
-          {/* Image Selection Dropdown */}
-          {isSelectingImage && uniqueImages.length > 0 && (
-            <div className="absolute top-2 right-2 bg-white rounded-lg shadow-lg p-2 z-10">
-              <div className="grid grid-cols-2 gap-2">
-                {uniqueImages.map((imageUrl, idx) => (
-                  <button
-                    key={idx}
-                    className="w-20 h-20 rounded overflow-hidden border-2 hover:border-primary transition-colors"
-                    onClick={() => {
-                      variant.imageUrl = imageUrl;
-                      setIsSelectingImage(false);
-                      toast({
-                        title: "Image updated",
-                        description: "Your ad image has been changed.",
-                      });
-                    }}
-                  >
-                    <img
-                      src={imageUrl}
-                      alt={`Option ${idx + 1}`}
-                      className="w-full h-full object-cover"
-                    />
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Headline Section */}
@@ -343,3 +299,4 @@ const AdPreviewCard = ({
 };
 
 export default AdPreviewCard;
+
