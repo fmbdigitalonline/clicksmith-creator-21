@@ -7,54 +7,73 @@ interface DeepEekParams {
 }
 
 export async function deepeek({ businessIdea, targetAudience, apiKey, version = 1 }: DeepEekParams) {
-  console.log('Calling Deepeek with version:', version);
+  console.log('Calling OpenAI with version:', version);
   
   try {
-    const response = await fetch('https://api.deepeek.com/v1/generate', {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        prompt: JSON.stringify({
-          task: "Generate landing page content",
-          version: version,
-          businessIdea: businessIdea,
-          targetAudience: targetAudience,
-          requirements: {
-            sections: [
-              "hero",
-              "features",
-              "benefits",
-              "testimonials",
-              "pricing",
-              "cta"
-            ],
-            tone: "professional and engaging",
-            style: "modern and clean"
+        model: "gpt-4",
+        messages: [
+          {
+            role: "system",
+            content: `You are an expert landing page content generator. Generate a unique and compelling landing page content based on the business idea and target audience information provided. Each generation should be unique and tailored to the specific needs. Version: ${version}`
+          },
+          {
+            role: "user",
+            content: JSON.stringify({
+              task: "Generate landing page content",
+              version: version,
+              businessIdea: businessIdea,
+              targetAudience: targetAudience,
+              requirements: {
+                sections: [
+                  "hero",
+                  "features",
+                  "benefits",
+                  "testimonials",
+                  "pricing",
+                  "cta"
+                ],
+                tone: "professional and engaging",
+                style: "modern and clean"
+              }
+            })
           }
-        }),
-        temperature: 0.7,
+        ],
+        temperature: 0.8,
         max_tokens: 2000
       })
     });
 
     if (!response.ok) {
-      throw new Error(`DeepEek API request failed: ${response.statusText}`);
+      throw new Error(`OpenAI API request failed: ${response.statusText}`);
     }
 
     const data = await response.json();
-    console.log('DeepEek response:', data);
+    console.log('OpenAI response:', data);
 
-    // Add generation metadata
-    return {
-      ...data,
-      generatedAt: new Date().toISOString(),
-      version,
-    };
+    try {
+      // Parse the response content as JSON
+      const contentString = data.choices[0].message.content;
+      const parsedContent = JSON.parse(contentString);
+
+      // Add generation metadata
+      return {
+        ...parsedContent,
+        generatedAt: new Date().toISOString(),
+        version,
+      };
+    } catch (parseError) {
+      console.error('Error parsing API response:', parseError);
+      throw new Error('Failed to parse generated content');
+    }
   } catch (error) {
-    console.error('DeepEek API error:', error);
+    console.error('OpenAI API error:', error);
     throw error;
   }
 }
