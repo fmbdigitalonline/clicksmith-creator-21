@@ -9,17 +9,12 @@ interface GenerationResponse {
   error?: string;
 }
 
-interface CreditsCheckResult {
-  hasCredits: boolean;
-  creditsRemaining?: number;
-  errorMessage?: string;
-}
-
 export const useCreditsAndGeneration = () => {
   const [isChecking, setIsChecking] = useState(false);
   const { toast } = useToast();
 
-  const checkCreditsAvailable = async (requiredCredits: number = 1): Promise<CreditsCheckResult> => {
+  const checkCreditsAvailable = async (requiredCredits: number = 1) => {
+    setIsChecking(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -45,6 +40,8 @@ export const useCreditsAndGeneration = () => {
         hasCredits: false,
         errorMessage: 'Failed to check credits availability'
       };
+    } finally {
+      setIsChecking(false);
     }
   };
 
@@ -77,7 +74,18 @@ export const useCreditsAndGeneration = () => {
     requiredCredits: number = 1
   ): Promise<T | null> => {
     try {
-      setIsChecking(true);
+      // First check if credits are available
+      const { hasCredits, errorMessage } = await checkCreditsAvailable(requiredCredits);
+      
+      if (!hasCredits) {
+        toast({
+          title: "Insufficient Credits",
+          description: errorMessage || "Please upgrade to continue generating",
+          variant: "destructive",
+        });
+        return null;
+      }
+
       // Generate the content
       const { success, data, error } = await generateFn();
       
@@ -95,9 +103,12 @@ export const useCreditsAndGeneration = () => {
       return data as T;
     } catch (error) {
       console.error('Generation error:', error);
-      throw error; // Let the caller handle the error
-    } finally {
-      setIsChecking(false);
+      toast({
+        title: "Generation Failed",
+        description: error instanceof Error ? error.message : "Something went wrong",
+        variant: "destructive",
+      });
+      return null;
     }
   };
 

@@ -51,15 +51,7 @@ const AdGalleryStep = ({
     adVariants,
     generationStatus,
     generateAds,
-    destroy,
   } = useAdGeneration();
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      destroy();
-    };
-  }, [destroy]);
 
   useEffect(() => {
     const initializeAds = async () => {
@@ -87,7 +79,7 @@ const AdGalleryStep = ({
     };
 
     initializeAds();
-  }, [platform, videoAdsEnabled, generateAds, adVariants.length, toast]);
+  }, [platform, videoAdsEnabled]);
 
   const onPlatformChange = async (newPlatform: "facebook" | "google" | "linkedin" | "tiktok") => {
     try {
