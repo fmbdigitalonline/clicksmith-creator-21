@@ -1,240 +1,70 @@
 
-import { BusinessIdea, TargetAudience, AdHook } from "@/types/adWizard";
+import { useState } from "react";
+import { BusinessIdea, TargetAudience } from "@/types/adWizard";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useQueryClient } from "@tanstack/react-query";
-import { useNavigate, useParams } from "react-router-dom";
-import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useCreditsAndGeneration } from "@/hooks/useCreditsAndGeneration";
 
-export const useAdGeneration = (
-  businessIdea: BusinessIdea,
-  targetAudience: TargetAudience,
-  adHooks: AdHook[]
-) => {
+export const useAdGeneration = () => {
   const [isGenerating, setIsGenerating] = useState(false);
-  const [adVariants, setAdVariants] = useState<any[]>([]);
-  const [regenerationCount, setRegenerationCount] = useState(0);
-  const [generationStatus, setGenerationStatus] = useState<string>("");
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const navigate = useNavigate();
-  const { projectId } = useParams();
+  const { generateWithCredits } = useCreditsAndGeneration();
 
-  // Check credits on mount and when credits change
-  const { data: creditCheck } = useQuery({
-    queryKey: ['credit-check'],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return null;
+  const generateAds = async (businessIdea: BusinessIdea, targetAudience: TargetAudience) => {
+    setIsGenerating(true);
+    setError(null);
 
-      const { data, error } = await supabase.rpc(
-        'check_user_credits',
-        { p_user_id: user.id, required_credits: 1 }
-      );
+    const result = await generateWithCredits(
+      async () => {
+        try {
+          const { data, error: functionError } = await supabase.functions.invoke(
+            'generate-ad-content',
+            {
+              body: {
+                businessIdea,
+                targetAudience,
+                timestamp: new Date().getTime()
+              }
+            }
+          );
 
-      if (error) throw error;
-      return data[0];
-    },
-    refetchInterval: 5000, // Check every 5 seconds
-  });
+          if (functionError) {
+            throw functionError;
+          }
 
-  // Redirect to pricing if no credits available
-  useEffect(() => {
-    if (creditCheck && !creditCheck.has_credits) {
-      toast({
-        title: "No credits available",
-        description: creditCheck.error_message,
-        variant: "destructive",
-      });
-      navigate('/pricing');
-    }
-  }, [creditCheck, navigate, toast]);
+          if (!data || !Array.isArray(data.ads)) {
+            throw new Error('Invalid response format from server');
+          }
 
-  // Load saved ad variants when component mounts
-  useEffect(() => {
-    const loadSavedAds = async () => {
-      if (projectId && projectId !== 'new') {
-        const { data: project } = await supabase
-          .from('projects')
-          .select('generated_ads')
-          .eq('id', projectId)
-          .single();
-        
-        if (project?.generated_ads && Array.isArray(project.generated_ads)) {
-          setAdVariants(project.generated_ads);
+          return { success: true, data: data.ads };
+        } catch (error) {
+          console.error('Error generating ads:', error);
+          const errorMessage = error instanceof Error ? error.message : 'Failed to generate ads';
+          return { success: false, error: errorMessage };
         }
-      }
-    };
-
-    loadSavedAds();
-  }, [projectId]);
-
-  const checkCredits = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('User not authenticated');
-
-    const { data: creditCheck, error } = await supabase.rpc(
-      'check_user_credits',
-      { p_user_id: user.id, required_credits: 1 }
+      },
+      1 // Required credits for generation
     );
 
-    if (error) throw error;
-
-    const result = creditCheck[0];
+    setIsGenerating(false);
     
-    if (!result.has_credits) {
-      toast({
-        title: "No credits available",
-        description: result.error_message,
-        variant: "destructive",
-      });
-      navigate('/pricing');
-      return false;
+    if (!result) {
+      setError('Failed to generate ads');
+      return null;
     }
 
-    return true;
-  };
+    toast({
+      title: "Ads Generated Successfully",
+      description: "Your ads have been created and credits have been deducted.",
+    });
 
-  const generateAds = async (selectedPlatform: string) => {
-    setIsGenerating(true);
-    setGenerationStatus("Checking credits availability...");
-    
-    try {
-      const hasCredits = await checkCredits();
-      if (!hasCredits) {
-        setIsGenerating(false);
-        return;
-      }
-
-      setGenerationStatus(`Initializing ${selectedPlatform} ad generation...`);
-      
-      const { data, error } = await supabase.functions.invoke('generate-ad-content', {
-        body: {
-          type: 'complete_ads',
-          platform: selectedPlatform,
-          businessIdea,
-          targetAudience: {
-            ...targetAudience,
-            name: targetAudience.name,
-            description: targetAudience.description,
-            demographics: targetAudience.demographics,
-            painPoints: targetAudience.painPoints
-          },
-          adHooks,
-        },
-      });
-
-      if (error) throw error;
-
-      console.log('Generation response:', data);
-      const variants = validateResponse(data);
-
-      setGenerationStatus("Processing generated content...");
-      
-      const processedVariants = await Promise.all(variants.map(async (variant: any) => {
-        if (!variant.imageUrl) {
-          console.warn('Variant missing imageUrl:', variant);
-          return null;
-        }
-
-        try {
-          const { data: imageVariant, error: storeError } = await supabase
-            .from('ad_image_variants')
-            .insert({
-              original_image_url: variant.imageUrl,
-              resized_image_urls: variant.resizedUrls || {},
-              user_id: (await supabase.auth.getUser()).data.user?.id,
-              project_id: projectId !== 'new' ? projectId : null
-            })
-            .select()
-            .single();
-
-          if (storeError) {
-            console.error('Error storing image variant:', storeError);
-            return null;
-          }
-
-          const newVariant = {
-            ...variant,
-            id: imageVariant.id,
-            imageUrl: variant.imageUrl,
-            resizedUrls: variant.resizedUrls || {},
-            platform: selectedPlatform
-          };
-
-          if (projectId && projectId !== 'new') {
-            const updatedVariants = [...adVariants, newVariant];
-            
-            const { error: updateError } = await supabase
-              .from('projects')
-              .update({
-                generated_ads: updatedVariants
-              })
-              .eq('id', projectId);
-
-            if (updateError) {
-              console.error('Error updating project:', updateError);
-            }
-          }
-
-          return newVariant;
-        } catch (error) {
-          console.error('Error processing variant:', error);
-          throw error;
-        }
-      }));
-
-      const validVariants = processedVariants.filter(Boolean);
-      
-      setAdVariants(prev => {
-        const filteredPrev = prev.filter(v => v.platform !== selectedPlatform);
-        return [...filteredPrev, ...validVariants];
-      });
-      
-      setRegenerationCount(prev => prev + 1);
-      
-      // Force refresh credits
-      await queryClient.invalidateQueries({ queryKey: ['credit-check'] });
-      await queryClient.invalidateQueries({ queryKey: ['credits'] });
-      await queryClient.invalidateQueries({ queryKey: ['subscription'] });
-      await queryClient.invalidateQueries({ queryKey: ['free_tier_usage'] });
-      
-      toast({
-        title: "Ads generated successfully",
-        description: "Your new ad variants are ready!",
-      });
-    } catch (error: any) {
-      console.error('Ad generation error:', error);
-      toast({
-        title: "Error generating ads",
-        description: error.message || "Failed to generate ads. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsGenerating(false);
-      setGenerationStatus("");
-    }
-  };
-
-  const validateResponse = (data: any) => {
-    if (!data) {
-      throw new Error("No data received from generation");
-    }
-
-    const variants = data.variants;
-    if (!Array.isArray(variants) || variants.length === 0) {
-      throw new Error("Invalid or empty variants received");
-    }
-
-    return variants;
+    return result;
   };
 
   return {
     isGenerating,
-    adVariants,
-    regenerationCount,
-    generationStatus,
+    error,
     generateAds,
   };
 };
