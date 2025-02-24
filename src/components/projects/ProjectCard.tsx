@@ -101,7 +101,7 @@ const ProjectCard = ({ project, onUpdate, onStartAdWizard, showProgress = false,
 
   const getStatusText = () => {
     if (project.generated_ads?.length > 0) {
-      return "Ads Generated";
+      return "Complete";
     }
     if (project.current_step > 1) {
       return `Step ${project.current_step} of 4`;
@@ -152,12 +152,13 @@ const ProjectCard = ({ project, onUpdate, onStartAdWizard, showProgress = false,
           )}
 
           <Button 
-            onClick={onStartAdWizard}
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(`/projects/${project.id}`);
+            }}
             className="w-full mt-2 gap-2"
-            variant={project.generated_ads?.length > 0 ? "secondary" : "default"}
           >
-            {project.generated_ads?.length > 0 ? "View Generated Ads" : "Continue"}
-            <ArrowRight className="h-4 w-4" />
+            Edit Project <ArrowRight className="h-4 w-4" />
           </Button>
         </CardContent>
 
