@@ -9,8 +9,14 @@ import { useCreditsAndGeneration } from "@/hooks/useCreditsAndGeneration";
 interface AdVariant {
   platform: string;
   content: string;
-  // Add other properties as needed
   [key: string]: any;
+}
+
+// Define the GenerationResponse interface to match the expected type
+interface GenerationResponse {
+  success: boolean;
+  data?: AdVariant[];
+  error?: string;
 }
 
 export const useAdGeneration = () => {
@@ -21,22 +27,16 @@ export const useAdGeneration = () => {
   const { toast } = useToast();
   const { generateWithCredits } = useCreditsAndGeneration();
 
-  // Track the current request's AbortController
-  const abortControllerRef = useRef<AbortController | null>(null);
-  // Track the debounce timeout
-  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   // Track if component is mounted
   const isMountedRef = useRef(true);
+  // Track the debounce timeout
+  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Cleanup function
   const cleanup = () => {
     if (debounceTimeoutRef.current) {
       clearTimeout(debounceTimeoutRef.current);
       debounceTimeoutRef.current = null;
-    }
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-      abortControllerRef.current = null;
     }
   };
 
@@ -64,15 +64,11 @@ export const useAdGeneration = () => {
     // Cleanup any existing request
     cleanup();
 
-    // Create new AbortController for this request
-    abortControllerRef.current = new AbortController();
-    const signal = abortControllerRef.current.signal;
-
     // Clear any existing errors
     setError(null);
 
     // Start generation with debouncing
-    return new Promise((resolve) => {
+    return new Promise<AdVariant[] | null>((resolve) => {
       if (debounceTimeoutRef.current) {
         clearTimeout(debounceTimeoutRef.current);
       }
@@ -87,7 +83,7 @@ export const useAdGeneration = () => {
         
         try {
           const result = await generateWithCredits<AdVariant[]>(
-            async () => {
+            async (): Promise<GenerationResponse> => {
               try {
                 const { data, error: functionError } = await supabase.functions.invoke(
                   'generate-ad-content',
@@ -95,14 +91,9 @@ export const useAdGeneration = () => {
                     body: {
                       platform,
                       timestamp: new Date().getTime()
-                    },
-                    signal, // Pass the abort signal
+                    }
                   }
                 );
-
-                if (signal.aborted) {
-                  throw new Error('Request was cancelled');
-                }
 
                 if (functionError) {
                   throw functionError;
