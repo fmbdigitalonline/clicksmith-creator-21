@@ -5,124 +5,124 @@ import { TextCycler } from "@/components/TextCycler";
 import LandingNav from "@/components/LandingNav";
 import IndexFooter from "@/components/IndexFooter";
 
+const howItWorks = [
+  {
+    title: "Describe Your Idea",
+    description: "The first step is the easiest: just tell us about your business idea. Whether you're launching a new app, creating a subscription box, offering consulting services, or selling physical products, our AI understands it all. You don't need to be a marketing expert or have any technical knowledge—just describe your concept in plain language."
+  },
+  {
+    title: "AI Generates Your ICP",
+    description: "Once you've described your idea, our advanced AI algorithms go to work. Within seconds, you'll receive a detailed Ideal Customer Profile (ICP). This isn't just a generic list of demographics; it's a comprehensive analysis of who your target audience is, including their pain points, motivations, buying behaviors, and even the platforms they frequent most."
+  },
+  {
+    title: "Create Social Media Ads",
+    description: "After generating your ICP, our AI crafts tailored ad copy and visuals for multiple platforms, including Facebook, Instagram, LinkedIn, TikTok, Twitter, and Pinterest. Each ad is designed to capture attention and drive engagement, based on the preferences and behaviors of your ideal customer."
+  },
+  {
+    title: "Test & Validate",
+    description: "Now comes the fun part: testing your ideas in the real world. Use the generated ads to run low-cost campaigns on your chosen platforms. This allows you to gather real-world data and see which messages, visuals, and platforms drive the most engagement."
+  }
+];
+
+const features = [
+  {
+    icon: Target,
+    title: "Instant ICP Generation",
+    description: "Get a clear picture of your ideal customer in seconds. Our AI uses advanced algorithms and industry data to create highly accurate profiles."
+  },
+  {
+    icon: ArrowRightIcon,
+    title: "Multi-Platform Ad Creation",
+    description: "Tailored ads for Facebook, Instagram, LinkedIn, TikTok, Twitter, and Pinterest. Each ad is designed to capture attention and drive engagement."
+  },
+  {
+    icon: PieChart,
+    title: "A/B Testing Made Easy",
+    description: "Test multiple ad variations to see what works best. Our platform makes it simple to compare performance metrics."
+  },
+  {
+    icon: BarChart,
+    title: "Deep Audience Analysis",
+    description: "Gain comprehensive insights into your audience's behaviors, preferences, and pain points to create more targeted campaigns."
+  },
+  {
+    icon: DollarSign,
+    title: "Cost-Effective Validation",
+    description: "Save thousands on market research and ad testing. Validate your business idea on a small scale before investing heavily."
+  }
+];
+
+const painPoints = [
+  {
+    icon: Users,
+    title: "Not Sure Where to Start",
+    description: "Got a brilliant idea but don't know how to turn it into reality? Our platform guides you through each step of the validation process."
+  },
+  {
+    icon: Lightbulb,
+    title: "Fear of Failure",
+    description: "Worried about investing time and resources into an unproven idea? Test your concept with real people before making big commitments."
+  },
+  {
+    icon: DollarSign,
+    title: "Limited Resources",
+    description: "Don't let budget constraints hold you back. Our platform helps you validate your idea efficiently and affordably."
+  }
+];
+
+const testimonials = [
+  {
+    quote: "I used Viable to test my subscription box idea, and within a week, I knew exactly who my target audience was and which ads drove the most interest. It's a game-changer!",
+    author: "Sarah T.",
+    role: "Entrepreneur"
+  },
+  {
+    quote: "Before using Viable, I spent months trying to figure out my target market and crafting ads that didn't work. Now, I have a clear roadmap and proven strategies to grow my business.",
+    author: "John D.",
+    role: "Small Business Owner"
+  },
+  {
+    quote: "Running a small business means wearing many hats, and marketing was always my weakest area. Viable has given me the confidence to launch targeted campaigns without feeling overwhelmed.",
+    author: "Emily R.",
+    role: "Freelancer"
+  }
+];
+
+const faq = [
+  {
+    question: "How accurate is the ICP generation?",
+    answer: "Our AI uses advanced algorithms and industry data to create highly accurate customer profiles. However, we recommend supplementing with real-world testing for best results."
+  },
+  {
+    question: "Can I customize the generated ads?",
+    answer: "Absolutely! You can tweak the ad copy, visuals, and targeting to match your brand's voice and style."
+  },
+  {
+    question: "Which social media platforms are supported?",
+    answer: "We support Facebook, Instagram, LinkedIn, TikTok, Twitter, and Pinterest."
+  },
+  {
+    question: "Is there a free trial?",
+    answer: "Yes! You can generate free ICPs and ad sets to test the platform."
+  }
+];
+
+const concerns = [
+  {
+    title: "Will This Work For My Idea?",
+    description: "Whether it's a product, service, creative project, or community initiative - our platform helps validate any type of idea. You don't need any special expertise to get started."
+  },
+  {
+    title: "What If I'm Not Tech-Savvy?",
+    description: "Our platform is designed to be simple and intuitive. We guide you through each step with clear instructions and helpful tips. No technical knowledge required."
+  },
+  {
+    title: "Is It Worth The Investment?",
+    description: "Start for free and test your idea on a small scale. Our step-by-step process helps you validate your concept before making any significant time or financial commitments."
+  }
+];
+
 const Index = () => {
-  const howItWorks = [
-    {
-      title: "Describe Your Idea",
-      description: "The first step is the easiest: just tell us about your business idea. Whether you're launching a new app, creating a subscription box, offering consulting services, or selling physical products, our AI understands it all. You don't need to be a marketing expert or have any technical knowledge—just describe your concept in plain language."
-    },
-    {
-      title: "AI Generates Your ICP",
-      description: "Once you've described your idea, our advanced AI algorithms go to work. Within seconds, you'll receive a detailed Ideal Customer Profile (ICP). This isn't just a generic list of demographics; it's a comprehensive analysis of who your target audience is, including their pain points, motivations, buying behaviors, and even the platforms they frequent most."
-    },
-    {
-      title: "Create Social Media Ads",
-      description: "After generating your ICP, our AI crafts tailored ad copy and visuals for multiple platforms, including Facebook, Instagram, LinkedIn, TikTok, Twitter, and Pinterest. Each ad is designed to capture attention and drive engagement, based on the preferences and behaviors of your ideal customer."
-    },
-    {
-      title: "Test & Validate",
-      description: "Now comes the fun part: testing your ideas in the real world. Use the generated ads to run low-cost campaigns on your chosen platforms. This allows you to gather real-world data and see which messages, visuals, and platforms drive the most engagement."
-    }
-  ];
-
-  const features = [
-    {
-      icon: Target,
-      title: "Instant ICP Generation",
-      description: "Get a clear picture of your ideal customer in seconds. Our AI uses advanced algorithms and industry data to create highly accurate profiles."
-    },
-    {
-      icon: ArrowRightIcon,
-      title: "Multi-Platform Ad Creation",
-      description: "Tailored ads for Facebook, Instagram, LinkedIn, TikTok, Twitter, and Pinterest. Each ad is designed to capture attention and drive engagement."
-    },
-    {
-      icon: PieChart,
-      title: "A/B Testing Made Easy",
-      description: "Test multiple ad variations to see what works best. Our platform makes it simple to compare performance metrics."
-    },
-    {
-      icon: BarChart,
-      title: "Deep Audience Analysis",
-      description: "Gain comprehensive insights into your audience's behaviors, preferences, and pain points to create more targeted campaigns."
-    },
-    {
-      icon: DollarSign,
-      title: "Cost-Effective Validation",
-      description: "Save thousands on market research and ad testing. Validate your business idea on a small scale before investing heavily."
-    }
-  ];
-
-  const painPoints = [
-    {
-      icon: Users,
-      title: "Not Sure Where to Start",
-      description: "Got a brilliant idea but don't know how to turn it into reality? Our platform guides you through each step of the validation process."
-    },
-    {
-      icon: Lightbulb,
-      title: "Fear of Failure",
-      description: "Worried about investing time and resources into an unproven idea? Test your concept with real people before making big commitments."
-    },
-    {
-      icon: DollarSign,
-      title: "Limited Resources",
-      description: "Don't let budget constraints hold you back. Our platform helps you validate your idea efficiently and affordably."
-    }
-  ];
-
-  const testimonials = [
-    {
-      quote: "I used Viable to test my subscription box idea, and within a week, I knew exactly who my target audience was and which ads drove the most interest. It's a game-changer!",
-      author: "Sarah T.",
-      role: "Entrepreneur"
-    },
-    {
-      quote: "Before using Viable, I spent months trying to figure out my target market and crafting ads that didn't work. Now, I have a clear roadmap and proven strategies to grow my business.",
-      author: "John D.",
-      role: "Small Business Owner"
-    },
-    {
-      quote: "Running a small business means wearing many hats, and marketing was always my weakest area. Viable has given me the confidence to launch targeted campaigns without feeling overwhelmed.",
-      author: "Emily R.",
-      role: "Freelancer"
-    }
-  ];
-
-  const faq = [
-    {
-      question: "How accurate is the ICP generation?",
-      answer: "Our AI uses advanced algorithms and industry data to create highly accurate customer profiles. However, we recommend supplementing with real-world testing for best results."
-    },
-    {
-      question: "Can I customize the generated ads?",
-      answer: "Absolutely! You can tweak the ad copy, visuals, and targeting to match your brand's voice and style."
-    },
-    {
-      question: "Which social media platforms are supported?",
-      answer: "We support Facebook, Instagram, LinkedIn, TikTok, Twitter, and Pinterest."
-    },
-    {
-      question: "Is there a free trial?",
-      answer: "Yes! You can generate free ICPs and ad sets to test the platform."
-    }
-  ];
-
-  const concerns = [
-    {
-      title: "Will This Work For My Idea?",
-      description: "Whether it's a product, service, creative project, or community initiative - our platform helps validate any type of idea. You don't need any special expertise to get started."
-    },
-    {
-      title: "What If I'm Not Tech-Savvy?",
-      description: "Our platform is designed to be simple and intuitive. We guide you through each step with clear instructions and helpful tips. No technical knowledge required."
-    },
-    {
-      title: "Is It Worth The Investment?",
-      description: "Start for free and test your idea on a small scale. Our step-by-step process helps you validate your concept before making any significant time or financial commitments."
-    }
-  ];
-
   return (
     <div className="min-h-screen">
       <LandingNav />
@@ -175,7 +175,7 @@ const Index = () => {
           <div className="aspect-video bg-black/5 rounded-lg overflow-hidden mb-8">
             <iframe 
               className="w-full h-full"
-              src="https://www.youtube.com/embed/rS3xVI2PWsI"
+              src="https://www.youtube.com/embed/rS3xVI2PWsI?rel=0&loop=1&playlist=rS3xVI2PWsI"
               title="Product Demo"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
