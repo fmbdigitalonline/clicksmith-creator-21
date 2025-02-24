@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { Activity } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -42,7 +41,7 @@ const CreditsCard = () => {
         }
 
         const usedGenerations = freeUsage?.generations_used || 0;
-        return 3 - usedGenerations; // Changed from 12 to 3
+        return 12 - usedGenerations; // 12 is the free tier limit
       }
 
       return subscription?.credits_remaining || 0;
