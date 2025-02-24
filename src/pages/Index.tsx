@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { ArrowRight, CheckCircle, MessageCircle, BadgeCheck, Target, ArrowRight as ArrowRightIcon, Lightbulb, PieChart, DollarSign, Users, BarChart, Rocket, Globe } from "lucide-react";
@@ -175,7 +176,7 @@ const Index = () => {
           <div className="aspect-video bg-black/5 rounded-lg overflow-hidden mb-8">
             <iframe 
               className="w-full h-full"
-              src="https://www.youtube.com/embed/rS3xVI2PWsI?rel=0&loop=1&playlist=rS3xVI2PWsI"
+              src="https://www.youtube.com/embed/rS3xVI2PWsI?rel=0&loop=1&autoplay=1&mute=1&playlist=rS3xVI2PWsI"
               title="Product Demo"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
