@@ -17,7 +17,7 @@ export async function deepeek({ businessIdea, targetAudience, apiKey, version = 
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: "gpt-4",
+        model: "gpt-4o-mini-2024-07-18",
         messages: [
           {
             role: "system",
