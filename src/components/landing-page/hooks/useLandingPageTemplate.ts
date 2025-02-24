@@ -63,6 +63,8 @@ export const useLandingPageTemplate = () => {
 
       if (error) throw error;
 
+      console.log("Raw template data:", JSON.stringify(rawData, null, 2));
+
       const defaultStructure = {
         sections: {
           hero: { type: "hero", components: [], layout: "default" },
@@ -106,17 +108,28 @@ export const useLandingPageTemplate = () => {
         }
       };
 
+      // Parse the structure more carefully to preserve all content
+      let parsedStructure;
+      try {
+        parsedStructure = typeof rawData.structure === 'object' && rawData.structure !== null
+          ? {
+              sections: (rawData.structure as any).sections || defaultStructure.sections,
+              styles: (rawData.structure as any).styles || defaultStructure.styles
+            }
+          : defaultStructure;
+
+        console.log("Parsed structure:", JSON.stringify(parsedStructure, null, 2));
+      } catch (parseError) {
+        console.error("Error parsing template structure:", parseError);
+        parsedStructure = defaultStructure;
+      }
+
       // Create the template with proper type checking
       const template: LandingPageTemplate = {
         id: rawData.id,
         name: rawData.name,
         description: rawData.description,
-        structure: typeof rawData.structure === 'object' && rawData.structure !== null
-          ? {
-              sections: (rawData.structure as any).sections || defaultStructure.sections,
-              styles: (rawData.structure as any).styles || defaultStructure.styles
-            }
-          : defaultStructure
+        structure: parsedStructure
       };
 
       return template;
