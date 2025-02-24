@@ -5,10 +5,18 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useCreditsAndGeneration } from "@/hooks/useCreditsAndGeneration";
 
+// Define interface for ad variants
+interface AdVariant {
+  platform: string;
+  content: string;
+  // Add other properties as needed
+  [key: string]: any;
+}
+
 export const useAdGeneration = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [adVariants, setAdVariants] = useState<any[]>([]);
+  const [adVariants, setAdVariants] = useState<AdVariant[]>([]);
   const [generationStatus, setGenerationStatus] = useState<string>("");
   const { toast } = useToast();
   const { generateWithCredits } = useCreditsAndGeneration();
@@ -18,7 +26,7 @@ export const useAdGeneration = () => {
     setError(null);
     setGenerationStatus("Generating ads...");
 
-    const result = await generateWithCredits(
+    const result = await generateWithCredits<AdVariant[]>(
       async () => {
         try {
           const { data, error: functionError } = await supabase.functions.invoke(
@@ -57,6 +65,7 @@ export const useAdGeneration = () => {
       return null;
     }
 
+    // Now TypeScript knows result is AdVariant[]
     setAdVariants(result);
     
     toast({
