@@ -8,10 +8,11 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import LoadingStateLandingPage from "./LoadingStateLandingPage";
-import { Loader2, History } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { HeroSection } from "./components/HeroSection";
 import { SocialProofSection } from "./components/SocialProofSection";
 import { DynamicSection } from "./components/DynamicSection";
+import { LandingPageSection } from "@/types/landingPage";
 
 interface GenerationProgress {
   status: string;
@@ -138,6 +139,17 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
     }
   };
 
+  const renderSection = (section: LandingPageSection) => {
+    switch (section.type) {
+      case 'hero':
+        return <HeroSection key={section.type} content={section.content} theme={landingPage.content.theme} />;
+      case 'social-proof':
+        return <SocialProofSection key={section.type} content={section.content} theme={landingPage.content.theme} />;
+      default:
+        return <DynamicSection key={section.type} section={section} theme={landingPage.content.theme} />;
+    }
+  };
+
   if (isTemplateLoading) {
     return <LoadingStateLandingPage />;
   }
@@ -157,21 +169,19 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
                   Version {landingPage.version}
                 </span>
               )}
-              <div className="flex gap-2">
-                <Button 
-                  onClick={generateLandingPageContent}
-                  disabled={isGenerating}
-                >
-                  {isGenerating ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      {generationProgress.status}
-                    </>
-                  ) : (
-                    "Generate New Version"
-                  )}
-                </Button>
-              </div>
+              <Button 
+                onClick={generateLandingPageContent}
+                disabled={isGenerating}
+              >
+                {isGenerating ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {generationProgress.status}
+                  </>
+                ) : (
+                  "Generate New Version"
+                )}
+              </Button>
             </div>
           </div>
 
@@ -188,18 +198,7 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
         <TabsContent value="preview" className="mt-0">
           {landingPage?.content?.sections ? (
             <div className="divide-y divide-gray-200">
-              {landingPage.content.sections
-                .sort((a: any, b: any) => a.order - b.order)
-                .map((section: any) => {
-                  switch (section.type) {
-                    case 'hero':
-                      return <HeroSection key={section.type} content={section.content} />;
-                    case 'social-proof':
-                      return <SocialProofSection key={section.type} content={section.content} />;
-                    default:
-                      return <DynamicSection key={section.type} section={section} />;
-                  }
-                })}
+              {landingPage.content.sections.map((section: LandingPageSection) => renderSection(section))}
             </div>
           ) : (
             <div className="text-center py-16">
@@ -225,3 +224,4 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
 };
 
 export default LandingPageContent;
+

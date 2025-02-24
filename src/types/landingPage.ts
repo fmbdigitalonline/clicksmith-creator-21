@@ -75,57 +75,25 @@ export interface ThemeSettings {
   };
 }
 
-export interface LandingPageContent {
-  hero?: {
-    title: string;
-    description: string;
-    cta: string;
-    image?: string;
+export interface LandingPageSection {
+  type: string;
+  content: any;
+  layout?: {
+    width?: 'contained' | 'narrow' | 'full';
+    spacing?: 'compact' | 'normal' | 'spacious';
+    style?: 'split' | 'columns' | 'grid';
+    background?: 'plain' | 'gradient';
   };
-  howItWorks?: {
-    subheadline: string;
-    steps: Array<{
-      title: string;
-      description: string;
-    }>;
-    valueReinforcement: string;
-  };
-  marketAnalysis?: {
-    context: string;
-    solution: string;
-    painPoints: Array<{
-      title: string;
-      description: string;
-    }>;
-    features: Array<{
-      title: string;
-      description: string;
-    }>;
-    socialProof: {
-      quote: string;
-      author: string;
-      title: string;
+  style?: {
+    colorScheme?: 'light' | 'dark';
+    typography?: {
+      headingSize?: 'normal' | 'large' | 'xlarge';
     };
   };
-  objections?: {
-    subheadline: string;
-    concerns: Array<{
-      question: string;
-      answer: string;
-    }>;
-  };
-  faq?: {
-    subheadline: string;
-    questions: Array<{
-      question: string;
-      answer: string;
-    }>;
-  };
-  footerContent?: {
-    contact: string;
-    newsletter: string;
-    copyright: string;
-  };
+}
+
+export interface LandingPageContent {
+  sections: LandingPageSection[];
   theme?: ThemeSettings;
 }
 

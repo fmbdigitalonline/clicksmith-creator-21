@@ -1,6 +1,7 @@
 
 import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ThemeSettings } from "@/types/landingPage";
 
 interface FeatureItem {
   title: string;
@@ -14,10 +15,27 @@ interface FeatureGridProps {
   layout: {
     style?: 'grid' | 'columns';
   };
+  theme?: ThemeSettings;
 }
 
-export const FeatureGrid = ({ items, layout }: FeatureGridProps) => {
+export const FeatureGrid = ({ items, layout, theme }: FeatureGridProps) => {
   if (!items?.length) return null;
+
+  const getHeadingClasses = () => {
+    return cn(
+      "text-xl font-bold",
+      theme?.typography?.scale?.h3,
+      theme?.colorScheme?.text && `text-${theme.colorScheme.text}`
+    );
+  };
+
+  const getDescriptionClasses = () => {
+    return cn(
+      "text-gray-600 dark:text-gray-300",
+      theme?.typography?.scale?.body,
+      theme?.colorScheme?.muted && `text-${theme.colorScheme.muted}`
+    );
+  };
 
   return (
     <div className={cn(
@@ -29,16 +47,28 @@ export const FeatureGrid = ({ items, layout }: FeatureGridProps) => {
       {items.map((item, index) => (
         <div 
           key={index} 
-          className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-200 transform hover:scale-105 animate-fade-in"
+          className={cn(
+            "rounded-xl p-6 transition-all duration-200 transform hover:scale-105 animate-fade-in",
+            theme?.style?.shadowStrength === 'strong' && "shadow-2xl",
+            theme?.style?.shadowStrength === 'medium' && "shadow-xl",
+            theme?.style?.shadowStrength === 'light' && "shadow-md",
+            theme?.colorScheme?.background ? `bg-${theme.colorScheme.background}` : "bg-white dark:bg-gray-800"
+          )}
           style={{ animationDelay: `${index * 100}ms` }}
         >
-          <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">{item.title}</h3>
-          <p className="text-gray-600 dark:text-gray-300 mb-4">{item.description}</p>
+          <h3 className={getHeadingClasses()}>{item.title}</h3>
+          <p className={getDescriptionClasses()}>{item.description}</p>
           {item.details && (
             <div className="mt-4 space-y-2">
               {item.details.map((detail, dIndex) => (
-                <p key={dIndex} className="text-gray-500 dark:text-gray-400 text-sm flex items-center">
-                  <Check className="h-4 w-4 text-primary mr-2" />
+                <p key={dIndex} className={cn(
+                  "text-sm flex items-center",
+                  theme?.colorScheme?.muted ? `text-${theme.colorScheme.muted}` : "text-gray-500 dark:text-gray-400"
+                )}>
+                  <Check className={cn(
+                    "h-4 w-4 mr-2",
+                    theme?.colorScheme?.primary ? `text-${theme.colorScheme.primary}` : "text-primary"
+                  )} />
                   {detail}
                 </p>
               ))}
@@ -49,7 +79,12 @@ export const FeatureGrid = ({ items, layout }: FeatureGridProps) => {
               {item.highlights.map((highlight, hIndex) => (
                 <span 
                   key={hIndex} 
-                  className="inline-block bg-primary/10 text-primary px-3 py-1 rounded-full text-sm"
+                  className={cn(
+                    "inline-block px-3 py-1 rounded-full text-sm",
+                    theme?.colorScheme?.primary 
+                      ? `bg-${theme.colorScheme.primary}/10 text-${theme.colorScheme.primary}`
+                      : "bg-primary/10 text-primary"
+                  )}
                 >
                   {highlight}
                 </span>
@@ -61,3 +96,4 @@ export const FeatureGrid = ({ items, layout }: FeatureGridProps) => {
     </div>
   );
 };
+

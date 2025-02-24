@@ -4,10 +4,10 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import { BulletPointsList } from "./BulletPointsList";
 import { FeatureGrid } from "./FeatureGrid";
-import { ThemeSettings } from "@/types/landingPage";
+import { ThemeSettings, LandingPageSection } from "@/types/landingPage";
 
 interface DynamicSectionProps {
-  section: any;
+  section: LandingPageSection;
   theme?: ThemeSettings;
 }
 
@@ -132,7 +132,11 @@ export const DynamicSection = ({ section, theme }: DynamicSectionProps) => {
           {/* Feature Grid */}
           {section.content?.items && (
             <div className={cn(!section.content?.mainDescription && "mt-0")}>
-              <FeatureGrid items={section.content.items} layout={section.layout} theme={theme} />
+              <FeatureGrid 
+                items={section.content.items} 
+                layout={section.layout || {}} 
+                theme={theme} 
+              />
             </div>
           )}
 
