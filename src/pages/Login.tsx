@@ -32,6 +32,7 @@ const Login = () => {
   const { toast } = useToast();
   const [isSignUp, setIsSignUp] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isResetMode, setIsResetMode] = useState(false);
 
   const form = useForm<FormData>({
     defaultValues: {
@@ -41,9 +42,39 @@ const Login = () => {
     }
   });
 
+  const handlePasswordReset = async (email: string) => {
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Password Reset Email Sent",
+        description: "Check your email for the password reset link.",
+      });
+      setIsResetMode(false);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const onSubmit = async (data: FormData) => {
     setIsLoading(true);
     try {
+      if (isResetMode) {
+        await handlePasswordReset(data.email);
+        return;
+      }
+
       if (isSignUp) {
         const { data: signUpData, error } = await supabase.auth.signUp({
           email: data.email,
@@ -92,12 +123,15 @@ const Login = () => {
           <Card className="w-full max-w-md p-8 space-y-6">
             <div className="space-y-2 text-center">
               <h1 className="text-2xl font-semibold tracking-tight">
-                {isSignUp ? "Create an account" : "Welcome back"}
+                {isResetMode ? "Reset Password" : (isSignUp ? "Create an account" : "Welcome back")}
               </h1>
               <p className="text-sm text-muted-foreground">
-                {isSignUp 
-                  ? "Enter your email to create your account" 
-                  : "Enter your email to sign in to your account"
+                {isResetMode 
+                  ? "Enter your email to reset your password"
+                  : (isSignUp 
+                    ? "Enter your email to create your account" 
+                    : "Enter your email to sign in to your account"
+                  )
                 }
               </p>
             </div>
@@ -136,58 +170,61 @@ const Login = () => {
                   )}
                 />
                 
-                <FormField
-                  control={form.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Password</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                          <Input 
-                            type="password" 
-                            placeholder="Enter your password"
-                            {...field}
-                            className="pl-10"
-                          />
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <div className="flex items-center justify-between">
+                {!isResetMode && (
                   <FormField
                     control={form.control}
-                    name="rememberMe"
+                    name="password"
                     render={({ field }) => (
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id="rememberMe"
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                        <label
-                          htmlFor="rememberMe"
-                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                        >
-                          Remember me
-                        </label>
-                      </div>
+                      <FormItem>
+                        <FormLabel>Password</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                            <Input 
+                              type="password" 
+                              placeholder="Enter your password"
+                              {...field}
+                              className="pl-10"
+                            />
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
                     )}
                   />
-                  
-                  {!isSignUp && (
-                    <Link
-                      to="/reset-password"
+                )}
+
+                {!isResetMode && (
+                  <div className="flex items-center justify-between">
+                    <FormField
+                      control={form.control}
+                      name="rememberMe"
+                      render={({ field }) => (
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            id="rememberMe"
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                          <label
+                            htmlFor="rememberMe"
+                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                          >
+                            Remember me
+                          </label>
+                        </div>
+                      )}
+                    />
+                    
+                    <button
+                      type="button"
+                      onClick={() => setIsResetMode(true)}
                       className="text-sm font-medium text-primary hover:underline"
                     >
                       Forgot password?
-                    </Link>
-                  )}
-                </div>
+                    </button>
+                  </div>
+                )}
 
                 <Button
                   type="submit"
@@ -197,10 +234,14 @@ const Login = () => {
                   {isLoading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      {isSignUp ? "Creating account..." : "Signing in..."}
+                      {isResetMode 
+                        ? "Sending reset link..." 
+                        : (isSignUp ? "Creating account..." : "Signing in...")}
                     </>
                   ) : (
-                    <>{isSignUp ? "Create account" : "Sign in"}</>
+                    <>{isResetMode 
+                      ? "Send Reset Link" 
+                      : (isSignUp ? "Create account" : "Sign in")}</>
                   )}
                 </Button>
               </form>
@@ -217,17 +258,28 @@ const Login = () => {
               </div>
             </div>
 
-            <div className="text-center">
-              <Button
-                variant="outline"
-                type="button"
-                className="w-full"
-                onClick={() => setIsSignUp(!isSignUp)}
-              >
-                {isSignUp 
-                  ? "Already have an account? Sign in" 
-                  : "Don't have an account? Sign up"}
-              </Button>
+            <div className="text-center space-y-2">
+              {isResetMode ? (
+                <Button
+                  variant="outline"
+                  type="button"
+                  className="w-full"
+                  onClick={() => setIsResetMode(false)}
+                >
+                  Back to sign in
+                </Button>
+              ) : (
+                <Button
+                  variant="outline"
+                  type="button"
+                  className="w-full"
+                  onClick={() => setIsSignUp(!isSignUp)}
+                >
+                  {isSignUp 
+                    ? "Already have an account? Sign in" 
+                    : "Don't have an account? Sign up"}
+                </Button>
+              )}
             </div>
 
             <Alert className="bg-accent/5 border-accent/10">
