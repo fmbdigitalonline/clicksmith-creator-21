@@ -1,3 +1,4 @@
+
 import { Configuration, OpenAIApi } from "https://esm.sh/openai@3.2.1";
 
 interface ContentGenerationParams {
@@ -20,7 +21,7 @@ interface ContentGenerationParams {
   iterationNumber?: number;
 }
 
-export const generateContent = async (params: ContentGenerationParams) => {
+const generateLandingPageContent = async (businessIdea: any, targetAudience: any) => {
   const configuration = new Configuration({
     apiKey: Deno.env.get("OPENAI_API_KEY"),
   });
@@ -28,12 +29,12 @@ export const generateContent = async (params: ContentGenerationParams) => {
 
   const prompt = `Generate landing page content for a business with the following details:
 
-Business Idea: ${params.businessIdea.description}
-Value Proposition: ${params.businessIdea.valueProposition}
-Target Audience: ${params.targetAudience.description}
-Core Message: ${params.targetAudience.coreMessage}
-Pain Points: ${params.targetAudience.painPoints.join(", ")}
-Marketing Angle: ${params.targetAudience.marketingAngle}
+Business Idea: ${businessIdea.description}
+Value Proposition: ${businessIdea.valueProposition}
+Target Audience: ${targetAudience.description}
+Core Message: ${targetAudience.coreMessage}
+Pain Points: ${targetAudience.painPoints.join(", ")}
+Marketing Angle: ${targetAudience.marketingAngle}
 
 Create compelling content for a landing page that includes:
 1. A hero section with a headline, description, and call-to-action
@@ -43,11 +44,11 @@ Create compelling content for a landing page that includes:
 5. FAQ items (3-4 questions and answers)
 6. A final call-to-action section
 
-Make the content ${params.iterationNumber && params.iterationNumber > 1 ? "more compelling and refined than previous versions" : "compelling and persuasive"}. Focus on addressing the pain points and using the specified marketing angle.`;
+Make the content compelling and persuasive. Focus on addressing the pain points and using the specified marketing angle.`;
 
   try {
     const completion = await openai.createChatCompletion({
-      model: "gpt-4",
+      model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
@@ -71,4 +72,9 @@ Make the content ${params.iterationNumber && params.iterationNumber > 1 ? "more 
     console.error("Error generating content:", error);
     throw error;
   }
+};
+
+// Export the functionality as an object named 'deepeek'
+export const deepeek = {
+  generateLandingPageContent
 };

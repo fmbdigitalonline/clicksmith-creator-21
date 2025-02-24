@@ -23,6 +23,8 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
+    console.log('Starting landing page generation for project:', projectId);
+
     // Create a new generation log entry
     const { data: logEntry, error: logError } = await supabase
       .from('landing_page_generation_logs')
@@ -49,6 +51,8 @@ serve(async (req) => {
     const newVersion = (latestVersion?.version || 0) + 1;
     const previousVersionId = latestVersion?.id;
 
+    console.log('Generating content for version:', newVersion);
+
     // Start generating content
     await supabase
       .from('landing_page_generation_logs')
@@ -59,6 +63,8 @@ serve(async (req) => {
       .eq('id', logEntry.id);
 
     const content = await deepeek.generateLandingPageContent(businessIdea, targetAudience);
+
+    console.log('Content generated successfully');
 
     // Create new landing page version
     const { data: newLandingPage, error: insertError } = await supabase
@@ -77,6 +83,8 @@ serve(async (req) => {
       .single();
 
     if (insertError) throw insertError;
+
+    console.log('New landing page version created:', newLandingPage.id);
 
     // Update log with success
     await supabase
