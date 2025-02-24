@@ -77,11 +77,12 @@ export const CreditDisplay = () => {
     }
 
     if (subscription?.credits_remaining !== undefined) {
-      return `${subscription.credits_remaining} credits`;
+      const credits = Math.max(0, subscription.credits_remaining);
+      return `${credits} credits`;
     }
     
     const freeUsed = freeUsage?.generations_used || 0;
-    const freeRemaining = 3 - freeUsed;
+    const freeRemaining = Math.max(0, 3 - freeUsed);
     return `${freeRemaining}/3 free generations`;
   };
 

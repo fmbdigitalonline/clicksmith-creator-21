@@ -42,10 +42,11 @@ const CreditsCard = () => {
         }
 
         const usedGenerations = freeUsage?.generations_used || 0;
-        return 3 - usedGenerations; // 3 is the free tier limit
+        const remainingCredits = Math.max(0, 3 - usedGenerations); // Ensure non-negative
+        return remainingCredits;
       }
 
-      return subscription?.credits_remaining || 0;
+      return Math.max(0, subscription?.credits_remaining || 0); // Ensure non-negative
     },
     refetchInterval: 5000, // Refresh every 5 seconds
     refetchOnWindowFocus: true,
