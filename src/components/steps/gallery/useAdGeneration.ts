@@ -41,7 +41,7 @@ export const useAdGeneration = () => {
   };
 
   // Function to handle network errors with exponential backoff
-  const handleNetworkError = (error: any, retryCount: number = 0) => {
+  const handleNetworkError = async (error: any, retryCount: number = 0): Promise<GenerationResponse> => {
     const isNetworkError = error.message?.includes('network') || error.message?.includes('fetch');
     const maxRetries = 3;
     const baseDelay = 1000; // 1 second
@@ -49,7 +49,9 @@ export const useAdGeneration = () => {
     if (isNetworkError && retryCount < maxRetries) {
       const delay = baseDelay * Math.pow(2, retryCount);
       console.log(`Retrying after ${delay}ms (attempt ${retryCount + 1}/${maxRetries})`);
-      return new Promise((resolve) => setTimeout(resolve, delay));
+      await new Promise((resolve) => setTimeout(resolve, delay));
+      // Return a proper GenerationResponse to trigger a retry
+      return { success: false, error: 'Retrying due to network error' };
     }
     throw error;
   };
@@ -109,9 +111,12 @@ export const useAdGeneration = () => {
                 
                 // Handle network errors with retry
                 if (error instanceof Error) {
-                  await handleNetworkError(error, retryCount++);
-                  // If we get here, retry the request
-                  return generateAds(platform);
+                  const retryResponse = await handleNetworkError(error, retryCount++);
+                  if (!retryResponse.success) {
+                    // If we need to retry, recursively call generateAds
+                    const newAttempt = await generateAds(platform);
+                    return { success: true, data: newAttempt || undefined };
+                  }
                 }
 
                 const errorMessage = error instanceof Error ? error.message : 'Failed to generate ads';
