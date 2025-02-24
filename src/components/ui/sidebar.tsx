@@ -108,9 +108,14 @@ export function SidebarGroup({ children }: { children: React.ReactNode }) {
   return <div className="px-3">{children}</div>
 }
 
-export function SidebarGroupLabel({ children }: { children: React.ReactNode }) {
+interface SidebarGroupLabelProps {
+  children: React.ReactNode;
+  className?: string;
+}
+
+export function SidebarGroupLabel({ children, className }: SidebarGroupLabelProps) {
   return (
-    <div className="mb-2 px-2 text-xs font-semibold uppercase text-muted-foreground">
+    <div className={cn("mb-2 px-2 text-xs font-semibold uppercase text-muted-foreground", className)}>
       {children}
     </div>
   )
