@@ -11,14 +11,23 @@ interface ContentGenerationParams {
     coreMessage: string;
     marketingAngle: string;
   };
+  projectImages?: string[];
   iterationNumber?: number;
 }
 
-const generateLandingPageContent = async (businessIdea: ContentGenerationParams['businessIdea'], targetAudience: ContentGenerationParams['targetAudience']) => {
+const generateLandingPageContent = async (
+  businessIdea: ContentGenerationParams['businessIdea'], 
+  targetAudience: ContentGenerationParams['targetAudience'],
+  projectImages: string[] = []
+) => {
   const apiKey = Deno.env.get("OPENAI_API_KEY");
   if (!apiKey) throw new Error("OpenAI API key not found");
 
-  console.log('Preparing landing page content generation...');
+  console.log('Preparing landing page content generation with images:', projectImages);
+
+  const imageContext = projectImages.length 
+    ? `Use these image URLs in appropriate sections: ${projectImages.join(", ")}`
+    : "No images provided, leave imageUrl fields empty";
 
   const prompt = `Generate landing page content for a business with the following details:
 
@@ -28,8 +37,9 @@ Target Audience: ${targetAudience.description}
 Core Message: ${targetAudience.coreMessage}
 Pain Points: ${targetAudience.painPoints.join(", ")}
 Marketing Angle: ${targetAudience.marketingAngle}
+${imageContext}
 
-Create sections for a landing page in the following JSON structure exactly as specified:
+Create sections for a landing page in the following JSON structure:
 
 {
   "sections": [
@@ -37,12 +47,12 @@ Create sections for a landing page in the following JSON structure exactly as sp
       "type": "hero",
       "order": 1,
       "content": {
-        "title": "compelling headline that grabs attention",
-        "subtitle": "persuasive description that explains the value",
-        "imageUrl": "",
+        "title": "compelling headline focusing on main value proposition",
+        "subtitle": "persuasive description emphasizing benefits",
+        "imageUrl": "first project image URL if available",
         "primaryCta": {
-          "text": "call to action button text",
-          "description": "brief description under the button"
+          "text": "action-oriented button text",
+          "description": "motivation to click"
         }
       }
     },
@@ -50,12 +60,14 @@ Create sections for a landing page in the following JSON structure exactly as sp
       "type": "features",
       "order": 2,
       "content": {
-        "title": "section title",
-        "subtitle": "section description",
+        "title": "section highlighting key benefits",
+        "subtitle": "benefit-focused description",
         "items": [
           {
-            "title": "feature 1 title",
-            "description": "feature 1 description"
+            "title": "feature name",
+            "description": "feature benefit",
+            "details": ["3-4 bullet points about this feature"],
+            "highlights": ["2-3 key terms"]
           }
         ]
       }
@@ -64,13 +76,13 @@ Create sections for a landing page in the following JSON structure exactly as sp
       "type": "social-proof",
       "order": 3,
       "content": {
-        "title": "What Our Customers Say",
-        "subtitle": "Hear from people who have experienced our solution",
+        "title": "Social Proof Section",
+        "subtitle": "Build trust with testimonials",
         "testimonials": [
           {
-            "quote": "testimonial text",
+            "quote": "compelling testimonial focused on benefits",
             "author": "customer name",
-            "role": "customer role/title"
+            "role": "relevant role/title"
           }
         ]
       }
@@ -78,7 +90,7 @@ Create sections for a landing page in the following JSON structure exactly as sp
   ]
 }
 
-Make the content compelling and persuasive. Focus on addressing the pain points and using the specified marketing angle. Return ONLY the JSON object, no markdown or code blocks.`;
+Make the content compelling and persuasive. Focus on addressing the pain points and using the specified marketing angle. Include bullet points and feature highlights. Return ONLY valid JSON.`;
 
   try {
     console.log('Making request to OpenAI API...');
@@ -90,11 +102,11 @@ Make the content compelling and persuasive. Focus on addressing the pain points 
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
+        model: "gpt-4",
         messages: [
           {
             role: "system",
-            content: "You are an expert copywriter specializing in landing page content that converts. Return ONLY valid JSON matching the exact structure requested, without any markdown or code blocks.",
+            content: "You are an expert copywriter specializing in landing page content that converts. Return ONLY valid JSON matching the exact structure requested.",
           },
           {
             role: "user",
@@ -118,26 +130,42 @@ Make the content compelling and persuasive. Focus on addressing the pain points 
       throw new Error("No content generated");
     }
 
-    // Clean up the content string to remove any potential markdown or code block markers
+    // Clean up the content string
     const cleanContent = content
       .replace(/```json\n?/g, '')
       .replace(/```\n?/g, '')
       .trim();
 
-    console.log('Content generated successfully');
-    try {
-      return JSON.parse(cleanContent);
-    } catch (parseError) {
-      console.error('Error parsing JSON:', cleanContent);
-      throw new Error('Failed to parse generated content as JSON');
+    // Parse and enhance the content with project images
+    const parsedContent = JSON.parse(cleanContent);
+    
+    // Inject project images if available
+    if (projectImages.length > 0) {
+      // Use first image for hero section
+      if (parsedContent.sections[0]?.type === 'hero') {
+        parsedContent.sections[0].content.imageUrl = projectImages[0];
+      }
+      
+      // Distribute remaining images across feature sections
+      const featuresSection = parsedContent.sections.find(s => s.type === 'features');
+      if (featuresSection && featuresSection.content.items) {
+        featuresSection.content.items.forEach((item, index) => {
+          if (projectImages[index + 1]) {
+            item.imageUrl = projectImages[index + 1];
+          }
+        });
+      }
     }
+
+    console.log('Content generated successfully');
+    return parsedContent;
   } catch (error) {
     console.error("Error generating content:", error);
     throw error;
   }
 };
 
-// Export the functionality as an object named 'deepeek'
+// Export the functionality
 export const deepeek = {
   generateLandingPageContent
 };

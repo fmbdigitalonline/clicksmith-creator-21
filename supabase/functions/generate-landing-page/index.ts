@@ -30,6 +30,28 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
+    // Fetch project images from ad_feedback
+    const { data: imageData, error: imageError } = await supabase
+      .from('ad_feedback')
+      .select('imageurl, saved_images')
+      .eq('project_id', projectId)
+      .not('imageurl', 'is', null);
+
+    if (imageError) {
+      console.error('Error fetching project images:', imageError);
+    }
+
+    // Collect all available images
+    const projectImages = imageData?.reduce((acc: string[], item) => {
+      if (item.imageurl) acc.push(item.imageurl);
+      if (item.saved_images && Array.isArray(item.saved_images)) {
+        acc.push(...item.saved_images);
+      }
+      return acc;
+    }, []) || [];
+
+    console.log('Found project images:', projectImages);
+
     // Create a new generation log entry
     const { data: logEntry, error: logError } = await supabase
       .from('landing_page_generation_logs')
@@ -67,7 +89,7 @@ serve(async (req) => {
       })
       .eq('id', logEntry.id);
 
-    const content = await deepeek.generateLandingPageContent(businessIdea, targetAudience);
+    const content = await deepeek.generateLandingPageContent(businessIdea, targetAudience, projectImages);
 
     console.log('Content generated successfully');
 
