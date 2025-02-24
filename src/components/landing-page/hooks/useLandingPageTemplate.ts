@@ -63,8 +63,6 @@ export const useLandingPageTemplate = () => {
 
       if (error) throw error;
 
-      const data = rawData as DatabaseTemplate;
-      
       const defaultStructure = {
         sections: {
           hero: { type: "hero", components: [], layout: "default" },
@@ -110,13 +108,13 @@ export const useLandingPageTemplate = () => {
 
       // Create the template with proper type checking
       const template: LandingPageTemplate = {
-        id: data.id,
-        name: data.name,
-        description: data.description,
-        structure: typeof data.structure === 'object' && data.structure !== null
+        id: rawData.id,
+        name: rawData.name,
+        description: rawData.description,
+        structure: typeof rawData.structure === 'object' && rawData.structure !== null
           ? {
-              sections: data.structure.sections || defaultStructure.sections,
-              styles: data.structure.styles || defaultStructure.styles
+              sections: (rawData.structure as any).sections || defaultStructure.sections,
+              styles: (rawData.structure as any).styles || defaultStructure.styles
             }
           : defaultStructure
       };
