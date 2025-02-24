@@ -1,3 +1,4 @@
+
 import { useAdWizardState } from "@/hooks/useAdWizardState";
 import IdeaStep from "./steps/BusinessIdeaStep";
 import AudienceStep from "./steps/AudienceStep";
@@ -14,8 +15,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 import { Loader2 } from "lucide-react";
 import StepLoadingState from "./steps/LoadingState";
-import { useQuery } from "@tanstack/react-query";
-import { useToast } from "@/hooks/use-toast";
 
 const AdWizard = () => {
   const [showCreateProject, setShowCreateProject] = useState(false);
@@ -23,69 +22,7 @@ const AdWizard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
   const { projectId } = useParams();
-  const { toast } = useToast();
   
-  const { data: user } = useQuery({
-    queryKey: ["user"],
-    queryFn: async () => {
-      const { data: { user }, error } = await supabase.auth.getUser();
-      if (error) throw error;
-      return user;
-    }
-  });
-
-  // Query to check credits
-  const { data: credits, isLoading: isLoadingCredits } = useQuery({
-    queryKey: ["credits", user?.id],
-    queryFn: async () => {
-      if (!user?.id) return 0;
-
-      // Check if user is admin
-      if (user.email === 'info@fmbonline.nl') {
-        return -1; // Special value for unlimited credits
-      }
-
-      const { data: subscription } = await supabase
-        .from("subscriptions")
-        .select("credits_remaining")
-        .eq("user_id", user.id)
-        .eq("active", true)
-        .maybeSingle();
-
-      if (subscription?.credits_remaining) {
-        return subscription.credits_remaining;
-      }
-
-      const { data: freeUsage } = await supabase
-        .from("free_tier_usage")
-        .select("generations_used")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      const usedGenerations = freeUsage?.generations_used || 0;
-      return Math.max(0, 3 - usedGenerations);
-    },
-    enabled: !!user?.id,
-    refetchInterval: 5000
-  });
-
-  // Immediate credit check and redirect
-  useEffect(() => {
-    if (!isLoadingCredits && credits === 0) {
-      toast({
-        title: "No credits remaining",
-        description: "Please upgrade your plan to continue generating ads.",
-        variant: "destructive",
-      });
-      navigate('/pricing');
-    }
-  }, [credits, isLoadingCredits, navigate, toast]);
-
-  // Block rendering if no credits
-  if (!isLoadingCredits && credits === 0) {
-    return null; // Return nothing while redirecting to pricing page
-  }
-
   const {
     currentStep,
     businessIdea,
@@ -150,7 +87,7 @@ const AdWizard = () => {
     // Disabled for now - will be implemented in future
   };
 
-  if (isLoading || isLoadingCredits) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
