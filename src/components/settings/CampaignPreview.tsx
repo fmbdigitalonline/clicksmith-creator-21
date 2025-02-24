@@ -54,7 +54,13 @@ export const CampaignPreview = () => {
         throw error;
       }
 
-      return data as Campaign[];
+      // Transform the data to match the Campaign interface
+      return (data ?? []).map(campaign => ({
+        ...campaign,
+        objective: campaign.objective || null,
+        target_audience: campaign.target_audience || null,
+        performance_metrics: campaign.performance_metrics || null
+      })) as Campaign[];
     },
   });
 
