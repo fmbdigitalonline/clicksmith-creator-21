@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -115,7 +116,6 @@ async function determineBusinessCategory(businessDescription: string): Promise<s
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -138,6 +138,21 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // First, fetch the project title
+    const { data: project, error: projectError } = await supabase
+      .from('projects')
+      .select('title')
+      .eq('id', projectId)
+      .single();
+
+    if (projectError) {
+      throw new Error('Failed to fetch project details');
+    }
+
+    if (!project?.title) {
+      throw new Error('Project title not found');
+    }
+
     // Log generation attempt
     await supabase
       .from('landing_page_generation_logs')
@@ -148,13 +163,11 @@ serve(async (req) => {
         step_details: { stage: 'started' }
       });
 
-    // Determine business category
     const category = await determineBusinessCategory(businessIdea.description);
     console.log('Determined business category:', category);
 
     const theme = businessThemes[category] || businessThemes.technology;
 
-    // Generate landing page content
     const content = {
       theme,
       sections: [
@@ -178,12 +191,13 @@ serve(async (req) => {
       ]
     };
 
-    // Update landing page
+    // Update landing page with title
     const { data: landingPage, error: updateError } = await supabase
       .from('landing_pages')
       .upsert({
         project_id: projectId,
         user_id: userId,
+        title: project.title, // Add the title from the project
         content,
         theme_settings: theme,
         version: 1
