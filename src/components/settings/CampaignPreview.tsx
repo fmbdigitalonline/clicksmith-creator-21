@@ -14,16 +14,22 @@ interface Campaign {
   id: string;
   name: string;
   status: string;
-  daily_budget: number;
+  budget: number; // Changed from daily_budget to match DB schema
   start_date: string;
   end_date: string;
-  objective: string;
-  target_audience: any;
+  objective: string | null; // Made optional
+  target_audience: any | null; // Made optional
   performance_metrics: {
     impressions?: number;
     clicks?: number;
     spend?: number;
-  };
+  } | null; // Made optional
+  platform: 'facebook' | 'google' | 'linkedin' | 'tiktok';
+  platform_campaign_id: string | null;
+  project_id: string | null;
+  created_at: string;
+  updated_at: string;
+  user_id: string | null;
 }
 
 export const CampaignPreview = () => {
@@ -98,7 +104,7 @@ export const CampaignPreview = () => {
                         <div className="text-right">
                           <p className="text-sm font-medium">Daily Budget</p>
                           <p className="text-lg font-semibold">
-                            ${campaign.daily_budget}
+                            ${campaign.budget}
                           </p>
                         </div>
                         <ChartBar className="h-8 w-8 text-primary" />
@@ -120,7 +126,7 @@ export const CampaignPreview = () => {
                       <Target className="h-4 w-4 text-primary" />
                       <Label>Objective</Label>
                     </div>
-                    <p className="text-sm">{selectedCampaign.objective}</p>
+                    <p className="text-sm">{selectedCampaign.objective || 'Not set'}</p>
                   </div>
 
                   <div className="space-y-2">
@@ -129,7 +135,7 @@ export const CampaignPreview = () => {
                       <Label>Budget</Label>
                     </div>
                     <p className="text-sm">
-                      ${selectedCampaign.daily_budget} per day
+                      ${selectedCampaign.budget} per day
                     </p>
                   </div>
 
@@ -139,8 +145,8 @@ export const CampaignPreview = () => {
                       <Label>Duration</Label>
                     </div>
                     <p className="text-sm">
-                      {format(new Date(selectedCampaign.start_date), 'PP')} -{' '}
-                      {format(new Date(selectedCampaign.end_date), 'PP')}
+                      {selectedCampaign.start_date ? format(new Date(selectedCampaign.start_date), 'PP') : 'Not set'} -{' '}
+                      {selectedCampaign.end_date ? format(new Date(selectedCampaign.end_date), 'PP') : 'Not set'}
                     </p>
                   </div>
 
