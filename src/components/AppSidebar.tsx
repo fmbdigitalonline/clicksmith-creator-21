@@ -23,12 +23,15 @@ import {
 import { Button } from "./ui/button";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { cn } from "@/lib/utils";
+import { useSidebar } from "@/components/ui/sidebar";
 
 export function AppSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const currentPath = location.pathname;
   const [isAdmin, setIsAdmin] = useState(false);
+  const { isCollapsed } = useSidebar();
 
   useEffect(() => {
     const checkAdminStatus = async () => {
@@ -84,15 +87,21 @@ export function AppSidebar() {
   };
 
   return (
-    <Sidebar>
+    <Sidebar className="hidden sm:block">
       <SidebarContent>
-        <div className="px-4 py-4">
+        <div className={cn(
+          "px-4 py-4",
+          isCollapsed ? "px-2" : "px-4"
+        )}>
           <Button 
-            className="w-full bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary"
+            className={cn(
+              "w-full bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary",
+              isCollapsed && "p-2"
+            )}
             onClick={handleStartClick}
           >
             <PlusCircle className="mr-2 h-4 w-4" />
-            Start
+            {!isCollapsed && <span>Start</span>}
           </Button>
         </div>
         <SidebarGroup>
@@ -104,12 +113,12 @@ export function AppSidebar() {
                   <SidebarMenuButton
                     asChild
                     isActive={isActive(item.url)}
-                    tooltip={item.title}
+                    tooltip={isCollapsed ? item.title : undefined}
                   >
                     <Link to={item.url} className="flex items-center gap-2">
                       <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
-                      {isActive(item.url) && (
+                      {!isCollapsed && <span>{item.title}</span>}
+                      {isActive(item.url) && !isCollapsed && (
                         <ChevronRight className="ml-auto h-4 w-4" />
                       )}
                     </Link>
