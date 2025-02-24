@@ -228,7 +228,7 @@ const Dashboard = () => {
             <img 
               src="photo-1488590528505-98d2b5aba04b" 
               alt="Dashboard Hero"
-              className="w-full h-full object-cover opacity-10"
+              className="w-full h-full object-cover opacity-5"
             />
             <div className="absolute inset-0 bg-gradient-to-r from-primary/40 to-transparent" />
           </div>
