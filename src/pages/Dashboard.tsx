@@ -411,51 +411,6 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Recent Landing Pages */}
-        <div className="grid gap-4 mb-8">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold flex items-center gap-2">
-              <Globe className="h-6 w-6 text-primary" />
-              Recent Landing Pages
-            </h2>
-            <Button variant="ghost" className="gap-2" onClick={() => navigate("/landing-pages")}>
-              View All <ArrowRight className="h-4 w-4" />
-            </Button>
-          </div>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {recentLandingPages?.map((page) => (
-              <Card key={page.id} className="hover:shadow-md transition-shadow">
-                <CardHeader>
-                  <CardTitle className="text-lg">{page.title}</CardTitle>
-                  <CardDescription>
-                    Updated {formatDistanceToNow(new Date(page.updated_at), { addSuffix: true })}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => navigate(`/projects/${page.project_id}/landing-page`)}
-                    >
-                      <Pencil className="h-4 w-4 mr-1" /> Edit
-                    </Button>
-                    {page.published && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => window.open(`/preview/${page.id}`, '_blank')}
-                      >
-                        <Eye className="h-4 w-4 mr-1" /> Preview
-                      </Button>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-
         {/* Resources, Help & Share */}
         <div className="grid gap-4 md:grid-cols-3">
           <Card className="bg-gradient-to-br from-background to-muted/50">
