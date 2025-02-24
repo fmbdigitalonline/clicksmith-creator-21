@@ -1,138 +1,61 @@
-
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { useEffect } from "react";
+import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/toaster";
-import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
-import { AppLayout } from "@/components/layout/AppLayout";
-import { SidebarProvider } from "@/components/ui/sidebar";
-import { OnboardingDialog } from "@/components/onboarding/OnboardingDialog";
-import Login from "@/pages/Login";
-import Terms from "@/pages/Terms";
-import Privacy from "@/pages/Privacy";
-import Projects from "@/pages/Projects";
-import Settings from "@/pages/Settings";
-import Pricing from "@/pages/Pricing";
-import Contact from "@/pages/Contact";
-import FAQ from "@/pages/FAQ";
-import AdWizard from "@/components/AdWizard";
-import Dashboard from "@/pages/Dashboard";
-import { SavedAdsGallery } from "@/components/gallery/SavedAdsGallery";
+import { supabase } from "@/integrations/supabase/client";
+import { useStore } from "@/lib/store";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import Index from "@/pages/Index";
-import Referral from "@/pages/Referral";
-import Affiliate from "@/pages/Affiliate";
-import Share from "@/pages/Share";
-import BlogAdmin from "@/pages/BlogAdmin";
-import Blog from "@/pages/Blog";
-import BlogPost from "@/pages/BlogPost";
-import About from "@/pages/About";
-import Careers from "@/pages/Careers";
-import Help from "@/pages/Help";
+import Login from "@/pages/Login";
+import Dashboard from "@/pages/Dashboard";
+import ResetPassword from "@/pages/ResetPassword";
+
+const router = createBrowserRouter([
+  {
+    path: "/",
+    element: <Index />,
+  },
+  {
+    path: "/login",
+    element: <Login />,
+  },
+  {
+    path: "/dashboard",
+    element: <Dashboard />,
+  },
+  {
+    path: "/reset-password",
+    element: <ResetPassword />
+  },
+]);
 
 const queryClient = new QueryClient();
 
 function App() {
+  const setUser = useStore((state) => state.setUser);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, [setUser]);
+
   return (
     <QueryClientProvider client={queryClient}>
-      <SidebarProvider>
-        <Router>
-          <Routes>
-            {/* Public routes */}
-            <Route path="/login" element={<Login />} />
-            <Route path="/terms" element={<Terms />} />
-            <Route path="/privacy" element={<Privacy />} />
-            <Route path="/pricing" element={<Pricing />} />
-            <Route path="/contact" element={<Contact />} />
-            <Route path="/faq" element={<FAQ />} />
-            <Route path="/blog" element={<Blog />} />
-            <Route path="/blog/:slug" element={<BlogPost />} />
-            <Route path="/blog/category/:categorySlug" element={<Blog />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/careers" element={<Careers />} />
-            <Route path="/help" element={<Help />} />
-            <Route path="/" element={<Index />} />
-            
-            {/* Public routes for sharing and referrals */}
-            <Route path="/affiliate" element={<Affiliate />} />
-            <Route path="/referral" element={<Referral />} />
-            <Route path="/share" element={<Share />} />
-
-            {/* Protected routes */}
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <Dashboard />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/blog-admin"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <BlogAdmin />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/projects"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <Projects />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/projects/:projectId"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <Projects />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/settings"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <Settings />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/saved-ads"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <SavedAdsGallery />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/ad-wizard/:projectId"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <AdWizard />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-          <OnboardingDialog />
-          <Toaster />
-        </Router>
-      </SidebarProvider>
+      <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+        <RouterProvider router={router} />
+        <Toaster />
+      </ThemeProvider>
+      <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   );
 }
