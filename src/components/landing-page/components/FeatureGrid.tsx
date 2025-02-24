@@ -13,7 +13,9 @@ interface FeatureItem {
 interface FeatureGridProps {
   items: FeatureItem[];
   layout: {
-    style?: 'grid' | 'columns';
+    style?: 'split' | 'columns' | 'grid';
+    width?: 'contained' | 'narrow' | 'full';
+    spacing?: 'compact' | 'normal' | 'spacious';
   };
   theme?: ThemeSettings;
 }
