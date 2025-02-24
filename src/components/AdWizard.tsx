@@ -247,7 +247,8 @@ const AdWizard = () => {
             <TooltipContent>
               <p>Video Ads - Coming Soon!</p>
             </TooltipContent>
-          </TooltipProvider>
+          </Tooltip>
+        </TooltipProvider>
         <span className="text-sm text-gray-600">Video Ads</span>
         <span className="text-xs text-gray-500 italic ml-1">Coming Soon!</span>
       </div>
