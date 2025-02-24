@@ -179,6 +179,11 @@ export const useAdGeneration = (
       
       setRegenerationCount(prev => prev + 1);
       
+      // Invalidate credits query to force a refresh
+      queryClient.invalidateQueries({ queryKey: ['credits'] });
+      queryClient.invalidateQueries({ queryKey: ['subscription'] });
+      queryClient.invalidateQueries({ queryKey: ['free_tier_usage'] });
+      
       toast({
         title: "Ads generated successfully",
         description: "Your new ad variants are ready!",
