@@ -90,8 +90,8 @@ export function AppSidebar() {
     <Sidebar className="hidden sm:block">
       <SidebarContent>
         <div className={cn(
-          "px-4 py-4",
-          isCollapsed ? "px-2" : "px-4"
+          "p-2 sm:p-3 md:p-4",
+          isCollapsed && "p-2"
         )}>
           <Button 
             className={cn(
@@ -100,8 +100,8 @@ export function AppSidebar() {
             )}
             onClick={handleStartClick}
           >
-            <PlusCircle className="mr-2 h-4 w-4" />
-            {!isCollapsed && <span>Start</span>}
+            <PlusCircle className="h-4 w-4" />
+            {!isCollapsed && <span className="ml-2">Start</span>}
           </Button>
         </div>
         <SidebarGroup>
@@ -116,10 +116,12 @@ export function AppSidebar() {
                     tooltip={isCollapsed ? item.title : undefined}
                   >
                     <Link to={item.url} className="flex items-center gap-2">
-                      <item.icon className="h-4 w-4" />
-                      {!isCollapsed && <span>{item.title}</span>}
+                      <item.icon className="h-4 w-4 shrink-0" />
+                      {!isCollapsed && (
+                        <span className="truncate">{item.title}</span>
+                      )}
                       {isActive(item.url) && !isCollapsed && (
-                        <ChevronRight className="ml-auto h-4 w-4" />
+                        <ChevronRight className="ml-auto h-4 w-4 shrink-0" />
                       )}
                     </Link>
                   </SidebarMenuButton>
