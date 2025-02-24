@@ -29,46 +29,56 @@ Core Message: ${targetAudience.coreMessage}
 Pain Points: ${targetAudience.painPoints.join(", ")}
 Marketing Angle: ${targetAudience.marketingAngle}
 
-Create a JSON object with the following structure, without any markdown formatting or code blocks:
+Create sections for a landing page in the following JSON structure exactly as specified:
+
 {
-  "hero": {
-    "headline": "compelling headline",
-    "description": "persuasive description",
-    "cta": "call to action text"
-  },
-  "features": [
+  "sections": [
     {
-      "title": "feature title",
-      "description": "feature description"
-    }
-  ],
-  "benefits": [
+      "type": "hero",
+      "order": 1,
+      "content": {
+        "title": "compelling headline that grabs attention",
+        "subtitle": "persuasive description that explains the value",
+        "imageUrl": "",
+        "primaryCta": {
+          "text": "call to action button text",
+          "description": "brief description under the button"
+        }
+      }
+    },
     {
-      "title": "benefit title",
-      "description": "benefit description"
-    }
-  ],
-  "testimonials": [
+      "type": "features",
+      "order": 2,
+      "content": {
+        "title": "section title",
+        "subtitle": "section description",
+        "items": [
+          {
+            "title": "feature 1 title",
+            "description": "feature 1 description"
+          }
+        ]
+      }
+    },
     {
-      "quote": "testimonial text",
-      "author": "author name",
-      "title": "author title"
+      "type": "social-proof",
+      "order": 3,
+      "content": {
+        "title": "What Our Customers Say",
+        "subtitle": "Hear from people who have experienced our solution",
+        "testimonials": [
+          {
+            "quote": "testimonial text",
+            "author": "customer name",
+            "role": "customer role/title"
+          }
+        ]
+      }
     }
-  ],
-  "faq": [
-    {
-      "question": "question text",
-      "answer": "answer text"
-    }
-  ],
-  "finalCta": {
-    "headline": "final call to action headline",
-    "description": "final call to action description",
-    "buttonText": "button text"
-  }
+  ]
 }
 
-Make the content compelling and persuasive. Focus on addressing the pain points and using the specified marketing angle. Return ONLY the JSON object, without any additional text, markdown formatting, or code blocks.`;
+Make the content compelling and persuasive. Focus on addressing the pain points and using the specified marketing angle. Return ONLY the JSON object, no markdown or code blocks.`;
 
   try {
     console.log('Making request to OpenAI API...');
@@ -84,7 +94,7 @@ Make the content compelling and persuasive. Focus on addressing the pain points 
         messages: [
           {
             role: "system",
-            content: "You are an expert copywriter specializing in landing page content that converts. You must return ONLY valid JSON without any markdown formatting or code blocks.",
+            content: "You are an expert copywriter specializing in landing page content that converts. Return ONLY valid JSON matching the exact structure requested, without any markdown or code blocks.",
           },
           {
             role: "user",
