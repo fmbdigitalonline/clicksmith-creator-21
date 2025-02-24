@@ -173,10 +173,10 @@ const Index = () => {
       <section className="py-16 px-4 sm:px-6 lg:px-8 bg-accent/5">
         <div className="max-w-5xl mx-auto text-center">
           <h2 className="text-3xl font-bold mb-8">See How It Works</h2>
-          <div className="aspect-video bg-black rounded-lg overflow-hidden mb-8">
+          <div className="aspect-video bg-black/5 rounded-lg overflow-hidden mb-8">
             <iframe 
               className="w-full h-full"
-              src="https://www.youtube.com/embed/rS3xVI2PWsI"
+              src="https://www.youtube.com/embed/rS3xVI2PWsI?rel=0&loop=1&autoplay=1&mute=1&playlist=rS3xVI2PWsI"
               title="Product Demo"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen

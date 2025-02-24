@@ -6,10 +6,11 @@ import { Button } from "@/components/ui/button"
 import { ChevronLeft } from "lucide-react"
 import { createContext, useContext } from "react"
 
+// Changed cookie name to use only valid characters
 const SIDEBAR_COOKIE_NAME = "sidebar_state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
 const SIDEBAR_WIDTH = "12rem"
-const SIDEBAR_WIDTH_MOBILE = "10rem"
+const SIDEBAR_WIDTH_MOBILE = "14rem"
 const SIDEBAR_WIDTH_ICON = "3rem"
 const SIDEBAR_KEYBOARD_SHORTCUT = "b"
 
@@ -77,10 +78,8 @@ export function Sidebar({ children, className }: SidebarProps) {
   return (
     <aside
       className={cn(
-        "group/sidebar relative h-screen border-r bg-background pt-16 will-change-transform transition-all duration-300",
-        isCollapsed 
-          ? "w-[2.5rem] sm:w-[3rem]" 
-          : "w-[10rem] sm:w-[11rem] md:w-[12rem]",
+        "group/sidebar relative h-screen border-r bg-background pt-16 will-change-transform",
+        isCollapsed ? "w-[3rem]" : "w-[12rem] md:w-[12rem]",
         className
       )}
     >
@@ -110,12 +109,8 @@ export function SidebarGroup({ children }: { children: React.ReactNode }) {
 }
 
 export function SidebarGroupLabel({ children }: { children: React.ReactNode }) {
-  const { isCollapsed } = useSidebar()
   return (
-    <div className={cn(
-      "mb-2 px-2 text-xs font-semibold uppercase text-muted-foreground",
-      isCollapsed && "sr-only"
-    )}>
+    <div className="mb-2 px-2 text-xs font-semibold uppercase text-muted-foreground">
       {children}
     </div>
   )
@@ -158,7 +153,7 @@ export function SidebarMenuButton({
       variant={isActive ? "secondary" : "ghost"}
       className={cn(
         "w-full justify-start",
-        isCollapsed ? "px-2" : "px-3",
+        isCollapsed && "px-2",
         className
       )}
       {...props}

@@ -221,9 +221,9 @@ const Dashboard = () => {
   return (
     <>
       <OnboardingDialog />
-      <div className="container mx-auto p-3 sm:p-4 md:py-6">
+      <div className="container mx-auto px-4 py-6">
         {/* Welcome Section with Hero Image */}
-        <div className="relative mb-6 md:mb-8 rounded-lg overflow-hidden">
+        <div className="relative mb-8 rounded-lg overflow-hidden">
           <div className="absolute inset-0">
             <img 
               src="photo-1488590528505-98d2b5aba04b" 
@@ -232,18 +232,18 @@ const Dashboard = () => {
             />
             <div className="absolute inset-0 bg-gradient-to-r from-primary/40 to-transparent" />
           </div>
-          <div className="relative z-10 p-4 md:p-8">
-            <h1 className="text-3xl md:text-4xl font-bold mb-2">Welcome back, {userName}!</h1>
+          <div className="relative z-10 p-8">
+            <h1 className="text-4xl font-bold mb-2">Welcome back, {userName}!</h1>
             {lastAccessedProject && (
-              <p className="text-muted-foreground text-base md:text-lg">
+              <p className="text-muted-foreground text-lg">
                 Last accessed: {lastAccessedProject.title} {formatDistanceToNow(new Date(lastAccessedProject.updated_at), { addSuffix: true })}
               </p>
             )}
           </div>
         </div>
 
-        {/* Quick Actions */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mb-6 md:mb-8">
+        {/* Quick Actions with Enhanced Visual Design */}
+        <div className="grid gap-4 md:grid-cols-3 mb-8">
           <Card className="hover:shadow-lg transition-shadow cursor-pointer bg-gradient-to-br from-primary/5 to-primary/10" onClick={() => navigate("/ad-wizard/new")}>
             <CardHeader>
               <Lightbulb className="h-8 w-8 mb-2 text-primary" />
@@ -267,8 +267,8 @@ const Dashboard = () => {
           </Card>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mb-6 md:mb-8">
+        {/* Stats Cards with Enhanced Visual Design */}
+        <div className="grid gap-4 md:grid-cols-3 mb-8">
           <div className="bg-gradient-to-br from-background to-muted rounded-lg p-[1px]">
             <ProjectsCard />
           </div>
@@ -280,9 +280,9 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Message Board */}
-        <div className="mb-6 md:mb-8">
-          <h2 className="text-xl md:text-2xl font-bold mb-4 flex items-center gap-2">
+        {/* Message Board - Now using dynamic data */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
             <Bell className="h-5 w-5 text-primary" />
             Latest Updates
           </h2>
@@ -318,17 +318,17 @@ const Dashboard = () => {
         </div>
 
         {/* Recent Projects */}
-        <div className="grid gap-4 mb-6 md:mb-8">
+        <div className="grid gap-4 mb-8">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl md:text-2xl font-bold flex items-center gap-2">
-              <FolderOpen className="h-5 w-5 md:h-6 md:w-6 text-primary" />
+            <h2 className="text-2xl font-bold flex items-center gap-2">
+              <FolderOpen className="h-6 w-6 text-primary" />
               Recent Projects
             </h2>
             <Button variant="ghost" className="gap-2" onClick={() => navigate("/projects")}>
               View All <ArrowRight className="h-4 w-4" />
             </Button>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {recentProjects?.map((project) => (
               <Card 
                 key={project.id} 
@@ -376,17 +376,17 @@ const Dashboard = () => {
         </div>
 
         {/* Recent Saved Ads */}
-        <div className="grid gap-4 mb-6 md:mb-8">
+        <div className="grid gap-4 mb-8">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl md:text-2xl font-bold flex items-center gap-2">
-              <BookmarkCheck className="h-5 w-5 md:h-6 md:w-6 text-primary" />
+            <h2 className="text-2xl font-bold flex items-center gap-2">
+              <BookmarkCheck className="h-6 w-6 text-primary" />
               Recently Saved Ads
             </h2>
             <Button variant="ghost" className="gap-2" onClick={() => navigate("/saved-ads")}>
               View All <ArrowRight className="h-4 w-4" />
             </Button>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {recentSavedAds?.map((ad) => (
               <Card key={ad.id} className="hover:shadow-md transition-shadow">
                 <CardHeader>
@@ -412,17 +412,17 @@ const Dashboard = () => {
         </div>
 
         {/* Recent Landing Pages */}
-        <div className="grid gap-4 mb-6 md:mb-8">
+        <div className="grid gap-4 mb-8">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl md:text-2xl font-bold flex items-center gap-2">
-              <Globe className="h-5 w-5 md:h-6 md:w-6 text-primary" />
+            <h2 className="text-2xl font-bold flex items-center gap-2">
+              <Globe className="h-6 w-6 text-primary" />
               Recent Landing Pages
             </h2>
             <Button variant="ghost" className="gap-2" onClick={() => navigate("/landing-pages")}>
               View All <ArrowRight className="h-4 w-4" />
             </Button>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {recentLandingPages?.map((page) => (
               <Card key={page.id} className="hover:shadow-md transition-shadow">
                 <CardHeader>
@@ -456,8 +456,8 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Resources & Help Section */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {/* Resources, Help & Share */}
+        <div className="grid gap-4 md:grid-cols-3">
           <Card className="bg-gradient-to-br from-background to-muted/50">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">

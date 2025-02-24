@@ -11,7 +11,6 @@ import AdGenerationControls from "./gallery/AdGenerationControls";
 import { useEffect, useState } from "react";
 import { AdSizeSelector, AD_FORMATS } from "./gallery/components/AdSizeSelector";
 import { useToast } from "@/hooks/use-toast";
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 interface AdGalleryStepProps {
   businessIdea: BusinessIdea;
@@ -51,7 +50,7 @@ const AdGalleryStep = ({
     adVariants,
     generationStatus,
     generateAds,
-  } = useAdGeneration();
+  } = useAdGeneration(businessIdea, targetAudience, adHooks);
 
   useEffect(() => {
     const initializeAds = async () => {
@@ -60,18 +59,9 @@ const AdGalleryStep = ({
           await generateAds(platform);
         } catch (error) {
           console.error("Error generating initial ads:", error);
-          
-          let errorMessage = "There was an error generating your ads.";
-          let description = "Please try again or contact support if the issue persists.";
-          
-          if (error instanceof Error && error.message?.includes("NSFW content detected")) {
-            errorMessage = "Content Safety Alert";
-            description = "Our AI detected potentially inappropriate content in your request. Please modify your description to focus on appropriate, family-friendly content and try again.";
-          }
-          
           toast({
-            title: errorMessage,
-            description: description,
+            title: "Error generating ads",
+            description: "There was an error generating your ads. Please try again.",
             variant: "destructive",
           });
         }
@@ -100,18 +90,9 @@ const AdGalleryStep = ({
       await generateAds(newPlatform);
     } catch (error) {
       console.error("Error confirming platform change:", error);
-      
-      let errorMessage = "Error generating ads";
-      let description = "There was an error generating ads for the new platform. Please try again.";
-      
-      if (error instanceof Error && error.message?.includes("NSFW content detected")) {
-        errorMessage = "Content Safety Alert";
-        description = "Our AI detected potentially inappropriate content in your request. Please modify your description to focus on appropriate, family-friendly content and try again.";
-      }
-      
       toast({
-        title: errorMessage,
-        description: description,
+        title: "Error generating ads",
+        description: "There was an error generating ads for the new platform. Please try again.",
         variant: "destructive",
       });
     }
@@ -119,6 +100,7 @@ const AdGalleryStep = ({
 
   const onCancelPlatformChange = () => {
     const currentPlatform = cancelPlatformChange();
+    // Force update the PlatformTabs to stay on the current platform
     const tabsElement = document.querySelector(`[data-state="active"][value="${currentPlatform}"]`);
     if (tabsElement) {
       (tabsElement as HTMLElement).click();
@@ -134,18 +116,9 @@ const AdGalleryStep = ({
       await generateAds(platform);
     } catch (error) {
       console.error("Error regenerating ads:", error);
-      
-      let errorMessage = "Error regenerating ads";
-      let description = "There was an error regenerating your ads. Please try again.";
-      
-      if (error instanceof Error && error.message?.includes("NSFW content detected")) {
-        errorMessage = "Content Safety Alert";
-        description = "Our AI detected potentially inappropriate content in your request. Please modify your description to focus on appropriate, family-friendly content and try again.";
-      }
-      
       toast({
-        title: errorMessage,
-        description: description,
+        title: "Error regenerating ads",
+        description: "There was an error regenerating your ads. Please try again.",
         variant: "destructive",
       });
     }
@@ -161,7 +134,7 @@ const AdGalleryStep = ({
       </div>
       <PlatformContent
         platformName={platformName}
-        adVariants={adVariants}
+        adVariants={adVariants.filter(variant => variant.platform === platformName)}
         onCreateProject={onCreateProject}
         videoAdsEnabled={videoAdsEnabled}
         selectedFormat={selectedFormat}

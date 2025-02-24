@@ -10,24 +10,22 @@ export const AppLayout = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex h-screen">
       <AppSidebar />
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col">
         <Navigation />
-        <main className="flex-1 overflow-auto p-3 sm:p-4 md:p-6 mt-16">
-          <div className="flex items-center gap-2 mb-4 overflow-x-auto">
+        <main className="flex-1 overflow-auto p-6 mt-16">
+          <div className="flex items-center gap-2 mb-4">
             <Button
               variant="ghost"
               size="icon"
               onClick={() => navigate(-1)}
-              className="hover:bg-accent shrink-0"
+              className="hover:bg-accent"
             >
               <ChevronLeft className="h-4 w-4" />
               <span className="sr-only">Go back</span>
             </Button>
-            <div className="min-w-0 flex-1">
-              <BreadcrumbNav />
-            </div>
+            <BreadcrumbNav />
           </div>
           {children}
         </main>

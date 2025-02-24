@@ -1,234 +1,219 @@
-import { useState, useRef, useCallback } from "react";
-import { BusinessIdea, TargetAudience } from "@/types/adWizard";
+
+import { BusinessIdea, TargetAudience, AdHook } from "@/types/adWizard";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useCreditsAndGeneration } from "@/hooks/useCreditsAndGeneration";
+import { useQueryClient } from "@tanstack/react-query";
+import { useNavigate, useParams } from "react-router-dom";
+import { useState, useEffect } from "react";
 
-// Define interface for ad variants
-interface AdVariant {
-  platform: string;
-  content: string;
-  // Add other properties as needed
-  [key: string]: any;
-}
-
-interface GenerationResponse {
-  success: boolean;
-  data?: any;
-  error?: string;
-}
-
-interface GenerationState {
-  status: 'idle' | 'generating' | 'error';
-  message?: string;
-  type?: 'credits' | 'generation';
-}
-
-class InsufficientCreditsError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'InsufficientCreditsError';
-  }
-}
-
-export const useAdGeneration = () => {
-  const [generationState, setGenerationState] = useState<GenerationState>({ status: 'idle' });
-  const [adVariants, setAdVariants] = useState<AdVariant[]>([]);
+export const useAdGeneration = (
+  businessIdea: BusinessIdea,
+  targetAudience: TargetAudience,
+  adHooks: AdHook[]
+) => {
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [adVariants, setAdVariants] = useState<any[]>([]);
+  const [regenerationCount, setRegenerationCount] = useState(0);
+  const [generationStatus, setGenerationStatus] = useState<string>("");
   const { toast } = useToast();
-  const { generateWithCredits, checkCreditsAvailable } = useCreditsAndGeneration();
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const { projectId } = useParams();
 
-  const isMountedRef = useRef(true);
-  const debounceTimeoutRef = useRef<number | null>(null);
-
-  // Utility function to show toast messages
-  const showToast = useCallback((title: string, description: string, variant: "default" | "destructive" = "default") => {
-    toast({ title, description, variant });
-  }, [toast]);
-
-  // Function to handle network errors with retry logic
-  const handleNetworkError = async (error: Error, retryCount: number): Promise<GenerationResponse> => {
-    if (retryCount < 3 && error.message.includes('Network error')) {
-      console.log(`Retrying ad generation (attempt ${retryCount + 1})...`);
-      await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1))); // Exponential backoff
-      return { success: false, error: 'Retrying due to network error' };
-    } else {
-      return { success: false, error: 'Max retries reached or non-network error' };
-    }
-  };
-
-  const cleanup = () => {
-    isMountedRef.current = false;
-    if (debounceTimeoutRef.current) {
-      clearTimeout(debounceTimeoutRef.current);
-    }
-  };
-
-  const destroy = () => {
-    cleanup();
-  };
-
-  const generateAds = useCallback(async (platform: string) => {
-    // Don't start a new request if one is already in progress
-    if (generationState.status === 'generating') {
-      console.log('Generation already in progress, skipping request');
-      return null;
-    }
-
-    // Cleanup any existing request
-    cleanup();
-
-    // First, silently check credits without showing loading state
-    try {
-      const { hasCredits, errorMessage } = await checkCreditsAvailable(1);
-      
-      if (!hasCredits) {
-        setGenerationState({
-          status: 'error',
-          type: 'credits',
-          message: errorMessage || 'Insufficient credits'
-        });
+  // Load saved ad variants when component mounts
+  useEffect(() => {
+    const loadSavedAds = async () => {
+      console.log('Loading saved ads for project:', projectId);
+      if (projectId && projectId !== 'new') {
+        const { data: project } = await supabase
+          .from('projects')
+          .select('generated_ads')
+          .eq('id', projectId)
+          .single();
         
-        showToast(
-          "Insufficient Credits",
-          errorMessage || "Please upgrade to continue generating",
-          "destructive"
-        );
+        console.log('Loaded project data:', project);
         
-        return null;
+        if (project?.generated_ads && Array.isArray(project.generated_ads)) {
+          console.log('Setting ad variants from project:', project.generated_ads);
+          setAdVariants(project.generated_ads);
+        }
       }
-    } catch (error) {
-      console.error('Error checking credits:', error);
-      setGenerationState({
-        status: 'error',
-        type: 'credits',
-        message: 'Failed to check credits'
+    };
+
+    loadSavedAds();
+  }, [projectId]);
+
+  const checkCredits = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    const { data: creditCheck, error } = await supabase.rpc(
+      'check_user_credits',
+      { p_user_id: user.id, required_credits: 1 }
+    );
+
+    if (error) {
+      throw error;
+    }
+
+    const result = creditCheck[0];
+    
+    if (!result.has_credits) {
+      toast({
+        title: "No credits available",
+        description: result.error_message,
+        variant: "destructive",
       });
-      return null;
+      navigate('/pricing');
+      return false;
     }
 
-    // Start generation with debouncing
-    return new Promise<AdVariant[] | null>((resolve) => {
-      if (debounceTimeoutRef.current) {
-        clearTimeout(debounceTimeoutRef.current);
+    return true;
+  };
+
+  const generateAds = async (selectedPlatform: string) => {
+    setIsGenerating(true);
+    setGenerationStatus("Checking credits availability...");
+    
+    try {
+      const hasCredits = await checkCredits();
+      if (!hasCredits) {
+        setIsGenerating(false);
+        return;
       }
 
-      debounceTimeoutRef.current = setTimeout(async () => {
-        if (!isMountedRef.current) return null;
+      setGenerationStatus(`Initializing ${selectedPlatform} ad generation...`);
+      console.log('Generating ads for platform:', selectedPlatform, 'with target audience:', targetAudience);
+      
+      const { data, error } = await supabase.functions.invoke('generate-ad-content', {
+        body: {
+          type: 'complete_ads',
+          platform: selectedPlatform,
+          businessIdea,
+          targetAudience: {
+            ...targetAudience,
+            name: targetAudience.name,
+            description: targetAudience.description,
+            demographics: targetAudience.demographics,
+            painPoints: targetAudience.painPoints
+          },
+          adHooks,
+        },
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      console.log('Generation response:', data);
+      const variants = validateResponse(data);
+
+      setGenerationStatus("Processing generated content...");
+      
+      const processedVariants = await Promise.all(variants.map(async (variant: any) => {
+        if (!variant.imageUrl) {
+          console.warn('Variant missing imageUrl:', variant);
+          return null;
+        }
 
         try {
-          setGenerationState({
-            status: 'generating',
-            message: "Generating ads..."
-          });
+          const { data: imageVariant, error: storeError } = await supabase
+            .from('ad_image_variants')
+            .insert({
+              original_image_url: variant.imageUrl,
+              resized_image_urls: variant.resizedUrls || {},
+              user_id: (await supabase.auth.getUser()).data.user?.id,
+              project_id: projectId !== 'new' ? projectId : null
+            })
+            .select()
+            .single();
 
-          let retryCount = 0;
-          
-          const result = await generateWithCredits<AdVariant[]>(
-            async (): Promise<GenerationResponse> => {
-              try {
-                const { data, error: functionError } = await supabase.functions.invoke(
-                  'generate-ad-content',
-                  {
-                    body: {
-                      type: 'complete_ads', // Add the required type parameter
-                      platform,
-                      timestamp: new Date().getTime()
-                    }
-                  }
-                );
-
-                if (functionError) {
-                  throw functionError;
-                }
-
-                if (!data || !Array.isArray(data.ads)) {
-                  throw new Error('Invalid response format from server');
-                }
-
-                return { success: true, data: data.ads };
-              } catch (error) {
-                console.error('Error generating ads:', error);
-                
-                // Handle network errors with retry
-                if (error instanceof Error) {
-                  const retryResponse = await handleNetworkError(error, retryCount++);
-                  if (!retryResponse.success) {
-                    // If we need to retry, recursively call generateAds
-                    const newAttempt = await generateAds(platform);
-                    return { success: true, data: newAttempt || undefined };
-                  }
-                }
-
-                const errorMessage = error instanceof Error ? error.message : 'Failed to generate ads';
-                return { success: false, error: errorMessage };
-              }
-            },
-            1 // Required credits for generation
-          );
-
-          if (!isMountedRef.current) return null;
-
-          if (!result) {
-            setGenerationState({
-              status: 'error',
-              type: 'generation',
-              message: 'Failed to generate ads'
-            });
+          if (storeError) {
+            console.error('Error storing image variant:', storeError);
             return null;
           }
 
-          setAdVariants(result);
-          setGenerationState({ status: 'idle' });
-          
-          showToast(
-            "Ads Generated Successfully",
-            "Your ads have been created and credits have been deducted."
-          );
+          const newVariant = {
+            ...variant,
+            id: imageVariant.id,
+            imageUrl: variant.imageUrl,
+            resizedUrls: variant.resizedUrls || {},
+            platform: selectedPlatform
+          };
 
-          resolve(result);
-        } catch (error) {
-          if (!isMountedRef.current) return null;
+          // Save to project if we have a project ID
+          if (projectId && projectId !== 'new') {
+            // Merge new variants with existing ones
+            const updatedVariants = [...adVariants, newVariant];
+            console.log('Saving updated variants to project:', updatedVariants);
+            
+            const { error: updateError } = await supabase
+              .from('projects')
+              .update({
+                generated_ads: updatedVariants
+              })
+              .eq('id', projectId);
 
-          console.error('Final error in generation:', error);
-          const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
-          
-          setGenerationState({
-            status: 'error',
-            type: 'generation',
-            message: errorMessage
-          });
-          
-          if (!(error instanceof InsufficientCreditsError)) {
-            showToast(
-              "Generation Failed",
-              errorMessage,
-              "destructive"
-            );
+            if (updateError) {
+              console.error('Error updating project:', updateError);
+            }
           }
 
-          resolve(null);
+          return newVariant;
+        } catch (error) {
+          console.error('Error processing variant:', error);
+          throw error; // Let the error bubble up
         }
-      }, 500); // 500ms debounce delay
-    });
-  }, [generateWithCredits, generationState.status, showToast, checkCreditsAvailable]);
+      }));
 
-  const cleanup = () => {
-    isMountedRef.current = false;
-    if (debounceTimeoutRef.current) {
-      clearTimeout(debounceTimeoutRef.current);
+      // Filter out any null values and combine with existing variants
+      const validVariants = processedVariants.filter(Boolean);
+      console.log('Successfully processed variants:', validVariants);
+      
+      // Update state with new variants
+      setAdVariants(prev => {
+        // Remove old variants for the same platform
+        const filteredPrev = prev.filter(v => v.platform !== selectedPlatform);
+        return [...filteredPrev, ...validVariants];
+      });
+      
+      setRegenerationCount(prev => prev + 1);
+      
+      toast({
+        title: "Ads generated successfully",
+        description: "Your new ad variants are ready!",
+      });
+    } catch (error: any) {
+      console.error('Ad generation error:', error);
+      toast({
+        title: "Error generating ads",
+        description: error.message || "Failed to generate ads. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGenerating(false);
+      setGenerationStatus("");
     }
   };
 
-  const destroy = () => {
-    cleanup();
+  const validateResponse = (data: any) => {
+    if (!data) {
+      throw new Error("No data received from generation");
+    }
+
+    const variants = data.variants;
+    if (!Array.isArray(variants) || variants.length === 0) {
+      throw new Error("Invalid or empty variants received");
+    }
+
+    return variants;
   };
 
   return {
-    isGenerating: generationState.status === 'generating',
-    error: generationState.status === 'error' ? generationState.message : null,
+    isGenerating,
     adVariants,
-    generationStatus: generationState.status === 'generating' ? generationState.message : "",
+    regenerationCount,
+    generationStatus,
     generateAds,
-    destroy,
   };
 };

@@ -1460,17 +1460,6 @@ export type Database = {
               video_ad_preferences: Json | null
             }
           }
-      check_credits_available: {
-        Args: {
-          p_user_id: string
-          required_credits: number
-        }
-        Returns: {
-          has_credits: boolean
-          credits_remaining: number
-          error_message: string
-        }[]
-      }
       check_user_credits: {
         Args: {
           p_user_id: string
@@ -1484,17 +1473,6 @@ export type Database = {
       cleanup_stale_locks: {
         Args: Record<PropertyKey, never>
         Returns: undefined
-      }
-      deduct_generation_credits: {
-        Args: {
-          p_user_id: string
-          required_credits: number
-        }
-        Returns: {
-          success: boolean
-          credits_remaining: number
-          error_message: string
-        }[]
       }
       deduct_user_credits: {
         Args: {

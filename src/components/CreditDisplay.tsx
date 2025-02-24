@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -38,7 +37,7 @@ export const CreditDisplay = () => {
       return data;
     },
     enabled: !!user?.id,
-    refetchInterval: 5000,
+    refetchInterval: 5000, // Refetch every 5 seconds
     refetchOnWindowFocus: true,
   });
 
@@ -64,7 +63,7 @@ export const CreditDisplay = () => {
       return data;
     },
     enabled: !!user?.id,
-    refetchInterval: 5000,
+    refetchInterval: 5000, // Refetch every 5 seconds
     refetchOnWindowFocus: true,
   });
 
@@ -77,12 +76,12 @@ export const CreditDisplay = () => {
     }
 
     if (subscription?.credits_remaining !== undefined) {
-      return `${Math.max(0, subscription.credits_remaining)} credits`; // Ensure non-negative
+      return `${subscription.credits_remaining} credits`;
     }
     
-    const freeUsed = Math.min(freeUsage?.generations_used || 0, 3); // Cap at 3
-    const freeRemaining = Math.max(0, 3 - freeUsed); // Ensure non-negative
-    return `${freeRemaining}/3 free generations`;
+    const freeUsed = freeUsage?.generations_used || 0;
+    const freeRemaining = 12 - freeUsed;
+    return `${freeRemaining}/12 free generations`;
   };
 
   return (

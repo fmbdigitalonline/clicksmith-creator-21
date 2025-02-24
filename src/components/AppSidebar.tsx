@@ -23,15 +23,12 @@ import {
 import { Button } from "./ui/button";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { cn } from "@/lib/utils";
-import { useSidebar } from "@/components/ui/sidebar";
 
 export function AppSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const currentPath = location.pathname;
   const [isAdmin, setIsAdmin] = useState(false);
-  const { isCollapsed } = useSidebar();
 
   useEffect(() => {
     const checkAdminStatus = async () => {
@@ -87,21 +84,15 @@ export function AppSidebar() {
   };
 
   return (
-    <Sidebar className="hidden sm:block">
+    <Sidebar>
       <SidebarContent>
-        <div className={cn(
-          "p-2 sm:p-3 md:p-4",
-          isCollapsed && "p-2"
-        )}>
+        <div className="px-4 py-4">
           <Button 
-            className={cn(
-              "w-full bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary",
-              isCollapsed && "p-2"
-            )}
+            className="w-full bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary"
             onClick={handleStartClick}
           >
-            <PlusCircle className="h-4 w-4" />
-            {!isCollapsed && <span className="ml-2">Start</span>}
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Start
           </Button>
         </div>
         <SidebarGroup>
@@ -113,15 +104,13 @@ export function AppSidebar() {
                   <SidebarMenuButton
                     asChild
                     isActive={isActive(item.url)}
-                    tooltip={isCollapsed ? item.title : undefined}
+                    tooltip={item.title}
                   >
                     <Link to={item.url} className="flex items-center gap-2">
-                      <item.icon className="h-4 w-4 shrink-0" />
-                      {!isCollapsed && (
-                        <span className="truncate">{item.title}</span>
-                      )}
-                      {isActive(item.url) && !isCollapsed && (
-                        <ChevronRight className="ml-auto h-4 w-4 shrink-0" />
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.title}</span>
+                      {isActive(item.url) && (
+                        <ChevronRight className="ml-auto h-4 w-4" />
                       )}
                     </Link>
                   </SidebarMenuButton>
