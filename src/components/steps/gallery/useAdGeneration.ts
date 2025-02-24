@@ -5,6 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 export const useAdGeneration = (
   businessIdea: BusinessIdea,
@@ -20,10 +21,39 @@ export const useAdGeneration = (
   const navigate = useNavigate();
   const { projectId } = useParams();
 
+  // Check credits on mount and when credits change
+  const { data: creditCheck } = useQuery({
+    queryKey: ['credit-check'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+
+      const { data, error } = await supabase.rpc(
+        'check_user_credits',
+        { p_user_id: user.id, required_credits: 1 }
+      );
+
+      if (error) throw error;
+      return data[0];
+    },
+    refetchInterval: 5000, // Check every 5 seconds
+  });
+
+  // Redirect to pricing if no credits available
+  useEffect(() => {
+    if (creditCheck && !creditCheck.has_credits) {
+      toast({
+        title: "No credits available",
+        description: creditCheck.error_message,
+        variant: "destructive",
+      });
+      navigate('/pricing');
+    }
+  }, [creditCheck, navigate, toast]);
+
   // Load saved ad variants when component mounts
   useEffect(() => {
     const loadSavedAds = async () => {
-      console.log('Loading saved ads for project:', projectId);
       if (projectId && projectId !== 'new') {
         const { data: project } = await supabase
           .from('projects')
@@ -31,10 +61,7 @@ export const useAdGeneration = (
           .eq('id', projectId)
           .single();
         
-        console.log('Loaded project data:', project);
-        
         if (project?.generated_ads && Array.isArray(project.generated_ads)) {
-          console.log('Setting ad variants from project:', project.generated_ads);
           setAdVariants(project.generated_ads);
         }
       }
@@ -52,9 +79,7 @@ export const useAdGeneration = (
       { p_user_id: user.id, required_credits: 1 }
     );
 
-    if (error) {
-      throw error;
-    }
+    if (error) throw error;
 
     const result = creditCheck[0];
     
@@ -83,7 +108,6 @@ export const useAdGeneration = (
       }
 
       setGenerationStatus(`Initializing ${selectedPlatform} ad generation...`);
-      console.log('Generating ads for platform:', selectedPlatform, 'with target audience:', targetAudience);
       
       const { data, error } = await supabase.functions.invoke('generate-ad-content', {
         body: {
@@ -101,9 +125,7 @@ export const useAdGeneration = (
         },
       });
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
       console.log('Generation response:', data);
       const variants = validateResponse(data);
@@ -141,11 +163,8 @@ export const useAdGeneration = (
             platform: selectedPlatform
           };
 
-          // Save to project if we have a project ID
           if (projectId && projectId !== 'new') {
-            // Merge new variants with existing ones
             const updatedVariants = [...adVariants, newVariant];
-            console.log('Saving updated variants to project:', updatedVariants);
             
             const { error: updateError } = await supabase
               .from('projects')
@@ -162,27 +181,24 @@ export const useAdGeneration = (
           return newVariant;
         } catch (error) {
           console.error('Error processing variant:', error);
-          throw error; // Let the error bubble up
+          throw error;
         }
       }));
 
-      // Filter out any null values and combine with existing variants
       const validVariants = processedVariants.filter(Boolean);
-      console.log('Successfully processed variants:', validVariants);
       
-      // Update state with new variants
       setAdVariants(prev => {
-        // Remove old variants for the same platform
         const filteredPrev = prev.filter(v => v.platform !== selectedPlatform);
         return [...filteredPrev, ...validVariants];
       });
       
       setRegenerationCount(prev => prev + 1);
       
-      // Invalidate credits query to force a refresh
-      queryClient.invalidateQueries({ queryKey: ['credits'] });
-      queryClient.invalidateQueries({ queryKey: ['subscription'] });
-      queryClient.invalidateQueries({ queryKey: ['free_tier_usage'] });
+      // Force refresh credits
+      await queryClient.invalidateQueries({ queryKey: ['credit-check'] });
+      await queryClient.invalidateQueries({ queryKey: ['credits'] });
+      await queryClient.invalidateQueries({ queryKey: ['subscription'] });
+      await queryClient.invalidateQueries({ queryKey: ['free_tier_usage'] });
       
       toast({
         title: "Ads generated successfully",
