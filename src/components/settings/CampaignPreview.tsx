@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { ChartBar, Calendar, Target, DollarSign, Facebook } from "lucide-react";
+import { ChartBar, Calendar, Target, DollarSign, Facebook, AlertCircle } from "lucide-react";
 import { format } from "date-fns";
 
 // Interface for raw data from Supabase
@@ -48,11 +48,40 @@ interface Campaign {
   user_id: string | null;
 }
 
+interface PlatformConnection {
+  account_id: string;
+  account_name: string;
+  access_token: string;
+  platform: string;
+}
+
 export const CampaignPreview = () => {
   const { toast } = useToast();
   const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
 
-  const { data: campaigns, isLoading } = useQuery({
+  // Fetch Meta connection details
+  const { data: metaConnection, isLoading: isLoadingConnection } = useQuery({
+    queryKey: ['meta-connection'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('platform_connections')
+        .select('*')
+        .eq('platform', 'facebook')
+        .single();
+
+      if (error) {
+        if (error.code === 'PGRST116') { // No rows returned
+          return null;  
+        }
+        throw error;
+      }
+
+      return data as PlatformConnection;
+    },
+  });
+
+  // Fetch campaigns
+  const { data: campaigns, isLoading: isLoadingCampaigns } = useQuery({
     queryKey: ['campaigns'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -78,9 +107,11 @@ export const CampaignPreview = () => {
         performance_metrics: null
       })) as Campaign[];
     },
+    enabled: !!metaConnection, // Only fetch campaigns if we have a Meta connection
   });
 
   const selectedCampaign = campaigns?.find(c => c.id === selectedCampaignId);
+  const isLoading = isLoadingConnection || isLoadingCampaigns;
 
   return (
     <Card>
@@ -90,115 +121,143 @@ export const CampaignPreview = () => {
             <Facebook className="h-5 w-5" />
             <CardTitle>Meta Ad Campaigns</CardTitle>
           </div>
-          <Button variant="outline" onClick={() => setSelectedCampaignId(null)}>
-            New Campaign
-          </Button>
+          {metaConnection && (
+            <Button variant="outline" onClick={() => setSelectedCampaignId(null)}>
+              New Campaign
+            </Button>
+          )}
         </div>
       </CardHeader>
       <CardContent>
-        {isLoading ? (
-          <div className="text-center py-4">Loading campaigns...</div>
-        ) : campaigns?.length === 0 ? (
-          <div className="text-center py-4 text-muted-foreground">
-            No campaigns found. Create your first campaign to get started.
+        {isLoadingConnection ? (
+          <div className="text-center py-4">Loading account information...</div>
+        ) : !metaConnection ? (
+          <div className="text-center py-6 space-y-4">
+            <div className="flex items-center justify-center gap-2 text-muted-foreground">
+              <AlertCircle className="h-5 w-5" />
+              <p>No Meta Business Account connected</p>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Connect your Meta Business Account to view and manage campaigns
+            </p>
           </div>
         ) : (
           <div className="space-y-6">
-            {/* Campaign List */}
-            <div className="grid gap-4">
-              {campaigns?.map((campaign) => (
-                <Card
-                  key={campaign.id}
-                  className={`cursor-pointer transition-colors hover:bg-accent ${
-                    selectedCampaignId === campaign.id ? 'border-primary' : ''
-                  }`}
-                  onClick={() => setSelectedCampaignId(campaign.id)}
-                >
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="font-semibold">{campaign.name}</h3>
-                        <p className="text-sm text-muted-foreground">
-                          Status: {campaign.status}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <div className="text-right">
-                          <p className="text-sm font-medium">Daily Budget</p>
-                          <p className="text-lg font-semibold">
-                            ${campaign.budget}
-                          </p>
-                        </div>
-                        <ChartBar className="h-8 w-8 text-primary" />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+            {/* Meta Account Info */}
+            <div className="p-4 bg-muted rounded-lg">
+              <div className="space-y-2">
+                <h3 className="font-medium">Connected Account</h3>
+                <p className="text-sm text-muted-foreground">
+                  {metaConnection.account_name} ({metaConnection.account_id})
+                </p>
+              </div>
             </div>
 
-            {/* Campaign Details */}
-            {selectedCampaign && (
-              <div className="space-y-6 pt-4 border-t">
-                <h3 className="text-lg font-semibold">Campaign Details</h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <Target className="h-4 w-4 text-primary" />
-                      <Label>Objective</Label>
-                    </div>
-                    <p className="text-sm">{selectedCampaign.objective || 'Not set'}</p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <DollarSign className="h-4 w-4 text-primary" />
-                      <Label>Budget</Label>
-                    </div>
-                    <p className="text-sm">
-                      ${selectedCampaign.budget} per day
-                    </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-primary" />
-                      <Label>Duration</Label>
-                    </div>
-                    <p className="text-sm">
-                      {selectedCampaign.start_date ? format(new Date(selectedCampaign.start_date), 'PP') : 'Not set'} -{' '}
-                      {selectedCampaign.end_date ? format(new Date(selectedCampaign.end_date), 'PP') : 'Not set'}
-                    </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <ChartBar className="h-4 w-4 text-primary" />
-                      <Label>Performance</Label>
-                    </div>
-                    <div className="grid grid-cols-3 gap-2 text-sm">
-                      <div>
-                        <p className="text-muted-foreground">Impressions</p>
-                        <p className="font-medium">
-                          {selectedCampaign.performance_metrics?.impressions?.toLocaleString() ?? '0'}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">Clicks</p>
-                        <p className="font-medium">
-                          {selectedCampaign.performance_metrics?.clicks?.toLocaleString() ?? '0'}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">Spend</p>
-                        <p className="font-medium">
-                          ${selectedCampaign.performance_metrics?.spend?.toFixed(2) ?? '0.00'}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
+            {/* Campaign List */}
+            {isLoadingCampaigns ? (
+              <div className="text-center py-4">Loading campaigns...</div>
+            ) : campaigns?.length === 0 ? (
+              <div className="text-center py-4 text-muted-foreground">
+                No campaigns found. Create your first campaign to get started.
+              </div>
+            ) : (
+              <div className="space-y-6">
+                <div className="grid gap-4">
+                  {campaigns?.map((campaign) => (
+                    <Card
+                      key={campaign.id}
+                      className={`cursor-pointer transition-colors hover:bg-accent ${
+                        selectedCampaignId === campaign.id ? 'border-primary' : ''
+                      }`}
+                      onClick={() => setSelectedCampaignId(campaign.id)}
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h3 className="font-semibold">{campaign.name}</h3>
+                            <p className="text-sm text-muted-foreground">
+                              Status: {campaign.status}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-4">
+                            <div className="text-right">
+                              <p className="text-sm font-medium">Daily Budget</p>
+                              <p className="text-lg font-semibold">
+                                ${campaign.budget}
+                              </p>
+                            </div>
+                            <ChartBar className="h-8 w-8 text-primary" />
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
                 </div>
+
+                {/* Campaign Details */}
+                {selectedCampaign && (
+                  <div className="space-y-6 pt-4 border-t">
+                    <h3 className="text-lg font-semibold">Campaign Details</h3>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Target className="h-4 w-4 text-primary" />
+                          <Label>Objective</Label>
+                        </div>
+                        <p className="text-sm">{selectedCampaign.objective || 'Not set'}</p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <DollarSign className="h-4 w-4 text-primary" />
+                          <Label>Budget</Label>
+                        </div>
+                        <p className="text-sm">
+                          ${selectedCampaign.budget} per day
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-4 w-4 text-primary" />
+                          <Label>Duration</Label>
+                        </div>
+                        <p className="text-sm">
+                          {selectedCampaign.start_date ? format(new Date(selectedCampaign.start_date), 'PP') : 'Not set'} -{' '}
+                          {selectedCampaign.end_date ? format(new Date(selectedCampaign.end_date), 'PP') : 'Not set'}
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <ChartBar className="h-4 w-4 text-primary" />
+                          <Label>Performance</Label>
+                        </div>
+                        <div className="grid grid-cols-3 gap-2 text-sm">
+                          <div>
+                            <p className="text-muted-foreground">Impressions</p>
+                            <p className="font-medium">
+                              {selectedCampaign.performance_metrics?.impressions?.toLocaleString() ?? '0'}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Clicks</p>
+                            <p className="font-medium">
+                              {selectedCampaign.performance_metrics?.clicks?.toLocaleString() ?? '0'}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Spend</p>
+                            <p className="font-medium">
+                              ${selectedCampaign.performance_metrics?.spend?.toFixed(2) ?? '0.00'}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
