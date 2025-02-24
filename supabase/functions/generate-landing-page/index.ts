@@ -1,226 +1,139 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { deepeek } from "./deepeek.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Business themes definition
-const businessThemes = {
-  luxury: {
-    fonts: {
-      heading: 'Playfair Display',
-      body: 'Montserrat',
-    },
-    colors: {
-      primary: '#1A1F2C',
-      secondary: '#D6BCFA',
-      accent: '#8B5CF6',
-    },
-    style: {
-      borderRadius: 'rounded-lg',
-      spacing: 'spacious',
-    },
-  },
-  technology: {
-    fonts: {
-      heading: 'Inter',
-      body: 'Inter',
-    },
-    colors: {
-      primary: '#2563EB',
-      secondary: '#E2E8F0',
-      accent: '#3B82F6',
-    },
-    style: {
-      borderRadius: 'rounded-md',
-      spacing: 'compact',
-    },
-  },
-  // ... Add more themes as needed
-};
-
-const determineBusinessCategory = async (description: string): Promise<string> => {
-  console.log('Determining business category for:', description);
-  
-  const apiKey = Deno.env.get("OPENAI_API_KEY");
-  if (!apiKey) {
-    console.error('OpenAI API key not found');
-    return 'technology'; // Default fallback
-  }
-
-  try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [
-          {
-            role: "system",
-            content: "You are a business categorization expert. Categorize the business into one of these categories: luxury, technology. Return ONLY the category name, nothing else.",
-          },
-          {
-            role: "user",
-            content: description,
-          },
-        ],
-        temperature: 0.3,
-      }),
-    });
-
-    if (!response.ok) {
-      console.error('OpenAI API error:', await response.text());
-      return 'technology';
-    }
-
-    const data = await response.json();
-    return data.choices[0]?.message?.content?.toLowerCase().trim() || 'technology';
-  } catch (error) {
-    console.error('Error determining business category:', error);
-    return 'technology';
-  }
-};
-
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
     const { projectId, businessIdea, targetAudience, userId } = await req.json();
-    console.log('Received request:', { projectId, businessIdea, targetAudience, userId });
 
+    // Validate required parameters
     if (!projectId || !businessIdea || !targetAudience || !userId) {
       throw new Error('Missing required parameters');
     }
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    console.log('Starting landing page generation for project:', projectId);
 
-    if (!supabaseUrl || !supabaseKey) {
-      throw new Error('Missing Supabase configuration');
+    // Create Supabase client
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
+    // Fetch project images from ad_feedback
+    const { data: imageData, error: imageError } = await supabase
+      .from('ad_feedback')
+      .select('imageurl, saved_images')
+      .eq('project_id', projectId)
+      .not('imageurl', 'is', null);
+
+    if (imageError) {
+      console.error('Error fetching project images:', imageError);
     }
 
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    // Collect all available images
+    const projectImages = imageData?.reduce((acc: string[], item) => {
+      if (item.imageurl) acc.push(item.imageurl);
+      if (item.saved_images && Array.isArray(item.saved_images)) {
+        acc.push(...item.saved_images);
+      }
+      return acc;
+    }, []) || [];
 
-    // Log the start of generation
-    await supabase
+    console.log('Found project images:', projectImages);
+
+    // Create a new generation log entry
+    const { data: logEntry, error: logError } = await supabase
       .from('landing_page_generation_logs')
       .insert({
         project_id: projectId,
         user_id: userId,
         status: 'started',
         step_details: { stage: 'started' }
-      });
-
-    // Fetch project title
-    const { data: project, error: projectError } = await supabase
-      .from('projects')
-      .select('title')
-      .eq('id', projectId)
-      .single();
-
-    if (projectError) {
-      throw new Error(`Failed to fetch project details: ${projectError.message}`);
-    }
-
-    const category = await determineBusinessCategory(businessIdea.description);
-    console.log('Determined category:', category);
-
-    const theme = businessThemes[category] || businessThemes.technology;
-    
-    const content = {
-      theme,
-      sections: [
-        {
-          type: 'hero',
-          order: 1,
-          content: {
-            title: businessIdea.valueProposition,
-            subtitle: targetAudience.coreMessage,
-            primaryCta: {
-              text: "Get Started Now",
-              description: "Begin your journey today"
-            }
-          }
-        },
-        {
-          type: 'social-proof',
-          order: 2,
-          content: {
-            title: "Trusted by Businesses Like Yours",
-            subtitle: "See what others are saying",
-            testimonials: [
-              {
-                quote: "This transformed our business approach",
-                author: "John Doe",
-                role: "CEO"
-              }
-            ]
-          }
-        }
-      ]
-    };
-
-    // Create or update landing page
-    const { data: landingPage, error: updateError } = await supabase
-      .from('landing_pages')
-      .upsert({
-        project_id: projectId,
-        user_id: userId,
-        title: project.title || 'Landing Page',
-        content,
-        theme_settings: theme,
-        version: 1,
-        generation_status: 'completed'
       })
       .select()
       .single();
 
-    if (updateError) {
-      throw new Error(`Failed to update landing page: ${updateError.message}`);
-    }
+    if (logError) throw logError;
 
-    // Log successful generation
+    // Get the latest version number for this project
+    const { data: latestVersion } = await supabase
+      .from('landing_pages')
+      .select('id, version')
+      .eq('project_id', projectId)
+      .order('version', { ascending: false })
+      .limit(1)
+      .single();
+
+    const newVersion = (latestVersion?.version || 0) + 1;
+    const previousVersionId = latestVersion?.id;
+
+    console.log('Generating content for version:', newVersion);
+
+    // Start generating content
     await supabase
       .from('landing_page_generation_logs')
+      .update({
+        status: 'generating_content',
+        step_details: { stage: 'content_generated' }
+      })
+      .eq('id', logEntry.id);
+
+    const content = await deepeek.generateLandingPageContent(businessIdea, targetAudience, projectImages);
+
+    console.log('Content generated successfully');
+
+    // Create new landing page version
+    const { data: newLandingPage, error: insertError } = await supabase
+      .from('landing_pages')
       .insert({
         project_id: projectId,
         user_id: userId,
+        content,
+        version: newVersion,
+        previous_version_id: previousVersionId,
+        generation_started_at: new Date().toISOString(),
+        content_iterations: newVersion,
+        title: `Landing Page v${newVersion}`
+      })
+      .select()
+      .single();
+
+    if (insertError) throw insertError;
+
+    console.log('New landing page version created:', newLandingPage.id);
+
+    // Update log with success
+    await supabase
+      .from('landing_page_generation_logs')
+      .update({
         status: 'completed',
         success: true,
         step_details: { stage: 'completed' }
-      });
+      })
+      .eq('id', logEntry.id);
 
     return new Response(
-      JSON.stringify({ success: true, data: landingPage }),
+      JSON.stringify({ 
+        success: true, 
+        data: newLandingPage,
+        message: 'Landing page generated successfully'
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
     console.error('Error in generate-landing-page function:', error);
-    
-    // Log the error
-    const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    
-    if (supabaseUrl && supabaseKey) {
-      const supabase = createClient(supabaseUrl, supabaseKey);
-      await supabase
-        .from('landing_page_generation_logs')
-        .insert({
-          status: 'error',
-          success: false,
-          error_message: error.message,
-          step_details: { stage: 'error', error: error.message }
-        });
-    }
 
     return new Response(
       JSON.stringify({ 
