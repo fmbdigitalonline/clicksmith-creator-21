@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import LoadingStateLandingPage from "./LoadingStateLandingPage";
-import { Loader2 } from "lucide-react";
+import { Loader2, History } from "lucide-react";
 import { HeroSection } from "./components/HeroSection";
 import { SocialProofSection } from "./components/SocialProofSection";
 import { DynamicSection } from "./components/DynamicSection";
@@ -33,7 +33,6 @@ interface GenerationLog {
 const LandingPageContent = ({ project, landingPage }: { project: any; landingPage: any }) => {
   const [activeView, setActiveView] = useState<"edit" | "preview">("preview");
   const [isGenerating, setIsGenerating] = useState(false);
-  const [isRefining, setIsRefining] = useState(false);
   const [generationProgress, setGenerationProgress] = useState<GenerationProgress>({ 
     status: "", 
     progress: 0 
@@ -43,7 +42,7 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
   const { isLoading: isTemplateLoading } = useLandingPageTemplate();
 
   useEffect(() => {
-    if ((isGenerating || isRefining) && project?.id) {
+    if (isGenerating && project?.id) {
       const interval = setInterval(async () => {
         const { data: logs, error } = await supabase
           .from('landing_page_generation_logs')
@@ -64,12 +63,14 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
           if (logData.success) {
             setGenerationProgress({ status: "Success!", progress: 100 });
             clearInterval(interval);
+            setIsGenerating(false);
           } else if (logData.error_message) {
             setGenerationProgress({ 
               status: `Error: ${logData.error_message}`, 
               progress: 0 
             });
             clearInterval(interval);
+            setIsGenerating(false);
           } else {
             const stepDetails = logData.step_details;
             let progress = 0;
@@ -90,7 +91,7 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
 
       return () => clearInterval(interval);
     }
-  }, [isGenerating, isRefining, project?.id]);
+  }, [isGenerating, project?.id]);
 
   const generateLandingPageContent = async () => {
     setIsGenerating(true);
@@ -109,14 +110,13 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
           businessIdea: project.business_idea,
           targetAudience: project.target_audience,
           userId: user.id,
-          iterationNumber: landingPage?.content_iterations || 1
         }
       });
 
       if (error) throw error;
 
-      if (data && data.content) {
-        console.log("Received new content:", data);
+      if (data && data.success) {
+        console.log("Generated new landing page version:", data);
         toast({
           title: "Content Generated",
           description: "Your landing page content has been updated."
@@ -151,20 +151,27 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
               <TabsTrigger value="preview">Preview</TabsTrigger>
               <TabsTrigger value="edit">Edit</TabsTrigger>
             </TabsList>
-            <div className="flex gap-2">
-              <Button 
-                onClick={generateLandingPageContent}
-                disabled={isGenerating || isRefining}
-              >
-                {isGenerating ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    {generationProgress.status}
-                  </>
-                ) : (
-                  "Generate Content"
-                )}
-              </Button>
+            <div className="flex items-center gap-4">
+              {landingPage?.version && (
+                <span className="text-sm text-gray-600">
+                  Version {landingPage.version}
+                </span>
+              )}
+              <div className="flex gap-2">
+                <Button 
+                  onClick={generateLandingPageContent}
+                  disabled={isGenerating}
+                >
+                  {isGenerating ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      {generationProgress.status}
+                    </>
+                  ) : (
+                    "Generate New Version"
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
 
@@ -197,7 +204,7 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
           ) : (
             <div className="text-center py-16">
               <h2 className="text-2xl font-semibold mb-4">No Content Generated Yet</h2>
-              <p className="text-gray-600 mb-8">Click the "Generate Content" button to create your landing page.</p>
+              <p className="text-gray-600 mb-8">Click the "Generate New Version" button to create your landing page.</p>
             </div>
           )}
         </TabsContent>

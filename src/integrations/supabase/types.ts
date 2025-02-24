@@ -808,15 +808,18 @@ export type Database = {
           content_version: number | null
           created_at: string | null
           generation_metadata: Json | null
+          generation_started_at: string | null
           generation_status: string | null
           id: string
           last_generated_from: Json | null
+          previous_version_id: string | null
           project_id: string | null
           published: boolean | null
           theme_settings: Json | null
           title: string
           updated_at: string | null
           user_id: string | null
+          version: number | null
           views: number | null
         }
         Insert: {
@@ -825,15 +828,18 @@ export type Database = {
           content_version?: number | null
           created_at?: string | null
           generation_metadata?: Json | null
+          generation_started_at?: string | null
           generation_status?: string | null
           id?: string
           last_generated_from?: Json | null
+          previous_version_id?: string | null
           project_id?: string | null
           published?: boolean | null
           theme_settings?: Json | null
           title: string
           updated_at?: string | null
           user_id?: string | null
+          version?: number | null
           views?: number | null
         }
         Update: {
@@ -842,18 +848,28 @@ export type Database = {
           content_version?: number | null
           created_at?: string | null
           generation_metadata?: Json | null
+          generation_started_at?: string | null
           generation_status?: string | null
           id?: string
           last_generated_from?: Json | null
+          previous_version_id?: string | null
           project_id?: string | null
           published?: boolean | null
           theme_settings?: Json | null
           title?: string
           updated_at?: string | null
           user_id?: string | null
+          version?: number | null
           views?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "landing_pages_previous_version_id_fkey"
+            columns: ["previous_version_id"]
+            isOneToOne: false
+            referencedRelation: "landing_pages"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "landing_pages_project_id_fkey"
             columns: ["project_id"]
