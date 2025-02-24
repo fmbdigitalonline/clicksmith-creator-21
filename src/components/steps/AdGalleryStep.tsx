@@ -51,7 +51,7 @@ const AdGalleryStep = ({
     adVariants,
     generationStatus,
     generateAds,
-  } = useAdGeneration(businessIdea, targetAudience, adHooks);
+  } = useAdGeneration();
 
   useEffect(() => {
     const initializeAds = async () => {
@@ -61,11 +61,10 @@ const AdGalleryStep = ({
         } catch (error) {
           console.error("Error generating initial ads:", error);
           
-          // Enhanced error handling
           let errorMessage = "There was an error generating your ads.";
           let description = "Please try again or contact support if the issue persists.";
           
-          if (error.message?.includes("NSFW content detected")) {
+          if (error instanceof Error && error.message?.includes("NSFW content detected")) {
             errorMessage = "Content Safety Alert";
             description = "Our AI detected potentially inappropriate content in your request. Please modify your description to focus on appropriate, family-friendly content and try again.";
           }
@@ -102,11 +101,10 @@ const AdGalleryStep = ({
     } catch (error) {
       console.error("Error confirming platform change:", error);
       
-      // Enhanced error handling
       let errorMessage = "Error generating ads";
       let description = "There was an error generating ads for the new platform. Please try again.";
       
-      if (error.message?.includes("NSFW content detected")) {
+      if (error instanceof Error && error.message?.includes("NSFW content detected")) {
         errorMessage = "Content Safety Alert";
         description = "Our AI detected potentially inappropriate content in your request. Please modify your description to focus on appropriate, family-friendly content and try again.";
       }
@@ -121,7 +119,6 @@ const AdGalleryStep = ({
 
   const onCancelPlatformChange = () => {
     const currentPlatform = cancelPlatformChange();
-    // Force update the PlatformTabs to stay on the current platform
     const tabsElement = document.querySelector(`[data-state="active"][value="${currentPlatform}"]`);
     if (tabsElement) {
       (tabsElement as HTMLElement).click();
@@ -138,11 +135,10 @@ const AdGalleryStep = ({
     } catch (error) {
       console.error("Error regenerating ads:", error);
       
-      // Enhanced error handling
       let errorMessage = "Error regenerating ads";
       let description = "There was an error regenerating your ads. Please try again.";
       
-      if (error.message?.includes("NSFW content detected")) {
+      if (error instanceof Error && error.message?.includes("NSFW content detected")) {
         errorMessage = "Content Safety Alert";
         description = "Our AI detected potentially inappropriate content in your request. Please modify your description to focus on appropriate, family-friendly content and try again.";
       }
@@ -165,7 +161,7 @@ const AdGalleryStep = ({
       </div>
       <PlatformContent
         platformName={platformName}
-        adVariants={adVariants.filter(variant => variant.platform === platformName)}
+        adVariants={adVariants}
         onCreateProject={onCreateProject}
         videoAdsEnabled={videoAdsEnabled}
         selectedFormat={selectedFormat}

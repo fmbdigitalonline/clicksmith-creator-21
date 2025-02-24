@@ -8,12 +8,15 @@ import { useCreditsAndGeneration } from "@/hooks/useCreditsAndGeneration";
 export const useAdGeneration = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [adVariants, setAdVariants] = useState<any[]>([]);
+  const [generationStatus, setGenerationStatus] = useState<string>("");
   const { toast } = useToast();
   const { generateWithCredits } = useCreditsAndGeneration();
 
-  const generateAds = async (businessIdea: BusinessIdea, targetAudience: TargetAudience) => {
+  const generateAds = async (platform: string) => {
     setIsGenerating(true);
     setError(null);
+    setGenerationStatus("Generating ads...");
 
     const result = await generateWithCredits(
       async () => {
@@ -22,8 +25,7 @@ export const useAdGeneration = () => {
             'generate-ad-content',
             {
               body: {
-                businessIdea,
-                targetAudience,
+                platform,
                 timestamp: new Date().getTime()
               }
             }
@@ -48,12 +50,15 @@ export const useAdGeneration = () => {
     );
 
     setIsGenerating(false);
+    setGenerationStatus("");
     
     if (!result) {
       setError('Failed to generate ads');
       return null;
     }
 
+    setAdVariants(result);
+    
     toast({
       title: "Ads Generated Successfully",
       description: "Your ads have been created and credits have been deducted.",
@@ -65,6 +70,8 @@ export const useAdGeneration = () => {
   return {
     isGenerating,
     error,
+    adVariants,
+    generationStatus,
     generateAds,
   };
 };
