@@ -84,13 +84,13 @@ const IndexFooter = ({ className }: IndexFooterProps) => {
             <p className="text-gray-400 mb-4">
               Subscribe to our newsletter for updates and exclusive content.
             </p>
-            <form className="flex gap-2">
+            <form className="flex flex-col sm:flex-row gap-2">
               <input
                 type="email"
                 placeholder="Enter your email"
-                className="bg-gray-800 text-white px-4 py-2 rounded-lg flex-1"
+                className="flex-1 bg-gray-800 text-white px-4 py-2 rounded-lg min-w-0"
               />
-              <button className="bg-primary hover:bg-primary/90 text-white px-6 py-2 rounded-lg">
+              <button className="bg-primary hover:bg-primary/90 text-white px-6 py-2 rounded-lg whitespace-nowrap">
                 Subscribe
               </button>
             </form>
