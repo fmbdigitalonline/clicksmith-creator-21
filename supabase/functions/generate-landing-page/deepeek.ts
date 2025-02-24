@@ -1,4 +1,3 @@
-
 interface ContentGenerationParams {
   businessIdea: {
     description: string;
@@ -15,7 +14,7 @@ interface ContentGenerationParams {
   iterationNumber?: number;
 }
 
-const generateLandingPageContent = async (
+export const generateLandingPageContent = async (
   businessIdea: ContentGenerationParams['businessIdea'], 
   targetAudience: ContentGenerationParams['targetAudience'],
   projectImages: string[] = []
@@ -29,7 +28,7 @@ const generateLandingPageContent = async (
     ? `Use these image URLs in appropriate sections: ${projectImages.join(", ")}`
     : "No images provided, leave imageUrl fields empty";
 
-  const prompt = `Generate landing page content for a business with the following details:
+  const prompt = `Generate landing page content and theme for a business with the following details:
 
 Business Idea: ${businessIdea.description}
 Value Proposition: ${businessIdea.valueProposition}
@@ -39,7 +38,7 @@ Pain Points: ${targetAudience.painPoints.join(", ")}
 Marketing Angle: ${targetAudience.marketingAngle}
 ${imageContext}
 
-Create sections for a landing page in the following JSON structure:
+Create a complete landing page structure including theme settings in the following JSON structure:
 
 {
   "sections": [
@@ -55,42 +54,42 @@ Create sections for a landing page in the following JSON structure:
           "description": "motivation to click"
         }
       }
-    },
-    {
-      "type": "features",
-      "order": 2,
-      "content": {
-        "title": "section highlighting key benefits",
-        "subtitle": "benefit-focused description",
-        "items": [
-          {
-            "title": "feature name",
-            "description": "feature benefit",
-            "details": ["3-4 bullet points about this feature"],
-            "highlights": ["2-3 key terms"]
-          }
-        ]
-      }
-    },
-    {
-      "type": "social-proof",
-      "order": 3,
-      "content": {
-        "title": "Social Proof Section",
-        "subtitle": "Build trust with testimonials",
-        "testimonials": [
-          {
-            "quote": "compelling testimonial focused on benefits",
-            "author": "customer name",
-            "role": "relevant role/title"
-          }
-        ]
-      }
     }
-  ]
+  ],
+  "theme": {
+    "colorScheme": {
+      "primary": "choose an appropriate color based on industry and emotion",
+      "secondary": "complementary color",
+      "accent": "highlight color for important elements",
+      "background": "main background color",
+      "text": "main text color",
+      "muted": "color for less important text"
+    },
+    "typography": {
+      "headingFont": "font family for headings",
+      "bodyFont": "font family for body text",
+      "scale": {
+        "h1": "largest heading size",
+        "h2": "second level heading size",
+        "h3": "third level heading size",
+        "body": "body text size",
+        "small": "small text size"
+      }
+    },
+    "spacing": {
+      "sectionPadding": "padding between sections",
+      "componentGap": "gap between components",
+      "containerWidth": "max width for content"
+    },
+    "style": {
+      "borderRadius": "rounded corners size",
+      "shadowStrength": "none | light | medium | strong",
+      "containerStyle": "contained | wide | full"
+    }
+  }
 }
 
-Make the content compelling and persuasive. Focus on addressing the pain points and using the specified marketing angle. Include bullet points and feature highlights. Return ONLY valid JSON.`;
+Make the content compelling and persuasive. Focus on addressing the pain points and using the specified marketing angle. Include bullet points and feature highlights. Theme should reflect the business type and target audience. Return ONLY valid JSON.`;
 
   try {
     console.log('Making request to OpenAI API...');
@@ -102,11 +101,11 @@ Make the content compelling and persuasive. Focus on addressing the pain points 
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: "gpt-4",
+        model: "gpt-4o-mini",
         messages: [
           {
             role: "system",
-            content: "You are an expert copywriter specializing in landing page content that converts. Return ONLY valid JSON matching the exact structure requested.",
+            content: "You are an expert copywriter and designer specializing in landing page content that converts. Return ONLY valid JSON matching the exact structure requested.",
           },
           {
             role: "user",

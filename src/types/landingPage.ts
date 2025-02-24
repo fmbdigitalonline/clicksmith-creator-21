@@ -39,17 +39,39 @@ export interface LandingPageTemplate {
         columns: number;
       };
     };
-    styles: {
-      colorScheme: string;
-      typography: {
-        headingFont: string;
-        bodyFont: string;
-      };
-      spacing: {
-        sectionPadding: string;
-        componentGap: string;
-      };
+    styles: ThemeSettings;
+  };
+}
+
+export interface ThemeSettings {
+  colorScheme: {
+    primary: string;
+    secondary: string;
+    accent: string;
+    background: string;
+    text: string;
+    muted: string;
+  };
+  typography: {
+    headingFont: string;
+    bodyFont: string;
+    scale: {
+      h1: string;
+      h2: string;
+      h3: string;
+      body: string;
+      small: string;
     };
+  };
+  spacing: {
+    sectionPadding: string;
+    componentGap: string;
+    containerWidth: string;
+  };
+  style: {
+    borderRadius: string;
+    shadowStrength: 'none' | 'light' | 'medium' | 'strong';
+    containerStyle: 'contained' | 'wide' | 'full';
   };
 }
 
@@ -104,4 +126,6 @@ export interface LandingPageContent {
     newsletter: string;
     copyright: string;
   };
+  theme?: ThemeSettings;
 }
+

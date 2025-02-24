@@ -4,16 +4,34 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import { BulletPointsList } from "./BulletPointsList";
 import { FeatureGrid } from "./FeatureGrid";
+import { ThemeSettings } from "@/types/landingPage";
 
 interface DynamicSectionProps {
   section: any;
+  theme?: ThemeSettings;
 }
 
-export const DynamicSection = ({ section }: DynamicSectionProps) => {
+export const DynamicSection = ({ section, theme }: DynamicSectionProps) => {
   if (!section) return null;
 
+  const getThemeClasses = () => {
+    if (!theme) return '';
+    
+    const classes = [
+      theme.spacing?.sectionPadding || 'py-16 md:py-24',
+      theme.style?.containerStyle === 'full' ? 'w-full' : 'container mx-auto'
+    ];
+
+    if (theme.colorScheme?.background) {
+      classes.push(`bg-${theme.colorScheme.background}`);
+    }
+
+    return classes.join(' ');
+  };
+
   const containerClass = cn(
-    "w-full py-16 md:py-24",
+    "w-full",
+    getThemeClasses(),
     section.layout?.width === 'contained' && "px-4 md:px-6",
     section.layout?.width === 'narrow' && "max-w-4xl mx-auto px-4",
     section.layout?.spacing === 'compact' && "py-12 md:py-16",
@@ -25,9 +43,10 @@ export const DynamicSection = ({ section }: DynamicSectionProps) => {
 
   const headingClass = cn(
     "font-bold leading-tight animate-fade-in",
+    theme?.typography?.scale?.h2 || "text-3xl md:text-4xl lg:text-5xl",
     section.style?.typography?.headingSize === 'large' && "text-4xl md:text-5xl lg:text-6xl",
     section.style?.typography?.headingSize === 'xlarge' && "text-5xl md:text-6xl lg:text-7xl",
-    "text-3xl md:text-4xl lg:text-5xl"
+    theme?.colorScheme?.text && `text-${theme.colorScheme.text}`
   );
 
   const isSplitLayout = section.layout?.style === 'split';
@@ -35,7 +54,10 @@ export const DynamicSection = ({ section }: DynamicSectionProps) => {
 
   return (
     <section className={containerClass}>
-      <div className="container mx-auto">
+      <div className={cn(
+        "container mx-auto",
+        theme?.spacing?.containerWidth
+      )}>
         {/* Header Content */}
         {(section.content?.title || section.content?.subtitle) && (
           <div className="space-y-6 text-center mb-16">
@@ -43,7 +65,11 @@ export const DynamicSection = ({ section }: DynamicSectionProps) => {
               <h2 className={headingClass}>{section.content.title}</h2>
             )}
             {section.content?.subtitle && (
-              <p className="text-xl md:text-2xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto animate-fade-in [animation-delay:200ms]">
+              <p className={cn(
+                "text-xl md:text-2xl max-w-3xl mx-auto animate-fade-in [animation-delay:200ms]",
+                theme?.typography?.scale?.h3,
+                theme?.colorScheme?.muted ? `text-${theme.colorScheme.muted}` : "text-gray-600 dark:text-gray-300"
+              )}>
                 {section.content.subtitle}
               </p>
             )}
@@ -68,20 +94,27 @@ export const DynamicSection = ({ section }: DynamicSectionProps) => {
               )}>
                 {section.content?.mainDescription && (
                   <div className="animate-fade-in">
-                    <p className="text-xl text-gray-600 dark:text-gray-300 leading-relaxed">
+                    <p className={cn(
+                      "text-xl leading-relaxed",
+                      theme?.colorScheme?.text ? `text-${theme.colorScheme.text}` : "text-gray-600 dark:text-gray-300"
+                    )}>
                       {section.content.mainDescription}
                     </p>
                   </div>
                 )}
                 {section.content?.bulletPoints && (
-                  <BulletPointsList points={section.content.bulletPoints} />
+                  <BulletPointsList points={section.content.bulletPoints} theme={theme} />
                 )}
               </div>
 
               {/* Image Content */}
               {section.content?.imageUrl && (
                 <div className={cn(
-                  "relative overflow-hidden rounded-xl shadow-xl",
+                  "relative overflow-hidden",
+                  theme?.style?.borderRadius && `rounded-${theme.style.borderRadius}`,
+                  theme?.style?.shadowStrength === 'strong' && "shadow-2xl",
+                  theme?.style?.shadowStrength === 'medium' && "shadow-xl",
+                  theme?.style?.shadowStrength === 'light' && "shadow-md",
                   isSplitLayout && "h-[400px]",
                   isColumnsLayout && "md:col-span-5 aspect-[4/3]",
                   !isSplitLayout && !isColumnsLayout && "aspect-video max-w-4xl mx-auto"
@@ -99,7 +132,7 @@ export const DynamicSection = ({ section }: DynamicSectionProps) => {
           {/* Feature Grid */}
           {section.content?.items && (
             <div className={cn(!section.content?.mainDescription && "mt-0")}>
-              <FeatureGrid items={section.content.items} layout={section.layout} />
+              <FeatureGrid items={section.content.items} layout={section.layout} theme={theme} />
             </div>
           )}
 
@@ -110,13 +143,23 @@ export const DynamicSection = ({ section }: DynamicSectionProps) => {
                 <div className="text-center">
                   <Button 
                     size="lg" 
-                    className="min-w-[200px] text-lg py-6 group hover:scale-105 transition-all duration-200"
+                    className={cn(
+                      "min-w-[200px] text-lg py-6 group hover:scale-105 transition-all duration-200",
+                      theme?.style?.borderRadius && `rounded-${theme.style.borderRadius}`
+                    )}
+                    style={{
+                      backgroundColor: theme?.colorScheme?.primary,
+                      color: theme?.colorScheme?.background || 'white'
+                    }}
                   >
                     {section.content.primaryCta.text}
                     <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
                   </Button>
                   {section.content.primaryCta.description && (
-                    <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                    <p className={cn(
+                      "mt-2 text-sm",
+                      theme?.colorScheme?.muted ? `text-${theme.colorScheme.muted}` : "text-gray-600 dark:text-gray-400"
+                    )}>
                       {section.content.primaryCta.description}
                     </p>
                   )}
@@ -127,12 +170,18 @@ export const DynamicSection = ({ section }: DynamicSectionProps) => {
                   <Button 
                     variant="outline" 
                     size="lg" 
-                    className="min-w-[200px] text-lg py-6 hover:scale-105 transition-all duration-200"
+                    className={cn(
+                      "min-w-[200px] text-lg py-6 hover:scale-105 transition-all duration-200",
+                      theme?.style?.borderRadius && `rounded-${theme.style.borderRadius}`
+                    )}
                   >
                     {section.content.secondaryCta.text}
                   </Button>
                   {section.content.secondaryCta.description && (
-                    <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                    <p className={cn(
+                      "mt-2 text-sm",
+                      theme?.colorScheme?.muted ? `text-${theme.colorScheme.muted}` : "text-gray-600 dark:text-gray-400"
+                    )}>
                       {section.content.secondaryCta.description}
                     </p>
                   )}
@@ -145,3 +194,4 @@ export const DynamicSection = ({ section }: DynamicSectionProps) => {
     </section>
   );
 };
+
