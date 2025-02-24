@@ -1,4 +1,3 @@
-
 import { useAdWizardState } from "@/hooks/useAdWizardState";
 import IdeaStep from "./steps/BusinessIdeaStep";
 import AudienceStep from "./steps/AudienceStep";
@@ -36,7 +35,7 @@ const AdWizard = () => {
   });
 
   // Query to check credits
-  const { data: credits } = useQuery({
+  const { data: credits, isLoading: isLoadingCredits } = useQuery({
     queryKey: ["credits", user?.id],
     queryFn: async () => {
       if (!user?.id) return 0;
@@ -70,9 +69,9 @@ const AdWizard = () => {
     refetchInterval: 5000
   });
 
-  // Effect to check credits and redirect if needed
+  // Immediate credit check and redirect
   useEffect(() => {
-    if (credits === 0) {
+    if (!isLoadingCredits && credits === 0) {
       toast({
         title: "No credits remaining",
         description: "Please upgrade your plan to continue generating ads.",
@@ -80,7 +79,12 @@ const AdWizard = () => {
       });
       navigate('/pricing');
     }
-  }, [credits, navigate, toast]);
+  }, [credits, isLoadingCredits, navigate, toast]);
+
+  // Block rendering if no credits
+  if (!isLoadingCredits && credits === 0) {
+    return null; // Return nothing while redirecting to pricing page
+  }
 
   const {
     currentStep,
@@ -146,7 +150,7 @@ const AdWizard = () => {
     // Disabled for now - will be implemented in future
   };
 
-  if (isLoading) {
+  if (isLoading || isLoadingCredits) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
@@ -243,8 +247,7 @@ const AdWizard = () => {
             <TooltipContent>
               <p>Video Ads - Coming Soon!</p>
             </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+          </TooltipProvider>
         <span className="text-sm text-gray-600">Video Ads</span>
         <span className="text-xs text-gray-500 italic ml-1">Coming Soon!</span>
       </div>
