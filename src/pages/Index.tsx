@@ -175,7 +175,7 @@ const Index = () => {
           <div className="aspect-video bg-black/5 rounded-lg overflow-hidden mb-8">
             <iframe 
               className="w-full h-full"
-              src="https://www.youtube.com/embed/placeholder"
+              src="https://www.youtube.com/embed/rS3xVI2PWsI"
               title="Product Demo"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
