@@ -48,13 +48,12 @@ export const useAdGeneration = () => {
   const showToast = useCallback((title: string, description: string, variant: "default" | "destructive" = "default") => {
     // Dismiss previous toast if it exists
     if (activeToastRef.current) {
-      const previousToast = activeToastRef.current;
-      const timeoutId = setTimeout(() => {
-        toast({
-          ...previousToast,
-          open: false
-        });
-      }, 0);
+      // Create a new toast to replace the previous one with open: false
+      toast({
+        title: "",
+        description: "",
+        open: false,
+      });
     }
     
     // Show new toast and store its ID
@@ -214,10 +213,11 @@ export const useAdGeneration = () => {
     cleanup();
     // Clear any active toasts
     if (activeToastRef.current) {
-      const toastId = activeToastRef.current;
+      // Create a new toast with open: false to dismiss the previous one
       toast({
-        ...toastId,
-        open: false
+        title: "",
+        description: "",
+        open: false,
       });
     }
   }, [toast]);
