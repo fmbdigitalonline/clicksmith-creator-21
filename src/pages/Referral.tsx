@@ -2,7 +2,7 @@
 import LandingNav from "@/components/LandingNav";
 import IndexFooter from "@/components/IndexFooter";
 import { Button } from "@/components/ui/button";
-import { Copy, Users, DollarSign, Share2, Award } from "lucide-react";
+import { Copy, Users, Battery, Share2, Award } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
 const Referral = () => {
@@ -24,9 +24,9 @@ const Referral = () => {
         <div className="max-w-4xl mx-auto">
           {/* Header Section */}
           <div className="text-center mb-12">
-            <h1 className="text-4xl font-bold mb-4">Refer & Earn Rewards</h1>
+            <h1 className="text-4xl font-bold mb-4">Refer & Earn Credits</h1>
             <p className="text-xl text-gray-600">
-              Invite friends to Viable and earn rewards for every successful referral
+              Invite friends to Viable and earn credits for every successful referral
             </p>
           </div>
 
@@ -38,9 +38,9 @@ const Referral = () => {
               <p className="text-3xl font-bold text-primary">0</p>
             </div>
             <div className="bg-white rounded-lg shadow-md p-6 text-center">
-              <DollarSign className="w-8 h-8 mx-auto mb-4 text-primary" />
-              <h3 className="font-semibold mb-2">Earnings</h3>
-              <p className="text-3xl font-bold text-primary">$0</p>
+              <Battery className="w-8 h-8 mx-auto mb-4 text-primary" />
+              <h3 className="font-semibold mb-2">Credits Earned</h3>
+              <p className="text-3xl font-bold text-primary">0</p>
             </div>
             <div className="bg-white rounded-lg shadow-md p-6 text-center">
               <Award className="w-8 h-8 mx-auto mb-4 text-primary" />
@@ -88,41 +88,41 @@ const Referral = () => {
                   <span className="text-primary font-bold">2</span>
                 </div>
                 <h3 className="font-semibold mb-2">Friends Sign Up</h3>
-                <p className="text-gray-600">When they sign up using your link, they get a special welcome bonus</p>
+                <p className="text-gray-600">When they sign up using your link, they get 2 bonus credits</p>
               </div>
               <div className="text-center">
                 <div className="bg-primary/10 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-4">
                   <span className="text-primary font-bold">3</span>
                 </div>
-                <h3 className="font-semibold mb-2">Earn Rewards</h3>
-                <p className="text-gray-600">Receive rewards for each successful referral</p>
+                <h3 className="font-semibold mb-2">Earn Credits</h3>
+                <p className="text-gray-600">Receive 2 credits for each successful referral</p>
               </div>
             </div>
           </div>
 
           {/* Rewards Section */}
           <div className="bg-white rounded-lg shadow-md p-8">
-            <h2 className="text-2xl font-semibold mb-6">Rewards Program</h2>
+            <h2 className="text-2xl font-semibold mb-6">Referral Program Details</h2>
             <div className="space-y-6">
               <div className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg">
                 <Award className="w-6 h-6 text-primary mt-1" />
                 <div>
-                  <h3 className="font-semibold mb-1">Bronze Level (0-5 referrals)</h3>
-                  <p className="text-gray-600">Earn $20 for each successful referral</p>
+                  <h3 className="font-semibold mb-1">For You</h3>
+                  <p className="text-gray-600">Earn 2 credits for each successful referral</p>
                 </div>
               </div>
               <div className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg">
                 <Award className="w-6 h-6 text-primary mt-1" />
                 <div>
-                  <h3 className="font-semibold mb-1">Silver Level (6-15 referrals)</h3>
-                  <p className="text-gray-600">Earn $30 for each successful referral</p>
+                  <h3 className="font-semibold mb-1">For Your Friends</h3>
+                  <p className="text-gray-600">They receive 2 bonus credits when signing up with your link</p>
                 </div>
               </div>
               <div className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg">
                 <Award className="w-6 h-6 text-primary mt-1" />
                 <div>
-                  <h3 className="font-semibold mb-1">Gold Level (16+ referrals)</h3>
-                  <p className="text-gray-600">Earn $50 for each successful referral + bonus rewards</p>
+                  <h3 className="font-semibold mb-1">No Limits</h3>
+                  <p className="text-gray-600">Refer as many friends as you want - there's no cap on how many credits you can earn!</p>
                 </div>
               </div>
             </div>
