@@ -1,10 +1,12 @@
+
 import LandingNav from "@/components/LandingNav";
+import IndexFooter from "@/components/IndexFooter";
 
 const Referral = () => {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <LandingNav />
-      <div className="container mx-auto px-4 pt-24">
+      <div className="container mx-auto px-4 pt-24 flex-grow">
         <h1 className="text-4xl font-bold mb-6">Referral Program</h1>
         <p className="text-gray-600 mb-4">
           Refer friends and earn rewards! Share your unique referral link to get started.
@@ -31,6 +33,7 @@ const Referral = () => {
           Copy Referral Link
         </button>
       </div>
+      <IndexFooter />
     </div>
   );
 };

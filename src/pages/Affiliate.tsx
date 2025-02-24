@@ -1,10 +1,12 @@
+
 import LandingNav from "@/components/LandingNav";
+import IndexFooter from "@/components/IndexFooter";
 
 const Affiliate = () => {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <LandingNav />
-      <div className="container mx-auto px-4 pt-24">
+      <div className="container mx-auto px-4 pt-24 flex-grow">
         <h1 className="text-4xl font-bold mb-6">Affiliate Program</h1>
         <p className="mb-4">
           Join our affiliate program and earn commissions by promoting our
@@ -30,6 +32,7 @@ const Affiliate = () => {
           </a>
         </p>
       </div>
+      <IndexFooter />
     </div>
   );
 };

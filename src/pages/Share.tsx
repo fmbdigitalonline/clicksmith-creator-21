@@ -1,12 +1,14 @@
+
 import LandingNav from "@/components/LandingNav";
 import { Button } from "@/components/ui/button";
 import { Share2, Facebook, Twitter, Linkedin, Mail } from "lucide-react";
+import IndexFooter from "@/components/IndexFooter";
 
 const Share = () => {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <LandingNav />
-      <div className="container mx-auto px-4 pt-24">
+      <div className="container mx-auto px-4 pt-24 flex-grow">
         <h1 className="text-4xl font-bold mb-6">Share & Earn</h1>
         <div className="max-w-2xl mx-auto">
           <div className="bg-white rounded-lg shadow-md p-8">
@@ -66,6 +68,7 @@ const Share = () => {
           </div>
         </div>
       </div>
+      <IndexFooter />
     </div>
   );
 };
