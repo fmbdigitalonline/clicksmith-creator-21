@@ -53,10 +53,10 @@ function App() {
             <Route path="/help" element={<Help />} />
             <Route path="/" element={<Index />} />
             
-            {/* Moving these routes to public */}
-            <Route path="/affiliate" element={<AppLayout><Affiliate /></AppLayout>} />
-            <Route path="/referral" element={<AppLayout><Referral /></AppLayout>} />
-            <Route path="/share" element={<AppLayout><Share /></AppLayout>} />
+            {/* Public routes for sharing and referrals */}
+            <Route path="/affiliate" element={<Affiliate />} />
+            <Route path="/referral" element={<Referral />} />
+            <Route path="/share" element={<Share />} />
 
             {/* Protected routes */}
             <Route
