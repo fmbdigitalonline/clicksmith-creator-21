@@ -16,10 +16,8 @@ export const BulletPointsList = ({ points }: BulletPointsListProps) => {
           className="flex items-start gap-3 animate-fade-in"
           style={{ animationDelay: `${index * 100}ms` }}
         >
-          <Check className="h-5 w-5 text-primary mt-1.5 flex-shrink-0" />
-          <p className="text-gray-600 dark:text-gray-300 font-sans leading-relaxed">
-            {point}
-          </p>
+          <Check className="h-5 w-5 text-primary mt-1 flex-shrink-0" />
+          <p className="text-gray-600 dark:text-gray-300">{point}</p>
         </div>
       ))}
     </div>
