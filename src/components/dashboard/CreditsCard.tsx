@@ -42,10 +42,10 @@ const CreditsCard = () => {
         }
 
         const usedGenerations = freeUsage?.generations_used || 0;
-        return 3 - usedGenerations; // Changed from 12 to 3
+        return Math.max(0, 3 - Math.min(usedGenerations, 3)); // Ensure non-negative and cap at 3
       }
 
-      return subscription?.credits_remaining || 0;
+      return Math.max(0, subscription?.credits_remaining || 0); // Ensure non-negative
     },
     refetchInterval: 5000, // Refresh every 5 seconds
     refetchOnWindowFocus: true,

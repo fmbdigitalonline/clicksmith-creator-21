@@ -38,7 +38,7 @@ export const CreditDisplay = () => {
       return data;
     },
     enabled: !!user?.id,
-    refetchInterval: 5000, // Refetch every 5 seconds
+    refetchInterval: 5000,
     refetchOnWindowFocus: true,
   });
 
@@ -64,7 +64,7 @@ export const CreditDisplay = () => {
       return data;
     },
     enabled: !!user?.id,
-    refetchInterval: 5000, // Refetch every 5 seconds
+    refetchInterval: 5000,
     refetchOnWindowFocus: true,
   });
 
@@ -77,12 +77,12 @@ export const CreditDisplay = () => {
     }
 
     if (subscription?.credits_remaining !== undefined) {
-      return `${subscription.credits_remaining} credits`;
+      return `${Math.max(0, subscription.credits_remaining)} credits`; // Ensure non-negative
     }
     
-    const freeUsed = freeUsage?.generations_used || 0;
-    const freeRemaining = 3 - freeUsed; // Changed from 12 to 3
-    return `${freeRemaining}/3 free generations`; // Changed from 12 to 3
+    const freeUsed = Math.min(freeUsage?.generations_used || 0, 3); // Cap at 3
+    const freeRemaining = Math.max(0, 3 - freeUsed); // Ensure non-negative
+    return `${freeRemaining}/3 free generations`;
   };
 
   return (
