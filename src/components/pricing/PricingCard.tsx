@@ -5,6 +5,10 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useState } from "react";
+import { Input } from "@/components/ui/input";
+import { Form, FormControl, FormField, FormItem } from "@/components/ui/form";
+import { useForm } from "react-hook-form";
 
 interface Plan {
   id: string;
@@ -23,6 +27,8 @@ interface PricingCardProps {
 
 export const PricingCard = ({ plan, onSubscribe }: PricingCardProps) => {
   const { toast } = useToast();
+  const [discountCode, setDiscountCode] = useState("");
+  const [isApplying, setIsApplying] = useState(false);
 
   const handleSubscribe = async () => {
     try {
@@ -51,7 +57,8 @@ export const PricingCard = ({ plan, onSubscribe }: PricingCardProps) => {
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: { 
           priceId: plan.stripe_price_id,
-          mode: plan.price === 10 ? 'payment' : 'subscription'
+          mode: plan.price === 10 ? 'payment' : 'subscription',
+          discountCode: discountCode.trim() || undefined
         }
       });
 
@@ -128,7 +135,16 @@ export const PricingCard = ({ plan, onSubscribe }: PricingCardProps) => {
           </ul>
         </div>
       </CardContent>
-      <CardFooter className="pt-6 border-t">
+      <CardFooter className="pt-6 border-t space-y-4 flex-col">
+        <div className="w-full">
+          <Input
+            type="text"
+            placeholder="Discount code"
+            value={discountCode}
+            onChange={(e) => setDiscountCode(e.target.value)}
+            className="w-full"
+          />
+        </div>
         <Button 
           className="w-full"
           onClick={handleSubscribe}
