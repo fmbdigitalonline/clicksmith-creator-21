@@ -1,6 +1,23 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders } from "../_shared/cors.ts";
-import { createClient } from '@supabase/supabase-js'
+import { OpenAI } from "https://deno.land/x/openai@v4.13.0/mod.ts";
+import { SupabaseClient, createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
+import { DOMParser } from 'https://deno.land/x/deno_dom@v0.1.43/deno-dom-wasm.ts';
+
+interface ContentGenerationParams {
+  projectId: string;
+  businessIdea: {
+    description: string;
+    valueProposition: string;
+  };
+  targetAudience: {
+    description: string;
+    coreMessage: string;
+    painPoints: string[];
+    marketingAngle: string;
+  };
+  userId: string;
+}
 
 interface ThemeConfig {
   fonts: {
@@ -79,96 +96,6 @@ const businessThemes: Record<string, ThemeConfig> = {
       spacing: 'comfortable',
     },
   },
-  food: {
-    fonts: {
-      heading: 'Lora',
-      body: 'Open Sans',
-    },
-    colors: {
-      primary: '#EF4444',
-      secondary: '#FEF7CD',
-      accent: '#DC2626',
-    },
-    style: {
-      borderRadius: 'rounded-xl',
-      spacing: 'cozy',
-    },
-  },
-  education: {
-    fonts: {
-      heading: 'Source Sans Pro',
-      body: 'Inter',
-    },
-    colors: {
-      primary: '#2563EB',
-      secondary: '#F2FCE2',
-      accent: '#1D4ED8',
-    },
-    style: {
-      borderRadius: 'rounded-lg',
-      spacing: 'structured',
-    },
-  },
-  finance: {
-    fonts: {
-      heading: 'Inter',
-      body: 'Source Sans Pro',
-    },
-    colors: {
-      primary: '#1A1F2C',
-      secondary: '#F1F1F1',
-      accent: '#0F172A',
-    },
-    style: {
-      borderRadius: 'rounded-sm',
-      spacing: 'professional',
-    },
-  },
-  fitness: {
-    fonts: {
-      heading: 'Roboto',
-      body: 'Inter',
-    },
-    colors: {
-      primary: '#059669',
-      secondary: '#ECFDF5',
-      accent: '#047857',
-    },
-    style: {
-      borderRadius: 'rounded-lg',
-      spacing: 'energetic',
-    },
-  },
-  realestate: {
-    fonts: {
-      heading: 'Playfair Display',
-      body: 'Source Sans Pro',
-    },
-    colors: {
-      primary: '#334155',
-      secondary: '#F8FAFC',
-      accent: '#1E293B',
-    },
-    style: {
-      borderRadius: 'rounded-md',
-      spacing: 'elegant',
-    },
-  },
-  creative: {
-    fonts: {
-      heading: 'Montserrat',
-      body: 'Open Sans',
-    },
-    colors: {
-      primary: '#7C3AED',
-      secondary: '#F3E8FF',
-      accent: '#6D28D9',
-    },
-    style: {
-      borderRadius: 'rounded-2xl',
-      spacing: 'artistic',
-    },
-  }
 };
 
 const determineBusinessCategory = async (description: string): Promise<string> => {
@@ -186,7 +113,7 @@ const determineBusinessCategory = async (description: string): Promise<string> =
       messages: [
         {
           role: "system",
-          content: "You are a business categorization expert. Categorize the business into one of these categories: luxury, technology, automotive, health, food, education, finance, fitness, realestate, creative. Return ONLY the category name, nothing else.",
+          content: "You are a business categorization expert. Categorize the business into one of these categories: luxury, technology, automotive, health. Return ONLY the category name, nothing else.",
         },
         {
           role: "user",
@@ -206,26 +133,160 @@ const determineBusinessCategory = async (description: string): Promise<string> =
   return category;
 };
 
-const generateHeroSection = async (businessIdea: string, targetAudience: string, theme: ThemeConfig) => {
-  const apiKey = Deno.env.get("OPENAI_API_KEY");
-  if (!apiKey) throw new Error("OpenAI API key not found");
+const generateLandingPageContent = async (
+  businessIdea: ContentGenerationParams['businessIdea'],
+  targetAudience: ContentGenerationParams['targetAudience'],
+  projectImages: string[] = []
+) => {
+  console.log('Determining business category...');
+  const category = await determineBusinessCategory(businessIdea.description);
+  const theme = businessThemes[category] || businessThemes.technology;
 
-  const prompt = `Given the business idea "${businessIdea}" and the target audience "${targetAudience}", generate compelling hero section content for a landing page.
-  The theme of the landing page is: fonts - heading: ${theme.fonts.heading}, body: ${theme.fonts.body}; colors - primary: ${theme.colors.primary}, secondary: ${theme.colors.secondary}, accent: ${theme.colors.accent}; style - borderRadius: ${theme.style.borderRadius}, spacing: ${theme.style.spacing}.
-  Include a concise headline, a brief description, and a call to action. The tone should be engaging and persuasive.`;
+  console.log('Selected theme category:', category);
 
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: "gpt-4o-mini",
+  const openai = new OpenAI({
+    apiKey: Deno.env.get("OPENAI_API_KEY"),
+  });
+
+  const imageContext = projectImages.length > 0
+    ? `Here are some images of the product: ${projectImages.join(", ")}`
+    : "No product images available.";
+
+  const themeContext = `
+    Apply this visual theme:
+    - Use ${theme.fonts.heading} for headings
+    - Use ${theme.fonts.body} for body text
+    - Primary color: ${theme.colors.primary}
+    - Secondary color: ${theme.colors.secondary}
+    - Accent color: ${theme.colors.accent}
+    - Style: ${theme.style.spacing} spacing with ${theme.style.borderRadius} borders
+  `;
+
+  const prompt = `
+    Generate landing page content for a business with the following details:
+
+    Business Idea: ${businessIdea.description}
+    Value Proposition: ${businessIdea.valueProposition}
+    Target Audience: ${targetAudience.description}
+    Core Message: ${targetAudience.coreMessage}
+    Pain Points: ${targetAudience.painPoints.join(", ")}
+    Marketing Angle: ${targetAudience.marketingAngle}
+    ${imageContext}
+
+    ${themeContext}
+
+    Create sections for a landing page in the following JSON structure:
+    {
+      "sections": [
+        {
+          "type": "hero",
+          "order": 1,
+          "content": {
+            "title": "Catchy and concise headline",
+            "description": "Briefly describe the product and its benefits",
+            "cta": "Compelling call to action text",
+            "image": "URL of a relevant image"
+          }
+        },
+        {
+          "type": "value-proposition",
+          "order": 2,
+          "content": {
+            "headline": "Why choose this product?",
+            "points": [
+              "Benefit 1 clearly stated",
+              "Benefit 2 clearly stated",
+              "Benefit 3 clearly stated"
+            ]
+          }
+        },
+        {
+          "type": "features",
+          "order": 3,
+          "content": {
+            "headline": "Key Features",
+            "features": [
+              {
+                "title": "Feature 1",
+                "description": "Describe the feature and its benefits"
+              },
+              {
+                "title": "Feature 2",
+                "description": "Describe the feature and its benefits"
+              },
+              {
+                "title": "Feature 3",
+                "description": "Describe the feature and its benefits"
+              }
+            ]
+          }
+        },
+        {
+          "type": "social-proof",
+          "order": 4,
+          "content": {
+            "title": "What people are saying",
+            "testimonials": [
+              {
+                "quote": "A short, impactful quote from a satisfied customer",
+                "author": "Customer Name",
+                "role": "Customer Title"
+              },
+              {
+                "quote": "Another short, impactful quote",
+                "author": "Customer Name",
+                "role": "Customer Title"
+              }
+            ]
+          }
+        },
+        {
+          "type": "pricing",
+          "order": 5,
+          "content": {
+            "headline": "Simple Pricing",
+            "plans": [
+              {
+                "name": "Basic",
+                "price": "Free",
+                "features": ["Feature 1", "Feature 2"],
+                "cta": "Get Started"
+              },
+              {
+                "name": "Premium",
+                "price": "$99/month",
+                "features": ["All Basic Features", "Feature 3", "Feature 4"],
+                "cta": "Upgrade Now"
+              }
+            ]
+          }
+        },
+        {
+          "type": "final-cta",
+          "order": 6,
+          "content": {
+            "headline": "Ready to get started?",
+            "description": "Reiterate the main benefits and encourage action",
+            "cta": "Start Your Free Trial"
+          }
+        }
+      ]
+    }
+
+    Ensure the content is engaging, persuasive, and tailored to the target audience.
+    Each section should be concise and clearly communicate the value proposition.
+    The JSON should be valid and parsable.
+  `;
+
+  console.log("Full prompt being sent to OpenAI:", prompt);
+
+  try {
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o",
       messages: [
         {
           role: "system",
-          content: "You are an expert copywriter specializing in landing pages.",
+          content: "You are an expert copywriter specializing in landing page content.",
         },
         {
           role: "user",
@@ -233,195 +294,64 @@ const generateHeroSection = async (businessIdea: string, targetAudience: string,
         },
       ],
       temperature: 0.7,
-    }),
-  });
+    });
 
-  if (!response.ok) {
-    throw new Error('Failed to generate hero section content');
+    const cleanContent = completion.choices[0]?.message?.content?.trim();
+    console.log("Raw content from OpenAI:", cleanContent);
+
+    if (!cleanContent) {
+      throw new Error("No content returned from OpenAI");
+    }
+
+    try {
+      JSON.parse(cleanContent);
+    } catch (error) {
+      console.error("Error parsing JSON content:", error);
+      console.error("Content that failed to parse:", cleanContent);
+      throw new Error("Failed to parse JSON content from OpenAI");
+    }
+
+    // Before returning, inject the theme configuration
+    const parsedContent = JSON.parse(cleanContent);
+    parsedContent.theme = theme;
+    
+    return parsedContent;
+
+  } catch (openaiError) {
+    console.error("Error during OpenAI completion:", openaiError);
+    throw new Error(`OpenAI Error: ${openaiError.message}`);
   }
-
-  const data = await response.json();
-  const content = data.choices[0]?.message?.content?.trim();
-  return content;
 };
 
-const generateSocialProofSection = async (businessIdea: string, theme: ThemeConfig) => {
-  const apiKey = Deno.env.get("OPENAI_API_KEY");
-  if (!apiKey) throw new Error("OpenAI API key not found");
-
-  const prompt = `Given the business idea "${businessIdea}", generate compelling social proof section content for a landing page.
-  The theme of the landing page is: fonts - heading: ${theme.fonts.heading}, body: ${theme.fonts.body}; colors - primary: ${theme.colors.primary}, secondary: ${theme.colors.secondary}, accent: ${theme.colors.accent}; style - borderRadius: ${theme.style.borderRadius}, spacing: ${theme.style.spacing}.
-  Include three short testimonials that highlight the benefits of the product or service.`;
-
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content: "You are an expert copywriter specializing in landing pages.",
-        },
-        {
-          role: "user",
-          content: prompt,
-        },
-      ],
-      temperature: 0.7,
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to generate social proof section content');
-  }
-
-  const data = await response.json();
-  const content = data.choices[0]?.message?.content?.trim();
-  return content;
-};
-
-const generateFeatureSection = async (businessIdea: string, theme: ThemeConfig) => {
-  const apiKey = Deno.env.get("OPENAI_API_KEY");
-  if (!apiKey) throw new Error("OpenAI API key not found");
-
-  const prompt = `Given the business idea "${businessIdea}", generate compelling feature section content for a landing page.
-  The theme of the landing page is: fonts - heading: ${theme.fonts.heading}, body: ${theme.fonts.body}; colors - primary: ${theme.colors.primary}, secondary: ${theme.colors.secondary}, accent: ${theme.colors.accent}; style - borderRadius: ${theme.style.borderRadius}, spacing: ${theme.style.spacing}.
-  Include three key features with a short description for each.`;
-
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content: "You are an expert copywriter specializing in landing pages.",
-        },
-        {
-          role: "user",
-          content: prompt,
-        },
-      ],
-      temperature: 0.7,
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to generate feature section content');
-  }
-
-  const data = await response.json();
-  const content = data.choices[0]?.message?.content?.trim();
-  return content;
-};
-
-const generateFaqSection = async (businessIdea: string, theme: ThemeConfig) => {
-  const apiKey = Deno.env.get("OPENAI_API_KEY");
-  if (!apiKey) throw new Error("OpenAI API key not found");
-
-  const prompt = `Given the business idea "${businessIdea}", generate compelling FAQ section content for a landing page.
-  The theme of the landing page is: fonts - heading: ${theme.fonts.heading}, body: ${theme.fonts.body}; colors - primary: ${theme.colors.primary}, secondary: ${theme.colors.secondary}, accent: ${theme.colors.accent}; style - borderRadius: ${theme.style.borderRadius}, spacing: ${theme.style.spacing}.
-  Include three frequently asked questions with concise answers.`;
-
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content: "You are an expert copywriter specializing in landing pages.",
-        },
-        {
-          role: "user",
-          content: prompt,
-        },
-      ],
-      temperature: 0.7,
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to generate FAQ section content');
-  }
-
-  const data = await response.json();
-  const content = data.choices[0]?.message?.content?.trim();
-  return content;
-};
-
-const generateImage = async (description: string) => {
-  const apiKey = Deno.env.get("OPENAI_API_KEY");
-  if (!apiKey) throw new Error("OpenAI API key not found");
-
-  const response = await fetch('https://api.openai.com/v1/images/generations', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: "dall-e-3",
-      prompt: description,
-      n: 1,
-      size: "1024x1024",
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to generate image');
-  }
-
-  const data = await response.json();
-  const imageUrl = data.data[0].url;
-  return imageUrl;
-};
-
-serve(async (req) => {
+Deno.serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    const { projectId, businessIdea, targetAudience, userId } = await req.json();
+    const body = await req.json();
+    console.log("Request body:", body);
 
-    if (!projectId) {
-      throw new Error('Project ID is required');
-    }
+    const { projectId, businessIdea, targetAudience, userId } = body as ContentGenerationParams;
 
-    if (!businessIdea) {
-      throw new Error('Business idea is required');
-    }
-
-    if (!targetAudience) {
-      throw new Error('Target audience is required');
-    }
-
-    if (!userId) {
-      throw new Error('User ID is required');
+    if (!projectId || !businessIdea || !targetAudience || !userId) {
+      console.error("Missing required parameters");
+      return new Response(JSON.stringify({ error: "Missing required parameters" }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
+      });
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY");
 
-    if (!supabaseUrl) {
-      throw new Error('Supabase URL not found');
-    }
-
-    if (!supabaseKey) {
-      throw new Error('Supabase key not found');
+    if (!supabaseUrl || !supabaseKey) {
+      console.error("Supabase URL or Key missing");
+      return new Response(JSON.stringify({ error: "Supabase URL or Key missing" }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
+      });
     }
 
     const supabaseClient = createClient(supabaseUrl, supabaseKey, {
@@ -430,256 +360,207 @@ serve(async (req) => {
       }
     });
 
-    // Log the start of the landing page generation
-    await supabaseClient
+    // 1. Log the start of the landing page generation
+    const { error: logStartError } = await supabaseClient
       .from('landing_page_generation_logs')
       .insert({
         project_id: projectId,
         user_id: userId,
         status: 'generation_started',
-        step_details: { stage: 'started' }
+        success: false,
       });
 
-    // Determine business category
-    let businessCategory;
+    if (logStartError) {
+      console.error("Error logging generation start:", logStartError);
+    }
+
+    // 2. Generate the landing page content
+    let landingPageContent;
     try {
-      businessCategory = await determineBusinessCategory(businessIdea);
-      console.log(`Business category: ${businessCategory}`);
-    } catch (error) {
-      console.error("Failed to determine business category, defaulting to technology:", error);
-      businessCategory = 'technology';
-    }
+      landingPageContent = await generateLandingPageContent(businessIdea, targetAudience);
+    } catch (contentError) {
+      console.error("Error generating landing page content:", contentError);
 
-    // Get theme config based on business category
-    const theme = businessThemes[businessCategory] || businessThemes['technology'];
-
-    // Generate content for hero section
-    let heroSectionContent;
-    try {
+      // Log the error
       await supabaseClient
         .from('landing_page_generation_logs')
         .insert({
           project_id: projectId,
           user_id: userId,
-          status: 'generating_hero_content',
-          step_details: { stage: 'content_generation', section: 'hero' }
+          status: 'generation_failed',
+          success: false,
+          error_message: contentError.message,
         });
 
-      heroSectionContent = await generateHeroSection(businessIdea, targetAudience, theme);
-      console.log(`Hero section content: ${heroSectionContent}`);
-    } catch (error) {
-      console.error("Failed to generate hero section content:", error);
-      await supabaseClient
-        .from('landing_page_generation_logs')
-        .insert({
-          project_id: projectId,
-          user_id: userId,
-          status: 'error_generating_hero_content',
-          error_message: error.message,
-          step_details: { stage: 'content_generation', section: 'hero' }
-        });
-      heroSectionContent = 'Failed to generate hero section content.';
-    }
-
-    // Generate content for social proof section
-    let socialProofSectionContent;
-    try {
-      await supabaseClient
-        .from('landing_page_generation_logs')
-        .insert({
-          project_id: projectId,
-          user_id: userId,
-          status: 'generating_social_proof_content',
-          step_details: { stage: 'content_generation', section: 'social_proof' }
-        });
-
-      socialProofSectionContent = await generateSocialProofSection(businessIdea, theme);
-      console.log(`Social proof section content: ${socialProofSectionContent}`);
-    } catch (error) {
-      console.error("Failed to generate social proof section content:", error);
-      await supabaseClient
-        .from('landing_page_generation_logs')
-        .insert({
-          project_id: projectId,
-          user_id: userId,
-          status: 'error_generating_social_proof_content',
-          error_message: error.message,
-          step_details: { stage: 'content_generation', section: 'social_proof' }
-        });
-      socialProofSectionContent = 'Failed to generate social proof section content.';
-    }
-
-    // Generate content for feature section
-    let featureSectionContent;
-    try {
-      await supabaseClient
-        .from('landing_page_generation_logs')
-        .insert({
-          project_id: projectId,
-          user_id: userId,
-          status: 'generating_feature_content',
-          step_details: { stage: 'content_generation', section: 'feature' }
-        });
-
-      featureSectionContent = await generateFeatureSection(businessIdea, theme);
-      console.log(`Feature section content: ${featureSectionContent}`);
-    } catch (error) {
-      console.error("Failed to generate feature section content:", error);
-      await supabaseClient
-        .from('landing_page_generation_logs')
-        .insert({
-          project_id: projectId,
-          user_id: userId,
-          status: 'error_generating_feature_content',
-          error_message: error.message,
-          step_details: { stage: 'content_generation', section: 'feature' }
-        });
-      featureSectionContent = 'Failed to generate feature section content.';
-    }
-
-    // Generate content for FAQ section
-    let faqSectionContent;
-    try {
-      await supabaseClient
-        .from('landing_page_generation_logs')
-        .insert({
-          project_id: projectId,
-          user_id: userId,
-          status: 'generating_faq_content',
-          step_details: { stage: 'content_generation', section: 'faq' }
-        });
-
-      faqSectionContent = await generateFaqSection(businessIdea, theme);
-      console.log(`FAQ section content: ${faqSectionContent}`);
-    } catch (error) {
-      console.error("Failed to generate FAQ section content:", error);
-      await supabaseClient
-        .from('landing_page_generation_logs')
-        .insert({
-          project_id: projectId,
-          user_id: userId,
-          status: 'error_generating_faq_content',
-          error_message: error.message,
-          step_details: { stage: 'content_generation', section: 'faq' }
-        });
-      faqSectionContent = 'Failed to generate FAQ section content.';
-    }
-
-    // Generate image for hero section
-    let heroSectionImage;
-    try {
-      await supabaseClient
-        .from('landing_page_generation_logs')
-        .insert({
-          project_id: projectId,
-          user_id: userId,
-          status: 'generating_hero_image',
-          step_details: { stage: 'images_generated', section: 'hero' }
-        });
-
-      heroSectionImage = await generateImage(businessIdea);
-      console.log(`Hero section image: ${heroSectionImage}`);
-    } catch (error) {
-      console.error("Failed to generate hero section image:", error);
-      await supabaseClient
-        .from('landing_page_generation_logs')
-        .insert({
-          project_id: projectId,
-          user_id: userId,
-          status: 'error_generating_hero_image',
-          error_message: error.message,
-          step_details: { stage: 'images_generated', section: 'hero' }
-        });
-      heroSectionImage = 'https://source.unsplash.com/1024x768/?business';
-    }
-
-    // Structure the landing page content
-    const landingPageContent = {
-      theme: theme,
-      sections: [
-        {
-          type: 'hero',
-          order: 1,
-          content: {
-            headline: heroSectionContent.split('\n')[0],
-            description: heroSectionContent.split('\n').slice(1).join('\n'),
-            image: heroSectionImage,
-          },
-        },
-        {
-          type: 'social-proof',
-          order: 2,
-          content: {
-            testimonials: socialProofSectionContent.split('\n'),
-          },
-        },
-        {
-          type: 'features',
-          order: 3,
-          content: {
-            features: featureSectionContent.split('\n'),
-          },
-        },
-        {
-          type: 'faq',
-          order: 4,
-          content: {
-            questions: faqSectionContent.split('\n'),
-          },
-        },
-      ],
-    };
-
-    // Update the landing page in the database
-    const { data, error } = await supabaseClient
-      .from('landing_pages')
-      .update({
-        content: landingPageContent,
-        theme_settings: theme,
-        content_iterations: () => 'content_iterations + 1',
-      })
-      .eq('project_id', projectId)
-      .select()
-
-    if (error) {
-      console.error("Failed to update landing page:", error);
-      await supabaseClient
-        .from('landing_page_generation_logs')
-        .insert({
-          project_id: projectId,
-          user_id: userId,
-          status: 'error_updating_landing_page',
-          error_message: error.message,
-          step_details: { stage: 'database_update' }
-        });
-      throw new Error('Failed to update landing page');
-    }
-
-    console.log("Landing page updated:", data);
-
-    // Log the successful completion of the landing page generation
-    await supabaseClient
-      .from('landing_page_generation_logs')
-      .insert({
-        project_id: projectId,
-        user_id: userId,
-        status: 'generation_completed',
-        success: true,
-        step_details: { stage: 'completed' }
-      });
-
-    return new Response(
-      JSON.stringify({ success: true, data }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
-  } catch (error) {
-    console.error("Full error:", error);
-    return new Response(
-      JSON.stringify({ success: false, error: error.message }),
-      {
+      return new Response(JSON.stringify({ error: contentError.message }), {
         status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      },
-    );
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
+      });
+    }
+
+    // 3. Upload images to storage
+    const imageUrls: string[] = [];
+    try {
+      // Extract image URLs from the landing page content
+      const imageElements: string[] = [];
+      
+      // Function to recursively extract image URLs from sections
+      function extractImages(sections: any[]) {
+        sections.forEach((section: any) => {
+          if (section.content && section.content.image) {
+            imageElements.push(section.content.image);
+          }
+          if (section.content && section.content.images && Array.isArray(section.content.images)) {
+            imageElements.push(...section.content.images);
+          }
+          if (section.content && section.content.testimonials && Array.isArray(section.content.testimonials)) {
+            section.content.testimonials.forEach((testimonial: any) => {
+              if (testimonial.image) {
+                imageElements.push(testimonial.image);
+              }
+            });
+          }
+          if (section.content && section.content.features && Array.isArray(section.content.features)) {
+            section.content.features.forEach((feature: any) => {
+              if (feature.image) {
+                imageElements.push(feature.image);
+              }
+            });
+          }
+        });
+      }
+
+      if (landingPageContent && landingPageContent.sections) {
+        extractImages(landingPageContent.sections);
+      }
+
+      // Upload each image to Supabase storage
+      for (const imageUrl of imageElements) {
+        try {
+          // Fetch the image as a Blob
+          const imageResponse = await fetch(imageUrl);
+          if (!imageResponse.ok) {
+            console.error(`Failed to fetch image from ${imageUrl}: ${imageResponse.status} ${imageResponse.statusText}`);
+            continue; // Skip to the next image
+          }
+          const imageBlob = await imageResponse.blob();
+
+          // Convert Blob to File
+          const imageFile = new File([imageBlob], `landing-page-image-${Date.now()}.jpg`, { type: imageBlob.type });
+
+          // Upload the image to Supabase storage
+          const { data: storageData, error: storageError } = await supabaseClient.storage
+            .from('landing-page-images')
+            .upload(`${projectId}/${imageFile.name}`, imageFile, {
+              cacheControl: '3600',
+              upsert: false,
+            });
+
+          if (storageError) {
+            console.error(`Failed to upload image from ${imageUrl} to storage:`, storageError);
+            continue; // Skip to the next image
+          }
+
+          // Get the public URL of the uploaded image
+          const publicUrl = `${supabaseUrl}/storage/v1/object/public/${storageData.path}`;
+          imageUrls.push(publicUrl);
+          console.log(`Image from ${imageUrl} uploaded to storage and made public at ${publicUrl}`);
+        } catch (uploadError) {
+          console.error(`Failed to process and upload image from ${imageUrl}:`, uploadError);
+        }
+      }
+    } catch (imageError) {
+      console.error("Error during image processing:", imageError);
+    }
+
+    // 4. Save the landing page content to the database
+    try {
+      const { data: existingPage, error: pageError } = await supabaseClient
+        .from("landing_pages")
+        .select("*")
+        .eq("project_id", projectId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (pageError) {
+        console.error("Error checking for existing landing page:", pageError);
+        throw pageError;
+      }
+
+      let newVersion = 1;
+      if (existingPage) {
+        newVersion = (existingPage.version || 0) + 1;
+      }
+
+      const { data: updatedPage, error: updateError } = await supabaseClient
+        .from("landing_pages")
+        .upsert([
+          {
+            id: existingPage?.id,
+            project_id: projectId,
+            user_id: userId,
+            title: project?.title || 'New Landing Page',
+            content: landingPageContent,
+            theme_settings: {},
+            content_iterations: (existingPage?.content_iterations || 0) + 1,
+            version: newVersion,
+          }
+        ], { onConflict: 'project_id' })
+        .select()
+        .single();
+
+      if (updateError) {
+        console.error("Error saving landing page content:", updateError);
+        throw updateError;
+      }
+
+      console.log("Landing page saved:", updatedPage);
+
+      // 5. Log the successful generation
+      const { error: logSuccessError } = await supabaseClient
+        .from('landing_page_generation_logs')
+        .insert({
+          project_id: projectId,
+          user_id: userId,
+          status: 'generation_success',
+          success: true,
+        });
+
+      if (logSuccessError) {
+        console.error("Error logging generation success:", logSuccessError);
+      }
+
+      return new Response(JSON.stringify({ success: true, data: updatedPage }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
+      });
+
+    } catch (dbError) {
+      console.error("Database error:", dbError);
+
+      // Log the error
+      await supabaseClient
+        .from('landing_page_generation_logs')
+        .insert({
+          project_id: projectId,
+          user_id: userId,
+          status: 'generation_failed',
+          success: false,
+          error_message: dbError.message,
+        });
+
+      return new Response(JSON.stringify({ error: dbError.message }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
+      });
+    }
+
+  } catch (e) {
+    console.error("Unexpected error:", e);
+    return new Response(JSON.stringify({ error: e.message }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json', ...corsHeaders },
+    });
   }
 });
