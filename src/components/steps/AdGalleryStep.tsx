@@ -31,7 +31,9 @@ const AdGalleryStep = ({
   onCreateProject,
   videoAdsEnabled = false,
 }: AdGalleryStepProps) => {
-  const [selectedFormat, setSelectedFormat] = useState(AD_FORMATS[0]);
+  // Find the square format (1:1) and use it as default, fallback to first format if not found
+  const defaultFormat = AD_FORMATS.find(format => format.width === 1080 && format.height === 1080) || AD_FORMATS[0];
+  const [selectedFormat, setSelectedFormat] = useState(defaultFormat);
   const { toast } = useToast();
   
   const {
