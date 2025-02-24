@@ -1,4 +1,3 @@
-
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
@@ -22,6 +21,7 @@ import Referral from "@/pages/Referral";
 import Affiliate from "@/pages/Affiliate";
 import Share from "@/pages/Share";
 import BlogAdmin from "@/pages/BlogAdmin";
+import AdminUpdates from "@/pages/AdminUpdates";
 import Blog from "@/pages/Blog";
 import BlogPost from "@/pages/BlogPost";
 import About from "@/pages/About";
@@ -73,6 +73,16 @@ function App() {
                 <ProtectedRoute>
                   <AppLayout>
                     <BlogAdmin />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin-updates"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <AdminUpdates />
                   </AppLayout>
                 </ProtectedRoute>
               }
