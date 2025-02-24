@@ -9,6 +9,7 @@ import { NotificationSettings } from "@/components/settings/NotificationSettings
 import { SubscriptionSettings } from "@/components/settings/SubscriptionSettings";
 import { SecuritySettings } from "@/components/settings/SecuritySettings";
 import { PlatformSettings } from "@/components/settings/PlatformSettings";
+import { CampaignPreview } from "@/components/settings/CampaignPreview";
 
 interface Profile {
   full_name: string | null;
@@ -113,6 +114,8 @@ const Settings = () => {
         />
         
         <PlatformSettings />
+        
+        <CampaignPreview />
         
         <NotificationSettings 
           profile={profile}
