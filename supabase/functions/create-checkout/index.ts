@@ -66,8 +66,8 @@ serve(async (req) => {
     const successUrl = `${origin}/settings?session_id={CHECKOUT_SESSION_ID}`;
     const cancelUrl = `${origin}/pricing`;
 
-    // Create checkout session with promotion codes enabled
-    console.log('Creating checkout session...');
+    // Create checkout session with PayPal enabled
+    console.log('Creating checkout session with PayPal...');
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       line_items: [
@@ -79,7 +79,13 @@ serve(async (req) => {
       mode: mode as 'payment' | 'subscription',
       success_url: successUrl,
       cancel_url: cancelUrl,
-      allow_promotion_codes: true, // Enable Stripe's native promotion code field
+      allow_promotion_codes: true,
+      payment_method_types: ['card', 'paypal'],
+      payment_method_options: {
+        paypal: {
+          setup_future_usage: mode === 'subscription' ? 'on_session' : undefined
+        }
+      },
       metadata: {
         supabaseUid: user.id,
       },
