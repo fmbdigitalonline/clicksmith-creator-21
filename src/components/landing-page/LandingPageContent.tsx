@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -29,22 +30,6 @@ interface GenerationLog {
   step_details?: StepDetails;
 }
 
-interface ThemeConfig {
-  fonts: {
-    heading: string;
-    body: string;
-  };
-  colors: {
-    primary: string;
-    secondary: string;
-    accent: string;
-  };
-  style: {
-    borderRadius: string;
-    spacing: string;
-  };
-}
-
 const LandingPageContent = ({ project, landingPage }: { project: any; landingPage: any }) => {
   const [activeView, setActiveView] = useState<"edit" | "preview">("preview");
   const [isGenerating, setIsGenerating] = useState(false);
@@ -55,34 +40,6 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { isLoading: isTemplateLoading } = useLandingPageTemplate();
-
-  // Extract theme from landing page content
-  const theme: ThemeConfig = landingPage?.content?.theme || {
-    fonts: {
-      heading: 'Playfair Display',
-      body: 'Montserrat',
-    },
-    colors: {
-      primary: '#1A1F2C',
-      secondary: '#D6BCFA',
-      accent: '#8B5CF6',
-    },
-    style: {
-      borderRadius: 'rounded-lg',
-      spacing: 'spacious',
-    },
-  };
-
-  // Apply dynamic theme styles
-  useEffect(() => {
-    if (theme) {
-      const root = document.documentElement;
-      root.style.setProperty('--primary', theme.colors.primary);
-      root.style.setProperty('--secondary', theme.colors.secondary);
-      root.style.setProperty('--accent', theme.colors.accent);
-      document.body.style.fontFamily = theme.fonts.body;
-    }
-  }, [theme]);
 
   useEffect(() => {
     if (isGenerating && project?.id) {
@@ -186,10 +143,7 @@ const LandingPageContent = ({ project, landingPage }: { project: any; landingPag
   }
 
   return (
-    <div className="min-h-screen" style={{ 
-      '--heading-font': theme.fonts.heading,
-      '--body-font': theme.fonts.body,
-    } as React.CSSProperties}>
+    <div className="min-h-screen">
       <Tabs value={activeView} onValueChange={(value: "edit" | "preview") => setActiveView(value)}>
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between mb-4">
