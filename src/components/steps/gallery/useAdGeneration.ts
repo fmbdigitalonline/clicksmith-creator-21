@@ -48,7 +48,13 @@ export const useAdGeneration = () => {
   const showToast = useCallback((title: string, description: string, variant: "default" | "destructive" = "default") => {
     // Dismiss previous toast if it exists
     if (activeToastRef.current) {
-      toast.dismiss(activeToastRef.current);
+      const previousToast = activeToastRef.current;
+      const timeoutId = setTimeout(() => {
+        toast({
+          ...previousToast,
+          open: false
+        });
+      }, 0);
     }
     
     // Show new toast and store its ID
@@ -193,10 +199,9 @@ export const useAdGeneration = () => {
         } finally {
           if (isMountedRef.current) {
             setGenerationStatus("");
-            // Only reset to idle if we're not in an error state
-            if (generationState !== 'error') {
-              setGenerationState('idle');
-            }
+            setGenerationState((currentState) => 
+              currentState === 'error' ? 'error' : 'idle'
+            );
           }
         }
       }, 500); // 500ms debounce delay
@@ -207,9 +212,13 @@ export const useAdGeneration = () => {
   const destroy = useCallback(() => {
     isMountedRef.current = false;
     cleanup();
-    // Dismiss any active toasts
+    // Clear any active toasts
     if (activeToastRef.current) {
-      toast.dismiss(activeToastRef.current);
+      const toastId = activeToastRef.current;
+      toast({
+        ...toastId,
+        open: false
+      });
     }
   }, [toast]);
 
