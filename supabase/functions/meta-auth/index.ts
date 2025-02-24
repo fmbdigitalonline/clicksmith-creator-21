@@ -33,8 +33,8 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        client_id: Deno.env.get('META_APP_ID'),
-        client_secret: Deno.env.get('META_APP_SECRET'),
+        client_id: '599504683060636',
+        client_secret: 'd5d43e469e9ab26547f9b28d43f6bfd0',
         redirect_uri,
         code,
       }),
@@ -62,7 +62,7 @@ serve(async (req) => {
       .from('platform_connections')
       .insert({
         user_id: user.id,
-        platform: 'meta',
+        platform: 'facebook',
         access_token: data.access_token,
         token_expires_at: new Date(Date.now() + (data.expires_in * 1000)).toISOString(),
       })

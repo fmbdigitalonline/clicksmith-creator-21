@@ -15,7 +15,7 @@ export const PlatformSettings = () => {
       const { data, error } = await supabase
         .from('platform_connections')
         .select('*')
-        .eq('platform', 'meta')
+        .eq('platform', 'facebook')
         .single();
 
       if (error) throw error;
@@ -25,7 +25,7 @@ export const PlatformSettings = () => {
 
   const handleMetaConnect = async () => {
     // Meta OAuth flow
-    const appId = process.env.VITE_META_APP_ID;
+    const appId = '599504683060636';
     const redirectUri = `${window.location.origin}/settings`;
     const scope = 'ads_management,business_management';
     
@@ -39,7 +39,7 @@ export const PlatformSettings = () => {
       const { error } = await supabase
         .from('platform_connections')
         .delete()
-        .eq('platform', 'meta');
+        .eq('platform', 'facebook');
 
       if (error) throw error;
 
