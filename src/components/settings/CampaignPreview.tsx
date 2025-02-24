@@ -10,20 +10,36 @@ import { supabase } from "@/integrations/supabase/client";
 import { ChartBar, Calendar, Target, DollarSign, Facebook } from "lucide-react";
 import { format } from "date-fns";
 
+// Interface for raw data from Supabase
+interface RawCampaignData {
+  id: string;
+  name: string;
+  status: string;
+  budget: number;
+  start_date: string;
+  end_date: string;
+  platform: 'facebook' | 'google' | 'linkedin' | 'tiktok';
+  platform_campaign_id: string | null;
+  project_id: string | null;
+  created_at: string;
+  updated_at: string;
+  user_id: string | null;
+}
+
 interface Campaign {
   id: string;
   name: string;
   status: string;
-  budget: number; // Changed from daily_budget to match DB schema
+  budget: number;
   start_date: string;
   end_date: string;
-  objective: string | null; // Made optional
-  target_audience: any | null; // Made optional
+  objective: string | null;
+  target_audience: any | null;
   performance_metrics: {
     impressions?: number;
     clicks?: number;
     spend?: number;
-  } | null; // Made optional
+  } | null;
   platform: 'facebook' | 'google' | 'linkedin' | 'tiktok';
   platform_campaign_id: string | null;
   project_id: string | null;
@@ -54,12 +70,12 @@ export const CampaignPreview = () => {
         throw error;
       }
 
-      // Transform the data to match the Campaign interface
-      return (data ?? []).map(campaign => ({
+      // Transform the raw data to match the Campaign interface
+      return (data as RawCampaignData[]).map(campaign => ({
         ...campaign,
-        objective: campaign.objective || null,
-        target_audience: campaign.target_audience || null,
-        performance_metrics: campaign.performance_metrics || null
+        objective: null,
+        target_audience: null,
+        performance_metrics: null
       })) as Campaign[];
     },
   });
