@@ -1,31 +1,24 @@
 
-import { Configuration, OpenAIApi } from "https://esm.sh/openai@3.2.1";
-
 interface ContentGenerationParams {
   businessIdea: {
     description: string;
     valueProposition: string;
   };
   targetAudience: {
-    icp: string;
     name: string;
+    description: string;
     painPoints: string[];
     coreMessage: string;
-    description: string;
-    positioning: string;
-    demographics: string;
     marketingAngle: string;
-    marketingChannels: string[];
-    messagingApproach: string;
   };
   iterationNumber?: number;
 }
 
-const generateLandingPageContent = async (businessIdea: any, targetAudience: any) => {
-  const configuration = new Configuration({
-    apiKey: Deno.env.get("OPENAI_API_KEY"),
-  });
-  const openai = new OpenAIApi(configuration);
+const generateLandingPageContent = async (businessIdea: ContentGenerationParams['businessIdea'], targetAudience: ContentGenerationParams['targetAudience']) => {
+  const apiKey = Deno.env.get("OPENAI_API_KEY");
+  if (!apiKey) throw new Error("OpenAI API key not found");
+
+  console.log('Preparing landing page content generation...');
 
   const prompt = `Generate landing page content for a business with the following details:
 
@@ -47,27 +40,45 @@ Create compelling content for a landing page that includes:
 Make the content compelling and persuasive. Focus on addressing the pain points and using the specified marketing angle.`;
 
   try {
-    const completion = await openai.createChatCompletion({
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content: "You are an expert copywriter specializing in landing page content that converts. Generate content in JSON format.",
-        },
-        {
-          role: "user",
-          content: prompt,
-        },
-      ],
-      temperature: 0.7,
+    console.log('Making request to OpenAI API...');
+    
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        messages: [
+          {
+            role: "system",
+            content: "You are an expert copywriter specializing in landing page content that converts. Generate content in JSON format.",
+          },
+          {
+            role: "user",
+            content: prompt,
+          },
+        ],
+        temperature: 0.7,
+      }),
     });
 
-    const response = completion.data.choices[0]?.message?.content;
-    if (!response) {
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('OpenAI API error:', errorData);
+      throw new Error(`OpenAI API error: ${errorData.error?.message || 'Unknown error'}`);
+    }
+
+    const data = await response.json();
+    const content = data.choices[0]?.message?.content;
+    
+    if (!content) {
       throw new Error("No content generated");
     }
 
-    return JSON.parse(response);
+    console.log('Content generated successfully');
+    return JSON.parse(content);
   } catch (error) {
     console.error("Error generating content:", error);
     throw error;

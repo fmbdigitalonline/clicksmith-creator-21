@@ -17,13 +17,18 @@ serve(async (req) => {
   try {
     const { projectId, businessIdea, targetAudience, userId } = await req.json();
 
+    // Validate required parameters
+    if (!projectId || !businessIdea || !targetAudience || !userId) {
+      throw new Error('Missing required parameters');
+    }
+
+    console.log('Starting landing page generation for project:', projectId);
+
     // Create Supabase client
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
-
-    console.log('Starting landing page generation for project:', projectId);
 
     // Create a new generation log entry
     const { data: logEntry, error: logError } = await supabase
