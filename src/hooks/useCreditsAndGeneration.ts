@@ -21,19 +21,63 @@ export const useCreditsAndGeneration = () => {
         return { hasCredits: false, errorMessage: "Please sign in to continue" };
       }
 
-      const { data, error } = await supabase.rpc(
-        'check_credits_available',
-        { p_user_id: user.id, required_credits: requiredCredits }
-      );
+      // Special case for admin
+      if (user.email === "info@fmbonline.nl") {
+        return {
+          hasCredits: true,
+          creditsRemaining: -1, // Indicates unlimited
+          errorMessage: null
+        };
+      }
 
-      if (error) throw error;
-      
-      const [result] = data;
+      // First check subscription credits
+      const { data: subscriptionData, error: subscriptionError } = await supabase
+        .from("subscriptions")
+        .select("credits_remaining")
+        .eq("user_id", user.id)
+        .eq("active", true)
+        .maybeSingle();
+
+      if (subscriptionError && subscriptionError.code !== "PGRST116") {
+        throw subscriptionError;
+      }
+
+      if (subscriptionData?.credits_remaining >= requiredCredits) {
+        return {
+          hasCredits: true,
+          creditsRemaining: subscriptionData.credits_remaining,
+          errorMessage: null
+        };
+      }
+
+      // If no subscription or not enough credits, check free tier
+      const { data: freeUsageData, error: freeUsageError } = await supabase
+        .from("free_tier_usage")
+        .select("generations_used")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (freeUsageError && freeUsageError.code !== "PGRST116") {
+        throw freeUsageError;
+      }
+
+      const usedGenerations = freeUsageData?.generations_used || 0;
+      const remainingFreeGenerations = Math.max(0, 3 - usedGenerations); // Cap at 3 free generations
+
+      if (remainingFreeGenerations >= requiredCredits) {
+        return {
+          hasCredits: true,
+          creditsRemaining: remainingFreeGenerations,
+          errorMessage: null
+        };
+      }
+
       return {
-        hasCredits: result.has_credits,
-        creditsRemaining: result.credits_remaining,
-        errorMessage: result.error_message
+        hasCredits: false,
+        creditsRemaining: remainingFreeGenerations,
+        errorMessage: "You have used all your free generations. Please upgrade to continue."
       };
+      
     } catch (error) {
       console.error('Error checking credits:', error);
       return {
@@ -50,18 +94,72 @@ export const useCreditsAndGeneration = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("User not authenticated");
 
-      const { data, error } = await supabase.rpc(
-        'deduct_generation_credits',
-        { p_user_id: user.id, required_credits: requiredCredits }
-      );
+      // Special case for admin
+      if (user.email === "info@fmbonline.nl") {
+        return {
+          success: true,
+          creditsRemaining: -1,
+          errorMessage: null
+        };
+      }
 
-      if (error) throw error;
+      // First try to deduct from subscription
+      const { data: subscriptionData, error: subscriptionError } = await supabase
+        .from("subscriptions")
+        .select("credits_remaining")
+        .eq("user_id", user.id)
+        .eq("active", true)
+        .maybeSingle();
+
+      if (!subscriptionError && subscriptionData?.credits_remaining >= requiredCredits) {
+        // Deduct from subscription
+        const { data: updateData, error: updateError } = await supabase
+          .from("subscriptions")
+          .update({ credits_remaining: subscriptionData.credits_remaining - requiredCredits })
+          .eq("user_id", user.id)
+          .eq("active", true);
+
+        if (updateError) throw updateError;
+
+        return {
+          success: true,
+          creditsRemaining: subscriptionData.credits_remaining - requiredCredits,
+          errorMessage: null
+        };
+      }
+
+      // If no subscription or not enough credits, use free tier
+      const { data: freeUsageData, error: freeUsageError } = await supabase
+        .from("free_tier_usage")
+        .select("generations_used")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (freeUsageError) throw freeUsageError;
+
+      const currentUsed = freeUsageData?.generations_used || 0;
       
-      const [result] = data;
+      if (currentUsed < 3) { // Still have free generations available
+        const { data: updateData, error: updateError } = await supabase
+          .from("free_tier_usage")
+          .upsert({
+            user_id: user.id,
+            generations_used: currentUsed + requiredCredits
+          });
+
+        if (updateError) throw updateError;
+
+        return {
+          success: true,
+          creditsRemaining: 3 - (currentUsed + requiredCredits),
+          errorMessage: null
+        };
+      }
+
       return {
-        success: result.success,
-        creditsRemaining: result.credits_remaining,
-        errorMessage: result.error_message
+        success: false,
+        creditsRemaining: 0,
+        errorMessage: "No credits available"
       };
     } catch (error) {
       console.error('Error deducting credits:', error);
