@@ -9,6 +9,7 @@ import {
   Home,
   BookmarkIcon,
   FileText,
+  Bell,
 } from "lucide-react";
 import {
   Sidebar,
@@ -67,6 +68,11 @@ export function AppSidebar() {
       title: "Blog Admin",
       icon: FileText,
       url: "/blog-admin",
+    },
+    {
+      title: "Admin Updates",
+      icon: Bell,
+      url: "/admin-updates",
     },
   ];
 
