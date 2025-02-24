@@ -1,12 +1,118 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { deepeek } from "./deepeek.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+interface ContentGenerationParams {
+  businessIdea: {
+    description: string;
+    valueProposition: string;
+  };
+  targetAudience: {
+    description: string;
+    coreMessage: string;
+    painPoints: string[];
+    marketingAngle: string;
+  };
+  projectId: string;
+  userId: string;
+}
+
+interface ThemeConfig {
+  fonts: {
+    heading: string;
+    body: string;
+  };
+  colors: {
+    primary: string;
+    secondary: string;
+    accent: string;
+  };
+  style: {
+    borderRadius: string;
+    spacing: string;
+  };
+}
+
+const businessThemes: { [key: string]: ThemeConfig } = {
+  technology: {
+    fonts: {
+      heading: 'Roboto',
+      body: 'Open Sans',
+    },
+    colors: {
+      primary: '#1A1F2C',
+      secondary: '#D6BCFA',
+      accent: '#8B5CF6',
+    },
+    style: {
+      borderRadius: 'rounded-md',
+      spacing: 'compact',
+    },
+  },
+  fashion: {
+    fonts: {
+      heading: 'Playfair Display',
+      body: 'Lora',
+    },
+    colors: {
+      primary: '#333333',
+      secondary: '#F5E6CC',
+      accent: '#A68B70',
+    },
+    style: {
+      borderRadius: 'rounded-full',
+      spacing: 'spacious',
+    },
+  },
+  food: {
+    fonts: {
+      heading: 'Montserrat',
+      body: 'Source Sans Pro',
+    },
+    colors: {
+      primary: '#4A5568',
+      secondary: '#EDF2F7',
+      accent: '#F6AD55',
+    },
+    style: {
+      borderRadius: 'rounded-xl',
+      spacing: 'comfortable',
+    },
+  },
+  default: {
+    fonts: {
+      heading: 'Playfair Display',
+      body: 'Montserrat',
+    },
+    colors: {
+      primary: '#1A1F2C',
+      secondary: '#D6BCFA',
+      accent: '#8B5CF6',
+    },
+    style: {
+      borderRadius: 'rounded-lg',
+      spacing: 'spacious',
+    },
+  },
+};
+
+async function determineBusinessCategory(businessDescription: string): Promise<string> {
+  const description = businessDescription.toLowerCase();
+
+  if (description.includes("tech") || description.includes("software") || description.includes("ai")) {
+    return "technology";
+  } else if (description.includes("fashion") || description.includes("clothing") || description.includes("style")) {
+    return "fashion";
+  } else if (description.includes("food") || description.includes("restaurant") || description.includes("cooking")) {
+    return "food";
+  } else {
+    return "default";
+  }
+}
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -15,126 +121,98 @@ serve(async (req) => {
   }
 
   try {
-    const { projectId, businessIdea, targetAudience, userId } = await req.json();
+    const { projectId, businessIdea, targetAudience, userId } = await req.json() as ContentGenerationParams;
 
-    // Validate required parameters
+    console.log('Received request with:', { projectId, businessIdea, targetAudience, userId });
+
     if (!projectId || !businessIdea || !targetAudience || !userId) {
       throw new Error('Missing required parameters');
     }
 
-    console.log('Starting landing page generation for project:', projectId);
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
-    // Create Supabase client
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
-
-    // Fetch project images from ad_feedback
-    const { data: imageData, error: imageError } = await supabase
-      .from('ad_feedback')
-      .select('imageurl, saved_images')
-      .eq('project_id', projectId)
-      .not('imageurl', 'is', null);
-
-    if (imageError) {
-      console.error('Error fetching project images:', imageError);
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error('Missing Supabase configuration');
     }
 
-    // Collect all available images
-    const projectImages = imageData?.reduce((acc: string[], item) => {
-      if (item.imageurl) acc.push(item.imageurl);
-      if (item.saved_images && Array.isArray(item.saved_images)) {
-        acc.push(...item.saved_images);
-      }
-      return acc;
-    }, []) || [];
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
-    console.log('Found project images:', projectImages);
-
-    // Create a new generation log entry
-    const { data: logEntry, error: logError } = await supabase
+    // Log generation attempt
+    await supabase
       .from('landing_page_generation_logs')
       .insert({
         project_id: projectId,
         user_id: userId,
         status: 'started',
         step_details: { stage: 'started' }
-      })
-      .select()
-      .single();
+      });
 
-    if (logError) throw logError;
+    // Determine business category
+    const category = await determineBusinessCategory(businessIdea.description);
+    console.log('Determined business category:', category);
 
-    // Get the latest version number for this project
-    const { data: latestVersion } = await supabase
+    const theme = businessThemes[category] || businessThemes.technology;
+
+    // Generate landing page content
+    const content = {
+      theme,
+      sections: [
+        {
+          type: 'hero',
+          order: 1,
+          content: {
+            headline: `${businessIdea.valueProposition}`,
+            subheadline: `${targetAudience.coreMessage}`,
+            ctaText: "Get Started Now"
+          }
+        },
+        {
+          type: 'social-proof',
+          order: 2,
+          content: {
+            headline: "Trusted by Businesses Like Yours",
+            testimonials: []
+          }
+        }
+      ]
+    };
+
+    // Update landing page
+    const { data: landingPage, error: updateError } = await supabase
       .from('landing_pages')
-      .select('id, version')
-      .eq('project_id', projectId)
-      .order('version', { ascending: false })
-      .limit(1)
-      .single();
-
-    const newVersion = (latestVersion?.version || 0) + 1;
-    const previousVersionId = latestVersion?.id;
-
-    console.log('Generating content for version:', newVersion);
-
-    // Start generating content
-    await supabase
-      .from('landing_page_generation_logs')
-      .update({
-        status: 'generating_content',
-        step_details: { stage: 'content_generated' }
-      })
-      .eq('id', logEntry.id);
-
-    const content = await deepeek.generateLandingPageContent(businessIdea, targetAudience, projectImages);
-
-    console.log('Content generated successfully');
-
-    // Create new landing page version
-    const { data: newLandingPage, error: insertError } = await supabase
-      .from('landing_pages')
-      .insert({
+      .upsert({
         project_id: projectId,
         user_id: userId,
         content,
-        version: newVersion,
-        previous_version_id: previousVersionId,
-        generation_started_at: new Date().toISOString(),
-        content_iterations: newVersion,
-        title: `Landing Page v${newVersion}`
+        theme_settings: theme,
+        version: 1
       })
       .select()
       .single();
 
-    if (insertError) throw insertError;
+    if (updateError) {
+      throw updateError;
+    }
 
-    console.log('New landing page version created:', newLandingPage.id);
-
-    // Update log with success
+    // Log successful generation
     await supabase
       .from('landing_page_generation_logs')
-      .update({
+      .insert({
+        project_id: projectId,
+        user_id: userId,
         status: 'completed',
         success: true,
         step_details: { stage: 'completed' }
-      })
-      .eq('id', logEntry.id);
+      });
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
-        data: newLandingPage,
-        message: 'Landing page generated successfully'
-      }),
+      JSON.stringify({ success: true, data: landingPage }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
-    console.error('Error in generate-landing-page function:', error);
-
+    console.error('Error:', error.message);
     return new Response(
       JSON.stringify({ 
         success: false, 
