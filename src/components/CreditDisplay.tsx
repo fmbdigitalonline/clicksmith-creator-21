@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -80,8 +81,8 @@ export const CreditDisplay = () => {
     }
     
     const freeUsed = freeUsage?.generations_used || 0;
-    const freeRemaining = 12 - freeUsed;
-    return `${freeRemaining}/12 free generations`;
+    const freeRemaining = 3 - freeUsed; // Changed from 12 to 3
+    return `${freeRemaining}/3 free generations`; // Changed from 12 to 3
   };
 
   return (
