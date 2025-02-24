@@ -357,17 +357,6 @@ const Dashboard = () => {
                     >
                       <Pencil className="h-4 w-4 mr-1" /> Edit
                     </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        console.log('View Ads button clicked for project:', project.id);
-                        navigate(`/ad-wizard/${project.id}`);
-                      }}
-                    >
-                      <Eye className="h-4 w-4 mr-1" /> View Ads
-                    </Button>
                   </div>
                 </CardContent>
               </Card>
