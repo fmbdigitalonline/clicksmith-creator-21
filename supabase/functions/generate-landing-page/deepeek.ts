@@ -29,15 +29,46 @@ Core Message: ${targetAudience.coreMessage}
 Pain Points: ${targetAudience.painPoints.join(", ")}
 Marketing Angle: ${targetAudience.marketingAngle}
 
-Create compelling content for a landing page that includes:
-1. A hero section with a headline, description, and call-to-action
-2. Key features (3-4 items)
-3. Benefits (3-4 items)
-4. Customer testimonials (2-3)
-5. FAQ items (3-4 questions and answers)
-6. A final call-to-action section
+Create a JSON object with the following structure, without any markdown formatting or code blocks:
+{
+  "hero": {
+    "headline": "compelling headline",
+    "description": "persuasive description",
+    "cta": "call to action text"
+  },
+  "features": [
+    {
+      "title": "feature title",
+      "description": "feature description"
+    }
+  ],
+  "benefits": [
+    {
+      "title": "benefit title",
+      "description": "benefit description"
+    }
+  ],
+  "testimonials": [
+    {
+      "quote": "testimonial text",
+      "author": "author name",
+      "title": "author title"
+    }
+  ],
+  "faq": [
+    {
+      "question": "question text",
+      "answer": "answer text"
+    }
+  ],
+  "finalCta": {
+    "headline": "final call to action headline",
+    "description": "final call to action description",
+    "buttonText": "button text"
+  }
+}
 
-Make the content compelling and persuasive. Focus on addressing the pain points and using the specified marketing angle.`;
+Make the content compelling and persuasive. Focus on addressing the pain points and using the specified marketing angle. Return ONLY the JSON object, without any additional text, markdown formatting, or code blocks.`;
 
   try {
     console.log('Making request to OpenAI API...');
@@ -53,7 +84,7 @@ Make the content compelling and persuasive. Focus on addressing the pain points 
         messages: [
           {
             role: "system",
-            content: "You are an expert copywriter specializing in landing page content that converts. Generate content in JSON format.",
+            content: "You are an expert copywriter specializing in landing page content that converts. You must return ONLY valid JSON without any markdown formatting or code blocks.",
           },
           {
             role: "user",
@@ -77,8 +108,19 @@ Make the content compelling and persuasive. Focus on addressing the pain points 
       throw new Error("No content generated");
     }
 
+    // Clean up the content string to remove any potential markdown or code block markers
+    const cleanContent = content
+      .replace(/```json\n?/g, '')
+      .replace(/```\n?/g, '')
+      .trim();
+
     console.log('Content generated successfully');
-    return JSON.parse(content);
+    try {
+      return JSON.parse(cleanContent);
+    } catch (parseError) {
+      console.error('Error parsing JSON:', cleanContent);
+      throw new Error('Failed to parse generated content as JSON');
+    }
   } catch (error) {
     console.error("Error generating content:", error);
     throw error;
