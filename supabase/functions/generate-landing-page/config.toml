@@ -1,2 +1,4 @@
 
 project_id = "xorlfvflpihtafugltni"
+[functions.generate-landing-page]
+verify_jwt = false
