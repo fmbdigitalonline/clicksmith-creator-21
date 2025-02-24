@@ -2,12 +2,16 @@
 interface DeepEekParams {
   businessIdea: any;
   targetAudience: any;
-  apiKey: string;
   version?: number;
 }
 
-export async function deepeek({ businessIdea, targetAudience, apiKey, version = 1 }: DeepEekParams) {
+export async function deepeek({ businessIdea, targetAudience, version = 1 }: DeepEekParams) {
   console.log('Calling OpenAI with version:', version);
+  
+  const apiKey = Deno.env.get('OPENAI_API_KEY');
+  if (!apiKey) {
+    throw new Error('OPENAI_API_KEY environment variable is not set');
+  }
   
   try {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
