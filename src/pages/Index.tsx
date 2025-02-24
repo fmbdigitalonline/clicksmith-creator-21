@@ -158,7 +158,7 @@ const Index = () => {
                 </Button>
               </div>
             </div>
-            <div className="relative rounded-lg overflow-hidden shadow-xl">
+            <div className="relative rounded-lg overflow-hidden shadow-xl hidden lg:block">
               <img
                 src="/lovable-uploads/7d22e5cf-12ef-4501-a1b9-3903165b75d6.png"
                 alt="Person overlooking a digital landscape from mountain top"
