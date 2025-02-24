@@ -90,19 +90,21 @@ export function AppSidebar() {
   };
 
   return (
-    <Sidebar>
+    <Sidebar className="w-[3rem] hover:w-[12rem] md:w-[3.5rem] md:hover:w-[14rem] transition-all duration-300">
       <SidebarContent>
-        <div className="px-4 py-4">
+        <div className="px-2 py-4">
           <Button 
             className="w-full bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary"
             onClick={handleStartClick}
           >
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Start
+            <PlusCircle className="h-4 w-4" />
+            <span className="ml-2 hidden group-hover/sidebar:inline-block">Start</span>
           </Button>
         </div>
         <SidebarGroup>
-          <SidebarGroupLabel>Menu</SidebarGroupLabel>
+          <SidebarGroupLabel className="hidden group-hover/sidebar:block px-2">
+            Menu
+          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {menuItems.map((item) => (
@@ -114,9 +116,11 @@ export function AppSidebar() {
                   >
                     <Link to={item.url} className="flex items-center gap-2">
                       <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
+                      <span className="hidden group-hover/sidebar:inline-block">
+                        {item.title}
+                      </span>
                       {isActive(item.url) && (
-                        <ChevronRight className="ml-auto h-4 w-4" />
+                        <ChevronRight className="ml-auto h-4 w-4 hidden group-hover/sidebar:inline-block" />
                       )}
                     </Link>
                   </SidebarMenuButton>

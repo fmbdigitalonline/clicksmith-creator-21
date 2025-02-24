@@ -12,9 +12,9 @@ export const AppLayout = ({ children }: { children: React.ReactNode }) => {
   return (
     <div className="flex h-screen">
       <AppSidebar />
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col min-w-0">
         <Navigation />
-        <main className="flex-1 overflow-auto p-6 mt-16">
+        <main className="flex-1 overflow-auto p-3 md:p-6 mt-16">
           <div className="flex items-center gap-2 mb-4">
             <Button
               variant="ghost"
