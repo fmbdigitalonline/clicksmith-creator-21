@@ -1,13 +1,13 @@
-
 import LandingNav from "@/components/LandingNav";
 import IndexFooter from "@/components/IndexFooter";
 import { Button } from "@/components/ui/button";
-import { Copy, Users, Battery, Share2, Award } from "lucide-react";
+import { Copy, Users, Battery, Share2, Award, Facebook, Twitter, Linkedin, Mail } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
 const Referral = () => {
   const { toast } = useToast();
   const referralLink = "https://yourapp.com/referral/unique-code";
+  const shareMessage = encodeURIComponent("Join me on Viable! Use my referral link to get 2 bonus credits when you sign up. Create amazing AI-powered ads and landing pages!");
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(referralLink);
@@ -15,6 +15,25 @@ const Referral = () => {
       title: "Copied!",
       description: "Referral link copied to clipboard",
     });
+  };
+
+  const handleSocialShare = (platform: string) => {
+    let shareUrl = "";
+    switch (platform) {
+      case "facebook":
+        shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(referralLink)}&quote=${shareMessage}`;
+        break;
+      case "twitter":
+        shareUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(referralLink)}&text=${shareMessage}`;
+        break;
+      case "linkedin":
+        shareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(referralLink)}&summary=${shareMessage}`;
+        break;
+      case "email":
+        shareUrl = `mailto:?subject=${encodeURIComponent("Join me on Viable!")}&body=${shareMessage}%0D%0A%0D%0A${encodeURIComponent(referralLink)}`;
+        break;
+    }
+    window.open(shareUrl, "_blank", "noopener,noreferrer");
   };
 
   return (
@@ -52,7 +71,7 @@ const Referral = () => {
           {/* Referral Link Section */}
           <div className="bg-white rounded-lg shadow-md p-8 mb-12">
             <h2 className="text-2xl font-semibold mb-6">Your Referral Link</h2>
-            <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg mb-4">
+            <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg mb-6">
               <input
                 type="text"
                 value={referralLink}
@@ -64,11 +83,46 @@ const Referral = () => {
                 Copy Link
               </Button>
             </div>
-            <div className="flex justify-center gap-4">
-              <Button variant="outline" size="lg" className="flex items-center gap-2">
-                <Share2 className="w-4 h-4" />
-                Share via Email
-              </Button>
+            <div className="space-y-4">
+              <h3 className="font-semibold text-center mb-4">Share on Social Media</h3>
+              <div className="flex justify-center gap-4">
+                <Button 
+                  variant="outline" 
+                  size="lg" 
+                  className="flex items-center gap-2" 
+                  onClick={() => handleSocialShare("facebook")}
+                >
+                  <Facebook className="w-4 h-4" />
+                  Facebook
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="lg" 
+                  className="flex items-center gap-2"
+                  onClick={() => handleSocialShare("twitter")}
+                >
+                  <Twitter className="w-4 h-4" />
+                  Twitter
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="lg" 
+                  className="flex items-center gap-2"
+                  onClick={() => handleSocialShare("linkedin")}
+                >
+                  <Linkedin className="w-4 h-4" />
+                  LinkedIn
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="lg" 
+                  className="flex items-center gap-2"
+                  onClick={() => handleSocialShare("email")}
+                >
+                  <Mail className="w-4 h-4" />
+                  Email
+                </Button>
+              </div>
             </div>
           </div>
 
