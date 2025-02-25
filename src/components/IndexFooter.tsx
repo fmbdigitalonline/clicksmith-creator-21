@@ -1,23 +1,19 @@
 
 import { cn } from "@/lib/utils";
-import { Link, useLocation } from "react-router-dom";
+import { Link } from "react-router-dom";
 
 interface IndexFooterProps {
   className?: string;
 }
 
 const IndexFooter = ({ className }: IndexFooterProps) => {
-  const location = useLocation();
-  const isSharePage = location.pathname === '/share';
-
   const links = {
     company: [
       { label: "About", to: "/about" },
       { label: "Contact", to: "/contact" },
       { label: "Careers", to: "/careers" },
       { label: "Terms", to: "/terms" },
-      { label: "Privacy", to: "/privacy" },
-      ...(isSharePage ? [] : [{ label: "Share & Earn", to: "/share" }])
+      { label: "Privacy", to: "/privacy" }
     ],
     resources: [
       { label: "Blog", to: "/blog" },
