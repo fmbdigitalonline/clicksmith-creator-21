@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { ArrowRight, CheckCircle, MessageCircle, BadgeCheck, Target, ArrowRight as ArrowRightIcon, Lightbulb, PieChart, DollarSign, Users, BarChart, Rocket, Globe } from "lucide-react";
@@ -160,8 +159,8 @@ const Index = () => {
             </div>
             <div className="relative rounded-lg overflow-hidden shadow-xl hidden lg:block">
               <img
-                src="/lovable-uploads/7d22e5cf-12ef-4501-a1b9-3903165b75d6.png"
-                alt="Person overlooking a digital landscape from mountain top"
+                src="/lovable-uploads/e632056c-485e-431f-91d0-0b337f1a07eb.png"
+                alt="Professional working with multiple monitors showing data analytics"
                 className="w-full h-auto"
               />
             </div>
