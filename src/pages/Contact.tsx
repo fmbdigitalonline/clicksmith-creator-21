@@ -6,16 +6,46 @@ import { toast } from "@/components/ui/use-toast";
 import { Mail } from "lucide-react";
 import Navigation from "@/components/Navigation";
 import IndexFooter from "@/components/IndexFooter";
+import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 const Contact = () => {
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // In a real app, this would send the form data to a server
-    toast({
-      title: "Message sent!",
-      description: "We'll get back to you as soon as possible.",
-    });
-    (e.target as HTMLFormElement).reset();
+    setIsSubmitting(true);
+
+    const formData = new FormData(e.currentTarget);
+    const name = formData.get('name') as string;
+    const email = formData.get('email') as string;
+    const message = formData.get('message') as string;
+
+    try {
+      const { error } = await supabase
+        .from('contact_submissions')
+        .insert([
+          { name, email, message }
+        ]);
+
+      if (error) throw error;
+
+      toast({
+        title: "Message sent!",
+        description: "We'll get back to you as soon as possible.",
+      });
+      
+      (e.target as HTMLFormElement).reset();
+    } catch (error) {
+      console.error('Error submitting contact form:', error);
+      toast({
+        title: "Error",
+        description: "There was a problem sending your message. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -46,6 +76,7 @@ const Contact = () => {
                     name="name"
                     required
                     placeholder="Your name"
+                    disabled={isSubmitting}
                   />
                 </div>
 
@@ -59,6 +90,7 @@ const Contact = () => {
                     type="email"
                     required
                     placeholder="you@example.com"
+                    disabled={isSubmitting}
                   />
                 </div>
 
@@ -72,11 +104,12 @@ const Contact = () => {
                     required
                     placeholder="Your message..."
                     rows={6}
+                    disabled={isSubmitting}
                   />
                 </div>
 
-                <Button type="submit" className="w-full">
-                  Send Message
+                <Button type="submit" className="w-full" disabled={isSubmitting}>
+                  {isSubmitting ? "Sending..." : "Send Message"}
                 </Button>
               </form>
             </div>
