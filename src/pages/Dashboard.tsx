@@ -247,7 +247,7 @@ const Dashboard = () => {
           <Card className="hover:shadow-lg transition-shadow cursor-pointer bg-gradient-to-br from-primary/5 to-primary/10" onClick={() => navigate("/ad-wizard/new")}>
             <CardHeader>
               <Lightbulb className="h-8 w-8 mb-2 text-primary" />
-              <CardTitle>Continue Ad Wizard</CardTitle>
+              <CardTitle>Continue Idea Wizard</CardTitle>
               <CardDescription>Resume your business idea validation journey</CardDescription>
             </CardHeader>
           </Card>
