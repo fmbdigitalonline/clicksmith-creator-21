@@ -83,7 +83,7 @@ const Projects = () => {
                   onClick={() => handleStartAdWizard(project.id)}
                   className="w-full sm:w-auto"
                 >
-                  Continue Ad Creation
+                  {project.business_idea ? 'Continue Idea Wizard' : 'Start Idea Wizard'}
                 </Button>
               </div>
               <ProjectProgressDetails
