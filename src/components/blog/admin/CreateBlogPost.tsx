@@ -1,4 +1,3 @@
-
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -24,6 +23,7 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
 import Link from '@tiptap/extension-link';
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const blogPostSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -272,21 +272,22 @@ export function CreateBlogPost({ editMode, initialData, onSuccess }: CreateBlogP
   };
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <FormField
-          control={form.control}
-          name="title"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Title</FormLabel>
-              <FormControl>
-                <Input placeholder="Enter post title" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+    <ScrollArea className="h-[80vh] pr-4">
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <FormField
+            control={form.control}
+            name="title"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Title</FormLabel>
+                <FormControl>
+                  <Input placeholder="Enter post title" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
         <FormField
           control={form.control}
@@ -523,10 +524,13 @@ export function CreateBlogPost({ editMode, initialData, onSuccess }: CreateBlogP
           />
         </div>
 
-        <Button type="submit" className="w-full">
-          {editMode ? "Update Post" : "Create Post"}
-        </Button>
-      </form>
-    </Form>
+          <div className="sticky bottom-0 pt-6 pb-2 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+            <Button type="submit" className="w-full">
+              {editMode ? "Update Post" : "Create Post"}
+            </Button>
+          </div>
+        </form>
+      </Form>
+    </ScrollArea>
   );
 }
