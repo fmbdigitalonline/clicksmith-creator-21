@@ -18,7 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { uploadMedia } from "@/utils/uploadUtils";
 import { useState } from "react";
-import { Loader2, Bold, Italic, List, ListOrdered, Heading1, Heading2, Heading3 } from "lucide-react";
+import { Loader2, Bold, Italic, List, ListOrdered, Heading1, Heading2, Heading3, Link2 } from "lucide-react";
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
@@ -71,6 +71,20 @@ export function CreateBlogPost({ editMode, initialData, onSuccess }: CreateBlogP
       form.setValue('content', html);
     },
   });
+
+  const addLink = () => {
+    const url = window.prompt('Enter URL:');
+    if (url && editor) {
+      // Check if there's text selected
+      if (editor.state.selection.empty) {
+        // If no text is selected, use the URL as the text
+        editor.chain().focus().insertContent(`<a href="${url}">${url}</a>`).run();
+      } else {
+        // If text is selected, turn it into a link
+        editor.chain().focus().setLink({ href: url }).run();
+      }
+    }
+  };
 
   const handleMediaUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -327,6 +341,15 @@ export function CreateBlogPost({ editMode, initialData, onSuccess }: CreateBlogP
                       className={editor?.isActive('orderedList') ? 'bg-accent' : ''}
                     >
                       <ListOrdered className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={addLink}
+                      className={editor?.isActive('link') ? 'bg-accent' : ''}
+                    >
+                      <Link2 className="h-4 w-4" />
                     </Button>
                   </div>
                   <div className="p-2 min-h-[200px] prose prose-sm max-w-none">
