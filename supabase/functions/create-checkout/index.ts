@@ -63,7 +63,7 @@ serve(async (req) => {
     }
 
     const origin = req.headers.get('origin') || 'http://localhost:5173';
-    const successUrl = `${origin}/settings?session_id={CHECKOUT_SESSION_ID}`;
+    const successUrl = `${origin}/?checkout_success=true&session_id={CHECKOUT_SESSION_ID}`;
     const cancelUrl = `${origin}/pricing`;
 
     // Create checkout session with promotion codes enabled
@@ -79,7 +79,7 @@ serve(async (req) => {
       mode: mode as 'payment' | 'subscription',
       success_url: successUrl,
       cancel_url: cancelUrl,
-      allow_promotion_codes: true, // Enable Stripe's native promotion code field
+      allow_promotion_codes: true,
       metadata: {
         supabaseUid: user.id,
       },
@@ -109,3 +109,4 @@ serve(async (req) => {
     );
   }
 });
+

@@ -4,6 +4,8 @@ import { ArrowRight, CheckCircle, MessageCircle, BadgeCheck, Target, ArrowRight 
 import { TextCycler } from "@/components/TextCycler";
 import LandingNav from "@/components/LandingNav";
 import IndexFooter from "@/components/IndexFooter";
+import { useToast } from "@/hooks/use-toast";
+import { useEffect } from "react";
 
 const howItWorks = [
   {
@@ -123,6 +125,21 @@ const concerns = [
 ];
 
 const Index = () => {
+  const { toast } = useToast();
+  const [searchParams] = new URLSearchParams(window.location.search);
+  const checkoutSuccess = searchParams.get('checkout_success');
+
+  useEffect(() => {
+    if (checkoutSuccess === 'true') {
+      toast({
+        title: "Welcome to Viable!",
+        description: "Your subscription has been activated. Let's start creating amazing content!",
+      });
+      // Clean up the URL
+      window.history.replaceState({}, '', '/');
+    }
+  }, [checkoutSuccess, toast]);
+
   return (
     <div className="min-h-screen">
       <LandingNav />
