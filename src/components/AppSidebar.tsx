@@ -90,7 +90,7 @@ export function AppSidebar() {
   };
 
   return (
-    <Sidebar className="w-[16rem] hover:w-[16rem] md:w-[16rem] md:hover:w-[16rem] transition-all duration-300">
+    <Sidebar>
       <SidebarContent>
         <div className="px-2 py-4">
           <Button 
