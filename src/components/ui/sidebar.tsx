@@ -8,10 +8,6 @@ import { createContext, useContext } from "react"
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
-const SIDEBAR_WIDTH = "16rem"
-const SIDEBAR_WIDTH_TABLET = "8rem"
-const SIDEBAR_WIDTH_MOBILE = "6rem"
-const SIDEBAR_WIDTH_ICON = "3rem"
 const SIDEBAR_KEYBOARD_SHORTCUT = "b"
 
 type SidebarContextType = {
@@ -103,11 +99,19 @@ export function Sidebar({ children, className }: SidebarProps) {
 }
 
 export function SidebarContent({ children }: { children: React.ReactNode }) {
-  return <div className="space-y-4">{children}</div>
+  const { isCollapsed } = useSidebar()
+  return (
+    <div className={cn(
+      "space-y-4",
+      isCollapsed ? "px-2" : "px-3"
+    )}>
+      {children}
+    </div>
+  )
 }
 
 export function SidebarGroup({ children }: { children: React.ReactNode }) {
-  return <div className="px-3">{children}</div>
+  return <div className="px-2">{children}</div>
 }
 
 interface SidebarGroupLabelProps {
@@ -116,8 +120,13 @@ interface SidebarGroupLabelProps {
 }
 
 export function SidebarGroupLabel({ children, className }: SidebarGroupLabelProps) {
+  const { isCollapsed } = useSidebar()
   return (
-    <div className={cn("mb-2 px-2 text-xs font-semibold uppercase text-muted-foreground", className)}>
+    <div className={cn(
+      "mb-2 px-2 text-xs font-semibold uppercase text-muted-foreground",
+      isCollapsed && "sr-only",
+      className
+    )}>
       {children}
     </div>
   )
@@ -160,7 +169,7 @@ export function SidebarMenuButton({
       variant={isActive ? "secondary" : "ghost"}
       className={cn(
         "w-full justify-start",
-        isCollapsed && "px-2",
+        isCollapsed ? "px-2" : "px-3",
         className
       )}
       {...props}
