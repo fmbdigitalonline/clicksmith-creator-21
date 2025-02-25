@@ -1,3 +1,4 @@
+
 import LandingNav from "@/components/LandingNav";
 import IndexFooter from "@/components/IndexFooter";
 import { Button } from "@/components/ui/button";
@@ -25,8 +26,9 @@ const Affiliate = () => {
       // Get current user
       const { data: { user } } = await supabase.auth.getUser();
 
-      const { error } = await supabase
-        .from('affiliate_applications')
+      // Using type assertion to fix TypeScript error
+      const { error } = await (supabase
+        .from('affiliate_applications') as any)
         .insert([
           {
             user_id: user?.id,
