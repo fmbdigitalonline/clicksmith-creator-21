@@ -13,14 +13,15 @@ import {
   FormDescription,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { uploadMedia } from "@/utils/uploadUtils";
 import { useState } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, Bold, Italic, List, ListOrdered, Heading1, Heading2, Heading3 } from "lucide-react";
+import { useEditor, EditorContent } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
 
 const blogPostSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -59,6 +60,15 @@ export function CreateBlogPost({ editMode, initialData, onSuccess }: CreateBlogP
     },
   });
 
+  const editor = useEditor({
+    extensions: [StarterKit],
+    content: initialData?.content || '',
+    onUpdate: ({ editor }) => {
+      const html = editor.getHTML();
+      form.setValue('content', html);
+    },
+  });
+
   const handleMediaUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -67,18 +77,18 @@ export function CreateBlogPost({ editMode, initialData, onSuccess }: CreateBlogP
       setIsUploading(true);
       const publicUrl = await uploadMedia(file);
       
-      // Insert the media URL at the cursor position in the content field
-      const contentField = form.getValues('content');
-      const isImage = file.type.startsWith('image/');
-      const mediaTag = isImage 
-        ? `\n![${file.name}](${publicUrl})\n`
-        : `\n<video controls src="${publicUrl}"></video>\n`;
-      
-      form.setValue('content', contentField + mediaTag);
+      if (editor) {
+        const isImage = file.type.startsWith('image/');
+        if (isImage) {
+          editor.commands.setImage({ src: publicUrl });
+        } else {
+          editor.commands.insertContent(`<video controls src="${publicUrl}"></video>`);
+        }
+      }
       
       toast({
         title: "Media uploaded",
-        description: "You can now reference it in your content.",
+        description: "Media has been inserted into your content.",
       });
     } catch (error) {
       toast({
@@ -115,7 +125,7 @@ export function CreateBlogPost({ editMode, initialData, onSuccess }: CreateBlogP
       meta_keywords: data.meta_keywords || [],
       featured: data.featured,
       canonical_url,
-      author_id: user.id // Add the author_id field
+      author_id: user.id
     };
 
     if (editMode && initialData) {
@@ -163,6 +173,9 @@ export function CreateBlogPost({ editMode, initialData, onSuccess }: CreateBlogP
       });
 
       form.reset();
+      if (editor) {
+        editor.commands.setContent('');
+      }
     }
 
     queryClient.invalidateQueries({ queryKey: ["blog-posts"] });
@@ -210,7 +223,7 @@ export function CreateBlogPost({ editMode, initialData, onSuccess }: CreateBlogP
             <FormItem>
               <FormLabel>Description</FormLabel>
               <FormControl>
-                <Textarea
+                <Input
                   placeholder="Brief description of the post"
                   {...field}
                 />
@@ -230,7 +243,7 @@ export function CreateBlogPost({ editMode, initialData, onSuccess }: CreateBlogP
             className="mb-2"
           />
           <FormDescription>
-            Upload images or videos to include in your post. They will be inserted at the end of your content.
+            Upload images or videos to include in your post.
           </FormDescription>
           {isUploading && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -247,31 +260,77 @@ export function CreateBlogPost({ editMode, initialData, onSuccess }: CreateBlogP
             <FormItem>
               <FormLabel>Content</FormLabel>
               <FormControl>
-                <div className="space-y-2">
-                  <Textarea
-                    placeholder="Write your post content here using Markdown formatting"
-                    className="min-h-[300px] font-mono"
-                    {...field}
-                  />
-                  <div className="text-sm text-muted-foreground space-y-2">
-                    <p>Markdown Formatting Guide:</p>
-                    <ul className="list-disc pl-4 space-y-1">
-                      <li># Header 1</li>
-                      <li>## Header 2</li>
-                      <li>### Header 3</li>
-                      <li>**Bold Text**</li>
-                      <li>*Italic Text*</li>
-                      <li>[Link Text](URL)</li>
-                      <li>- Bullet Point</li>
-                      <li>1. Numbered List</li>
-                      <li>Leave a blank line between paragraphs</li>
-                    </ul>
+                <div className="border rounded-md">
+                  <div className="border-b bg-muted p-2 flex gap-2">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => editor?.chain().focus().toggleBold().run()}
+                      className={editor?.isActive('bold') ? 'bg-accent' : ''}
+                    >
+                      <Bold className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => editor?.chain().focus().toggleItalic().run()}
+                      className={editor?.isActive('italic') ? 'bg-accent' : ''}
+                    >
+                      <Italic className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => editor?.chain().focus().toggleHeading({ level: 1 }).run()}
+                      className={editor?.isActive('heading', { level: 1 }) ? 'bg-accent' : ''}
+                    >
+                      <Heading1 className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()}
+                      className={editor?.isActive('heading', { level: 2 }) ? 'bg-accent' : ''}
+                    >
+                      <Heading2 className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => editor?.chain().focus().toggleHeading({ level: 3 }).run()}
+                      className={editor?.isActive('heading', { level: 3 }) ? 'bg-accent' : ''}
+                    >
+                      <Heading3 className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => editor?.chain().focus().toggleBulletList().run()}
+                      className={editor?.isActive('bulletList') ? 'bg-accent' : ''}
+                    >
+                      <List className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => editor?.chain().focus().toggleOrderedList().run()}
+                      className={editor?.isActive('orderedList') ? 'bg-accent' : ''}
+                    >
+                      <ListOrdered className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <div className="p-2 min-h-[200px] prose prose-sm max-w-none">
+                    <EditorContent editor={editor} />
                   </div>
                 </div>
               </FormControl>
-              <FormDescription>
-                Use Markdown for formatting. Images and videos will be inserted as Markdown/HTML tags.
-              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
