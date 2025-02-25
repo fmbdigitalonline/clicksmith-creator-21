@@ -51,6 +51,21 @@ export function CreateBlogPost({ editMode, initialData, onSuccess }: CreateBlogP
   const queryClient = useQueryClient();
   const [isUploading, setIsUploading] = useState(false);
 
+  const appendPromoContent = (content: string) => {
+    const promoContent = `
+      <hr class="my-8 border-t border-gray-200" />
+      <div class="bg-gradient-to-r from-primary/5 to-primary/10 rounded-lg p-6 mt-8">
+        <h3 class="text-xl font-semibold mb-3">Ready to Transform Your Marketing?</h3>
+        <p class="mb-4">Experience the power of AI-driven marketing with Viable. Create compelling ads, 
+        landing pages, and content that converts - all in one platform.</p>
+        <a href="/" class="inline-block bg-primary text-white px-6 py-2 rounded-md hover:bg-primary/90 transition-colors">
+          Get Started with Viable
+        </a>
+      </div>
+    `;
+    return content + promoContent;
+  };
+
   const form = useForm<BlogPostFormValues>({
     resolver: zodResolver(blogPostSchema),
     defaultValues: {
@@ -200,11 +215,14 @@ export function CreateBlogPost({ editMode, initialData, onSuccess }: CreateBlogP
       return;
     }
 
+    // Append promo content to the blog post
+    const contentWithPromo = appendPromoContent(data.content);
+
     const postData = {
       title: data.title,
       slug: data.slug,
       description: data.description,
-      content: data.content,
+      content: contentWithPromo,
       meta_description: data.meta_description,
       published: data.published,
       image_url: data.image_url || null,
