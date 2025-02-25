@@ -1,3 +1,4 @@
+
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -52,12 +53,17 @@ export function CreateBlogPost({ editMode, initialData, onSuccess }: CreateBlogP
 
   const form = useForm<BlogPostFormValues>({
     resolver: zodResolver(blogPostSchema),
-    defaultValues: initialData || {
-      published: false,
-      featured: false,
-      meta_keywords: [],
-      image_url: "",
-      canonical_url: "",
+    defaultValues: {
+      title: initialData?.title ?? "",
+      slug: initialData?.slug ?? "",
+      description: initialData?.description ?? "",
+      content: initialData?.content ?? "",
+      meta_description: initialData?.meta_description ?? "",
+      published: initialData?.published ?? false,
+      featured: initialData?.featured ?? false,
+      meta_keywords: initialData?.meta_keywords ?? [],
+      image_url: initialData?.image_url ?? "",
+      canonical_url: initialData?.canonical_url ?? "",
     },
   });
 
