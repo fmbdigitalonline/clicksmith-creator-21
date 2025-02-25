@@ -13,7 +13,9 @@ const IndexFooter = ({ className }: IndexFooterProps) => {
       { label: "Contact", to: "/contact" },
       { label: "Careers", to: "/careers" },
       { label: "Terms", to: "/terms" },
-      { label: "Privacy", to: "/privacy" }
+      { label: "Privacy", to: "/privacy" },
+      { label: "Share & Earn", to: "/share" },
+      { label: "Affiliate", to: "/affiliate" }
     ],
     resources: [
       { label: "Blog", to: "/blog" },
