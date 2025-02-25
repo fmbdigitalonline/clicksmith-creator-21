@@ -1,6 +1,6 @@
 
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ArrowRight, CheckCircle, MessageCircle, BadgeCheck, Target, ArrowRight as ArrowRightIcon, Lightbulb, PieChart, DollarSign, Users, BarChart, Rocket, Globe } from "lucide-react";
 import { TextCycler } from "@/components/TextCycler";
 import LandingNav from "@/components/LandingNav";
@@ -127,6 +127,7 @@ const concerns = [
 
 const Index = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const searchParams = new URLSearchParams(window.location.search);
   const checkoutSuccess = searchParams.get('checkout_success');
 
@@ -136,10 +137,10 @@ const Index = () => {
         title: "Welcome to Viable!",
         description: "Your subscription has been activated. Let's start creating amazing content!",
       });
-      // Clean up the URL
-      window.history.replaceState({}, '', '/');
+      // Navigate to dashboard instead of cleaning up URL
+      navigate('/dashboard', { replace: true });
     }
-  }, [checkoutSuccess, toast]);
+  }, [checkoutSuccess, toast, navigate]);
 
   return (
     <div className="min-h-screen">
