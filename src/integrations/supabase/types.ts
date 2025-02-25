@@ -282,6 +282,39 @@ export type Database = {
         }
         Relationships: []
       }
+      affiliate_applications: {
+        Row: {
+          created_at: string
+          description: string
+          email: string
+          id: string
+          status: string | null
+          updated_at: string
+          user_id: string | null
+          website: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          email: string
+          id?: string
+          status?: string | null
+          updated_at?: string
+          user_id?: string | null
+          website: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          email?: string
+          id?: string
+          status?: string | null
+          updated_at?: string
+          user_id?: string | null
+          website?: string
+        }
+        Relationships: []
+      }
       anonymous_usage: {
         Row: {
           completed: boolean | null

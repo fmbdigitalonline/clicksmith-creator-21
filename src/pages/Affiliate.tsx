@@ -1,3 +1,4 @@
+
 import LandingNav from "@/components/LandingNav";
 import IndexFooter from "@/components/IndexFooter";
 import { Button } from "@/components/ui/button";
@@ -23,20 +24,30 @@ const Affiliate = () => {
 
     try {
       // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      
+      if (userError) throw userError;
+      
+      if (!user) {
+        toast({
+          title: "Authentication Required",
+          description: "Please sign in to submit an affiliate application.",
+          variant: "destructive",
+        });
+        return;
+      }
 
-      const { error } = await supabase
+      const { error: insertError } = await supabase
         .from('affiliate_applications')
-        .insert([
-          {
-            user_id: user?.id,
-            email,
-            website,
-            description
-          }
-        ]);
+        .insert({
+          user_id: user.id,
+          email,
+          website,
+          description,
+          status: 'pending'
+        });
 
-      if (error) throw error;
+      if (insertError) throw insertError;
 
       toast({
         title: "Application Received!",
@@ -47,11 +58,11 @@ const Affiliate = () => {
       setEmail("");
       setWebsite("");
       setDescription("");
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error submitting application:', error);
       toast({
         title: "Submission Failed",
-        description: "There was an error submitting your application. Please try again.",
+        description: error.message || "There was an error submitting your application. Please try again.",
         variant: "destructive",
       });
     } finally {
