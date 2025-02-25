@@ -27,12 +27,18 @@ const BlogCard = ({ post }: BlogCardProps) => {
     ?.filter(pc => pc.blog_categories !== null)
     .map(pc => pc.blog_categories) || [];
 
+  const getImageUrl = (url: string | undefined) => {
+    if (!url) return '/placeholder.svg';
+    if (url.startsWith('http')) return url;
+    return `${window.location.origin}/${url}`;
+  };
+
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-shadow">
       <Link to={`/blog/${post.slug}`} className="flex flex-col md:flex-row">
         <div className="md:w-1/3">
           <img 
-            src={post.image_url || '/placeholder.svg'} 
+            src={getImageUrl(post.image_url)} 
             alt={post.title}
             className="h-48 md:h-full w-full object-cover"
           />

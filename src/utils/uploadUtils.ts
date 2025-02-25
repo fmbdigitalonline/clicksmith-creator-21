@@ -15,9 +15,11 @@ export async function uploadMedia(file: File) {
 
   if (error) throw error;
 
+  // Get the public URL using the correct bucket name
   const { data: { publicUrl } } = supabase.storage
     .from('blog-media')
     .getPublicUrl(filePath);
 
+  // Return the complete public URL
   return publicUrl;
 }
