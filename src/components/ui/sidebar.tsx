@@ -9,8 +9,8 @@ import { createContext, useContext } from "react"
 const SIDEBAR_COOKIE_NAME = "sidebar_state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
 const SIDEBAR_WIDTH = "16rem"
-const SIDEBAR_WIDTH_TABLET = "14rem"
-const SIDEBAR_WIDTH_MOBILE = "12rem"
+const SIDEBAR_WIDTH_TABLET = "8rem"
+const SIDEBAR_WIDTH_MOBILE = "6rem"
 const SIDEBAR_WIDTH_ICON = "3rem"
 const SIDEBAR_KEYBOARD_SHORTCUT = "b"
 
@@ -81,7 +81,7 @@ export function Sidebar({ children, className }: SidebarProps) {
         "group/sidebar relative h-screen border-r bg-background pt-16 will-change-transform transition-all duration-300",
         isCollapsed 
           ? "w-[3rem]" 
-          : "w-[12rem] sm:w-[14rem] md:w-[16rem]",
+          : "w-[6rem] sm:w-[8rem] md:w-[16rem]",
         className
       )}
     >
