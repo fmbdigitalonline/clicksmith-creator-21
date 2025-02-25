@@ -30,63 +30,31 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
           return;
         }
 
-        // Only attempt to refresh if we have a valid session
-        if (session) {
-          try {
-            const { data: { user }, error: refreshError } = await supabase.auth.refreshSession();
-            
-            if (refreshError) {
-              if (refreshError.message.includes('refresh_token_not_found')) {
-                console.error("Invalid refresh token, redirecting to login");
-                await supabase.auth.signOut();
-                setIsAuthenticated(false);
-                navigate('/login', { replace: true });
-                toast({
-                  title: "Session Expired",
-                  description: "Please sign in again",
-                  variant: "destructive",
-                });
-                return;
-              }
-              throw refreshError;
-            }
+        // Initialize free tier usage for new users
+        if (session.user) {
+          const { data: existingUsage, error: usageError } = await supabase
+            .from('free_tier_usage')
+            .select('*')
+            .eq('user_id', session.user.id)
+            .maybeSingle();
 
-            // Initialize free tier usage for new users
-            if (user) {
-              const { data: existingUsage, error: usageError } = await supabase
-                .from('free_tier_usage')
-                .select('*')
-                .eq('user_id', user.id)
-                .maybeSingle();
-
-              if (usageError && !usageError.message.includes('PGRST116')) {
-                console.error("Error checking free tier usage:", usageError);
-                throw usageError;
-              }
-
-              if (!existingUsage) {
-                const { error: insertError } = await supabase
-                  .from('free_tier_usage')
-                  .insert([{ user_id: user.id, generations_used: 0 }]);
-
-                if (insertError) {
-                  console.error("Error initializing free tier usage:", insertError);
-                  throw insertError;
-                }
-              }
-              
-              setIsAuthenticated(true);
-            }
-          } catch (error) {
-            console.error("Token refresh error:", error);
-            setIsAuthenticated(false);
-            navigate('/login', { replace: true });
-            toast({
-              title: "Authentication Error",
-              description: "Please sign in again",
-              variant: "destructive",
-            });
+          if (usageError && !usageError.message.includes('PGRST116')) {
+            console.error("Error checking free tier usage:", usageError);
+            throw usageError;
           }
+
+          if (!existingUsage) {
+            const { error: insertError } = await supabase
+              .from('free_tier_usage')
+              .insert([{ user_id: session.user.id, generations_used: 0 }]);
+
+            if (insertError) {
+              console.error("Error initializing free tier usage:", insertError);
+              throw insertError;
+            }
+          }
+          
+          setIsAuthenticated(true);
         }
       } catch (error) {
         console.error("Auth error:", error);
