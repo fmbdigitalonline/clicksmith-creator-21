@@ -98,11 +98,11 @@ export function AppSidebar() {
             onClick={handleStartClick}
           >
             <PlusCircle className="h-4 w-4" />
-            <span className="ml-2">Start</span>
+            <span className="ml-2 hidden md:inline">Start</span>
           </Button>
         </div>
         <SidebarGroup>
-          <SidebarGroupLabel className="px-2">
+          <SidebarGroupLabel className="px-2 hidden md:block">
             Menu
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -113,14 +113,15 @@ export function AppSidebar() {
                     asChild
                     isActive={isActive(item.url)}
                     tooltip={item.title}
+                    className="flex items-center gap-2"
                   >
-                    <Link to={item.url} className="flex items-center gap-2">
+                    <Link to={item.url}>
                       <item.icon className="h-4 w-4" />
-                      <span>
+                      <span className="hidden md:inline">
                         {item.title}
                       </span>
                       {isActive(item.url) && (
-                        <ChevronRight className="ml-auto h-4 w-4" />
+                        <ChevronRight className="ml-auto h-4 w-4 hidden md:block" />
                       )}
                     </Link>
                   </SidebarMenuButton>

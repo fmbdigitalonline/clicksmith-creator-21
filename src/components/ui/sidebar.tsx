@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react"
 import { useCookies } from "react-cookie"
 import { cn } from "@/lib/utils"
@@ -75,7 +74,7 @@ export function Sidebar({ children, className }: SidebarProps) {
     <aside
       className={cn(
         "group/sidebar relative h-screen border-r bg-background pt-16 will-change-transform transition-all duration-300",
-        isCollapsed 
+        isCollapsed || window.innerWidth < 768
           ? "w-[3rem]" 
           : "max-w-[16rem] w-[6rem] sm:w-[8rem] md:w-[16rem]",
         className
@@ -85,7 +84,7 @@ export function Sidebar({ children, className }: SidebarProps) {
         variant="ghost"
         size="icon"
         className={cn(
-          "absolute -right-3 top-20 z-20 h-6 w-6 rounded-lg border bg-background p-0 shadow-sm opacity-0 group-hover/sidebar:opacity-100 transition-opacity",
+          "absolute -right-3 top-20 z-20 h-6 w-6 rounded-lg border bg-background p-0 shadow-sm opacity-0 group-hover/sidebar:opacity-100 transition-opacity hidden md:flex",
           isCollapsed && "rotate-180"
         )}
         onClick={toggleSidebar}
