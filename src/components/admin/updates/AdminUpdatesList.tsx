@@ -1,10 +1,12 @@
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Bell, Edit, Trash2, Calendar, Info, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 
 type AdminUpdate = {
   id: string;
@@ -32,6 +34,10 @@ const getTypeIcon = (type: AdminUpdate['type']) => {
 };
 
 export function AdminUpdatesList() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+
   const { data: updates, isLoading } = useQuery({
     queryKey: ["admin-updates"],
     queryFn: async () => {
@@ -46,14 +52,38 @@ export function AdminUpdatesList() {
     },
   });
 
-  const handleDelete = async (id: string) => {
-    const { error } = await supabase
-      .from("admin_updates")
-      .delete()
-      .eq("id", id);
+  const handleEdit = (id: string) => {
+    // Switch to create tab with the update data for editing
+    navigate("/admin-updates?tab=create&id=" + id);
+  };
 
-    if (error) {
+  const handleDelete = async (id: string) => {
+    if (!window.confirm("Are you sure you want to delete this update?")) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from("admin_updates")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+
+      // Invalidate the query to refresh the list
+      queryClient.invalidateQueries({ queryKey: ["admin-updates"] });
+
+      toast({
+        title: "Update deleted",
+        description: "The update has been successfully deleted.",
+      });
+    } catch (error) {
       console.error("Error deleting update:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete the update. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -77,7 +107,11 @@ export function AdminUpdatesList() {
                 </div>
               </div>
               <div className="flex gap-2">
-                <Button variant="ghost" size="sm">
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => handleEdit(update.id)}
+                >
                   <Edit className="h-4 w-4" />
                 </Button>
                 <Button 
