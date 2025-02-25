@@ -247,11 +247,27 @@ export function CreateBlogPost({ editMode, initialData, onSuccess }: CreateBlogP
             <FormItem>
               <FormLabel>Content</FormLabel>
               <FormControl>
-                <Textarea
-                  placeholder="Write your post content here. You can use Markdown!"
-                  className="min-h-[200px]"
-                  {...field}
-                />
+                <div className="space-y-2">
+                  <Textarea
+                    placeholder="Write your post content here using Markdown formatting"
+                    className="min-h-[300px] font-mono"
+                    {...field}
+                  />
+                  <div className="text-sm text-muted-foreground space-y-2">
+                    <p>Markdown Formatting Guide:</p>
+                    <ul className="list-disc pl-4 space-y-1">
+                      <li># Header 1</li>
+                      <li>## Header 2</li>
+                      <li>### Header 3</li>
+                      <li>**Bold Text**</li>
+                      <li>*Italic Text*</li>
+                      <li>[Link Text](URL)</li>
+                      <li>- Bullet Point</li>
+                      <li>1. Numbered List</li>
+                      <li>Leave a blank line between paragraphs</li>
+                    </ul>
+                  </div>
+                </div>
               </FormControl>
               <FormDescription>
                 Use Markdown for formatting. Images and videos will be inserted as Markdown/HTML tags.

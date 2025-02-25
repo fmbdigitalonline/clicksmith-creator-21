@@ -2,6 +2,7 @@
 import { Link } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { Card } from "@/components/ui/card";
+import ReactMarkdown from 'react-markdown';
 
 interface BlogCardProps {
   post: {
@@ -57,9 +58,9 @@ const BlogCard = ({ post }: BlogCardProps) => {
           <h2 className="text-xl font-bold text-gray-900 mb-2 hover:text-primary transition-colors">
             {post.title}
           </h2>
-          <p className="text-gray-600 mb-4 line-clamp-2">
-            {post.description}
-          </p>
+          <div className="text-gray-600 mb-4 line-clamp-2 prose prose-sm">
+            <ReactMarkdown>{post.description}</ReactMarkdown>
+          </div>
           <div className="flex items-center gap-2 text-sm text-gray-500">
             <span>{formatDistanceToNow(new Date(post.published_at))} ago</span>
             {post.reading_time && (
