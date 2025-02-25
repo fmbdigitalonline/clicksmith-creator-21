@@ -1,4 +1,3 @@
-
 import LandingNav from "@/components/LandingNav";
 import IndexFooter from "@/components/IndexFooter";
 import { Button } from "@/components/ui/button";
@@ -9,23 +8,55 @@ import { Textarea } from "@/components/ui/textarea";
 import { DollarSign, Users, ArrowRight, BadgeCheck } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const Affiliate = () => {
   const [email, setEmail] = useState("");
   const [website, setWebsite] = useState("");
   const [description, setDescription] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Here you would typically handle the form submission
-    toast({
-      title: "Application Received!",
-      description: "We'll review your application and get back to you soon.",
-    });
-    setEmail("");
-    setWebsite("");
-    setDescription("");
+    setIsSubmitting(true);
+
+    try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+
+      const { error } = await supabase
+        .from('affiliate_applications')
+        .insert([
+          {
+            user_id: user?.id,
+            email,
+            website,
+            description
+          }
+        ]);
+
+      if (error) throw error;
+
+      toast({
+        title: "Application Received!",
+        description: "We'll review your application and get back to you soon.",
+      });
+
+      // Clear form
+      setEmail("");
+      setWebsite("");
+      setDescription("");
+    } catch (error) {
+      console.error('Error submitting application:', error);
+      toast({
+        title: "Submission Failed",
+        description: "There was an error submitting your application. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -144,6 +175,7 @@ const Affiliate = () => {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
+                    disabled={isSubmitting}
                   />
                 </div>
                 <div className="space-y-2">
@@ -155,6 +187,7 @@ const Affiliate = () => {
                     value={website}
                     onChange={(e) => setWebsite(e.target.value)}
                     required
+                    disabled={isSubmitting}
                   />
                 </div>
                 <div className="space-y-2">
@@ -165,10 +198,11 @@ const Affiliate = () => {
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     required
+                    disabled={isSubmitting}
                   />
                 </div>
-                <Button type="submit" className="w-full">
-                  Submit Application
+                <Button type="submit" className="w-full" disabled={isSubmitting}>
+                  {isSubmitting ? "Submitting..." : "Submit Application"}
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </form>
