@@ -158,7 +158,7 @@ const ProjectCard = ({ project, onUpdate, onStartAdWizard, showProgress = false,
             }}
             className="w-full mt-2 gap-2"
           >
-            Edit Project <ArrowRight className="h-4 w-4" />
+            View Project <ArrowRight className="h-4 w-4" />
           </Button>
         </CardContent>
 
