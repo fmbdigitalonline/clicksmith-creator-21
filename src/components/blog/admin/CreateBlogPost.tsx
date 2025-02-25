@@ -22,6 +22,7 @@ import { Loader2, Bold, Italic, List, ListOrdered, Heading1, Heading2, Heading3,
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
+import Link from '@tiptap/extension-link';
 
 const blogPostSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -63,7 +64,13 @@ export function CreateBlogPost({ editMode, initialData, onSuccess }: CreateBlogP
   const editor = useEditor({
     extensions: [
       StarterKit,
-      Image
+      Image,
+      Link.configure({
+        openOnClick: false,
+        HTMLAttributes: {
+          class: 'text-primary underline',
+        },
+      })
     ],
     content: initialData?.content || '',
     onUpdate: ({ editor }) => {
@@ -81,7 +88,7 @@ export function CreateBlogPost({ editMode, initialData, onSuccess }: CreateBlogP
         editor.chain().focus().insertContent(`<a href="${url}">${url}</a>`).run();
       } else {
         // If text is selected, turn it into a link
-        editor.chain().focus().setLink({ href: url }).run();
+        editor.commands.setLink({ href: url });
       }
     }
   };
