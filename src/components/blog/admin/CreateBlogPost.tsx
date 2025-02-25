@@ -1,4 +1,3 @@
-
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -22,6 +21,7 @@ import { useState } from "react";
 import { Loader2, Bold, Italic, List, ListOrdered, Heading1, Heading2, Heading3 } from "lucide-react";
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
+import Image from '@tiptap/extension-image';
 
 const blogPostSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -61,7 +61,10 @@ export function CreateBlogPost({ editMode, initialData, onSuccess }: CreateBlogP
   });
 
   const editor = useEditor({
-    extensions: [StarterKit],
+    extensions: [
+      StarterKit,
+      Image
+    ],
     content: initialData?.content || '',
     onUpdate: ({ editor }) => {
       const html = editor.getHTML();
@@ -80,7 +83,7 @@ export function CreateBlogPost({ editMode, initialData, onSuccess }: CreateBlogP
       if (editor) {
         const isImage = file.type.startsWith('image/');
         if (isImage) {
-          editor.commands.setImage({ src: publicUrl });
+          editor.chain().focus().insertContent(`<img src="${publicUrl}" alt="Uploaded image" />`).run();
         } else {
           editor.commands.insertContent(`<video controls src="${publicUrl}"></video>`);
         }
