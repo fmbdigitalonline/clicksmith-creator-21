@@ -15,7 +15,8 @@ const IndexFooter = ({ className }: IndexFooterProps) => {
       { label: "Terms", to: "/terms" },
       { label: "Privacy", to: "/privacy" },
       { label: "Share & Earn", to: "/share" },
-      { label: "Affiliate", to: "/affiliate" }
+      { label: "Affiliate", to: "/affiliate" },
+      { label: "Referral", to: "/referral" }
     ],
     resources: [
       { label: "Blog", to: "/blog" },
