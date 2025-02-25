@@ -21,11 +21,6 @@ const IndexFooter = ({ className }: IndexFooterProps) => {
       { label: "Support", to: "/contact" },
       { label: "FAQ", to: "/faq" },
       { label: "Pricing", to: "/pricing" }
-    ],
-    share: [
-      { label: "Affiliate Program", to: "/affiliate" },
-      { label: "Referral Program", to: "/referral" },
-      { label: "Share & Earn", to: "/share" }
     ]
   };
   const copyright = `© ${new Date().getFullYear()} Viable. All rights reserved.`;
@@ -33,7 +28,7 @@ const IndexFooter = ({ className }: IndexFooterProps) => {
   return (
     <footer className={cn("py-16 bg-gray-900 text-white", className)}>
       <div className="container mx-auto px-4">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
           <div>
             <h3 className="text-lg font-semibold mb-4">Company</h3>
             <ul className="space-y-2">
@@ -53,21 +48,6 @@ const IndexFooter = ({ className }: IndexFooterProps) => {
             <h3 className="text-lg font-semibold mb-4">Resources</h3>
             <ul className="space-y-2">
               {links.resources?.map((link, index) => (
-                <li key={index}>
-                  <Link 
-                    to={link.to}
-                    className="text-gray-400 hover:text-white transition-colors"
-                  >
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold mb-4">Share & Earn</h3>
-            <ul className="space-y-2">
-              {links.share?.map((link, index) => (
                 <li key={index}>
                   <Link 
                     to={link.to}
