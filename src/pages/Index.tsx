@@ -146,7 +146,7 @@ const Index = () => {
                 Will Succeed Before You Invest
               </h1>
               <p className="text-xl text-muted-foreground mb-12 max-w-3xl">
-                Turn your vision into reality with AI-powered market validation that analyzes, tests, and optimizes your business concept. Get comprehensive insights and actionable data in minutes, not months. Start validating your ideas today with zero risk.
+                From Idea to Income! Save Time, Save Money, and Find Paying Customers - All in One Place
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
                 <Button size="lg" asChild>
