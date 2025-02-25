@@ -77,7 +77,7 @@ export function Sidebar({ children, className }: SidebarProps) {
         "group/sidebar relative h-screen border-r bg-background pt-16 will-change-transform transition-all duration-300",
         isCollapsed 
           ? "w-[3rem]" 
-          : "w-[6rem] sm:w-[8rem] md:w-[16rem]",
+          : "max-w-[16rem] w-[6rem] sm:w-[8rem] md:w-[16rem]",
         className
       )}
     >
