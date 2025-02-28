@@ -1,36 +1,59 @@
+
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Rocket } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Facebook, Plus, ArrowRight } from "lucide-react";
 
 interface ProjectActionsProps {
-  onGenerateAds: () => void;
-  onBackToProjects: () => void;
+  projectId: string;
+  hasBusinessIdea?: boolean;
+  onStartAdWizard?: () => void;
+  onStartLandingPageWizard?: () => void;
 }
 
-const ProjectActions = ({ onGenerateAds, onBackToProjects }: ProjectActionsProps) => {
+const ProjectActions = ({
+  projectId,
+  hasBusinessIdea = false,
+  onStartAdWizard,
+  onStartLandingPageWizard,
+}: ProjectActionsProps) => {
+  const navigate = useNavigate();
+
   return (
-    <div className="space-y-4">
-      <p className="text-center text-muted-foreground">
-        What would you like to do next?
-      </p>
-      <div className="flex flex-col gap-3">
+    <div className="flex flex-col sm:flex-row gap-3">
+      {hasBusinessIdea ? (
+        <>
+          <Button
+            onClick={onStartAdWizard}
+            className="sm:w-auto w-full"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Create Ad Campaign
+          </Button>
+          <Button
+            onClick={() => navigate(`/facebook-ads/${projectId}`)}
+            className="sm:w-auto w-full bg-facebook hover:bg-facebook/90 text-white"
+          >
+            <Facebook className="mr-2 h-4 w-4" />
+            Facebook Ads
+          </Button>
+          <Button
+            onClick={onStartLandingPageWizard}
+            variant="outline"
+            className="sm:w-auto w-full"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Create Landing Page
+          </Button>
+        </>
+      ) : (
         <Button
-          onClick={onGenerateAds}
-          className="w-full"
-          size="lg"
+          onClick={onStartAdWizard}
+          className="sm:w-auto w-full"
         >
-          <Rocket className="mr-2" />
-          Generate Ads
+          Start Idea Wizard
+          <ArrowRight className="ml-2 h-4 w-4" />
         </Button>
-        <Button
-          onClick={onBackToProjects}
-          variant="outline"
-          className="w-full"
-          size="lg"
-        >
-          <ArrowLeft className="mr-2" />
-          Back to Projects
-        </Button>
-      </div>
+      )}
     </div>
   );
 };
