@@ -62,8 +62,16 @@ function App() {
           <Route path="/share/:id" element={<Share />} />
           <Route path="/affiliate" element={<Affiliate />} />
 
-          {/* Protected routes */}
-          <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
+          {/* Protected routes - using a render function approach to provide children */}
+          <Route 
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <Outlet />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          >
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/projects" element={<Projects />} />
             <Route path="/projects/:projectId" element={<Projects />} />
