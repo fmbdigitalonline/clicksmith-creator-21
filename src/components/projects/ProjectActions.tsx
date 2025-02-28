@@ -8,6 +8,9 @@ interface ProjectActionsProps {
   hasBusinessIdea?: boolean;
   onStartAdWizard?: () => void;
   onStartLandingPageWizard?: () => void;
+  // Add these new properties for CreateProjectDialog compatibility
+  onGenerateAds?: () => void;
+  onBackToProjects?: () => void;
 }
 
 const ProjectActions = ({
@@ -15,9 +18,34 @@ const ProjectActions = ({
   hasBusinessIdea = false,
   onStartAdWizard,
   onStartLandingPageWizard,
+  onGenerateAds,
+  onBackToProjects
 }: ProjectActionsProps) => {
   const navigate = useNavigate();
 
+  // If we have the new handler props, we're being used from CreateProjectDialog
+  if (onGenerateAds && onBackToProjects) {
+    return (
+      <div className="flex flex-col sm:flex-row gap-3">
+        <Button
+          onClick={onGenerateAds}
+          className="sm:w-auto w-full"
+        >
+          <Plus className="mr-2 h-4 w-4" />
+          Generate Ad Campaign
+        </Button>
+        <Button
+          onClick={onBackToProjects}
+          variant="outline"
+          className="sm:w-auto w-full"
+        >
+          Back to Projects
+        </Button>
+      </div>
+    );
+  }
+
+  // Original behavior
   return (
     <div className="flex flex-col sm:flex-row gap-3">
       {hasBusinessIdea ? (

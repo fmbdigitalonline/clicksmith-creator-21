@@ -37,7 +37,7 @@ export const facebookAdsService = {
   getAuthUrl: async (): Promise<string> => {
     try {
       const { data, error } = await supabase.functions.invoke('facebook-auth', {
-        query: { action: 'redirect' }
+        body: { action: 'redirect' }
       });
 
       if (error) throw error;
@@ -52,7 +52,7 @@ export const facebookAdsService = {
   handleCallback: async (code: string): Promise<any> => {
     try {
       const { data, error } = await supabase.functions.invoke('facebook-auth', {
-        query: { action: 'callback', code }
+        body: { action: 'callback', code }
       });
 
       if (error) throw error;
@@ -67,7 +67,7 @@ export const facebookAdsService = {
   getConnections: async (): Promise<any> => {
     try {
       const { data, error } = await supabase.functions.invoke('facebook-auth', {
-        query: { action: 'get-connections' }
+        body: { action: 'get-connections' }
       });
 
       if (error) throw error;

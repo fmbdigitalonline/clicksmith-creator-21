@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.47.0';
@@ -23,15 +22,28 @@ serve(async (req: Request) => {
   }
 
   try {
+    let action, code;
+    
+    // Check if we have URL parameters (used by the OAuth redirect)
     const url = new URL(req.url);
-    const params = url.searchParams;
-    const action = params.get('action');
+    const urlParams = url.searchParams;
+    
+    if (urlParams.has('code') && urlParams.has('state')) {
+      action = 'callback';
+      code = urlParams.get('code');
+    } else {
+      // Otherwise, get parameters from the request body
+      const requestData = await req.json().catch(() => ({}));
+      action = requestData.action;
+      code = requestData.code;
+    }
 
     // Handle authentication flow
     if (action === 'redirect') {
       // Create Facebook OAuth URL
       const scope = 'ads_management,business_management,ads_read';
-      const facebookAuthUrl = `https://www.facebook.com/v16.0/dialog/oauth?client_id=${facebookAppId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}&response_type=code`;
+      const state = 'facebook-callback'; // Used to identify the callback is from Facebook
+      const facebookAuthUrl = `https://www.facebook.com/v16.0/dialog/oauth?client_id=${facebookAppId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}&state=${state}&response_type=code`;
 
       return new Response(JSON.stringify({ url: facebookAuthUrl }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -39,8 +51,6 @@ serve(async (req: Request) => {
     } 
     
     if (action === 'callback') {
-      const code = params.get('code');
-      
       if (!code) {
         throw new Error('No authorization code provided');
       }

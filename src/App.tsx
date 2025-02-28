@@ -1,7 +1,7 @@
 
 import { lazy, Suspense, useEffect } from "react";
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
-import AppLayout from "./components/layout/AppLayout";
+import { AppLayout } from "./components/layout/AppLayout";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { Toaster } from "./components/ui/toaster";
 import { supabase } from "./integrations/supabase/client";
@@ -36,14 +36,11 @@ const Affiliate = lazy(() => import('./pages/Affiliate'));
 
 function App() {
   useEffect(() => {
-    const enableDevTools = async () => {
-      if (import.meta.env.DEV) {
-        const { setupDevTools } = await import('./devTools');
-        setupDevTools();
-      }
-    };
-
-    enableDevTools();
+    // Remove devTools import since it doesn't exist
+    // We'll just have a basic check for dev mode instead
+    if (import.meta.env.DEV) {
+      console.log('Running in development mode');
+    }
   }, []);
 
   return (
