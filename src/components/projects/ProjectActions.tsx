@@ -1,87 +1,36 @@
-
 import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
-import { Facebook, Plus, ArrowRight } from "lucide-react";
+import { ArrowLeft, Rocket } from "lucide-react";
 
 interface ProjectActionsProps {
-  projectId: string;
-  hasBusinessIdea?: boolean;
-  onStartAdWizard?: () => void;
-  onStartLandingPageWizard?: () => void;
-  // Add these new properties for CreateProjectDialog compatibility
-  onGenerateAds?: () => void;
-  onBackToProjects?: () => void;
+  onGenerateAds: () => void;
+  onBackToProjects: () => void;
 }
 
-const ProjectActions = ({
-  projectId,
-  hasBusinessIdea = false,
-  onStartAdWizard,
-  onStartLandingPageWizard,
-  onGenerateAds,
-  onBackToProjects
-}: ProjectActionsProps) => {
-  const navigate = useNavigate();
-
-  // If we have the new handler props, we're being used from CreateProjectDialog
-  if (onGenerateAds && onBackToProjects) {
-    return (
-      <div className="flex flex-col sm:flex-row gap-3">
+const ProjectActions = ({ onGenerateAds, onBackToProjects }: ProjectActionsProps) => {
+  return (
+    <div className="space-y-4">
+      <p className="text-center text-muted-foreground">
+        What would you like to do next?
+      </p>
+      <div className="flex flex-col gap-3">
         <Button
           onClick={onGenerateAds}
-          className="sm:w-auto w-full"
+          className="w-full"
+          size="lg"
         >
-          <Plus className="mr-2 h-4 w-4" />
-          Generate Ad Campaign
+          <Rocket className="mr-2" />
+          Generate Ads
         </Button>
         <Button
           onClick={onBackToProjects}
           variant="outline"
-          className="sm:w-auto w-full"
+          className="w-full"
+          size="lg"
         >
+          <ArrowLeft className="mr-2" />
           Back to Projects
         </Button>
       </div>
-    );
-  }
-
-  // Original behavior
-  return (
-    <div className="flex flex-col sm:flex-row gap-3">
-      {hasBusinessIdea ? (
-        <>
-          <Button
-            onClick={onStartAdWizard}
-            className="sm:w-auto w-full"
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Create Ad Campaign
-          </Button>
-          <Button
-            onClick={() => navigate(`/facebook-ads/${projectId}`)}
-            className="sm:w-auto w-full bg-facebook hover:bg-facebook/90 text-white"
-          >
-            <Facebook className="mr-2 h-4 w-4" />
-            Facebook Ads
-          </Button>
-          <Button
-            onClick={onStartLandingPageWizard}
-            variant="outline"
-            className="sm:w-auto w-full"
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Create Landing Page
-          </Button>
-        </>
-      ) : (
-        <Button
-          onClick={onStartAdWizard}
-          className="sm:w-auto w-full"
-        >
-          Start Idea Wizard
-          <ArrowRight className="ml-2 h-4 w-4" />
-        </Button>
-      )}
     </div>
   );
 };
