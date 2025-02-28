@@ -1,3 +1,4 @@
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
@@ -227,6 +228,7 @@ const CreateProjectDialog = ({
           </>
         ) : (
           <ProjectActions
+            projectId={createdProjectId || ""}
             onGenerateAds={handleGenerateAds}
             onBackToProjects={handleBackToProjects}
           />
