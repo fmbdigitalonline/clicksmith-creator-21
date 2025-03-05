@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -66,9 +65,22 @@ interface CampaignRecord {
   [key: string]: any;
 }
 
+// Interface for platform connection
+interface PlatformConnection {
+  id: string;
+  platform: string;
+  user_id: string;
+  access_token?: string;
+  account_id?: string;
+  account_name?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export default function FacebookCampaignOverview() {
   const [isLoading, setIsLoading] = useState(true);
   const [isConnected, setIsConnected] = useState(false);
+  const [connectionData, setConnectionData] = useState<PlatformConnection | null>(null);
   const [projects, setProjects] = useState<any[]>([]);
   const [selectedProject, setSelectedProject] = useState<string>("");
   const [projectData, setProjectData] = useState<any>(null);
@@ -101,32 +113,48 @@ export default function FacebookCampaignOverview() {
   // Check if Facebook is connected
   useEffect(() => {
     const checkConnection = async () => {
-      if (!session) return;
+      if (!session) {
+        setIsLoading(false);
+        return;
+      }
       
       try {
+        console.log("Checking Facebook connection status...");
         const { data, error } = await supabase
           .from('platform_connections')
           .select('*')
           .eq('platform', 'facebook')
-          .single();
+          .maybeSingle();
 
-        if (error) {
-          if (error.code !== 'PGRST116') { // not_found error
-            console.error("Error checking connection:", error);
-          }
+        console.log("Facebook connection data:", data);
+        console.log("Facebook connection error:", error);
+
+        if (error && error.code !== 'PGRST116') {
+          console.error("Error checking connection:", error);
+          toast({
+            title: "Error",
+            description: "Failed to check connection status",
+            variant: "destructive",
+          });
           setIsConnected(false);
-        } else {
+        } else if (data) {
           setIsConnected(true);
+          setConnectionData(data);
+          console.log("Facebook is connected!");
+        } else {
+          console.log("Facebook is not connected");
+          setIsConnected(false);
         }
       } catch (error) {
-        console.error("Error checking connection:", error);
+        console.error("Exception checking connection:", error);
+        setIsConnected(false);
       } finally {
         setIsLoading(false);
       }
     };
 
     checkConnection();
-  }, [session]);
+  }, [session, toast]);
 
   // Fetch projects that have generated ads
   useEffect(() => {
@@ -521,7 +549,13 @@ export default function FacebookCampaignOverview() {
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Facebook Not Connected</AlertTitle>
             <AlertDescription>
-              Please connect your Facebook Ads account to create campaigns.
+              <div className="space-y-2">
+                <p>Please connect your Facebook Ads account to create campaigns.</p>
+                <p className="text-xs font-mono bg-gray-100 p-1 rounded">Connection status: {isConnected ? 'Connected' : 'Disconnected'}</p>
+                <p className="text-xs">
+                  Go to the <Button variant="link" className="p-0 h-auto" onClick={() => window.location.href = "/integrations"}>Integrations</Button> page and connect Facebook Ads first.
+                </p>
+              </div>
             </AlertDescription>
           </Alert>
         </CardContent>
@@ -546,6 +580,16 @@ export default function FacebookCampaignOverview() {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        {connectionData && (
+          <Alert className="bg-green-50 border-green-200 mb-4">
+            <CheckCircle className="h-4 w-4 text-green-600" />
+            <AlertTitle className="text-green-800">Connected to Facebook</AlertTitle>
+            <AlertDescription className="text-green-700">
+              Account: {connectionData.account_name || 'Default Account'}
+            </AlertDescription>
+          </Alert>
+        )}
+        
         {projects.length === 0 ? (
           <Alert>
             <AlertCircle className="h-4 w-4" />
