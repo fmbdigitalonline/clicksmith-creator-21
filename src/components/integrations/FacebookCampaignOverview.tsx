@@ -59,10 +59,14 @@ export default function FacebookCampaignOverview() {
       // Map database response to Campaign interface
       const typedCampaigns: Campaign[] = data?.map((campaign) => {
         // Check if targeting is a JSON object that might contain image_url
-        let imageUrl = campaign.image_url;
+        let imageUrl = null;
         
+        // First check if there's a direct image_url property
+        if (campaign.image_url !== undefined) {
+          imageUrl = campaign.image_url;
+        }
         // If no direct image_url, try to extract it from the targeting field
-        if (!imageUrl && campaign.targeting) {
+        else if (campaign.targeting) {
           // The targeting field might contain adCreative with image info
           const targeting = typeof campaign.targeting === 'string' 
             ? JSON.parse(campaign.targeting) 
