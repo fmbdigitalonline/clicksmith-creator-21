@@ -8,7 +8,7 @@ const FACEBOOK_API_VERSION = "v19.0";
 interface FacebookAuthRequest {
   code?: string;
   accessToken?: string;
-  action: "exchange" | "verify" | "accounts" | "revoke";
+  action: "exchange" | "verify" | "accounts" | "revoke" | "config";
 }
 
 interface TokenResponse {
@@ -66,6 +66,14 @@ serve(async (req) => {
     // Handle different actions
     let responseData;
     switch (body.action) {
+      case "config":
+        // Return the app configuration (client ID and redirect URI)
+        responseData = {
+          appId: CLIENT_ID,
+          redirectUri: REDIRECT_URI
+        };
+        break;
+        
       case "exchange":
         // Exchange authorization code for access token
         if (!body.code) {

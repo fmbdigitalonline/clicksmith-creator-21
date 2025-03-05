@@ -1,3 +1,4 @@
+<lov-codelov-code>
 import { useState, useCallback } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -110,7 +111,13 @@ export const useFacebookIntegration = () => {
         return false;
       }
       
-      // Get the Facebook App ID from environment
+      // Get the current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error("User not authenticated");
+      }
+      
+      // Get the Facebook App configuration from the function
       const { data: appConfig, error: configError } = await supabase.functions.invoke("facebook-auth", {
         body: { action: "config" }
       });
@@ -119,23 +126,11 @@ export const useFacebookIntegration = () => {
         throw new Error("Failed to get Facebook configuration");
       }
       
-      // For now, we're implementing a placeholder that shows the OAuth flow is coming soon
-      toast({
-        title: "Not yet implemented",
-        description: "Facebook OAuth integration is coming soon!",
-        variant: "default",
-      });
-      
-      setIsConnecting(false);
-      return false;
-      
-      // TODO: Uncomment and implement actual OAuth flow when ready
-      /* 
       // Calculate redirect URL - this should match what's configured in Facebook Developer console
-      const redirectUri = window.location.origin + '/facebook-callback';
+      const redirectUri = appConfig.redirectUri || window.location.origin + '/facebook-callback';
       
       // Build the OAuth URL
-      const oauthUrl = new URL('https://www.facebook.com/v19.0/dialog/oauth');
+      const oauthUrl = new URL(`https://www.facebook.com/v19.0/dialog/oauth`);
       oauthUrl.searchParams.append('client_id', appConfig.appId);
       oauthUrl.searchParams.append('redirect_uri', redirectUri);
       oauthUrl.searchParams.append('state', JSON.stringify({ userId: user.id }));
@@ -145,7 +140,6 @@ export const useFacebookIntegration = () => {
       // Redirect to Facebook OAuth page
       window.location.href = oauthUrl.toString();
       return true;
-      */
     } catch (error) {
       console.error("Error connecting to Facebook:", error);
       toast({
@@ -298,3 +292,4 @@ export const useFacebookIntegration = () => {
     selectAdAccount
   };
 };
+</lov-code>
