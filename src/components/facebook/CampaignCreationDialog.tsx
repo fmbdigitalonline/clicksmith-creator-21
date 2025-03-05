@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -105,14 +104,14 @@ export const CampaignCreationDialog = ({
       
       if (error) throw error;
       
-      // Save campaign to database - FIX: Pass an array with a single object
+      // Save campaign to database - Format dates properly and use correct type for platform
       await supabase.from('ad_campaigns').insert([{
         project_id: projectId,
-        platform: 'facebook',
+        platform: 'facebook' as 'facebook' | 'google' | 'linkedin' | 'tiktok',
         name: campaignName,
         budget: settings.dailyBudget,
-        start_date: settings.startDate,
-        end_date: settings.endDate,
+        start_date: settings.startDate.toISOString(),
+        end_date: settings.endDate.toISOString(),
         targeting: settings,
         status: 'active',
         platform_campaign_id: data.campaignId
