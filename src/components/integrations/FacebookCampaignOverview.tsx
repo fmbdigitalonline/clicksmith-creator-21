@@ -1,16 +1,17 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { AlertCircle, Facebook, Loader2, Settings, ExternalLink } from "lucide-react";
+import { AlertCircle, Facebook, Loader2, Settings, ExternalLink, Upload, CheckCircle } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useSession } from "@supabase/auth-helpers-react";
 import { supabase } from "@/integrations/supabase/client";
 import { transformToFacebookAdFormat } from "@/utils/facebookAdTransformer";
 import { BusinessIdea, TargetAudience } from "@/types/adWizard";
+import { Progress } from "@/components/ui/progress";
+import { uploadMedia } from "@/utils/uploadUtils";
 
 // Define an interface for the ad structure
 interface AdCreative {
@@ -20,6 +21,9 @@ interface AdCreative {
   [key: string]: any;
 }
 
+// Define the campaign creation states
+type CampaignStatus = 'idle' | 'uploading' | 'creating' | 'finalizing' | 'success' | 'error';
+
 export default function FacebookCampaignOverview() {
   const [isLoading, setIsLoading] = useState(true);
   const [isConnected, setIsConnected] = useState(false);
@@ -28,6 +32,10 @@ export default function FacebookCampaignOverview() {
   const [projectData, setProjectData] = useState<any>(null);
   const [adPreview, setAdPreview] = useState<any>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [campaignStatus, setCampaignStatus] = useState<CampaignStatus>('idle');
+  const [progressValue, setProgressValue] = useState<number>(0);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [campaignId, setCampaignId] = useState<string | null>(null);
   
   const { toast } = useToast();
   const session = useSession();
@@ -171,32 +179,129 @@ export default function FacebookCampaignOverview() {
     setSelectedProject(value);
   };
 
+  // Handle image upload for campaign creation
+  const handleImageUpload = async (imageUrl: string): Promise<string> => {
+    try {
+      // If the image is already a fully qualified URL not from our domain, use it as is
+      if (imageUrl.startsWith('http') && !imageUrl.includes(window.location.hostname)) {
+        return imageUrl;
+      }
+      
+      // For local images, we need to fetch and upload them
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      
+      // Create a file from the blob
+      const fileName = imageUrl.split('/').pop() || 'ad-image.png';
+      const file = new File([blob], fileName, { type: blob.type });
+      
+      // Upload the file using our utility
+      const uploadedUrl = await uploadMedia(file);
+      return uploadedUrl;
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      throw new Error('Failed to upload image for Facebook ad');
+    }
+  };
+
   // Handle campaign creation
   const handleCreateCampaign = async () => {
     setIsGenerating(true);
+    setCampaignStatus('uploading');
+    setProgressValue(10);
+    setErrorMessage(null);
     
     try {
-      // In a real implementation, this would call the Facebook API
-      // through a Supabase Edge Function
+      if (!adPreview || !adPreview.facebookData) {
+        throw new Error('No ad preview data available');
+      }
       
-      setTimeout(() => {
-        toast({
-          title: "Campaign Prepared",
-          description: "Your Facebook campaign data is ready for review",
-        });
-        setIsGenerating(false);
-      }, 1500);
+      // 1. Upload image if needed
+      setProgressValue(20);
+      let processedImageUrl = adPreview.imageUrl;
+      if (adPreview.imageUrl) {
+        try {
+          processedImageUrl = await handleImageUpload(adPreview.imageUrl);
+          adPreview.facebookData.adCreative.object_story_spec.link_data.image_url = processedImageUrl;
+        } catch (error) {
+          console.error('Image upload failed:', error);
+          toast({
+            title: "Image Upload Failed",
+            description: "We'll continue with the campaign creation without an image.",
+            variant: "destructive",
+          });
+        }
+      }
+      
+      // 2. Create the campaign
+      setCampaignStatus('creating');
+      setProgressValue(40);
+      
+      // Make the API call to create the campaign
+      const { data: campaignData, error: campaignError } = await supabase.functions.invoke('create-facebook-campaign', {
+        body: {
+          campaignData: adPreview.facebookData.campaign,
+          adSetData: adPreview.facebookData.adSet,
+          adCreativeData: adPreview.facebookData.adCreative,
+          projectId: selectedProject
+        },
+      });
+      
+      if (campaignError) {
+        throw new Error(campaignError.message || 'Failed to create campaign');
+      }
+      
+      // 3. Store the campaign data
+      setCampaignStatus('finalizing');
+      setProgressValue(80);
+      
+      // Save the campaign info to our database
+      const { data: savedCampaign, error: saveError } = await supabase
+        .from('ad_campaigns')
+        .insert({
+          project_id: selectedProject,
+          platform: 'facebook',
+          status: 'draft',
+          platform_campaign_id: campaignData.campaignId || null,
+          platform_ad_set_id: campaignData.adSetId || null,
+          platform_ad_id: campaignData.adId || null,
+          campaign_data: adPreview.facebookData,
+          image_url: processedImageUrl
+        })
+        .select()
+        .single();
+      
+      if (saveError) {
+        throw new Error(saveError.message || 'Failed to save campaign data');
+      }
+      
+      // Success
+      setCampaignStatus('success');
+      setProgressValue(100);
+      setCampaignId(savedCampaign.id);
+      
+      toast({
+        title: "Campaign Created",
+        description: "Your Facebook campaign has been created and is ready for review.",
+        variant: "default",
+      });
     } catch (error) {
       console.error("Error creating campaign:", error);
+      setCampaignStatus('error');
+      setProgressValue(0);
+      setErrorMessage(error instanceof Error ? error.message : 'Unknown error occurred');
+      
       toast({
-        title: "Error",
-        description: "Failed to create Facebook campaign",
+        title: "Campaign Creation Failed",
+        description: error instanceof Error ? error.message : "Failed to create Facebook campaign",
         variant: "destructive",
       });
+    } finally {
       setIsGenerating(false);
     }
   };
 
+  // Render loading state
   if (isLoading) {
     return (
       <Card className="mt-6">
@@ -210,6 +315,7 @@ export default function FacebookCampaignOverview() {
     );
   }
 
+  // Render disconnected state
   if (!isConnected) {
     return (
       <Card className="mt-6">
@@ -381,6 +487,41 @@ export default function FacebookCampaignOverview() {
                         </div>
                       </div>
                       
+                      {/* Campaign Progress/Status Section */}
+                      {campaignStatus !== 'idle' && (
+                        <div className="pt-3 pb-2">
+                          <div className="flex justify-between mb-2">
+                            <span className="text-sm font-medium">
+                              {campaignStatus === 'uploading' && 'Uploading image...'}
+                              {campaignStatus === 'creating' && 'Creating campaign...'}
+                              {campaignStatus === 'finalizing' && 'Finalizing...'}
+                              {campaignStatus === 'success' && 'Campaign created successfully!'}
+                              {campaignStatus === 'error' && 'Failed to create campaign'}
+                            </span>
+                            <span className="text-xs text-muted-foreground">{progressValue}%</span>
+                          </div>
+                          <Progress value={progressValue} className="h-2" />
+                          
+                          {campaignStatus === 'error' && errorMessage && (
+                            <Alert variant="destructive" className="mt-3">
+                              <AlertCircle className="h-4 w-4" />
+                              <AlertTitle>Error</AlertTitle>
+                              <AlertDescription>{errorMessage}</AlertDescription>
+                            </Alert>
+                          )}
+                          
+                          {campaignStatus === 'success' && (
+                            <Alert className="mt-3 bg-green-50 border-green-200">
+                              <CheckCircle className="h-4 w-4 text-green-600" />
+                              <AlertTitle className="text-green-800">Success!</AlertTitle>
+                              <AlertDescription className="text-green-700">
+                                Your campaign was created and is now in draft mode in Facebook Ads Manager
+                              </AlertDescription>
+                            </Alert>
+                          )}
+                        </div>
+                      )}
+                      
                       <div className="pt-2 flex justify-end space-x-2">
                         <Button 
                           variant="outline" 
@@ -395,12 +536,17 @@ export default function FacebookCampaignOverview() {
                           size="sm"
                           className="gap-1"
                           onClick={handleCreateCampaign}
-                          disabled={isGenerating}
+                          disabled={isGenerating || campaignStatus === 'success'}
                         >
-                          {isGenerating ? (
+                          {(isGenerating || ['uploading', 'creating', 'finalizing'].includes(campaignStatus)) ? (
                             <>
                               <Loader2 className="w-3.5 h-3.5 animate-spin" />
                               <span>Processing...</span>
+                            </>
+                          ) : campaignStatus === 'success' ? (
+                            <>
+                              <CheckCircle className="w-3.5 h-3.5" />
+                              <span>Created</span>
                             </>
                           ) : (
                             <>
