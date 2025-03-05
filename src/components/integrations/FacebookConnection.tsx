@@ -9,7 +9,13 @@ import { supabase } from "@/integrations/supabase/client";
 
 // URL redirecting to Facebook OAuth with environment variables
 const generateFacebookAuthURL = () => {
-  const facebookAppId = import.meta.env.VITE_FACEBOOK_APP_ID || "fb-app-id-missing";
+  const facebookAppId = import.meta.env.VITE_FACEBOOK_APP_ID;
+  
+  if (!facebookAppId) {
+    console.error("Missing Facebook App ID in environment variables");
+    return "";
+  }
+  
   const redirectUri = encodeURIComponent(window.location.origin + "/dashboard?connection=facebook");
   const scopes = encodeURIComponent("ads_management,ads_read");
   
@@ -203,7 +209,16 @@ export default function FacebookConnection() {
 
   // Handle connection click
   const handleConnect = () => {
-    window.location.href = generateFacebookAuthURL();
+    const authUrl = generateFacebookAuthURL();
+    if (!authUrl) {
+      toast({
+        title: "Configuration Error",
+        description: "Facebook App ID is missing. Please contact the administrator.",
+        variant: "destructive",
+      });
+      return;
+    }
+    window.location.href = authUrl;
   };
 
   // Handle disconnection

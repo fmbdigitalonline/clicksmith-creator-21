@@ -1,4 +1,3 @@
-
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { corsHeaders } from '../_shared/cors.ts'
 
@@ -170,7 +169,12 @@ serve(async (req) => {
     
     // Validate environment variables
     if (!FACEBOOK_APP_ID || !FACEBOOK_APP_SECRET || !REDIRECT_URI) {
-      console.error('Missing required environment variables');
+      console.error('Missing required environment variables:', {
+        FACEBOOK_APP_ID: !!FACEBOOK_APP_ID,
+        FACEBOOK_APP_SECRET: !!FACEBOOK_APP_SECRET,
+        REDIRECT_URI: !!REDIRECT_URI
+      });
+      
       return new Response(JSON.stringify({ 
         success: false,
         error: 'Server configuration error: Missing Facebook credentials' 

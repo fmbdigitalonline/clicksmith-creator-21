@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import FacebookConnection from "./FacebookConnection";
+import EnvConfigCheck from "./EnvConfigCheck";
 
 export default function PlatformIntegrations() {
   const [activeTab, setActiveTab] = useState("advertising");
@@ -15,6 +16,8 @@ export default function PlatformIntegrations() {
           Connect your ad platform accounts to create and manage campaigns
         </p>
       </div>
+      
+      <EnvConfigCheck />
 
       <Tabs defaultValue="advertising" className="w-full" onValueChange={setActiveTab}>
         <TabsList className="mb-4">
