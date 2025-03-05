@@ -97,25 +97,26 @@ export default function FacebookCampaignOverview() {
       }
       
       try {
-        const { data, error } = await supabase
+        // Use separate queries instead of a join to avoid the error
+        const { data: projectData, error: projectError } = await supabase
           .from('projects')
-          .select('*, wizard_progress(business_idea, target_audience)')
+          .select('*')
           .eq('id', selectedProject)
           .single();
 
-        if (error) throw error;
-        
-        setProjectData(data);
+        if (projectError) throw projectError;
         
         // If the project has generated ads, preview the first one
-        if (data.generated_ads && data.generated_ads.length > 0) {
-          const firstAd = data.generated_ads[0];
+        if (projectData.generated_ads && 
+            Array.isArray(projectData.generated_ads) && 
+            projectData.generated_ads.length > 0) {
+          const firstAd = projectData.generated_ads[0];
           
-          // Transform to Facebook format if we have all the data
-          if (data.wizard_progress?.business_idea && data.wizard_progress?.target_audience) {
+          // Transform to Facebook format if we have business_idea and target_audience
+          if (projectData.business_idea && projectData.target_audience) {
             const facebookAdData = transformToFacebookAdFormat(
-              data.wizard_progress.business_idea,
-              data.wizard_progress.target_audience,
+              projectData.business_idea,
+              projectData.target_audience,
               firstAd
             );
             
@@ -127,6 +128,8 @@ export default function FacebookCampaignOverview() {
             setAdPreview(firstAd);
           }
         }
+        
+        setProjectData(projectData);
       } catch (error) {
         console.error("Error fetching project data:", error);
         toast({
@@ -192,7 +195,7 @@ export default function FacebookCampaignOverview() {
           <CardDescription>Transform your ads into Facebook campaigns</CardDescription>
         </CardHeader>
         <CardContent>
-          <Alert variant="warning" className="mb-4">
+          <Alert variant="destructive" className="mb-4">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Facebook Not Connected</AlertTitle>
             <AlertDescription>
@@ -265,13 +268,15 @@ export default function FacebookCampaignOverview() {
                       <div className="grid grid-cols-3">
                         <span className="text-muted-foreground">Ad Creatives:</span>
                         <span className="col-span-2 font-medium">
-                          {projectData.generated_ads?.length || 0} available
+                          {projectData.generated_ads && Array.isArray(projectData.generated_ads) 
+                            ? projectData.generated_ads.length 
+                            : 0} available
                         </span>
                       </div>
                       <div className="grid grid-cols-3">
                         <span className="text-muted-foreground">Audience:</span>
                         <span className="col-span-2 font-medium truncate">
-                          {projectData.wizard_progress?.target_audience?.name || "Not specified"}
+                          {projectData.target_audience?.name || "Not specified"}
                         </span>
                       </div>
                       <div className="grid grid-cols-3">
@@ -346,7 +351,9 @@ export default function FacebookCampaignOverview() {
                             {adPreview.facebookData.adSet.targeting.age_max}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            {adPreview.facebookData.adSet.targeting.interests?.length || 0} interests
+                            {adPreview.facebookData.adSet.targeting.interests 
+                              ? adPreview.facebookData.adSet.targeting.interests.length 
+                              : 0} interests
                           </p>
                         </div>
                       </div>
