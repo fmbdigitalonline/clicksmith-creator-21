@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { NavLink } from "react-router-dom";
 import { useSidebar } from "@/components/ui/sidebar";
@@ -10,7 +11,7 @@ import {
   Link,
   Settings,
   HelpCircle,
-  Logout,
+  LogOut,
 } from "lucide-react";
 import * as Sidebar from "@/components/ui/sidebar";
 import { useUser } from "@/hooks/useUser";
@@ -18,7 +19,7 @@ import { useSignOut } from "@/hooks/useSignOut";
 import { useToast } from "@/components/ui/use-toast";
 
 export default function AppSidebar() {
-  const { collapsed } = useSidebar();
+  const { isCollapsed } = useSidebar();
   const { user } = useUser();
   const { signOut } = useSignOut();
   const { toast } = useToast();
@@ -46,84 +47,97 @@ export default function AppSidebar() {
   };
   
   return (
-    <Sidebar.Root className="bg-background border-r">
-      <Sidebar.Container className="flex flex-col gap-6 p-4">
+    <Sidebar.Sidebar className="bg-background border-r">
+      <Sidebar.SidebarContent className="flex flex-col gap-6 p-4">
         <div className="flex items-center gap-4">
           <Avatar>
             <AvatarImage src={user?.user_metadata?.avatar_url} />
             <AvatarFallback>{user?.email?.charAt(0).toUpperCase()}</AvatarFallback>
           </Avatar>
-          {!collapsed && (
+          {!isCollapsed && (
             <div>
               <p className="text-sm font-semibold">{user?.user_metadata?.full_name}</p>
               <p className="text-xs text-muted-foreground">{user?.email}</p>
             </div>
           )}
         </div>
-        <Sidebar.Nav className="gap-2">
-          <Sidebar.NavItem
-            as={NavLink}
-            to="/dashboard"
-            className={getLinkClass}
-            icon={<LayoutDashboard size={18} />}
-          >
-            Dashboard
-          </Sidebar.NavItem>
-          <Sidebar.NavItem
-            as={NavLink}
-            to="/projects"
-            className={getLinkClass}
-            icon={<Briefcase size={18} />}
-          >
-            Projects
-          </Sidebar.NavItem>
-          <Sidebar.NavItem
-            as={NavLink}
-            to="/saved-ads"
-            className={getLinkClass}
-            icon={<ImageIcon size={18} />}
-          >
-            Saved Ads
-          </Sidebar.NavItem>
-          <Sidebar.NavItem
-            as={NavLink}
-            to="/integrations"
-            className={getLinkClass}
-            icon={<Link size={18} />}
-          >
-            Integrations
-          </Sidebar.NavItem>
-        </Sidebar.Nav>
+        <Sidebar.SidebarMenu className="gap-2">
+          <Sidebar.SidebarMenuItem>
+            <Sidebar.SidebarMenuButton
+              as={NavLink}
+              to="/dashboard"
+              className={getLinkClass}
+            >
+              <LayoutDashboard size={18} />
+              <span>Dashboard</span>
+            </Sidebar.SidebarMenuButton>
+          </Sidebar.SidebarMenuItem>
+          <Sidebar.SidebarMenuItem>
+            <Sidebar.SidebarMenuButton
+              as={NavLink}
+              to="/projects"
+              className={getLinkClass}
+            >
+              <Briefcase size={18} />
+              <span>Projects</span>
+            </Sidebar.SidebarMenuButton>
+          </Sidebar.SidebarMenuItem>
+          <Sidebar.SidebarMenuItem>
+            <Sidebar.SidebarMenuButton
+              as={NavLink}
+              to="/saved-ads"
+              className={getLinkClass}
+            >
+              <ImageIcon size={18} />
+              <span>Saved Ads</span>
+            </Sidebar.SidebarMenuButton>
+          </Sidebar.SidebarMenuItem>
+          <Sidebar.SidebarMenuItem>
+            <Sidebar.SidebarMenuButton
+              as={NavLink}
+              to="/integrations"
+              className={getLinkClass}
+            >
+              <Link size={18} />
+              <span>Integrations</span>
+            </Sidebar.SidebarMenuButton>
+          </Sidebar.SidebarMenuItem>
+        </Sidebar.SidebarMenu>
         <div className="mt-auto">
-          <Sidebar.Nav className="gap-2">
-            <Sidebar.NavItem
-              as={NavLink}
-              to="/settings"
-              className={getLinkClass}
-              icon={<Settings size={18} />}
-            >
-              Settings
-            </Sidebar.NavItem>
-            <Sidebar.NavItem
-              as={NavLink}
-              to="/help"
-              className={getLinkClass}
-              icon={<HelpCircle size={18} />}
-            >
-              Help
-            </Sidebar.NavItem>
-          </Sidebar.Nav>
+          <Sidebar.SidebarMenu className="gap-2">
+            <Sidebar.SidebarMenuItem>
+              <Sidebar.SidebarMenuButton
+                as={NavLink}
+                to="/settings"
+                className={getLinkClass}
+              >
+                <Settings size={18} />
+                <span>Settings</span>
+              </Sidebar.SidebarMenuButton>
+            </Sidebar.SidebarMenuItem>
+            <Sidebar.SidebarMenuItem>
+              <Sidebar.SidebarMenuButton
+                as={NavLink}
+                to="/help"
+                className={getLinkClass}
+              >
+                <HelpCircle size={18} />
+                <span>Help</span>
+              </Sidebar.SidebarMenuButton>
+            </Sidebar.SidebarMenuItem>
+          </Sidebar.SidebarMenu>
           <Button
             variant="ghost"
             className="w-full justify-start text-muted-foreground hover:bg-secondary/50"
             onClick={handleSignOut}
             disabled={isSigningOut}
           >
-            <Logout size={18} className="mr-2" />
+            <LogOut size={18} className="mr-2" />
             Sign Out
           </Button>
         </div>
-      </Sidebar.Container>
-    </Sidebar.Root>
+      </Sidebar.SidebarContent>
+    </Sidebar.Sidebar>
   );
 }
+

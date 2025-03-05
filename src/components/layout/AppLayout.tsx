@@ -1,6 +1,6 @@
 
 import Navigation from "../Navigation";
-import { AppSidebar } from "../AppSidebar";
+import AppSidebar from "../AppSidebar";
 import BreadcrumbNav from "../Breadcrumb";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft } from "lucide-react";
