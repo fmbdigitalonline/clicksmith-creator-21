@@ -1,427 +1,866 @@
-
 import { useState, useEffect } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { 
+  AlertCircle, 
+  Facebook, 
+  Loader2, 
+  Settings, 
+  ExternalLink, 
+  Upload, 
+  CheckCircle, 
+  RefreshCw,
+  Info,
+  AlertTriangle 
+} from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
 import { useSession } from "@supabase/auth-helpers-react";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Separator } from "@/components/ui/separator";
-import { Loader2, AlertCircle, Plus, CheckCircle, Facebook } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
 import { transformToFacebookAdFormat } from "@/utils/facebookAdTransformer";
 import { BusinessIdea, TargetAudience } from "@/types/adWizard";
-import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { uploadMedia } from "@/utils/uploadUtils";
 
-interface Campaign {
+// Define an interface for the ad structure
+interface AdCreative {
+  headline?: string;
+  description?: string;
+  imageUrl?: string;
+  [key: string]: any;
+}
+
+// Define the campaign creation states
+type CampaignStatus = 'idle' | 'validating' | 'uploading' | 'creating' | 'finalizing' | 'success' | 'error';
+
+// Error types for better error handling
+type ErrorType = 'validation' | 'upload' | 'api' | 'connection' | 'server' | 'unknown';
+
+interface ValidationError {
+  field: string;
+  message: string;
+}
+
+// Define interface for campaign targeting/data
+interface CampaignTargeting {
+  campaign?: Record<string, any>;
+  adSet?: Record<string, any>;
+  adCreative?: Record<string, any>;
+  platform_ad_set_id?: string;
+  platform_ad_id?: string;
+  error_message?: string;
+}
+
+// Define interface for campaign record
+interface CampaignRecord {
   id: string;
-  name: string;
-  status: string;
   platform: string;
+  status: string;
+  platform_campaign_id?: string;
+  targeting?: CampaignTargeting;
   created_at: string;
-  platform_campaign_id: string | null;
-  image_url: string | null;
+  updated_at: string;
+  [key: string]: any;
+}
+
+// Interface for platform connection
+interface PlatformConnection {
+  id: string;
+  platform: string;
+  user_id: string;
+  access_token?: string;
+  account_id?: string;
+  account_name?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export default function FacebookCampaignOverview() {
-  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isCreating, setIsCreating] = useState(false);
-  const [showDialog, setShowDialog] = useState(false);
+  const [isConnected, setIsConnected] = useState(false);
+  const [connectionData, setConnectionData] = useState<PlatformConnection | null>(null);
   const [projects, setProjects] = useState<any[]>([]);
-  const [selectedProject, setSelectedProject] = useState("");
-  const [budget, setBudget] = useState("5");
-  const [error, setError] = useState<string | null>(null);
-  const session = useSession();
+  const [selectedProject, setSelectedProject] = useState<string>("");
+  const [projectData, setProjectData] = useState<any>(null);
+  const [adPreview, setAdPreview] = useState<any>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [campaignStatus, setCampaignStatus] = useState<CampaignStatus>('idle');
+  const [progressValue, setProgressValue] = useState<number>(0);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [errorType, setErrorType] = useState<ErrorType | null>(null);
+  const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
+  const [campaignId, setCampaignId] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState<number>(0);
+  const [campaignRecord, setCampaignRecord] = useState<any>(null);
+  
   const { toast } = useToast();
+  const session = useSession();
 
+  // Function to reset all state values for a new campaign
+  const resetCampaignState = () => {
+    setCampaignStatus('idle');
+    setProgressValue(0);
+    setErrorMessage(null);
+    setErrorType(null);
+    setValidationErrors([]);
+    setCampaignId(null);
+    setRetryCount(0);
+    setCampaignRecord(null);
+  };
+
+  // Check if Facebook is connected
   useEffect(() => {
-    if (session) {
-      fetchCampaigns();
-      fetchProjects();
-    }
-  }, [session]);
-
-  const fetchCampaigns = async () => {
-    try {
-      setIsLoading(true);
-      const { data, error } = await supabase
-        .from("ad_campaigns")
-        .select("*")
-        .eq("platform", "facebook")
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
+    const checkConnection = async () => {
+      if (!session) {
+        setIsLoading(false);
+        return;
+      }
       
-      // Map database response to Campaign interface
-      const typedCampaigns: Campaign[] = data?.map((campaign) => {
-        // Check if targeting is a JSON object that might contain image_url
-        let imageUrl = null;
-        
-        // First check if there's a direct image_url property
-        if (campaign.image_url !== undefined) {
-          imageUrl = campaign.image_url;
+      try {
+        console.log("Checking Facebook connection status...");
+        const { data, error } = await supabase
+          .from('platform_connections')
+          .select('*')
+          .eq('platform', 'facebook')
+          .maybeSingle();
+
+        console.log("Facebook connection data:", data);
+        console.log("Facebook connection error:", error);
+
+        if (error && error.code !== 'PGRST116') {
+          console.error("Error checking connection:", error);
+          toast({
+            title: "Error",
+            description: "Failed to check connection status",
+            variant: "destructive",
+          });
+          setIsConnected(false);
+        } else if (data) {
+          setIsConnected(true);
+          setConnectionData(data);
+          console.log("Facebook is connected!");
+        } else {
+          console.log("Facebook is not connected");
+          setIsConnected(false);
         }
-        // If no direct image_url, try to extract it from the targeting field
-        else if (campaign.targeting) {
-          // The targeting field might contain adCreative with image info
-          const targeting = typeof campaign.targeting === 'string' 
-            ? JSON.parse(campaign.targeting) 
-            : campaign.targeting;
+      } catch (error) {
+        console.error("Exception checking connection:", error);
+        setIsConnected(false);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkConnection();
+  }, [session, toast]);
+
+  // Fetch projects that have generated ads
+  useEffect(() => {
+    const fetchProjects = async () => {
+      if (!session || !isConnected) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('projects')
+          .select('id, title, generated_ads')
+          .not('generated_ads', 'is', null)
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        
+        // Filter projects that have generated ads
+        const projectsWithAds = data.filter(project => 
+          project.generated_ads && 
+          Array.isArray(project.generated_ads) && 
+          project.generated_ads.length > 0
+        );
+        
+        setProjects(projectsWithAds);
+      } catch (error) {
+        console.error("Error fetching projects:", error);
+        toast({
+          title: "Error",
+          description: "Failed to fetch projects with ads",
+          variant: "destructive",
+        });
+      }
+    };
+
+    fetchProjects();
+  }, [session, isConnected, toast]);
+
+  // Fetch project data when a project is selected
+  useEffect(() => {
+    const fetchProjectData = async () => {
+      if (!selectedProject) {
+        setProjectData(null);
+        return;
+      }
+      
+      try {
+        // Use separate queries instead of a join to avoid the error
+        const { data: projectData, error: projectError } = await supabase
+          .from('projects')
+          .select('*')
+          .eq('id', selectedProject)
+          .single();
+
+        if (projectError) throw projectError;
+        
+        // If the project has generated ads, preview the first one
+        if (projectData.generated_ads && 
+            Array.isArray(projectData.generated_ads) && 
+            projectData.generated_ads.length > 0) {
+          
+          // Type cast firstAd to the AdCreative interface
+          const firstAd = projectData.generated_ads[0] as AdCreative;
+          
+          // Transform to Facebook format if we have business_idea and target_audience
+          if (projectData.business_idea && projectData.target_audience) {
+            // Type-cast the data to ensure it matches the expected types
+            const businessIdea = projectData.business_idea as BusinessIdea;
+            const targetAudience = projectData.target_audience as TargetAudience;
             
-          if (targeting.adCreative?.object_story_spec?.link_data?.image_url) {
-            imageUrl = targeting.adCreative.object_story_spec.link_data.image_url;
+            const facebookAdData = transformToFacebookAdFormat(
+              businessIdea,
+              targetAudience,
+              firstAd
+            );
+            
+            // Create a new object with optional chaining to handle undefined properties
+            setAdPreview({
+              headline: firstAd?.headline || '',
+              description: firstAd?.description || '',
+              imageUrl: firstAd?.imageUrl || '',
+              facebookData: facebookAdData
+            });
+          } else {
+            // Create a proper object with optional chaining
+            setAdPreview({
+              headline: firstAd?.headline || '',
+              description: firstAd?.description || '',
+              imageUrl: firstAd?.imageUrl || ''
+            });
           }
         }
         
-        return {
-          id: campaign.id,
-          name: campaign.name || "", 
-          status: campaign.status || "",
-          platform: campaign.platform,
-          created_at: campaign.created_at,
-          platform_campaign_id: campaign.platform_campaign_id,
-          image_url: imageUrl
-        };
-      }) || [];
+        setProjectData(projectData);
+      } catch (error) {
+        console.error("Error fetching project data:", error);
+        toast({
+          title: "Error",
+          description: "Failed to fetch project details",
+          variant: "destructive",
+        });
+      }
+    };
+
+    fetchProjectData();
+  }, [selectedProject, toast]);
+
+  // Poll for campaign status updates (when campaign is being created)
+  useEffect(() => {
+    let intervalId: number | undefined;
+    
+    if (campaignRecord && ['creating', 'uploading', 'finalizing'].includes(campaignStatus)) {
+      intervalId = window.setInterval(async () => {
+        try {
+          const { data, error } = await supabase
+            .from('ad_campaigns')
+            .select('*')
+            .eq('id', campaignRecord.id)
+            .single();
+            
+          if (error) throw error;
+          
+          // Cast data to our defined interface
+          const campaign = data as CampaignRecord;
+          
+          // Update local state based on campaign status
+          if (campaign.status === 'draft' || campaign.status === 'completed') {
+            setCampaignStatus('success');
+            setProgressValue(100);
+            clearInterval(intervalId);
+          } else if (campaign.status === 'error') {
+            setCampaignStatus('error');
+            // Access error message from targeting with proper type checking
+            setErrorMessage(campaign.targeting?.error_message || 'Campaign creation failed');
+            setErrorType('api');
+            clearInterval(intervalId);
+          } else if (campaign.status === 'campaign_created') {
+            setProgressValue(50);
+          } else if (campaign.status === 'adset_created') {
+            setProgressValue(75);
+          }
+        } catch (error) {
+          console.error("Error polling campaign status:", error);
+        }
+      }, 3000); // Poll every 3 seconds
+    }
+    
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [campaignRecord, campaignStatus]);
+
+  // Function to validate campaign data before submission
+  const validateCampaignData = (): boolean => {
+    const errors: ValidationError[] = [];
+    
+    if (!adPreview?.facebookData) {
+      errors.push({ field: 'general', message: 'Facebook ad data is missing' });
+      setErrorType('validation');
+      setValidationErrors(errors);
+      return false;
+    }
+    
+    const { campaign, adSet, adCreative } = adPreview.facebookData;
+    
+    // Campaign validation
+    if (!campaign.name) {
+      errors.push({ field: 'campaign.name', message: 'Campaign name is required' });
+    }
+    
+    if (!campaign.objective) {
+      errors.push({ field: 'campaign.objective', message: 'Campaign objective is required' });
+    }
+    
+    // Ad Set validation
+    if (!adSet.name) {
+      errors.push({ field: 'adSet.name', message: 'Ad Set name is required' });
+    }
+    
+    if (!adSet.daily_budget) {
+      errors.push({ field: 'adSet.daily_budget', message: 'Budget is required' });
+    }
+    
+    if (!adSet.targeting || !adSet.targeting.age_min || !adSet.targeting.age_max) {
+      errors.push({ field: 'adSet.targeting', message: 'Audience targeting is incomplete' });
+    }
+    
+    // Ad Creative validation
+    if (!adCreative.object_story_spec) {
+      errors.push({ field: 'adCreative', message: 'Ad creative is missing required data' });
+    }
+    
+    setValidationErrors(errors);
+    
+    if (errors.length > 0) {
+      setErrorType('validation');
+      setErrorMessage(`Validation failed: ${errors.length} issues found`);
+      return false;
+    }
+    
+    return true;
+  };
+
+  // Handle project selection
+  const handleProjectChange = (value: string) => {
+    setSelectedProject(value);
+    resetCampaignState();
+  };
+
+  // Handle image upload for campaign creation
+  const handleImageUpload = async (imageUrl: string): Promise<string> => {
+    try {
+      // If the image is already a fully qualified URL not from our domain, use it as is
+      if (imageUrl.startsWith('http') && !imageUrl.includes(window.location.hostname)) {
+        return imageUrl;
+      }
       
-      setCampaigns(typedCampaigns);
+      // For local images, we need to fetch and upload them
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      
+      // Create a file from the blob
+      const fileName = imageUrl.split('/').pop() || 'ad-image.png';
+      const file = new File([blob], fileName, { type: blob.type });
+      
+      // Upload the file using our utility
+      const uploadedUrl = await uploadMedia(file);
+      return uploadedUrl;
     } catch (error) {
-      console.error("Error fetching campaigns:", error);
+      console.error('Error uploading image:', error);
+      throw new Error('Failed to upload image for Facebook ad');
+    }
+  };
+
+  // Handle retry campaign creation
+  const handleRetry = () => {
+    if (retryCount >= 3) {
       toast({
-        title: "Error",
-        description: "Failed to load campaigns",
+        title: "Maximum Retries Exceeded",
+        description: "Please check your campaign settings and try again later.",
         variant: "destructive",
       });
-    } finally {
-      setIsLoading(false);
+      return;
     }
+    
+    setRetryCount(prev => prev + 1);
+    setErrorMessage(null);
+    setErrorType(null);
+    setValidationErrors([]);
+    handleCreateCampaign();
   };
 
-  const fetchProjects = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("projects")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      
-      setProjects(data || []);
-      if (data && data.length > 0) {
-        setSelectedProject(data[0].id);
-      }
-    } catch (error) {
-      console.error("Error fetching projects:", error);
-    }
-  };
-
-  const formatStatus = (status: string) => {
-    switch (status) {
-      case "pending":
-        return { label: "Pending", color: "bg-yellow-100 text-yellow-800" };
-      case "campaign_created":
-        return { label: "Campaign Created", color: "bg-blue-100 text-blue-800" };
-      case "adset_created":
-        return { label: "Ad Set Created", color: "bg-blue-100 text-blue-800" };
-      case "completed":
-        return { label: "Active", color: "bg-green-100 text-green-800" };
-      case "error":
-        return { label: "Error", color: "bg-red-100 text-red-800" };
-      default:
-        return { label: status, color: "bg-gray-100 text-gray-800" };
-    }
-  };
-
+  // Handle campaign creation
   const handleCreateCampaign = async () => {
-    if (!selectedProject) {
-      setError("Please select a project");
-      return;
-    }
-
-    if (!budget || isNaN(Number(budget)) || Number(budget) < 1) {
-      setError("Please enter a valid budget (minimum $1)");
-      return;
-    }
-
+    setIsGenerating(true);
+    setCampaignStatus('validating');
+    setProgressValue(5);
+    setErrorMessage(null);
+    setErrorType(null);
+    setValidationErrors([]);
+    
     try {
-      setIsCreating(true);
-      setError(null);
-      
-      // Get project data
-      const { data: projectData, error: projectError } = await supabase
-        .from("projects")
-        .select("*")
-        .eq("id", selectedProject)
-        .single();
-
-      if (projectError) throw projectError;
-      
-      if (!projectData) {
-        throw new Error("Project not found");
+      // 1. Validate the campaign data
+      if (!validateCampaignData()) {
+        setCampaignStatus('error');
+        setProgressValue(0);
+        setIsGenerating(false);
+        return;
       }
-
-      // Get wizard data
-      const { data: wizardData, error: wizardError } = await supabase
-        .from("wizard_progress")
-        .select("business_idea, target_audience, audience_analysis, generated_ads")
-        .eq("user_id", session?.user?.id)
-        .single();
-
-      if (wizardError && wizardError.code !== 'PGRST116') {
-        throw wizardError;
-      }
-
-      if (!wizardData || !wizardData.business_idea || !wizardData.target_audience) {
-        throw new Error("No ad data found. Please complete the ad creation wizard first.");
-      }
-
-      // Use the transformer to create Facebook-compatible ad data
-      const businessIdea = wizardData.business_idea as BusinessIdea;
-      const targetAudience = wizardData.target_audience as TargetAudience;
       
-      // Get the first ad variant from generated_ads if available
-      let adVariant = null;
-      if (wizardData.generated_ads && Array.isArray(wizardData.generated_ads) && wizardData.generated_ads.length > 0) {
-        adVariant = wizardData.generated_ads[0];
-      } else {
-        // Create a basic ad variant from business idea
-        adVariant = {
-          headline: businessIdea.description.substring(0, 40),
-          description: businessIdea.valueProposition,
-          imageUrl: null
-        };
-      }
-
-      // Create a landing page URL (placeholder for now)
-      const landingPageUrl = `https://${window.location.hostname}/share/${projectData.id}`;
-      
-      // Transform the data into Facebook ad format
-      const facebookAdData = transformToFacebookAdFormat(
-        businessIdea,
-        targetAudience,
-        adVariant,
-        Number(budget),
-        landingPageUrl
-      );
-
-      // Now call the Edge Function to create the campaign
-      const response = await supabase.functions.invoke("create-facebook-campaign", {
-        body: {
-          campaignData: facebookAdData.campaign,
-          adSetData: facebookAdData.adSet,
-          adCreativeData: facebookAdData.adCreative,
-          projectId: selectedProject
+      // 2. Upload image if needed
+      setCampaignStatus('uploading');
+      setProgressValue(20);
+      let processedImageUrl = adPreview.imageUrl;
+      if (adPreview.imageUrl) {
+        try {
+          processedImageUrl = await handleImageUpload(adPreview.imageUrl);
+          adPreview.facebookData.adCreative.object_story_spec.link_data.image_url = processedImageUrl;
+        } catch (error) {
+          console.error('Image upload failed:', error);
+          toast({
+            title: "Image Upload Failed",
+            description: "We'll continue with the campaign creation without an image.",
+            variant: "warning",
+          });
         }
+      }
+      
+      // 3. Create the campaign
+      setCampaignStatus('creating');
+      setProgressValue(40);
+      
+      // Make the API call to create the campaign
+      const { data: campaignData, error: campaignError } = await supabase.functions.invoke('create-facebook-campaign', {
+        body: {
+          campaignData: adPreview.facebookData.campaign,
+          adSetData: adPreview.facebookData.adSet,
+          adCreativeData: adPreview.facebookData.adCreative,
+          projectId: selectedProject
+        },
       });
-
-      if (response.error) {
-        throw new Error(response.error);
+      
+      if (campaignError) {
+        throw new Error(campaignError.message || 'Failed to create campaign');
       }
-
-      if (!response.data.success) {
-        throw new Error(response.data.error || "Failed to create campaign");
+      
+      // 4. Update state with campaign data
+      setCampaignStatus('finalizing');
+      setProgressValue(80);
+      
+      // Store the campaign record for status polling
+      if (campaignData.campaignRecordId) {
+        const { data: savedCampaign, error: saveError } = await supabase
+          .from('ad_campaigns')
+          .select('*')
+          .eq('id', campaignData.campaignRecordId)
+          .single();
+        
+        if (saveError) {
+          console.error("Error fetching campaign record:", saveError);
+        } else {
+          setCampaignRecord(savedCampaign);
+        }
       }
-
-      // Success! Refresh campaigns and close dialog
+      
+      // Success
+      setCampaignStatus('success');
+      setProgressValue(100);
+      setCampaignId(campaignData.campaignId);
+      
       toast({
-        title: "Success!",
-        description: "Facebook campaign created successfully",
+        title: "Campaign Created",
+        description: "Your Facebook campaign has been created and is ready for review.",
+        variant: "default",
       });
-      
-      setShowDialog(false);
-      fetchCampaigns();
-      
     } catch (error) {
       console.error("Error creating campaign:", error);
-      setError(error.message || "Failed to create campaign");
+      setCampaignStatus('error');
+      setProgressValue(0);
+      
+      // Determine error type
+      let errorMsg = error instanceof Error ? error.message : 'Unknown error occurred';
+      let errorTypeVal: ErrorType = 'unknown';
+      
+      if (errorMsg.includes('validation')) {
+        errorTypeVal = 'validation';
+      } else if (errorMsg.includes('upload')) {
+        errorTypeVal = 'upload';
+      } else if (errorMsg.includes('Facebook API')) {
+        errorTypeVal = 'api';
+      } else if (errorMsg.includes('connect')) {
+        errorTypeVal = 'connection';
+      } else if (errorMsg.includes('server')) {
+        errorTypeVal = 'server';
+      }
+      
+      setErrorType(errorTypeVal);
+      setErrorMessage(errorMsg);
       
       toast({
-        title: "Error",
-        description: error.message || "Failed to create campaign",
+        title: "Campaign Creation Failed",
+        description: errorMsg,
         variant: "destructive",
       });
     } finally {
-      setIsCreating(false);
+      setIsGenerating(false);
     }
   };
 
+  // Render loading state
   if (isLoading) {
     return (
-      <div className="flex justify-center p-8">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle>Facebook Campaign Creator</CardTitle>
+        </CardHeader>
+        <CardContent className="flex justify-center py-6">
+          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Render disconnected state
+  if (!isConnected) {
+    return (
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle>Facebook Campaign Creator</CardTitle>
+          <CardDescription>Transform your ads into Facebook campaigns</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Alert variant="destructive" className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Facebook Not Connected</AlertTitle>
+            <AlertDescription>
+              <div className="space-y-2">
+                <p>Please connect your Facebook Ads account to create campaigns.</p>
+                <p className="text-xs font-mono bg-gray-100 p-1 rounded">Connection status: {isConnected ? 'Connected' : 'Disconnected'}</p>
+                <p className="text-xs">
+                  Go to the <Button variant="link" className="p-0 h-auto" onClick={() => window.location.href = "/integrations"}>Integrations</Button> page and connect Facebook Ads first.
+                </p>
+              </div>
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+    <Card className="mt-6">
+      <CardHeader>
+        <div className="flex items-center justify-between">
           <div>
-            <CardTitle>Facebook Campaigns</CardTitle>
-            <CardDescription>
-              Create and manage your Facebook ad campaigns
-            </CardDescription>
+            <CardTitle>Facebook Campaign Creator</CardTitle>
+            <CardDescription>Transform your ads into Facebook campaigns</CardDescription>
           </div>
-          <Dialog open={showDialog} onOpenChange={setShowDialog}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="mr-2 h-4 w-4" /> Create Campaign
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Create Facebook Campaign</DialogTitle>
-                <DialogDescription>
-                  Create a new campaign from one of your projects
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                {error && (
-                  <Alert variant="destructive">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertTitle>Error</AlertTitle>
-                    <AlertDescription>{error}</AlertDescription>
-                  </Alert>
-                )}
-                
-                <div className="space-y-2">
-                  <Label htmlFor="project">Select Project</Label>
-                  <Select 
-                    value={selectedProject} 
-                    onValueChange={setSelectedProject}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a project" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {projects.map(project => (
-                        <SelectItem key={project.id} value={project.id}>
-                          {project.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="budget">Daily Budget ($)</Label>
-                  <Input
-                    id="budget"
-                    placeholder="5"
-                    value={budget}
-                    onChange={(e) => setBudget(e.target.value)}
-                    type="number"
-                    min="1"
-                    step="1"
-                  />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setShowDialog(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={handleCreateCampaign} disabled={isCreating}>
-                  {isCreating ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Creating...
-                    </>
-                  ) : (
-                    'Create Campaign'
-                  )}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </CardHeader>
-        <CardContent>
-          {campaigns.length === 0 ? (
-            <div className="text-center py-8">
-              <Facebook className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium">No campaigns yet</h3>
-              <p className="text-muted-foreground mt-2 mb-4">
-                Create your first Facebook ad campaign to start reaching customers.
-              </p>
-              <Button onClick={() => setShowDialog(true)}>
-                <Plus className="mr-2 h-4 w-4" /> Create Campaign
-              </Button>
+          <Badge 
+            variant="outline" 
+            className="bg-blue-50 text-blue-700 border-blue-200 flex items-center"
+          >
+            <Facebook className="w-3 h-3 mr-1" /> Facebook Ads
+          </Badge>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {connectionData && (
+          <Alert className="bg-green-50 border-green-200 mb-4">
+            <CheckCircle className="h-4 w-4 text-green-600" />
+            <AlertTitle className="text-green-800">Connected to Facebook</AlertTitle>
+            <AlertDescription className="text-green-700">
+              Account: {connectionData.account_name || 'Default Account'}
+            </AlertDescription>
+          </Alert>
+        )}
+        
+        {projects.length === 0 ? (
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>No Projects Found</AlertTitle>
+            <AlertDescription>
+              You need to create projects with ad creatives before you can create Facebook campaigns.
+            </AlertDescription>
+          </Alert>
+        ) : (
+          <>
+            <div>
+              <label htmlFor="project-select" className="block text-sm font-medium text-gray-700 mb-1">
+                Select Project with Ads
+              </label>
+              <Select onValueChange={handleProjectChange} value={selectedProject}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a project" />
+                </SelectTrigger>
+                <SelectContent>
+                  {projects.map((project) => (
+                    <SelectItem key={project.id} value={project.id}>
+                      {project.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-          ) : (
-            <div className="space-y-4">
-              {campaigns.map((campaign) => {
-                const status = formatStatus(campaign.status);
-                
-                return (
-                  <Card key={campaign.id} className="overflow-hidden">
-                    <div className="flex flex-col sm:flex-row">
-                      {campaign.image_url && (
-                        <div className="w-full sm:w-1/4 max-h-32 overflow-hidden">
-                          <img 
-                            src={campaign.image_url} 
-                            alt={campaign.name}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                      )}
-                      <div className={`flex-1 p-4 ${campaign.image_url ? '' : 'w-full'}`}>
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <h3 className="font-medium text-lg">{campaign.name}</h3>
-                            <p className="text-sm text-muted-foreground">
-                              Created {new Date(campaign.created_at).toLocaleDateString()}
-                            </p>
-                          </div>
-                          <Badge className={status.color}>
-                            {status.label}
+
+            {selectedProject && projectData && (
+              <div className="space-y-4 pt-4">
+                <div className="grid gap-4 md:grid-cols-2">
+                  {/* Project info */}
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base">Campaign Information</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2 text-sm">
+                      <div className="grid grid-cols-3">
+                        <span className="text-muted-foreground">Project:</span>
+                        <span className="col-span-2 font-medium">{projectData.title}</span>
+                      </div>
+                      <div className="grid grid-cols-3">
+                        <span className="text-muted-foreground">Ad Creatives:</span>
+                        <span className="col-span-2 font-medium">
+                          {projectData.generated_ads && Array.isArray(projectData.generated_ads) 
+                            ? projectData.generated_ads.length 
+                            : 0} available
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-3">
+                        <span className="text-muted-foreground">Audience:</span>
+                        <span className="col-span-2 font-medium truncate">
+                          {projectData.target_audience?.name || "Not specified"}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-3">
+                        <span className="text-muted-foreground">Status:</span>
+                        <span className="col-span-2">
+                          <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
+                            Draft
                           </Badge>
+                        </span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  {/* Ad preview */}
+                  {adPreview && (
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-base">Ad Preview</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-2 text-sm">
+                        <div className="aspect-w-1 aspect-h-1 rounded-md overflow-hidden bg-gray-100">
+                          {adPreview.imageUrl && (
+                            <img 
+                              src={adPreview.imageUrl} 
+                              alt="Ad Creative" 
+                              className="w-full h-auto object-cover"
+                            />
+                          )}
                         </div>
-                        
-                        <div className="mt-4 flex justify-between items-center">
-                          <div className="flex items-center text-sm text-muted-foreground">
-                            <Facebook className="h-4 w-4 mr-1" />
-                            {campaign.platform_campaign_id ? (
-                              <span className="flex items-center">
-                                <CheckCircle className="h-3 w-3 mr-1 text-green-600" />
-                                Live on Facebook
-                              </span>
-                            ) : (
-                              "Facebook Ads"
-                            )}
-                          </div>
-                          <div>
-                            {campaign.status === "completed" && (
-                              <Button 
-                                variant="outline" 
-                                size="sm" 
-                                onClick={() => {
-                                  // Open Facebook Ads Manager in a new tab
-                                  if (campaign.platform_campaign_id) {
-                                    window.open(
-                                      `https://www.facebook.com/adsmanager/manage/campaigns?act=${campaign.platform_campaign_id}`,
-                                      '_blank'
-                                    );
-                                  }
-                                }}
-                              >
-                                View on Facebook
-                              </Button>
-                            )}
-                          </div>
+                        <div className="pt-2">
+                          <p className="font-medium">{adPreview.headline || "Ad Headline"}</p>
+                          <p className="text-xs text-muted-foreground line-clamp-2">
+                            {adPreview.description || "Ad description text will appear here."}
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+                
+                {adPreview?.facebookData && (
+                  <Card className="mt-4">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base flex items-center justify-between">
+                        <span>Facebook Ad Data Preview</span>
+                        <Button variant="outline" size="sm" className="h-7 gap-1">
+                          <Settings className="w-3.5 h-3.5" />
+                          <span className="text-xs">Configure</span>
+                        </Button>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4 text-sm">
+                      <div className="grid grid-cols-3 gap-4">
+                        <div>
+                          <p className="text-muted-foreground mb-1">Campaign</p>
+                          <p className="font-medium">{adPreview.facebookData.campaign.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            Objective: {adPreview.facebookData.campaign.objective}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground mb-1">Ad Set</p>
+                          <p className="font-medium">{adPreview.facebookData.adSet.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            Budget: ${adPreview.facebookData.adSet.daily_budget / 100}/day
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground mb-1">Targeting</p>
+                          <p className="font-medium">
+                            Ages {adPreview.facebookData.adSet.targeting.age_min}-
+                            {adPreview.facebookData.adSet.targeting.age_max}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {adPreview.facebookData.adSet.targeting.interests 
+                              ? adPreview.facebookData.adSet.targeting.interests.length 
+                              : 0} interests
+                          </p>
                         </div>
                       </div>
-                    </div>
+                      
+                      {/* Validation Errors Display */}
+                      {validationErrors.length > 0 && errorType === 'validation' && (
+                        <Alert variant="destructive" className="mt-3">
+                          <AlertTriangle className="h-4 w-4" />
+                          <AlertTitle>Validation Errors</AlertTitle>
+                          <AlertDescription>
+                            <ul className="list-disc pl-5 mt-2 text-xs space-y-1">
+                              {validationErrors.map((error, index) => (
+                                <li key={index}>{error.message}</li>
+                              ))}
+                            </ul>
+                          </AlertDescription>
+                        </Alert>
+                      )}
+                      
+                      {/* Campaign Progress/Status Section */}
+                      {campaignStatus !== 'idle' && (
+                        <div className="pt-3 pb-2">
+                          <div className="flex justify-between mb-2">
+                            <span className="text-sm font-medium flex items-center">
+                              {campaignStatus === 'validating' && (
+                                <>
+                                  <Info className="h-3.5 w-3.5 mr-1.5 text-blue-500" />
+                                  Validating campaign data...
+                                </>
+                              )}
+                              {campaignStatus === 'uploading' && (
+                                <>
+                                  <Upload className="h-3.5 w-3.5 mr-1.5 text-blue-500" />
+                                  Uploading image...
+                                </>
+                              )}
+                              {campaignStatus === 'creating' && (
+                                <>
+                                  <Loader2 className="h-3.5 w-3.5 mr-1.5 text-blue-500 animate-spin" />
+                                  Creating campaign...
+                                </>
+                              )}
+                              {campaignStatus === 'finalizing' && (
+                                <>
+                                  <Loader2 className="h-3.5 w-3.5 mr-1.5 text-green-500 animate-spin" />
+                                  Finalizing...
+                                </>
+                              )}
+                              {campaignStatus === 'success' && (
+                                <>
+                                  <CheckCircle className="h-3.5 w-3.5 mr-1.5 text-green-500" />
+                                  Campaign created successfully!
+                                </>
+                              )}
+                              {campaignStatus === 'error' && (
+                                <>
+                                  <AlertCircle className="h-3.5 w-3.5 mr-1.5 text-red-500" />
+                                  Failed to create campaign
+                                </>
+                              )}
+                            </span>
+                            <span className="text-xs text-muted-foreground">{progressValue}%</span>
+                          </div>
+                          <Progress value={progressValue} className="h-2" />
+                          
+                          {campaignStatus === 'error' && errorMessage && (
+                            <Alert variant="destructive" className="mt-3">
+                              <AlertCircle className="h-4 w-4" />
+                              <AlertTitle>Error</AlertTitle>
+                              <AlertDescription className="space-y-2">
+                                <p>{errorMessage}</p>
+                                {retryCount < 3 && (
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    className="mt-2"
+                                    onClick={handleRetry}
+                                  >
+                                    <RefreshCw className="w-3.5 h-3.5 mr-1" />
+                                    Retry
+                                  </Button>
+                                )}
+                              </AlertDescription>
+                            </Alert>
+                          )}
+                          
+                          {campaignStatus === 'success' && (
+                            <Alert className="mt-3 bg-green-50 border-green-200">
+                              <CheckCircle className="h-4 w-4 text-green-600" />
+                              <AlertTitle className="text-green-800">Success!</AlertTitle>
+                              <AlertDescription className="text-green-700">
+                                Your campaign was created and is now in draft mode in Facebook Ads Manager
+                              </AlertDescription>
+                            </Alert>
+                          )}
+                        </div>
+                      )}
+                      
+                      <div className="pt-2 flex justify-end space-x-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          className="gap-1"
+                          onClick={() => window.open('https://www.facebook.com/adsmanager', '_blank')}
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                          <span>Open Ads Manager</span>
+                        </Button>
+                        <Button 
+                          size="sm"
+                          className="gap-1"
+                          onClick={handleCreateCampaign}
+                          disabled={isGenerating || campaignStatus === 'success' || 
+                            ['uploading', 'creating', 'finalizing'].includes(campaignStatus)}
+                        >
+                          {isGenerating || ['uploading', 'creating', 'finalizing', 'validating'].includes(campaignStatus) ? (
+                            <>
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              <span>Processing...</span>
+                            </>
+                          ) : campaignStatus === 'success' ? (
+                            <>
+                              <CheckCircle className="w-3.5 h-3.5" />
+                              <span>Created</span>
+                            </>
+                          ) : (
+                            <>
+                              <Facebook className="w-3.5 h-3.5" />
+                              <span>Create Campaign</span>
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </CardContent>
                   </Card>
-                );
-              })}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+                )}
+              </div>
+            )}
+          </>
+        )}
+      </CardContent>
+    </Card>
   );
 }
