@@ -8,7 +8,50 @@ const REDIRECT_URI = Deno.env.get('FACEBOOK_REDIRECT_URI') || '';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 
-// Create a Supabase client with the service role key
+// Create Supabase client - Define this function first before using it
+const createClient = (supabaseUrl: string, supabaseKey: string) => {
+  return {
+    from: (table: string) => ({
+      upsert: (data: any, options: any) => {
+        return fetch(`${supabaseUrl}/rest/v1/${table}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': supabaseKey,
+            'Authorization': `Bearer ${supabaseKey}`,
+            'Prefer': options?.onConflict ? `resolution=merge-duplicates,merge-keys=user_id,platform` : ''
+          },
+          body: JSON.stringify(data),
+        }).then(async (res) => {
+          if (!res.ok) {
+            const error = await res.json();
+            return { data: null, error };
+          }
+          const data = await res.json();
+          return { data, error: null };
+        });
+      }
+    }),
+    auth: {
+      getUser: async (token: string) => {
+        const res = await fetch(`${supabaseUrl}/auth/v1/user`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'apikey': supabaseKey,
+          }
+        });
+        if (!res.ok) {
+          const error = await res.json();
+          return { data: { user: null }, error };
+        }
+        const user = await res.json();
+        return { data: { user }, error: null };
+      }
+    }
+  };
+};
+
+// Now initialize after the function is defined
 const supabaseAdmin = createClient(
   SUPABASE_URL,
   SUPABASE_SERVICE_ROLE_KEY,
@@ -138,53 +181,13 @@ async function saveConnectionToDatabase(userId: string, platform: string, access
   }
 }
 
-// Create Supabase client
-const createClient = (supabaseUrl: string, supabaseKey: string) => {
-  return {
-    from: (table: string) => ({
-      upsert: (data: any, options: any) => {
-        return fetch(`${supabaseUrl}/rest/v1/${table}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': supabaseKey,
-            'Authorization': `Bearer ${supabaseKey}`,
-            'Prefer': options?.onConflict ? `resolution=merge-duplicates,merge-keys=user_id,platform` : ''
-          },
-          body: JSON.stringify(data),
-        }).then(async (res) => {
-          if (!res.ok) {
-            const error = await res.json();
-            return { data: null, error };
-          }
-          const data = await res.json();
-          return { data, error: null };
-        });
-      }
-    }),
-    auth: {
-      getUser: async (token: string) => {
-        const res = await fetch(`${supabaseUrl}/auth/v1/user`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'apikey': supabaseKey,
-          }
-        });
-        if (!res.ok) {
-          const error = await res.json();
-          return { data: { user: null }, error };
-        }
-        const user = await res.json();
-        return { data: { user }, error: null };
-      }
-    }
-  };
-};
-
 serve(async (req) => {
-  // Handle CORS preflight requests
+  // Handle CORS preflight requests - Make sure this is properly implemented
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders, status: 204 });
+    return new Response(null, { 
+      headers: corsHeaders, 
+      status: 204 
+    });
   }
 
   try {
