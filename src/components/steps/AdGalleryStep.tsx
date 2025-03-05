@@ -11,6 +11,10 @@ import AdGenerationControls from "./gallery/AdGenerationControls";
 import { useEffect, useState } from "react";
 import { AdSizeSelector, AD_FORMATS } from "./gallery/components/AdSizeSelector";
 import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { Facebook } from "lucide-react";
+import { CampaignCreationDialog } from "../facebook/CampaignCreationDialog";
+import { useParams } from "react-router-dom";
 
 interface AdGalleryStepProps {
   businessIdea: BusinessIdea;
@@ -34,7 +38,9 @@ const AdGalleryStep = ({
   // Find the square format (1:1) and use it as default, fallback to first format if not found
   const defaultFormat = AD_FORMATS.find(format => format.width === 1080 && format.height === 1080) || AD_FORMATS[0];
   const [selectedFormat, setSelectedFormat] = useState(defaultFormat);
+  const [showCampaignDialog, setShowCampaignDialog] = useState(false);
   const { toast } = useToast();
+  const { projectId } = useParams();
   
   const {
     platform,
@@ -124,13 +130,29 @@ const AdGalleryStep = ({
     }
   };
 
+  const handleCreateCampaign = () => {
+    setShowCampaignDialog(true);
+  };
+
   const renderPlatformContent = (platformName: string) => (
     <TabsContent value={platformName} className="space-y-4">
-      <div className="flex justify-end mb-4">
+      <div className="flex justify-between mb-4 items-center">
         <AdSizeSelector
           selectedFormat={selectedFormat}
           onFormatChange={handleFormatChange}
         />
+        
+        {platformName === 'facebook' && adVariants.filter(v => v.platform === platformName).length > 0 && (
+          <Button 
+            variant="facebook" 
+            size="sm"
+            className="flex items-center gap-2"
+            onClick={handleCreateCampaign}
+          >
+            <Facebook className="h-4 w-4" />
+            Create Ad Campaign
+          </Button>
+        )}
       </div>
       <PlatformContent
         platformName={platformName}
@@ -172,6 +194,17 @@ const AdGalleryStep = ({
         onConfirm={onConfirmPlatformChange}
         onCancel={onCancelPlatformChange}
       />
+      
+      {projectId && (
+        <CampaignCreationDialog 
+          open={showCampaignDialog}
+          onOpenChange={setShowCampaignDialog}
+          projectId={projectId}
+          adVariants={adVariants.filter(v => v.platform === 'facebook')}
+          businessIdea={businessIdea}
+          targetAudience={targetAudience}
+        />
+      )}
     </div>
   );
 };

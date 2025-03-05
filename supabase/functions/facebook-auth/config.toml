@@ -1,0 +1,5 @@
+
+project_id = "xorlfvflpihtafugltni"
+
+[functions.facebook-auth]
+verify_jwt = true
