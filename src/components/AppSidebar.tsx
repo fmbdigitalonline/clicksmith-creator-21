@@ -48,83 +48,91 @@ export default function AppSidebar() {
   
   return (
     <Sidebar.Sidebar className="bg-background border-r">
-      <Sidebar.SidebarContent className="flex flex-col gap-6 p-4">
-        <div className="flex items-center gap-4">
-          <Avatar>
-            <AvatarImage src={user?.user_metadata?.avatar_url} />
-            <AvatarFallback>{user?.email?.charAt(0).toUpperCase()}</AvatarFallback>
-          </Avatar>
-          {!isCollapsed && (
-            <div>
-              <p className="text-sm font-semibold">{user?.user_metadata?.full_name}</p>
-              <p className="text-xs text-muted-foreground">{user?.email}</p>
+      <div className="flex flex-col gap-6 p-4">
+        <Sidebar.SidebarContent>
+          <div className="flex items-center gap-4">
+            <Avatar>
+              <AvatarImage src={user?.user_metadata?.avatar_url} />
+              <AvatarFallback>{user?.email?.charAt(0).toUpperCase()}</AvatarFallback>
+            </Avatar>
+            {!isCollapsed && (
+              <div>
+                <p className="text-sm font-semibold">{user?.user_metadata?.full_name}</p>
+                <p className="text-xs text-muted-foreground">{user?.email}</p>
+              </div>
+            )}
+          </div>
+          
+          <div className="gap-2">
+            <Sidebar.SidebarMenu>
+              <Sidebar.SidebarMenuItem>
+                <NavLink to="/dashboard" className={getLinkClass}>
+                  <Sidebar.SidebarMenuButton>
+                    <LayoutDashboard size={18} />
+                    <span>Dashboard</span>
+                  </Sidebar.SidebarMenuButton>
+                </NavLink>
+              </Sidebar.SidebarMenuItem>
+              <Sidebar.SidebarMenuItem>
+                <NavLink to="/projects" className={getLinkClass}>
+                  <Sidebar.SidebarMenuButton>
+                    <Briefcase size={18} />
+                    <span>Projects</span>
+                  </Sidebar.SidebarMenuButton>
+                </NavLink>
+              </Sidebar.SidebarMenuItem>
+              <Sidebar.SidebarMenuItem>
+                <NavLink to="/saved-ads" className={getLinkClass}>
+                  <Sidebar.SidebarMenuButton>
+                    <ImageIcon size={18} />
+                    <span>Saved Ads</span>
+                  </Sidebar.SidebarMenuButton>
+                </NavLink>
+              </Sidebar.SidebarMenuItem>
+              <Sidebar.SidebarMenuItem>
+                <NavLink to="/integrations" className={getLinkClass}>
+                  <Sidebar.SidebarMenuButton>
+                    <Link size={18} />
+                    <span>Integrations</span>
+                  </Sidebar.SidebarMenuButton>
+                </NavLink>
+              </Sidebar.SidebarMenuItem>
+            </Sidebar.SidebarMenu>
+          </div>
+          
+          <div className="mt-auto">
+            <div className="gap-2">
+              <Sidebar.SidebarMenu>
+                <Sidebar.SidebarMenuItem>
+                  <NavLink to="/settings" className={getLinkClass}>
+                    <Sidebar.SidebarMenuButton>
+                      <Settings size={18} />
+                      <span>Settings</span>
+                    </Sidebar.SidebarMenuButton>
+                  </NavLink>
+                </Sidebar.SidebarMenuItem>
+                <Sidebar.SidebarMenuItem>
+                  <NavLink to="/help" className={getLinkClass}>
+                    <Sidebar.SidebarMenuButton>
+                      <HelpCircle size={18} />
+                      <span>Help</span>
+                    </Sidebar.SidebarMenuButton>
+                  </NavLink>
+                </Sidebar.SidebarMenuItem>
+              </Sidebar.SidebarMenu>
             </div>
-          )}
-        </div>
-        <Sidebar.SidebarMenu className="gap-2">
-          <Sidebar.SidebarMenuItem>
-            <NavLink to="/dashboard" className={getLinkClass}>
-              <Sidebar.SidebarMenuButton>
-                <LayoutDashboard size={18} />
-                <span>Dashboard</span>
-              </Sidebar.SidebarMenuButton>
-            </NavLink>
-          </Sidebar.SidebarMenuItem>
-          <Sidebar.SidebarMenuItem>
-            <NavLink to="/projects" className={getLinkClass}>
-              <Sidebar.SidebarMenuButton>
-                <Briefcase size={18} />
-                <span>Projects</span>
-              </Sidebar.SidebarMenuButton>
-            </NavLink>
-          </Sidebar.SidebarMenuItem>
-          <Sidebar.SidebarMenuItem>
-            <NavLink to="/saved-ads" className={getLinkClass}>
-              <Sidebar.SidebarMenuButton>
-                <ImageIcon size={18} />
-                <span>Saved Ads</span>
-              </Sidebar.SidebarMenuButton>
-            </NavLink>
-          </Sidebar.SidebarMenuItem>
-          <Sidebar.SidebarMenuItem>
-            <NavLink to="/integrations" className={getLinkClass}>
-              <Sidebar.SidebarMenuButton>
-                <Link size={18} />
-                <span>Integrations</span>
-              </Sidebar.SidebarMenuButton>
-            </NavLink>
-          </Sidebar.SidebarMenuItem>
-        </Sidebar.SidebarMenu>
-        <div className="mt-auto">
-          <Sidebar.SidebarMenu className="gap-2">
-            <Sidebar.SidebarMenuItem>
-              <NavLink to="/settings" className={getLinkClass}>
-                <Sidebar.SidebarMenuButton>
-                  <Settings size={18} />
-                  <span>Settings</span>
-                </Sidebar.SidebarMenuButton>
-              </NavLink>
-            </Sidebar.SidebarMenuItem>
-            <Sidebar.SidebarMenuItem>
-              <NavLink to="/help" className={getLinkClass}>
-                <Sidebar.SidebarMenuButton>
-                  <HelpCircle size={18} />
-                  <span>Help</span>
-                </Sidebar.SidebarMenuButton>
-              </NavLink>
-            </Sidebar.SidebarMenuItem>
-          </Sidebar.SidebarMenu>
-          <Button
-            variant="ghost"
-            className="w-full justify-start text-muted-foreground hover:bg-secondary/50"
-            onClick={handleSignOut}
-            disabled={isSigningOut}
-          >
-            <LogOut size={18} className="mr-2" />
-            Sign Out
-          </Button>
-        </div>
-      </Sidebar.SidebarContent>
+            <Button
+              variant="ghost"
+              className="w-full justify-start text-muted-foreground hover:bg-secondary/50"
+              onClick={handleSignOut}
+              disabled={isSigningOut}
+            >
+              <LogOut size={18} className="mr-2" />
+              Sign Out
+            </Button>
+          </div>
+        </Sidebar.SidebarContent>
+      </div>
     </Sidebar.Sidebar>
   );
 }
