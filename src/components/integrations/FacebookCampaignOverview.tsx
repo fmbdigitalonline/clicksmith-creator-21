@@ -125,12 +125,20 @@ export default function FacebookCampaignOverview() {
               firstAd
             );
             
+            // Fix: Create a new object instead of using spread on potentially non-object values
             setAdPreview({
-              ...firstAd,
+              headline: firstAd.headline || '',
+              description: firstAd.description || '',
+              imageUrl: firstAd.imageUrl || '',
               facebookData: facebookAdData
             });
           } else {
-            setAdPreview(firstAd);
+            // Fix: Ensure we're creating a proper object
+            setAdPreview({
+              headline: firstAd.headline || '',
+              description: firstAd.description || '',
+              imageUrl: firstAd.imageUrl || ''
+            });
           }
         }
         
