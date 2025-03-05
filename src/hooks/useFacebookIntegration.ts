@@ -1,4 +1,3 @@
-<lov-codelov-code>
 import { useState, useCallback } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -292,4 +291,3 @@ export const useFacebookIntegration = () => {
     selectAdAccount
   };
 };
-</lov-code>
