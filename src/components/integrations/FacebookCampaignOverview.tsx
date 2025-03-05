@@ -56,16 +56,33 @@ export default function FacebookCampaignOverview() {
 
       if (error) throw error;
       
-      // Ensure each campaign has the required fields for the Campaign interface
-      const typedCampaigns: Campaign[] = data?.map((campaign) => ({
-        id: campaign.id,
-        name: campaign.name || "", 
-        status: campaign.status || "",
-        platform: campaign.platform,
-        created_at: campaign.created_at,
-        platform_campaign_id: campaign.platform_campaign_id,
-        image_url: campaign.image_url
-      })) || [];
+      // Map database response to Campaign interface
+      const typedCampaigns: Campaign[] = data?.map((campaign) => {
+        // Check if targeting is a JSON object that might contain image_url
+        let imageUrl = campaign.image_url;
+        
+        // If no direct image_url, try to extract it from the targeting field
+        if (!imageUrl && campaign.targeting) {
+          // The targeting field might contain adCreative with image info
+          const targeting = typeof campaign.targeting === 'string' 
+            ? JSON.parse(campaign.targeting) 
+            : campaign.targeting;
+            
+          if (targeting.adCreative?.object_story_spec?.link_data?.image_url) {
+            imageUrl = targeting.adCreative.object_story_spec.link_data.image_url;
+          }
+        }
+        
+        return {
+          id: campaign.id,
+          name: campaign.name || "", 
+          status: campaign.status || "",
+          platform: campaign.platform,
+          created_at: campaign.created_at,
+          platform_campaign_id: campaign.platform_campaign_id,
+          image_url: imageUrl
+        };
+      }) || [];
       
       setCampaigns(typedCampaigns);
     } catch (error) {
