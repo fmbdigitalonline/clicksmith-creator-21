@@ -259,10 +259,10 @@ export default function FacebookCampaignOverview() {
       const { data: savedCampaign, error: saveError } = await supabase
         .from('ad_campaigns')
         .insert({
+          name: adPreview.facebookData.campaign.name || `Facebook Campaign ${new Date().toLocaleDateString()}`,
           platform: 'facebook',
           status: 'draft',
           platform_campaign_id: campaignData.campaignId || null,
-          platform_ad_id: campaignData.adId || null,
           campaign_data: adPreview.facebookData,
           project_id: selectedProject,
           image_url: processedImageUrl

@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -232,10 +231,10 @@ serve(async (req) => {
     const { data: campaignRecord, error: saveError } = await supabase
       .from("ad_campaigns")
       .insert({
+        name: campaignData.name || `Facebook Campaign ${new Date().toISOString().split('T')[0]}`,
         platform: "facebook",
         status: "draft", 
         platform_campaign_id: response.campaignId,
-        platform_ad_id: response.adId,
         campaign_data: campaignData,
         project_id: projectId,
         image_url: adCreativeData.object_story_spec?.link_data?.image_url
