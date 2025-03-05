@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import FacebookConnection from "./FacebookConnection";
 import EnvConfigCheck from "./EnvConfigCheck";
+import FacebookCampaignOverview from "./FacebookCampaignOverview";
 
 export default function PlatformIntegrations() {
   const [activeTab, setActiveTab] = useState("advertising");
@@ -55,6 +56,9 @@ export default function PlatformIntegrations() {
               </CardContent>
             </Card>
           </div>
+          
+          {/* Campaign overview section */}
+          <FacebookCampaignOverview />
         </TabsContent>
         
         <TabsContent value="analytics">

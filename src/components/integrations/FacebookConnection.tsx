@@ -1,11 +1,13 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Facebook, Check, AlertCircle, Loader2 } from "lucide-react";
+import { Facebook, Check, AlertCircle, Loader2, ChevronDown } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useSession } from "@supabase/auth-helpers-react";
 import { supabase } from "@/integrations/supabase/client";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 // URL redirecting to Facebook OAuth with environment variables
 const generateFacebookAuthURL = () => {
@@ -36,6 +38,7 @@ export default function FacebookConnection() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [connection, setConnection] = useState<PlatformConnection | null>(null);
+  const [showDetails, setShowDetails] = useState<boolean>(false);
   const { toast } = useToast();
   const session = useSession();
 
@@ -255,6 +258,17 @@ export default function FacebookConnection() {
     }
   };
 
+  // Create campaign
+  const handleCreateCampaign = async () => {
+    toast({
+      title: "Campaign Creation",
+      description: "Campaign creation feature is under development",
+    });
+    
+    // This will be expanded in future phases
+    setShowDetails(!showDetails);
+  };
+
   if (isLoading) {
     return (
       <Card>
@@ -302,6 +316,33 @@ export default function FacebookConnection() {
                 {new Date(connection.created_at).toLocaleDateString()}
               </span>
             </div>
+            
+            {isConnected && (
+              <Collapsible open={showDetails} onOpenChange={setShowDetails} className="mt-4">
+                <CollapsibleTrigger asChild>
+                  <Button variant="outline" className="flex items-center justify-between w-full mt-2">
+                    <span>Ad Campaign Details</span>
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="mt-4 space-y-4 p-4 border rounded-md">
+                  <div className="space-y-2">
+                    <h4 className="font-medium">Campaign Status</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Create a new Facebook ad campaign from your saved ad creatives. 
+                      You'll be able to review and edit all details before the campaign goes live.
+                    </p>
+                  </div>
+                  <Button 
+                    className="w-full" 
+                    onClick={handleCreateCampaign}
+                    disabled={isProcessing}
+                  >
+                    Create Campaign
+                  </Button>
+                </CollapsibleContent>
+              </Collapsible>
+            )}
           </div>
         ) : (
           <div className="py-2">
