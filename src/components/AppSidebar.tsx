@@ -1,136 +1,129 @@
-
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { NavLink } from "react-router-dom";
+import { useSidebar } from "@/components/ui/sidebar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import {
+  Briefcase,
+  ImageIcon,
   LayoutDashboard,
-  FolderKanban,
+  Link,
   Settings,
-  ChevronRight,
-  PlusCircle,
-  Home,
-  BookmarkIcon,
-  FileText,
-  Bell,
+  HelpCircle,
+  Logout,
 } from "lucide-react";
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupLabel,
-  SidebarGroupContent,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-} from "@/components/ui/sidebar";
-import { Button } from "./ui/button";
-import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import * as Sidebar from "@/components/ui/sidebar";
+import { useUser } from "@/hooks/useUser";
+import { useSignOut } from "@/hooks/useSignOut";
+import { useToast } from "@/components/ui/use-toast";
 
-export function AppSidebar() {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const currentPath = location.pathname;
-  const [isAdmin, setIsAdmin] = useState(false);
+export default function AppSidebar() {
+  const { collapsed } = useSidebar();
+  const { user } = useUser();
+  const { signOut } = useSignOut();
+  const { toast } = useToast();
+  const [isSigningOut, setIsSigningOut] = useState(false);
 
-  useEffect(() => {
-    const checkAdminStatus = async () => {
-      const { data: isAdminResult } = await supabase.rpc('is_admin');
-      setIsAdmin(!!isAdminResult);
-    };
-
-    checkAdminStatus();
-  }, []);
-
-  const baseMenuItems = [
-    {
-      title: "Home",
-      icon: Home,
-      url: "/dashboard",
-    },
-    {
-      title: "Projects",
-      icon: FolderKanban,
-      url: "/projects",
-    },
-    {
-      title: "Saved Ads",
-      icon: BookmarkIcon,
-      url: "/saved-ads",
-    },
-    {
-      title: "Settings",
-      icon: Settings,
-      url: "/settings",
-    },
-  ];
-
-  const adminMenuItems = [
-    {
-      title: "Blog Admin",
-      icon: FileText,
-      url: "/blog-admin",
-    },
-    {
-      title: "Admin Updates",
-      icon: Bell,
-      url: "/admin-updates",
-    },
-  ];
-
-  const menuItems = isAdmin ? [...baseMenuItems, ...adminMenuItems] : baseMenuItems;
-
-  const isActive = (path: string) => {
-    if (path === "/dashboard") {
-      return currentPath === "/dashboard";
+  const handleSignOut = async () => {
+    setIsSigningOut(true);
+    try {
+      await signOut();
+    } catch (error: any) {
+      toast({
+        title: "Error signing out",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSigningOut(false);
     }
-    return currentPath === path;
   };
 
-  const handleStartClick = () => {
-    navigate("/ad-wizard/new");
+  const getLinkClass = ({ isActive }: { isActive: boolean }) => {
+    return isActive
+      ? "bg-secondary text-foreground hover:bg-secondary/80"
+      : "text-muted-foreground hover:bg-secondary/50";
   };
-
+  
   return (
-    <Sidebar>
-      <SidebarContent>
-        <div className="px-2 py-4">
-          <Button 
-            className="w-full bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary"
-            onClick={handleStartClick}
+    <Sidebar.Root className="bg-background border-r">
+      <Sidebar.Container className="flex flex-col gap-6 p-4">
+        <div className="flex items-center gap-4">
+          <Avatar>
+            <AvatarImage src={user?.user_metadata?.avatar_url} />
+            <AvatarFallback>{user?.email?.charAt(0).toUpperCase()}</AvatarFallback>
+          </Avatar>
+          {!collapsed && (
+            <div>
+              <p className="text-sm font-semibold">{user?.user_metadata?.full_name}</p>
+              <p className="text-xs text-muted-foreground">{user?.email}</p>
+            </div>
+          )}
+        </div>
+        <Sidebar.Nav className="gap-2">
+          <Sidebar.NavItem
+            as={NavLink}
+            to="/dashboard"
+            className={getLinkClass}
+            icon={<LayoutDashboard size={18} />}
           >
-            <PlusCircle className="h-4 w-4" />
-            <span className="ml-2 hidden md:inline">Start</span>
+            Dashboard
+          </Sidebar.NavItem>
+          <Sidebar.NavItem
+            as={NavLink}
+            to="/projects"
+            className={getLinkClass}
+            icon={<Briefcase size={18} />}
+          >
+            Projects
+          </Sidebar.NavItem>
+          <Sidebar.NavItem
+            as={NavLink}
+            to="/saved-ads"
+            className={getLinkClass}
+            icon={<ImageIcon size={18} />}
+          >
+            Saved Ads
+          </Sidebar.NavItem>
+          <Sidebar.NavItem
+            as={NavLink}
+            to="/integrations"
+            className={getLinkClass}
+            icon={<Link size={18} />}
+          >
+            Integrations
+          </Sidebar.NavItem>
+        </Sidebar.Nav>
+        <div className="mt-auto">
+          <Sidebar.Nav className="gap-2">
+            <Sidebar.NavItem
+              as={NavLink}
+              to="/settings"
+              className={getLinkClass}
+              icon={<Settings size={18} />}
+            >
+              Settings
+            </Sidebar.NavItem>
+            <Sidebar.NavItem
+              as={NavLink}
+              to="/help"
+              className={getLinkClass}
+              icon={<HelpCircle size={18} />}
+            >
+              Help
+            </Sidebar.NavItem>
+          </Sidebar.Nav>
+          <Button
+            variant="ghost"
+            className="w-full justify-start text-muted-foreground hover:bg-secondary/50"
+            onClick={handleSignOut}
+            disabled={isSigningOut}
+          >
+            <Logout size={18} className="mr-2" />
+            Sign Out
           </Button>
         </div>
-        <SidebarGroup>
-          <SidebarGroupLabel className="px-2 hidden md:block">
-            Menu
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {menuItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={isActive(item.url)}
-                    tooltip={item.title}
-                    className="flex items-center gap-2"
-                  >
-                    <Link to={item.url}>
-                      <item.icon className="h-4 w-4" />
-                      <span className="hidden md:inline">
-                        {item.title}
-                      </span>
-                      {isActive(item.url) && (
-                        <ChevronRight className="ml-auto h-4 w-4 hidden md:block" />
-                      )}
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-      </SidebarContent>
-    </Sidebar>
+      </Sidebar.Container>
+    </Sidebar.Root>
   );
 }

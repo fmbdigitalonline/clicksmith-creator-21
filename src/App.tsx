@@ -29,6 +29,7 @@ import BlogPost from "@/pages/BlogPost";
 import About from "@/pages/About";
 import Careers from "@/pages/Careers";
 import Help from "@/pages/Help";
+import Integrations from "@/pages/Integrations";
 
 const queryClient = new QueryClient();
 
@@ -104,6 +105,16 @@ function AppContent() {
           <ProtectedRoute>
             <AppLayout>
               <Projects />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/integrations"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <Integrations />
             </AppLayout>
           </ProtectedRoute>
         }
