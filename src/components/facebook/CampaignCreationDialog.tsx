@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -104,8 +105,8 @@ export const CampaignCreationDialog = ({
       
       if (error) throw error;
       
-      // Save campaign to database
-      await supabase.from('ad_campaigns').insert({
+      // Save campaign to database - FIX: Pass an array with a single object
+      await supabase.from('ad_campaigns').insert([{
         project_id: projectId,
         platform: 'facebook',
         name: campaignName,
@@ -115,7 +116,7 @@ export const CampaignCreationDialog = ({
         targeting: settings,
         status: 'active',
         platform_campaign_id: data.campaignId
-      });
+      }]);
       
       toast({
         title: "Campaign Created",
