@@ -8,6 +8,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { useSession } from "@supabase/auth-helpers-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 // URL redirecting to Facebook OAuth with environment variables
 const generateFacebookAuthURL = () => {
@@ -21,6 +22,8 @@ const generateFacebookAuthURL = () => {
   // Important: redirect to the integrations page, not dashboard
   const redirectUri = encodeURIComponent(window.location.origin + "/integrations?connection=facebook");
   const scopes = encodeURIComponent("ads_management,ads_read");
+  
+  console.log("Generating Facebook Auth URL with redirectUri:", redirectUri);
   
   return `https://www.facebook.com/v18.0/dialog/oauth?client_id=${facebookAppId}&redirect_uri=${redirectUri}&scope=${scopes}&response_type=code`;
 };
@@ -44,6 +47,7 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [connection, setConnection] = useState<PlatformConnection | null>(null);
   const [showDetails, setShowDetails] = useState<boolean>(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { toast } = useToast();
   const session = useSession();
 
@@ -117,8 +121,11 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
 
   // Handle connection click
   const handleConnect = () => {
+    setErrorMessage(null);
+    
     const authUrl = generateFacebookAuthURL();
     if (!authUrl) {
+      setErrorMessage("Facebook App ID is missing in configuration.");
       toast({
         title: "Configuration Error",
         description: "Facebook App ID is missing. Please contact the administrator.",
@@ -126,6 +133,17 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
       });
       return;
     }
+    
+    // Log the redirect URL for debugging
+    console.log("Redirecting to Facebook OAuth URL:", authUrl);
+    
+    // Check if Facebook Redirect URI is properly configured
+    if (!import.meta.env.VITE_FACEBOOK_REDIRECT_URI) {
+      console.warn("VITE_FACEBOOK_REDIRECT_URI is not set in environment variables");
+    } else {
+      console.log("Configured redirect URI:", import.meta.env.VITE_FACEBOOK_REDIRECT_URI);
+    }
+    
     window.location.href = authUrl;
   };
 
@@ -213,6 +231,14 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
       </CardHeader>
       
       <CardContent>
+        {errorMessage && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Connection Error</AlertTitle>
+            <AlertDescription>{errorMessage}</AlertDescription>
+          </Alert>
+        )}
+      
         {isConnected && connection ? (
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
@@ -255,9 +281,16 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
           </div>
         ) : (
           <div className="py-2">
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-muted-foreground mb-4">
               Connect your Facebook Ads account to automate ad creation and campaign management directly from this dashboard.
             </p>
+            <Alert className="mb-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Important Facebook Setup</AlertTitle>
+              <AlertDescription>
+                Make sure your Facebook App settings include <strong>{window.location.origin}/integrations</strong> as a valid OAuth redirect URI.
+              </AlertDescription>
+            </Alert>
           </div>
         )}
       </CardContent>

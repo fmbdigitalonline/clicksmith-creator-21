@@ -17,6 +17,7 @@ export default function PlatformIntegrations() {
   const [hasConnections, setHasConnections] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessingOAuth, setIsProcessingOAuth] = useState(false);
+  const [oauthError, setOauthError] = useState<string | null>(null);
   const session = useSession();
   const { toast } = useToast();
   const location = useLocation();
@@ -29,18 +30,29 @@ export default function PlatformIntegrations() {
       const code = searchParams.get('code');
       const connectionType = searchParams.get('connection');
       const error = searchParams.get('error');
+      const errorReason = searchParams.get('error_reason');
+      const errorDescription = searchParams.get('error_description');
       
-      if (!code || !connectionType) return;
+      if (!connectionType) return;
       
-      console.log("Detected OAuth callback:", { connectionType, code: code ? 'present' : 'missing' });
+      console.log("Detected OAuth callback:", { 
+        connectionType, 
+        code: code ? 'present' : 'missing',
+        error: error || 'none',
+        errorReason: errorReason || 'none',
+        errorDescription: errorDescription || 'none'
+      });
       
       if (error) {
         // Clean URL parameters
         navigate('/integrations', { replace: true });
         
+        const errorMsg = errorDescription || `Failed to connect to ${connectionType}`;
+        setOauthError(errorMsg);
+        
         toast({
           title: "Connection Failed",
-          description: searchParams.get('error_description') || `Failed to connect to ${connectionType}`,
+          description: errorMsg,
           variant: "destructive",
         });
         return;
@@ -48,12 +60,14 @@ export default function PlatformIntegrations() {
       
       if (connectionType === 'facebook' && code) {
         setIsProcessingOAuth(true);
+        setOauthError(null);
         
         try {
           console.log("Processing Facebook OAuth callback...");
           // Remove query parameters from URL
           navigate('/integrations', { replace: true });
           
+          // Call the function with both body and URL parameters to be safe
           const response = await supabase.functions.invoke('facebook-oauth', {
             body: { code },
             headers: {
@@ -77,13 +91,16 @@ export default function PlatformIntegrations() {
             await checkConnections();
             setActiveTab("campaigns");
           } else {
-            throw new Error(response.data?.message || "Unknown error occurred");
+            throw new Error(response.data?.message || response.data?.error || "Unknown error occurred");
           }
         } catch (error) {
           console.error("Error processing OAuth callback:", error);
+          const errorMessage = error instanceof Error ? error.message : "Failed to connect to Facebook";
+          setOauthError(errorMessage);
+          
           toast({
             title: "Connection Failed",
-            description: error instanceof Error ? error.message : "Failed to connect to Facebook",
+            description: errorMessage,
             variant: "destructive",
           });
         } finally {
@@ -164,6 +181,23 @@ export default function PlatformIntegrations() {
           Connect your ad accounts to automate campaign creation.
         </p>
       </div>
+
+      {oauthError && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Connection Failed</AlertTitle>
+          <AlertDescription>
+            {oauthError}
+            {oauthError.includes("redirect") && (
+              <div className="mt-2">
+                <strong>Important:</strong> Make sure to add{" "}
+                <code className="bg-gray-100 px-1 py-0.5 rounded">{window.location.origin}/integrations</code>{" "}
+                as a valid OAuth Redirect URI in your Facebook App settings.
+              </div>
+            )}
+          </AlertDescription>
+        </Alert>
+      )}
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList>

@@ -1,3 +1,4 @@
+
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { corsHeaders } from '../_shared/cors.ts'
 
@@ -16,6 +17,7 @@ const supabaseAdmin = createClient(
 async function exchangeCodeForToken(code: string) {
   console.log('Exchanging code for token');
   
+  // Create URL params
   const params = new URLSearchParams({
     client_id: FACEBOOK_APP_ID,
     client_secret: FACEBOOK_APP_SECRET,
@@ -23,18 +25,34 @@ async function exchangeCodeForToken(code: string) {
     code: code,
   });
 
-  const tokenResponse = await fetch(
-    `https://graph.facebook.com/v18.0/oauth/access_token?${params.toString()}`,
-    { method: 'GET' }
-  );
+  console.log('Token exchange parameters:', {
+    clientIdPresent: !!FACEBOOK_APP_ID,
+    clientSecretPresent: !!FACEBOOK_APP_SECRET,
+    redirectUri: REDIRECT_URI,
+    codePresent: !!code,
+  });
 
-  if (!tokenResponse.ok) {
-    const errorText = await tokenResponse.text();
-    console.error('Error exchanging code for token:', errorText);
-    throw new Error(`Failed to exchange code for token: ${errorText}`);
+  try {
+    const tokenResponse = await fetch(
+      `https://graph.facebook.com/v18.0/oauth/access_token?${params.toString()}`,
+      { method: 'GET' }
+    );
+
+    console.log('Token response status:', tokenResponse.status);
+    
+    if (!tokenResponse.ok) {
+      const errorText = await tokenResponse.text();
+      console.error('Error exchanging code for token:', errorText);
+      throw new Error(`Failed to exchange code for token: ${errorText}`);
+    }
+
+    const tokenData = await tokenResponse.json();
+    console.log('Token exchange successful, access token received');
+    return tokenData;
+  } catch (error) {
+    console.error('Exception in exchangeCodeForToken:', error);
+    throw error;
   }
-
-  return await tokenResponse.json();
 }
 
 async function getAdAccounts(accessToken: string) {
@@ -46,6 +64,8 @@ async function getAdAccounts(accessToken: string) {
       { method: 'GET' }
     );
 
+    console.log('Ad accounts response status:', response.status);
+    
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Error fetching ad accounts:', errorText);
@@ -70,6 +90,8 @@ async function validateToken(accessToken: string) {
       { method: 'GET' }
     );
 
+    console.log('Token validation response status:', response.status);
+    
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Error validating token:', errorText);
@@ -77,6 +99,7 @@ async function validateToken(accessToken: string) {
     }
 
     const data = await response.json();
+    console.log('Token validation result:', data.data?.is_valid === true ? 'valid' : 'invalid');
     return data.data?.is_valid === true;
   } catch (error) {
     console.error('Error in validateToken:', error);
@@ -167,6 +190,13 @@ serve(async (req) => {
   try {
     console.log('Received request:', req.method, req.url);
     
+    // Print all request headers for debugging
+    const requestHeaders = {};
+    req.headers.forEach((value, key) => {
+      requestHeaders[key] = value;
+    });
+    console.log('Request headers:', requestHeaders);
+    
     // Validate environment variables
     if (!FACEBOOK_APP_ID || !FACEBOOK_APP_SECRET || !REDIRECT_URI) {
       console.error('Missing required environment variables:', {
@@ -177,19 +207,46 @@ serve(async (req) => {
       
       return new Response(JSON.stringify({ 
         success: false,
-        error: 'Server configuration error: Missing Facebook credentials' 
+        error: 'Server configuration error: Missing Facebook credentials',
+        details: {
+          appIdPresent: !!FACEBOOK_APP_ID,
+          appSecretPresent: !!FACEBOOK_APP_SECRET,
+          redirectUriPresent: !!REDIRECT_URI,
+          redirectUri: REDIRECT_URI
+        }
       }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
     
+    // Parse request body
+    let requestBody = {};
+    const contentType = req.headers.get('content-type') || '';
+    
+    if (contentType.includes('application/json')) {
+      try {
+        requestBody = await req.json();
+        console.log('Request body:', requestBody);
+      } catch (e) {
+        console.error('Error parsing JSON request body:', e);
+      }
+    }
+    
+    // Get code from request body or URL parameter
     const url = new URL(req.url);
-    const code = url.searchParams.get('code');
+    const codeFromParam = url.searchParams.get('code');
+    const codeFromBody = requestBody.code;
+    const code = codeFromBody || codeFromParam;
+    
     const authToken = req.headers.get('Authorization')?.split(' ')[1];
     
     // Log request details
-    console.log('Request parameters:', { code: code ? 'present' : 'missing', authToken: authToken ? 'present' : 'missing' });
+    console.log('Request parameters:', { 
+      code: code ? 'present' : 'missing', 
+      codeLength: code?.length,
+      authToken: authToken ? 'present' : 'missing' 
+    });
     
     if (!code) {
       return new Response(JSON.stringify({ 
@@ -218,7 +275,8 @@ serve(async (req) => {
       console.error('Invalid user token:', userError);
       return new Response(JSON.stringify({ 
         success: false,
-        error: 'Invalid user token' 
+        error: 'Invalid user token',
+        details: userError
       }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -297,7 +355,8 @@ serve(async (req) => {
     
     return new Response(JSON.stringify({ 
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error occurred' 
+      error: error instanceof Error ? error.message : 'Unknown error occurred',
+      stack: error instanceof Error ? error.stack : null
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
