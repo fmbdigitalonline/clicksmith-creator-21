@@ -65,7 +65,7 @@ export default function FacebookCampaignOverview() {
       if (error) throw error;
       
       // Map database response to Campaign interface
-      const typedCampaigns: Campaign[] = data?.map((campaign) => {
+      const typedCampaigns: Campaign[] = data?.map((campaign: any) => {
         // Extract image URL from either direct image_url field or from targeting JSON
         let imageUrl = campaign.image_url;
         
