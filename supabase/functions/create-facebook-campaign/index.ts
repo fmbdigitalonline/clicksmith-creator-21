@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -28,6 +29,13 @@ interface CampaignResponse {
 const MAX_RETRIES = 3;
 // Delay between retries in milliseconds (starting with 1s)
 const RETRY_DELAY_MS = 1000;
+
+// CORS headers for cross-origin requests
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+}
 
 /**
  * Utility function to delay execution
@@ -91,20 +99,14 @@ serve(async (req) => {
   // Handle CORS
   if (req.method === "OPTIONS") {
     return new Response(null, {
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization",
-      },
+      headers: corsHeaders,
     });
   }
 
   // Setup headers for response
   const headers = {
     "Content-Type": "application/json",
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    ...corsHeaders
   };
 
   try {
@@ -203,6 +205,7 @@ serve(async (req) => {
         platform: "facebook",
         status: "pending", 
         project_id: projectId,
+        user_id: user.id,
         // Store campaign data in the targeting field which is JSONB
         targeting: {
           campaign: campaignData,
@@ -225,19 +228,15 @@ serve(async (req) => {
         { status: 500, headers }
       );
     }
-
-    // In a real implementation, we would now create the campaign, ad set, and ad
-    // using the Facebook Marketing API
-    // For demonstration, we'll mock the API response
     
-    // This is a simplified mockup - in a real implementation, you would call the 
-    // Facebook Marketing API to create the campaign, ad set, and ad with retry logic
-    // Here's what it would look like:
-
-    /*
-    // 1. Create Campaign with retry
+    // Now make the actual API calls to Facebook Marketing API
     let campaignResult: FacebookApiResponse;
+    let adSetResult: FacebookApiResponse;
+    let adResult: FacebookApiResponse;
+    
     try {
+      // 1. Create Campaign with retry
+      console.log("Creating Facebook campaign...");
       campaignResult = await callWithRetry(async () => {
         const campaignResponse = await fetch(
           `https://graph.facebook.com/v18.0/act_${adAccountId}/campaigns`,
@@ -245,7 +244,7 @@ serve(async (req) => {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              Authorization: `Bearer ${accessToken}`,
+              "Authorization": `Bearer ${accessToken}`,
             },
             body: JSON.stringify({
               name: campaignData.name,
@@ -258,10 +257,13 @@ serve(async (req) => {
         
         if (!campaignResponse.ok) {
           const errorData = await campaignResponse.json();
+          console.error("Facebook campaign creation API error:", errorData);
           throw new Error(`Facebook API error: ${JSON.stringify(errorData)}`);
         }
         
-        return await campaignResponse.json();
+        const data = await campaignResponse.json();
+        console.log("Campaign created successfully:", data);
+        return { id: data.id, success: true };
       });
       
       if (!campaignResult.id) {
@@ -271,42 +273,35 @@ serve(async (req) => {
       // Update campaign status
       await supabase
         .from("ad_campaigns")
-        .update({ status: "campaign_created" })
-        .eq("id", initialCampaign.id);
-    } catch (error) {
-      console.error("Campaign creation error:", error);
-      
-      // Update campaign status to error
-      await supabase
-        .from("ad_campaigns")
         .update({ 
-          status: "error",
-          campaign_data: { ...campaignData, error_message: error.message }
+          status: "campaign_created",
+          platform_campaign_id: campaignResult.id
         })
         .eq("id", initialCampaign.id);
-        
-      throw error;
-    }
-
-    // 2. Create Ad Set with retry
-    let adSetResult: FacebookApiResponse;
-    try {
+      
+      // 2. Create Ad Set with retry
+      console.log("Creating Facebook ad set...");
       adSetResult = await callWithRetry(async () => {
+        // Ensure daily_budget is in cents (Facebook requires this)
+        const budget = typeof adSetData.daily_budget === 'number' 
+          ? adSetData.daily_budget * 100 // Convert dollars to cents if it's a number
+          : adSetData.daily_budget; // Otherwise keep as is (already in cents)
+        
         const adSetResponse = await fetch(
           `https://graph.facebook.com/v18.0/act_${adAccountId}/adsets`,
           {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              Authorization: `Bearer ${accessToken}`,
+              "Authorization": `Bearer ${accessToken}`,
             },
             body: JSON.stringify({
               name: adSetData.name,
               campaign_id: campaignResult.id,
-              daily_budget: adSetData.daily_budget,
+              daily_budget: budget,
               bid_amount: adSetData.bid_amount,
-              billing_event: adSetData.billing_event,
-              optimization_goal: adSetData.optimization_goal,
+              billing_event: adSetData.billing_event || 'IMPRESSIONS',
+              optimization_goal: adSetData.optimization_goal || 'REACH',
               targeting: adSetData.targeting,
               status: adSetData.status || "PAUSED",
             }),
@@ -315,10 +310,13 @@ serve(async (req) => {
         
         if (!adSetResponse.ok) {
           const errorData = await adSetResponse.json();
+          console.error("Facebook ad set creation API error:", errorData);
           throw new Error(`Facebook API error: ${JSON.stringify(errorData)}`);
         }
         
-        return await adSetResponse.json();
+        const data = await adSetResponse.json();
+        console.log("Ad Set created successfully:", data);
+        return { id: data.id, success: true };
       });
       
       if (!adSetResult.id) {
@@ -333,86 +331,144 @@ serve(async (req) => {
           platform_ad_set_id: adSetResult.id
         })
         .eq("id", initialCampaign.id);
+      
+      // 3. Create Ad Creative with retry
+      console.log("Creating Facebook ad creative...");
+      let creativeResult: FacebookApiResponse;
+      
+      creativeResult = await callWithRetry(async () => {
+        // If the creative has a page_id placeholder, replace it with the actual page ID
+        if (adCreativeData.object_story_spec.page_id === '{{page_id}}') {
+          // Get the user's Facebook pages from the connection data
+          const pageId = connectionData.page_id || connectionData.account_name;
+          
+          if (!pageId) {
+            throw new Error("No Facebook page ID available");
+          }
+          
+          adCreativeData.object_story_spec.page_id = pageId;
+        }
+        
+        const creativeResponse = await fetch(
+          `https://graph.facebook.com/v18.0/act_${adAccountId}/adcreatives`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${accessToken}`,
+            },
+            body: JSON.stringify(adCreativeData),
+          }
+        );
+        
+        if (!creativeResponse.ok) {
+          const errorData = await creativeResponse.json();
+          console.error("Facebook ad creative creation API error:", errorData);
+          throw new Error(`Facebook API error: ${JSON.stringify(errorData)}`);
+        }
+        
+        const data = await creativeResponse.json();
+        console.log("Ad Creative created successfully:", data);
+        return { id: data.id, success: true };
+      });
+      
+      // 4. Create Ad with retry
+      console.log("Creating Facebook ad...");
+      adResult = await callWithRetry(async () => {
+        const adResponse = await fetch(
+          `https://graph.facebook.com/v18.0/act_${adAccountId}/ads`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${accessToken}`,
+            },
+            body: JSON.stringify({
+              name: `Ad for ${campaignData.name}`,
+              adset_id: adSetResult.id,
+              creative: { creative_id: creativeResult.id },
+              status: "PAUSED"
+            }),
+          }
+        );
+        
+        if (!adResponse.ok) {
+          const errorData = await adResponse.json();
+          console.error("Facebook ad creation API error:", errorData);
+          throw new Error(`Facebook API error: ${JSON.stringify(errorData)}`);
+        }
+        
+        const data = await adResponse.json();
+        console.log("Ad created successfully:", data);
+        return { id: data.id, success: true };
+      });
+      
+      // Update campaign record with all IDs
+      await supabase
+        .from("ad_campaigns")
+        .update({
+          name: campaignName,
+          platform: "facebook",
+          status: "completed", 
+          platform_campaign_id: campaignResult.id,
+          platform_ad_set_id: adSetResult.id,
+          platform_ad_id: adResult.id,
+          // Use targeting JSONB field for storing detailed campaign data
+          targeting: {
+            campaign: campaignData,
+            adSet: adSetData,
+            adCreative: adCreativeData,
+            platform_ad_set_id: adSetResult.id,
+            platform_ad_id: adResult.id,
+            platform_creative_id: creativeResult.id,
+            error_message: null
+          }
+        })
+        .eq("id", initialCampaign.id);
+      
+      // Return success response with all IDs
+      const response: CampaignResponse = {
+        campaignId: campaignResult.id,
+        adSetId: adSetResult.id,
+        adId: adResult.id,
+        success: true,
+        status: "completed",
+        statusDetails: "Campaign created successfully and is in PAUSED state"
+      };
+      
+      return new Response(
+        JSON.stringify({
+          ...response,
+          campaignRecordId: initialCampaign.id
+        }),
+        { status: 200, headers }
+      );
+      
     } catch (error) {
-      console.error("Ad set creation error:", error);
+      console.error("Error during Facebook campaign creation:", error);
       
       // Update campaign status to error
       await supabase
         .from("ad_campaigns")
         .update({ 
           status: "error",
-          campaign_data: { 
-            ...campaignData, 
-            error_message: `Ad set creation failed: ${error.message}`,
-            campaign_id: campaignResult.id
+          targeting: {
+            ...initialCampaign.targeting,
+            error_message: error.message
           }
         })
         .eq("id", initialCampaign.id);
-        
-      throw error;
-    }
-    */
-
-    // Mock response for demonstration
-    // In real-world, we'd complete the implementation of the ad creation process
-    await delay(1500); // Simulate API delay
-    
-    const response: CampaignResponse = {
-      campaignId: `mock_campaign_${Date.now()}`,
-      adSetId: `mock_adset_${Date.now()}`,
-      adId: `mock_ad_${Date.now()}`,
-      success: true,
-      status: "completed",
-      statusDetails: "Campaign created successfully and is in PAUSED state"
-    };
-
-    // Log the successful campaign creation (for debugging)
-    console.log("Campaign created successfully:", response);
-
-    // Save to ad_campaigns table with proper schema
-    const { data: campaignRecord, error: saveError } = await supabase
-      .from("ad_campaigns")
-      .update({
-        name: campaignName,
-        platform: "facebook",
-        status: "draft", 
-        platform_campaign_id: response.campaignId,
-        // Use targeting JSONB field for storing detailed campaign data
-        targeting: {
-          campaign: campaignData,
-          adSet: adSetData,
-          adCreative: adCreativeData,
-          platform_ad_set_id: response.adSetId,
-          platform_ad_id: response.adId,
-          error_message: null
-        }
-      })
-      .eq("id", initialCampaign.id)
-      .select()
-      .single();
-
-    if (saveError) {
-      console.error("Error saving campaign:", saveError);
+      
       return new Response(
         JSON.stringify({ 
-          error: "Failed to save campaign data", 
+          error: error.message || "Unknown error", 
           success: false,
-          campaignId: response.campaignId,
-          status: "db_error",
-          statusDetails: "Campaign was created but failed to update in database"
+          status: "api_error",
+          statusDetails: "Error occurred during Facebook API calls"
         }),
         { status: 500, headers }
       );
     }
-
-    // Return the response with campaign record ID
-    return new Response(
-      JSON.stringify({
-        ...response,
-        campaignRecordId: campaignRecord.id
-      }), 
-      { status: 200, headers }
-    );
   } catch (error) {
     console.error("Error creating Facebook campaign:", error);
     return new Response(
