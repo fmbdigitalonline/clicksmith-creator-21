@@ -10,6 +10,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { useSession } from "@supabase/auth-helpers-react";
 import { supabase } from "@/integrations/supabase/client";
 import { transformToFacebookAdFormat } from "@/utils/facebookAdTransformer";
+import { BusinessIdea, TargetAudience } from "@/types/adWizard";
 
 export default function FacebookCampaignOverview() {
   const [isLoading, setIsLoading] = useState(true);
@@ -114,9 +115,13 @@ export default function FacebookCampaignOverview() {
           
           // Transform to Facebook format if we have business_idea and target_audience
           if (projectData.business_idea && projectData.target_audience) {
+            // Type-cast the data to ensure it matches the expected types
+            const businessIdea = projectData.business_idea as BusinessIdea;
+            const targetAudience = projectData.target_audience as TargetAudience;
+            
             const facebookAdData = transformToFacebookAdFormat(
-              projectData.business_idea,
-              projectData.target_audience,
+              businessIdea,
+              targetAudience,
               firstAd
             );
             
