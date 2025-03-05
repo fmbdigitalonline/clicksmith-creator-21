@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,9 +7,9 @@ import { useToast } from "@/components/ui/use-toast";
 import { useSession } from "@supabase/auth-helpers-react";
 import { supabase } from "@/integrations/supabase/client";
 
-// URL redirecting to Facebook OAuth
+// URL redirecting to Facebook OAuth with environment variables
 const generateFacebookAuthURL = () => {
-  const facebookAppId = "YOUR_FACEBOOK_APP_ID"; // Replace with your app ID
+  const facebookAppId = import.meta.env.VITE_FACEBOOK_APP_ID || "fb-app-id-missing";
   const redirectUri = encodeURIComponent(window.location.origin + "/dashboard?connection=facebook");
   const scopes = encodeURIComponent("ads_management,ads_read");
   
@@ -34,10 +33,49 @@ export default function FacebookConnection() {
   const { toast } = useToast();
   const session = useSession();
 
-  // Check connection status
+  // Enhanced connection validation
+  const validateConnection = async () => {
+    if (!session) return false;
+    
+    try {
+      const { data, error } = await supabase
+        .from('platform_connections')
+        .select('*')
+        .eq('platform', 'facebook')
+        .single();
+
+      if (error) {
+        console.error("Error validating connection:", error);
+        return false;
+      }
+      
+      // Check if token is expired
+      if (data && data.token_expires_at) {
+        const expiryDate = new Date(data.token_expires_at);
+        if (expiryDate < new Date()) {
+          toast({
+            title: "Connection Expired",
+            description: "Your Facebook connection has expired. Please reconnect.",
+            variant: "destructive",
+          });
+          return false;
+        }
+      }
+      
+      return Boolean(data);
+    } catch (error) {
+      console.error("Error validating connection:", error);
+      return false;
+    }
+  };
+
+  // Check connection status with enhanced validation
   useEffect(() => {
     async function checkConnectionStatus() {
-      if (!session) return;
+      if (!session) {
+        setIsLoading(false);
+        return;
+      }
       
       try {
         const { data, error } = await supabase
@@ -56,6 +94,21 @@ export default function FacebookConnection() {
             });
           }
         } else if (data) {
+          // Check token expiration
+          if (data.token_expires_at) {
+            const expiryDate = new Date(data.token_expires_at);
+            if (expiryDate < new Date()) {
+              toast({
+                title: "Connection Expired",
+                description: "Your Facebook connection has expired. Please reconnect.",
+                variant: "warning",
+              });
+              // Keep isConnected as false since connection is expired
+              setIsLoading(false);
+              return;
+            }
+          }
+          
           setIsConnected(true);
           setConnection(data);
         }
@@ -69,7 +122,7 @@ export default function FacebookConnection() {
     checkConnectionStatus();
   }, [session, toast]);
 
-  // Handle OAuth callback
+  // Improved error handling for OAuth callback
   useEffect(() => {
     const handleOAuthCallback = async () => {
       if (!session) return;
@@ -77,8 +130,23 @@ export default function FacebookConnection() {
       const url = new URL(window.location.href);
       const code = url.searchParams.get('code');
       const connectionType = url.searchParams.get('connection');
+      const error = url.searchParams.get('error');
+      const errorDescription = url.searchParams.get('error_description');
       
-      // Clean URL
+      // Handle OAuth errors
+      if (error && connectionType === 'facebook') {
+        // Remove query parameters from URL
+        window.history.replaceState({}, document.title, "/dashboard");
+        
+        toast({
+          title: "Connection Failed",
+          description: errorDescription || "Failed to connect to Facebook",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Handle successful OAuth flow
       if (code && connectionType === 'facebook') {
         // Remove query parameters from URL
         window.history.replaceState({}, document.title, "/dashboard");
@@ -97,21 +165,25 @@ export default function FacebookConnection() {
             throw new Error(response.error);
           }
 
-          toast({
-            title: "Success!",
-            description: "Your Facebook Ads account has been connected",
-          });
-          
-          // Refresh connection data
-          const { data } = await supabase
-            .from('platform_connections')
-            .select('*')
-            .eq('platform', 'facebook')
-            .single();
+          if (response.data && response.data.success) {
+            toast({
+              title: "Success!",
+              description: response.data.message || "Your Facebook Ads account has been connected",
+            });
             
-          if (data) {
-            setIsConnected(true);
-            setConnection(data);
+            // Refresh connection data
+            const { data } = await supabase
+              .from('platform_connections')
+              .select('*')
+              .eq('platform', 'facebook')
+              .single();
+              
+            if (data) {
+              setIsConnected(true);
+              setConnection(data);
+            }
+          } else {
+            throw new Error(response.data?.message || "Unknown error occurred");
           }
         } catch (error) {
           console.error("Error processing OAuth callback:", error);

@@ -41,43 +41,79 @@ async function exchangeCodeForToken(code: string) {
 async function getAdAccounts(accessToken: string) {
   console.log('Getting ad accounts');
   
-  const response = await fetch(
-    `https://graph.facebook.com/v18.0/me/adaccounts?fields=id,name,account_id&access_token=${accessToken}`,
-    { method: 'GET' }
-  );
+  try {
+    const response = await fetch(
+      `https://graph.facebook.com/v18.0/me/adaccounts?fields=id,name,account_id&access_token=${accessToken}`,
+      { method: 'GET' }
+    );
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('Error fetching ad accounts:', errorText);
-    throw new Error(`Failed to fetch ad accounts: ${errorText}`);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Error fetching ad accounts:', errorText);
+      throw new Error(`Failed to fetch ad accounts: ${errorText}`);
+    }
+
+    const data = await response.json();
+    console.log(`Found ${data.data?.length || 0} ad accounts`);
+    return data;
+  } catch (error) {
+    console.error('Error in getAdAccounts:', error);
+    throw error;
   }
+}
 
-  return await response.json();
+async function validateToken(accessToken: string) {
+  console.log('Validating access token');
+  
+  try {
+    const response = await fetch(
+      `https://graph.facebook.com/debug_token?input_token=${accessToken}&access_token=${accessToken}`,
+      { method: 'GET' }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Error validating token:', errorText);
+      return false;
+    }
+
+    const data = await response.json();
+    return data.data?.is_valid === true;
+  } catch (error) {
+    console.error('Error in validateToken:', error);
+    return false;
+  }
 }
 
 async function saveConnectionToDatabase(userId: string, platform: string, accessToken: string, refreshToken: string | null, expiresAt: Date | null, accountId: string | null, accountName: string | null) {
   console.log('Saving connection to database for user:', userId);
   
-  const { data, error } = await supabaseAdmin
-    .from('platform_connections')
-    .upsert({
-      user_id: userId,
-      platform: platform,
-      access_token: accessToken,
-      refresh_token: refreshToken,
-      token_expires_at: expiresAt,
-      account_id: accountId,
-      account_name: accountName
-    }, {
-      onConflict: 'user_id, platform'
-    });
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('platform_connections')
+      .upsert({
+        user_id: userId,
+        platform: platform,
+        access_token: accessToken,
+        refresh_token: refreshToken,
+        token_expires_at: expiresAt,
+        account_id: accountId,
+        account_name: accountName
+      }, {
+        onConflict: 'user_id, platform'
+      });
 
-  if (error) {
-    console.error('Error saving connection to database:', error);
-    throw new Error(`Failed to save connection: ${error.message}`);
+    if (error) {
+      console.error('Error saving connection to database:', error);
+      throw new Error(`Failed to save connection: ${error.message}`);
+    }
+
+    console.log('Successfully saved connection to database');
+    return data;
+  } catch (error) {
+    console.error('Error in saveConnectionToDatabase:', error);
+    throw error;
   }
-
-  return data;
 }
 
 // Create Supabase client
@@ -130,19 +166,42 @@ serve(async (req) => {
   }
 
   try {
+    console.log('Received request:', req.method, req.url);
+    
+    // Validate environment variables
+    if (!FACEBOOK_APP_ID || !FACEBOOK_APP_SECRET || !REDIRECT_URI) {
+      console.error('Missing required environment variables');
+      return new Response(JSON.stringify({ 
+        success: false,
+        error: 'Server configuration error: Missing Facebook credentials' 
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+    
     const url = new URL(req.url);
     const code = url.searchParams.get('code');
     const authToken = req.headers.get('Authorization')?.split(' ')[1];
     
+    // Log request details
+    console.log('Request parameters:', { code: code ? 'present' : 'missing', authToken: authToken ? 'present' : 'missing' });
+    
     if (!code) {
-      return new Response(JSON.stringify({ error: 'Authorization code is required' }), {
+      return new Response(JSON.stringify({ 
+        success: false,
+        error: 'Authorization code is required' 
+      }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
     if (!authToken) {
-      return new Response(JSON.stringify({ error: 'Authorization header is required' }), {
+      return new Response(JSON.stringify({ 
+        success: false,
+        error: 'Authorization header is required' 
+      }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
@@ -152,15 +211,34 @@ serve(async (req) => {
     const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(authToken);
     
     if (userError || !user) {
-      return new Response(JSON.stringify({ error: 'Invalid user token' }), {
+      console.error('Invalid user token:', userError);
+      return new Response(JSON.stringify({ 
+        success: false,
+        error: 'Invalid user token' 
+      }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
+    console.log('User authenticated:', user.id);
+
     // Exchange the code for an access token
     const tokenData = await exchangeCodeForToken(code);
     console.log('Token exchange successful');
+
+    // Validate the token
+    const isTokenValid = await validateToken(tokenData.access_token);
+    if (!isTokenValid) {
+      console.error('Invalid token received from Facebook');
+      return new Response(JSON.stringify({ 
+        success: false,
+        error: 'Invalid token received from Facebook' 
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
 
     // Get ad accounts for the user
     const adAccountsData = await getAdAccounts(tokenData.access_token);
@@ -173,12 +251,21 @@ serve(async (req) => {
     if (adAccountsData && adAccountsData.data && adAccountsData.data.length > 0) {
       accountId = adAccountsData.data[0].id;
       accountName = adAccountsData.data[0].name;
+      console.log(`Selected account: ${accountName} (${accountId})`);
+    } else {
+      console.log('No ad accounts found');
     }
 
     // Calculate token expiration (if provided)
     const expiresAt = tokenData.expires_in 
       ? new Date(Date.now() + tokenData.expires_in * 1000) 
       : null;
+    
+    if (expiresAt) {
+      console.log(`Token expires at: ${expiresAt.toISOString()}`);
+    } else {
+      console.log('No token expiration provided');
+    }
 
     // Save the connection to the database
     await saveConnectionToDatabase(
@@ -205,6 +292,7 @@ serve(async (req) => {
     console.error('Error in Facebook OAuth:', error);
     
     return new Response(JSON.stringify({ 
+      success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred' 
     }), {
       status: 500,
