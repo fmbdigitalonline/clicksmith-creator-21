@@ -16,7 +16,7 @@ import { transformToFacebookAdFormat } from "@/utils/facebookAdTransformer";
 import { BusinessIdea, TargetAudience } from "@/types/adWizard";
 import { Badge } from "@/components/ui/badge";
 
-// Update the Campaign interface to include image_url as an optional property
+// Update the Campaign interface to match the database schema and include image_url
 interface Campaign {
   id: string;
   name: string;
@@ -24,8 +24,14 @@ interface Campaign {
   platform: string;
   created_at: string;
   platform_campaign_id: string | null;
-  image_url?: string | null; // Make image_url optional
-  targeting?: any; // Add targeting field which might contain image info
+  image_url?: string | null;
+  targeting?: any;
+  budget?: number | null;
+  end_date?: string | null;
+  start_date?: string | null;
+  user_id?: string | null;
+  project_id?: string | null;
+  updated_at?: string | null;
 }
 
 export default function FacebookCampaignOverview() {
@@ -82,7 +88,13 @@ export default function FacebookCampaignOverview() {
           created_at: campaign.created_at,
           platform_campaign_id: campaign.platform_campaign_id,
           image_url: imageUrl,
-          targeting: campaign.targeting
+          targeting: campaign.targeting,
+          budget: campaign.budget,
+          start_date: campaign.start_date,
+          end_date: campaign.end_date,
+          user_id: campaign.user_id,
+          project_id: campaign.project_id,
+          updated_at: campaign.updated_at
         };
       }) || [];
       
