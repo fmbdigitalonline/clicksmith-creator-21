@@ -1,4 +1,3 @@
-
 import { BusinessIdea, TargetAudience, AdHook } from "@/types/adWizard";
 import { TabsContent } from "@/components/ui/tabs";
 import LoadingState from "./complete/LoadingState";
@@ -16,6 +15,14 @@ import { FacebookConnect } from "@/components/facebook/FacebookConnect";
 import { CampaignCreationDialog } from "@/components/facebook/CampaignCreationDialog";
 import { Button } from "@/components/ui/button";
 import { FaFacebook } from "react-icons/fa";
+// Add Dialog component imports
+import { 
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription 
+} from "@/components/ui/dialog";
 
 interface AdGalleryStepProps {
   businessIdea: BusinessIdea;
