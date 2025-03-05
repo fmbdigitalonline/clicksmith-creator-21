@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -204,7 +203,12 @@ serve(async (req) => {
         platform: "facebook",
         status: "pending", 
         project_id: projectId,
-        campaign_data: campaignData,
+        // Store campaign data in the targeting field which is JSONB
+        targeting: {
+          campaign: campaignData,
+          adSet: adSetData,
+          adCreative: adCreativeData
+        },
         image_url: adCreativeData.object_story_spec?.link_data?.image_url
       })
       .select()
@@ -373,8 +377,15 @@ serve(async (req) => {
         platform: "facebook",
         status: "draft", 
         platform_campaign_id: response.campaignId,
-        platform_ad_set_id: response.adSetId,
-        campaign_data: campaignData
+        // Use targeting JSONB field for storing detailed campaign data
+        targeting: {
+          campaign: campaignData,
+          adSet: adSetData,
+          adCreative: adCreativeData,
+          platform_ad_set_id: response.adSetId,
+          platform_ad_id: response.adId,
+          error_message: null
+        }
       })
       .eq("id", initialCampaign.id)
       .select()

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -232,7 +231,8 @@ export default function FacebookCampaignOverview() {
             clearInterval(intervalId);
           } else if (data.status === 'error') {
             setCampaignStatus('error');
-            setErrorMessage(data.campaign_data?.error_message || 'Campaign creation failed');
+            // Access error message from targeting instead of campaign_data
+            setErrorMessage(data.targeting?.error_message || 'Campaign creation failed');
             setErrorType('api');
             clearInterval(intervalId);
           } else if (data.status === 'campaign_created') {
