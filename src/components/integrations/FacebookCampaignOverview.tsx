@@ -255,14 +255,16 @@ export default function FacebookCampaignOverview() {
       setCampaignStatus('finalizing');
       setProgressValue(80);
       
-      // Save the campaign info to our database
+      // Save the campaign info to our database - with correct schema
+      const campaignName = adPreview.facebookData.campaign.name || `Facebook Campaign ${new Date().toLocaleDateString()}`;
       const { data: savedCampaign, error: saveError } = await supabase
         .from('ad_campaigns')
         .insert({
-          name: adPreview.facebookData.campaign.name || `Facebook Campaign ${new Date().toLocaleDateString()}`,
+          name: campaignName,
           platform: 'facebook',
           status: 'draft',
           platform_campaign_id: campaignData.campaignId || null,
+          platform_ad_set_id: campaignData.adSetId || null, 
           campaign_data: adPreview.facebookData,
           project_id: selectedProject,
           image_url: processedImageUrl

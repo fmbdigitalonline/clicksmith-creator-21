@@ -228,7 +228,7 @@ serve(async (req) => {
     // Log the successful campaign creation (for debugging)
     console.log("Campaign created successfully:", response);
 
-    // Save to ad_campaigns table
+    // Save to ad_campaigns table with proper schema
     const { data: campaignRecord, error: saveError } = await supabase
       .from("ad_campaigns")
       .insert({
@@ -236,6 +236,7 @@ serve(async (req) => {
         platform: "facebook",
         status: "draft", 
         platform_campaign_id: response.campaignId,
+        platform_ad_set_id: response.adSetId,
         campaign_data: campaignData,
         project_id: projectId,
         image_url: adCreativeData.object_story_spec?.link_data?.image_url
