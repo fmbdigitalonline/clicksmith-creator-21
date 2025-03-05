@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -107,7 +106,6 @@ export const CampaignCreationDialog = ({
       
       // Save campaign to database
       await supabase.from('ad_campaigns').insert({
-        user_id: user.id,
         project_id: projectId,
         platform: 'facebook',
         name: campaignName,
