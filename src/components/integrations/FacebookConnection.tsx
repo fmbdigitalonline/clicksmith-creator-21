@@ -19,8 +19,17 @@ const generateFacebookAuthURL = () => {
     return "";
   }
   
-  // Important: redirect to the integrations page, not dashboard
-  const redirectUri = encodeURIComponent(window.location.origin + "/integrations?connection=facebook");
+  // Use the redirect URI from env var, or fallback to current origin + path
+  let redirectUri = import.meta.env.VITE_FACEBOOK_REDIRECT_URI;
+  if (!redirectUri) {
+    redirectUri = encodeURIComponent(window.location.origin + "/integrations?connection=facebook");
+  } else {
+    // If it's not already encoded, encode it
+    if (!redirectUri.includes('%')) {
+      redirectUri = encodeURIComponent(redirectUri);
+    }
+  }
+  
   const scopes = encodeURIComponent("ads_management,ads_read");
   
   console.log("Generating Facebook Auth URL with redirectUri:", redirectUri);
