@@ -1,12 +1,21 @@
+
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Rocket } from "lucide-react";
+import { ArrowLeft, Rocket, Send } from "lucide-react";
+import { FaFacebook } from "react-icons/fa";
 
 interface ProjectActionsProps {
   onGenerateAds: () => void;
   onBackToProjects: () => void;
+  onPublishToFacebook?: () => void;
+  canPublishToFacebook?: boolean;
 }
 
-const ProjectActions = ({ onGenerateAds, onBackToProjects }: ProjectActionsProps) => {
+const ProjectActions = ({ 
+  onGenerateAds, 
+  onBackToProjects, 
+  onPublishToFacebook,
+  canPublishToFacebook = false
+}: ProjectActionsProps) => {
   return (
     <div className="space-y-4">
       <p className="text-center text-muted-foreground">
@@ -21,6 +30,20 @@ const ProjectActions = ({ onGenerateAds, onBackToProjects }: ProjectActionsProps
           <Rocket className="mr-2" />
           Generate Ads
         </Button>
+        
+        {onPublishToFacebook && (
+          <Button
+            onClick={onPublishToFacebook}
+            className="w-full"
+            size="lg"
+            variant="facebook"
+            disabled={!canPublishToFacebook}
+          >
+            <FaFacebook className="mr-2" />
+            Publish to Facebook
+          </Button>
+        )}
+        
         <Button
           onClick={onBackToProjects}
           variant="outline"

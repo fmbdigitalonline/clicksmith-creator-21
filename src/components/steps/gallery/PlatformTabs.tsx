@@ -1,6 +1,8 @@
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Linkedin } from "lucide-react";
 import { SiTiktok } from "react-icons/si";
+import { FaFacebook } from "react-icons/fa";
 
 interface PlatformTabsProps {
   platform: string;
@@ -18,7 +20,10 @@ const PlatformTabs = ({ platform, onPlatformChange, children }: PlatformTabsProp
         </p>
       </div>
       <TabsList className="grid w-full grid-cols-4 mb-6">
-        <TabsTrigger value="facebook">Facebook</TabsTrigger>
+        <TabsTrigger value="facebook" className="flex items-center gap-2">
+          <FaFacebook className="h-4 w-4" />
+          Facebook
+        </TabsTrigger>
         <TabsTrigger value="google">Google</TabsTrigger>
         <TabsTrigger value="linkedin" className="flex items-center gap-2">
           <Linkedin className="h-4 w-4" />

@@ -11,6 +11,11 @@ import AdGenerationControls from "./gallery/AdGenerationControls";
 import { useEffect, useState } from "react";
 import { AdSizeSelector, AD_FORMATS } from "./gallery/components/AdSizeSelector";
 import { useToast } from "@/hooks/use-toast";
+import { useFacebookIntegration } from "@/hooks/useFacebookIntegration";
+import { FacebookConnect } from "@/components/facebook/FacebookConnect";
+import { CampaignCreationDialog } from "@/components/facebook/CampaignCreationDialog";
+import { Button } from "@/components/ui/button";
+import { FaFacebook } from "react-icons/fa";
 
 interface AdGalleryStepProps {
   businessIdea: BusinessIdea;
@@ -20,6 +25,7 @@ interface AdGalleryStepProps {
   onBack: () => void;
   onCreateProject: () => void;
   videoAdsEnabled?: boolean;
+  projectId?: string;
 }
 
 const AdGalleryStep = ({
@@ -30,6 +36,7 @@ const AdGalleryStep = ({
   onBack,
   onCreateProject,
   videoAdsEnabled = false,
+  projectId,
 }: AdGalleryStepProps) => {
   // Find the square format (1:1) and use it as default, fallback to first format if not found
   const defaultFormat = AD_FORMATS.find(format => format.width === 1080 && format.height === 1080) || AD_FORMATS[0];
@@ -51,6 +58,24 @@ const AdGalleryStep = ({
     generationStatus,
     generateAds,
   } = useAdGeneration(businessIdea, targetAudience, adHooks);
+
+  // Facebook integration
+  const {
+    connectionStatus,
+    isPublishing,
+    checkFacebookConnection,
+    publishToFacebook,
+  } = useFacebookIntegration();
+
+  const [showFacebookConnect, setShowFacebookConnect] = useState(false);
+  const [showCampaignDialog, setShowCampaignDialog] = useState(false);
+
+  // Check Facebook connection on component mount
+  useEffect(() => {
+    if (platform === 'facebook') {
+      checkFacebookConnection();
+    }
+  }, [platform, checkFacebookConnection]);
 
   useEffect(() => {
     const initializeAds = async () => {
@@ -124,14 +149,63 @@ const AdGalleryStep = ({
     }
   };
 
+  const handlePublishToFacebook = async () => {
+    if (connectionStatus !== "connected") {
+      setShowFacebookConnect(true);
+      return;
+    }
+
+    // If connected, show campaign creation dialog
+    setShowCampaignDialog(true);
+  };
+
+  const handleCampaignCreated = async (campaignId: string) => {
+    try {
+      // Here we would integrate with the actual Facebook API
+      // For now, just show a success message
+      toast({
+        title: "Campaign created",
+        description: `Campaign created with ID: ${campaignId}`,
+      });
+    } catch (error) {
+      console.error("Error in campaign creation:", error);
+      toast({
+        title: "Error",
+        description: "Failed to complete campaign creation. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const renderPlatformContent = (platformName: string) => (
     <TabsContent value={platformName} className="space-y-4">
-      <div className="flex justify-end mb-4">
-        <AdSizeSelector
-          selectedFormat={selectedFormat}
-          onFormatChange={handleFormatChange}
-        />
-      </div>
+      {platformName === 'facebook' && (
+        <div className="flex justify-between items-center mb-4">
+          <AdSizeSelector
+            selectedFormat={selectedFormat}
+            onFormatChange={handleFormatChange}
+          />
+          
+          <Button
+            variant="facebook"
+            onClick={handlePublishToFacebook}
+            disabled={isGenerating || isPublishing || adVariants.length === 0}
+          >
+            <FaFacebook className="mr-2" />
+            Publish to Facebook
+          </Button>
+        </div>
+      )}
+      
+      {platformName !== 'facebook' && (
+        <div className="flex justify-end mb-4">
+          <AdSizeSelector
+            selectedFormat={selectedFormat}
+            onFormatChange={handleFormatChange}
+          />
+        </div>
+      )}
+      
       <PlatformContent
         platformName={platformName}
         adVariants={adVariants.filter(variant => variant.platform === platformName)}
@@ -171,6 +245,36 @@ const AdGalleryStep = ({
         onOpenChange={setShowPlatformChangeDialog}
         onConfirm={onConfirmPlatformChange}
         onCancel={onCancelPlatformChange}
+      />
+
+      {/* Facebook Connect Dialog */}
+      <Dialog 
+        open={showFacebookConnect} 
+        onOpenChange={setShowFacebookConnect}
+      >
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Connect to Facebook</DialogTitle>
+            <DialogDescription>
+              You need to connect to Facebook before publishing ads.
+            </DialogDescription>
+          </DialogHeader>
+          <FacebookConnect onConnected={() => {
+            setShowFacebookConnect(false);
+            setShowCampaignDialog(true);
+          }} />
+        </DialogContent>
+      </Dialog>
+
+      {/* Campaign Creation Dialog */}
+      <CampaignCreationDialog 
+        open={showCampaignDialog}
+        onOpenChange={setShowCampaignDialog}
+        projectId={projectId || ""}
+        businessIdea={businessIdea}
+        targetAudience={targetAudience}
+        adVariants={adVariants.filter(variant => variant.platform === 'facebook')}
+        onSuccess={handleCampaignCreated}
       />
     </div>
   );
