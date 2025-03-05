@@ -1,28 +1,14 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Linkedin } from "lucide-react";
 import { SiTiktok } from "react-icons/si";
-import { BusinessIdea, TargetAudience, AdHook } from "@/types/adWizard";
-import { Dispatch, SetStateAction } from "react";
 
-export interface PlatformTabsProps {
-  businessIdea: BusinessIdea;
-  targetAudience: TargetAudience;
-  adHooks: AdHook[];
-  onCreateProject: () => void;
-  videoAdsEnabled?: boolean;
-  onGetAdVariants?: Dispatch<SetStateAction<any[]>>;
-  projectId?: string;
-  platform?: string;
-  onPlatformChange?: (value: string) => void;
-  children?: React.ReactNode;
+interface PlatformTabsProps {
+  platform: string;
+  onPlatformChange: (value: string) => void;
+  children: React.ReactNode;
 }
 
-const PlatformTabs = ({ 
-  platform = "facebook", 
-  onPlatformChange = () => {},
-  children,
-  // Other props are available but not used directly in this component
-}: PlatformTabsProps) => {
+const PlatformTabs = ({ platform, onPlatformChange, children }: PlatformTabsProps) => {
   return (
     <Tabs defaultValue={platform} className="w-full" onValueChange={onPlatformChange}>
       <div className="mb-4">

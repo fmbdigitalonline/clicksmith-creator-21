@@ -29,7 +29,6 @@ import BlogPost from "@/pages/BlogPost";
 import About from "@/pages/About";
 import Careers from "@/pages/Careers";
 import Help from "@/pages/Help";
-import { FacebookCallback } from "@/components/facebook/FacebookCallback";
 
 const queryClient = new QueryClient();
 
@@ -52,9 +51,6 @@ function AppContent() {
       <Route path="/careers" element={<Careers />} />
       <Route path="/help" element={<Help />} />
       <Route path="/" element={<Index />} />
-      
-      {/* Facebook OAuth callback route */}
-      <Route path="/auth/facebook/callback" element={<FacebookCallback />} />
       
       {/* Public routes for sharing and referrals */}
       <Route path="/affiliate" element={<Affiliate />} />

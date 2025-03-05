@@ -1,20 +1,12 @@
-
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Rocket, Facebook } from "lucide-react";
+import { ArrowLeft, Rocket } from "lucide-react";
 
 interface ProjectActionsProps {
   onGenerateAds: () => void;
   onBackToProjects: () => void;
-  onGenerateCampaign?: () => void;
-  campaignEnabled?: boolean;
 }
 
-const ProjectActions = ({ 
-  onGenerateAds, 
-  onBackToProjects,
-  onGenerateCampaign,
-  campaignEnabled = false
-}: ProjectActionsProps) => {
+const ProjectActions = ({ onGenerateAds, onBackToProjects }: ProjectActionsProps) => {
   return (
     <div className="space-y-4">
       <p className="text-center text-muted-foreground">
@@ -29,19 +21,6 @@ const ProjectActions = ({
           <Rocket className="mr-2" />
           Generate Ads
         </Button>
-        
-        {campaignEnabled && onGenerateCampaign && (
-          <Button
-            onClick={onGenerateCampaign}
-            className="w-full"
-            size="lg"
-            variant="facebook"
-          >
-            <Facebook className="mr-2" />
-            Publish to Facebook
-          </Button>
-        )}
-        
         <Button
           onClick={onBackToProjects}
           variant="outline"

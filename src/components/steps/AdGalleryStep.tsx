@@ -1,15 +1,16 @@
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Facebook } from "lucide-react";
+
 import { BusinessIdea, TargetAudience, AdHook } from "@/types/adWizard";
-import { useToast } from "@/hooks/use-toast";
-import { useCredits } from "@/hooks/useCredits";
-import { supabase } from "@/integrations/supabase/client";
-import { CampaignCreationDialog } from "@/components/facebook/CampaignCreationDialog";
+import { TabsContent } from "@/components/ui/tabs";
+import LoadingState from "./complete/LoadingState";
 import PlatformTabs from "./gallery/PlatformTabs";
-import { FacebookCampaignDashboard } from "@/components/facebook/FacebookCampaignDashboard";
+import PlatformContent from "./gallery/PlatformContent";
+import PlatformChangeDialog from "./gallery/PlatformChangeDialog";
+import { usePlatformSwitch } from "@/hooks/usePlatformSwitch";
+import { useAdGeneration } from "./gallery/useAdGeneration";
+import AdGenerationControls from "./gallery/AdGenerationControls";
+import { useEffect, useState } from "react";
+import { AdSizeSelector, AD_FORMATS } from "./gallery/components/AdSizeSelector";
+import { useToast } from "@/hooks/use-toast";
 
 interface AdGalleryStepProps {
   businessIdea: BusinessIdea;
@@ -28,115 +29,149 @@ const AdGalleryStep = ({
   onStartOver,
   onBack,
   onCreateProject,
-  videoAdsEnabled
+  videoAdsEnabled = false,
 }: AdGalleryStepProps) => {
-  const [activeTab, setActiveTab] = useState<"ads" | "campaigns">("ads");
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [showCampaignDialog, setShowCampaignDialog] = useState(false);
-  const [adVariants, setAdVariants] = useState<any[]>([]);
-  const { checkCredits } = useCredits();
+  // Find the square format (1:1) and use it as default, fallback to first format if not found
+  const defaultFormat = AD_FORMATS.find(format => format.width === 1080 && format.height === 1080) || AD_FORMATS[0];
+  const [selectedFormat, setSelectedFormat] = useState(defaultFormat);
   const { toast } = useToast();
-  const navigate = useNavigate();
+  
+  const {
+    platform,
+    showPlatformChangeDialog,
+    handlePlatformChange,
+    confirmPlatformChange,
+    cancelPlatformChange,
+    setShowPlatformChangeDialog
+  } = usePlatformSwitch();
 
-  // Get project ID from URL if available
-  const urlParts = window.location.pathname.split('/');
-  const projectId = urlParts[urlParts.length - 1];
-  const hasProject = projectId && projectId !== 'new' && !isNaN(Number(projectId));
+  const {
+    isGenerating,
+    adVariants,
+    generationStatus,
+    generateAds,
+  } = useAdGeneration(businessIdea, targetAudience, adHooks);
 
-  const handleGenerateMoreAds = async () => {
-    // Check credits before generating
-    const credits = await checkCredits(3);
-    if (!credits.hasCredits) {
+  useEffect(() => {
+    const initializeAds = async () => {
+      if (adVariants.length === 0) {
+        try {
+          await generateAds(platform);
+        } catch (error) {
+          console.error("Error generating initial ads:", error);
+          toast({
+            title: "Error generating ads",
+            description: "There was an error generating your ads. Please try again.",
+            variant: "destructive",
+          });
+        }
+      }
+    };
+
+    initializeAds();
+  }, [platform, videoAdsEnabled]);
+
+  const onPlatformChange = async (newPlatform: "facebook" | "google" | "linkedin" | "tiktok") => {
+    try {
+      handlePlatformChange(newPlatform, adVariants.length > 0);
+    } catch (error) {
+      console.error("Error changing platform:", error);
       toast({
-        title: "Insufficient Credits",
-        description: credits.errorMessage,
+        title: "Error changing platform",
+        description: "There was an error changing the platform. Please try again.",
         variant: "destructive",
       });
-      return;
-    }
-
-    setIsGenerating(true);
-    // Existing code for ad generation
-    setIsGenerating(false);
-  };
-
-  const handleCreateCampaign = () => {
-    if (hasProject) {
-      setShowCampaignDialog(true);
-    } else {
-      onCreateProject();
     }
   };
+
+  const onConfirmPlatformChange = async () => {
+    try {
+      const newPlatform = confirmPlatformChange();
+      await generateAds(newPlatform);
+    } catch (error) {
+      console.error("Error confirming platform change:", error);
+      toast({
+        title: "Error generating ads",
+        description: "There was an error generating ads for the new platform. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const onCancelPlatformChange = () => {
+    const currentPlatform = cancelPlatformChange();
+    // Force update the PlatformTabs to stay on the current platform
+    const tabsElement = document.querySelector(`[data-state="active"][value="${currentPlatform}"]`);
+    if (tabsElement) {
+      (tabsElement as HTMLElement).click();
+    }
+  };
+
+  const handleFormatChange = (format: typeof AD_FORMATS[0]) => {
+    setSelectedFormat(format);
+  };
+
+  const handleRegenerate = async () => {
+    try {
+      await generateAds(platform);
+    } catch (error) {
+      console.error("Error regenerating ads:", error);
+      toast({
+        title: "Error regenerating ads",
+        description: "There was an error regenerating your ads. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const renderPlatformContent = (platformName: string) => (
+    <TabsContent value={platformName} className="space-y-4">
+      <div className="flex justify-end mb-4">
+        <AdSizeSelector
+          selectedFormat={selectedFormat}
+          onFormatChange={handleFormatChange}
+        />
+      </div>
+      <PlatformContent
+        platformName={platformName}
+        adVariants={adVariants.filter(variant => variant.platform === platformName)}
+        onCreateProject={onCreateProject}
+        videoAdsEnabled={videoAdsEnabled}
+        selectedFormat={selectedFormat}
+      />
+    </TabsContent>
+  );
 
   return (
-    <div className="space-y-8">
-      <Tabs defaultValue="ads" value={activeTab} onValueChange={(value) => setActiveTab(value as "ads" | "campaigns")}>
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="ads">Ad Gallery</TabsTrigger>
-          <TabsTrigger value="campaigns">Campaigns</TabsTrigger>
-        </TabsList>
+    <div className="space-y-6 md:space-y-8">
+      <AdGenerationControls
+        onBack={onBack}
+        onStartOver={onStartOver}
+        onRegenerate={handleRegenerate}
+        isGenerating={isGenerating}
+        generationStatus={generationStatus}
+      />
 
-        <TabsContent value="ads" className="pt-6">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold">Your Ad Gallery</h2>
-            
-            <div className="flex items-center gap-2">
-              <Button 
-                variant="outline" 
-                onClick={onBack}
-              >
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back
-              </Button>
-              
-              <Button 
-                variant="facebook"
-                onClick={handleCreateCampaign}
-              >
-                <Facebook className="mr-2 h-4 w-4" />
-                Create Facebook Campaign
-              </Button>
-            </div>
-          </div>
-          
-          <PlatformTabs 
-            businessIdea={businessIdea}
-            targetAudience={targetAudience}
-            adHooks={adHooks}
-            onCreateProject={onCreateProject}
-            videoAdsEnabled={videoAdsEnabled}
-            onGetAdVariants={setAdVariants}
-            projectId={hasProject ? projectId : undefined}
-          />
-        </TabsContent>
-        
-        <TabsContent value="campaigns" className="pt-6">
-          {hasProject ? (
-            <FacebookCampaignDashboard
-              projectId={projectId}
-              adVariants={adVariants}
-              businessIdea={businessIdea}
-              targetAudience={targetAudience}
-            />
-          ) : (
-            <div className="text-center py-12 space-y-4">
-              <p className="text-muted-foreground">You need to save your project before creating campaigns.</p>
-              <Button onClick={onCreateProject}>Create Project</Button>
-            </div>
-          )}
-        </TabsContent>
-      </Tabs>
-
-      {showCampaignDialog && (
-        <CampaignCreationDialog
-          open={showCampaignDialog}
-          onOpenChange={setShowCampaignDialog}
-          projectId={projectId}
-          adVariants={adVariants}
-          businessIdea={businessIdea}
-          targetAudience={targetAudience}
-        />
+      {isGenerating ? (
+        <LoadingState />
+      ) : (
+        <PlatformTabs 
+          platform={platform} 
+          onPlatformChange={onPlatformChange}
+        >
+          {renderPlatformContent('facebook')}
+          {renderPlatformContent('google')}
+          {renderPlatformContent('linkedin')}
+          {renderPlatformContent('tiktok')}
+        </PlatformTabs>
       )}
+
+      <PlatformChangeDialog
+        open={showPlatformChangeDialog}
+        onOpenChange={setShowPlatformChangeDialog}
+        onConfirm={onConfirmPlatformChange}
+        onCancel={onCancelPlatformChange}
+      />
     </div>
   );
 };

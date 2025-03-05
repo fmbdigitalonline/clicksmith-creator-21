@@ -1,5 +1,0 @@
-
-project_id = "xorlfvflpihtafugltni"
-
-[functions.facebook-campaign]
-verify_jwt = true

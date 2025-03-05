@@ -1,5 +1,0 @@
-
-project_id = "xorlfvflpihtafugltni"
-
-[functions.facebook-callback-handler]
-verify_jwt = false

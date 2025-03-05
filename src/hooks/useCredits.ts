@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -58,10 +57,7 @@ export const useCredits = () => {
       }
     }
 
-    return {
-      hasCredits: true,
-      errorMessage: result.error_message
-    };
+    return true;
   };
 
   const { data: freeUsage } = useQuery({
