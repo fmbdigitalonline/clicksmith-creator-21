@@ -1,10 +1,22 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { AlertCircle, Facebook, Loader2, Settings, ExternalLink, Upload, CheckCircle } from "lucide-react";
+import { 
+  AlertCircle, 
+  Facebook, 
+  Loader2, 
+  Settings, 
+  ExternalLink, 
+  Upload, 
+  CheckCircle, 
+  RefreshCw,
+  Info,
+  AlertTriangle 
+} from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useSession } from "@supabase/auth-helpers-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -22,7 +34,15 @@ interface AdCreative {
 }
 
 // Define the campaign creation states
-type CampaignStatus = 'idle' | 'uploading' | 'creating' | 'finalizing' | 'success' | 'error';
+type CampaignStatus = 'idle' | 'validating' | 'uploading' | 'creating' | 'finalizing' | 'success' | 'error';
+
+// Error types for better error handling
+type ErrorType = 'validation' | 'upload' | 'api' | 'connection' | 'server' | 'unknown';
+
+interface ValidationError {
+  field: string;
+  message: string;
+}
 
 export default function FacebookCampaignOverview() {
   const [isLoading, setIsLoading] = useState(true);
@@ -35,10 +55,26 @@ export default function FacebookCampaignOverview() {
   const [campaignStatus, setCampaignStatus] = useState<CampaignStatus>('idle');
   const [progressValue, setProgressValue] = useState<number>(0);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [errorType, setErrorType] = useState<ErrorType | null>(null);
+  const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
   const [campaignId, setCampaignId] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState<number>(0);
+  const [campaignRecord, setCampaignRecord] = useState<any>(null);
   
   const { toast } = useToast();
   const session = useSession();
+
+  // Function to reset all state values for a new campaign
+  const resetCampaignState = () => {
+    setCampaignStatus('idle');
+    setProgressValue(0);
+    setErrorMessage(null);
+    setErrorType(null);
+    setValidationErrors([]);
+    setCampaignId(null);
+    setRetryCount(0);
+    setCampaignRecord(null);
+  };
 
   // Check if Facebook is connected
   useEffect(() => {
@@ -174,9 +210,102 @@ export default function FacebookCampaignOverview() {
     fetchProjectData();
   }, [selectedProject, toast]);
 
+  // Poll for campaign status updates (when campaign is being created)
+  useEffect(() => {
+    let intervalId: number | undefined;
+    
+    if (campaignRecord && ['creating', 'uploading', 'finalizing'].includes(campaignStatus)) {
+      intervalId = window.setInterval(async () => {
+        try {
+          const { data, error } = await supabase
+            .from('ad_campaigns')
+            .select('*')
+            .eq('id', campaignRecord.id)
+            .single();
+            
+          if (error) throw error;
+          
+          // Update local state based on campaign status
+          if (data.status === 'draft' || data.status === 'completed') {
+            setCampaignStatus('success');
+            setProgressValue(100);
+            clearInterval(intervalId);
+          } else if (data.status === 'error') {
+            setCampaignStatus('error');
+            setErrorMessage(data.campaign_data?.error_message || 'Campaign creation failed');
+            setErrorType('api');
+            clearInterval(intervalId);
+          } else if (data.status === 'campaign_created') {
+            setProgressValue(50);
+          } else if (data.status === 'adset_created') {
+            setProgressValue(75);
+          }
+        } catch (error) {
+          console.error("Error polling campaign status:", error);
+        }
+      }, 3000); // Poll every 3 seconds
+    }
+    
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [campaignRecord, campaignStatus]);
+
+  // Function to validate campaign data before submission
+  const validateCampaignData = (): boolean => {
+    const errors: ValidationError[] = [];
+    
+    if (!adPreview?.facebookData) {
+      errors.push({ field: 'general', message: 'Facebook ad data is missing' });
+      setErrorType('validation');
+      setValidationErrors(errors);
+      return false;
+    }
+    
+    const { campaign, adSet, adCreative } = adPreview.facebookData;
+    
+    // Campaign validation
+    if (!campaign.name) {
+      errors.push({ field: 'campaign.name', message: 'Campaign name is required' });
+    }
+    
+    if (!campaign.objective) {
+      errors.push({ field: 'campaign.objective', message: 'Campaign objective is required' });
+    }
+    
+    // Ad Set validation
+    if (!adSet.name) {
+      errors.push({ field: 'adSet.name', message: 'Ad Set name is required' });
+    }
+    
+    if (!adSet.daily_budget) {
+      errors.push({ field: 'adSet.daily_budget', message: 'Budget is required' });
+    }
+    
+    if (!adSet.targeting || !adSet.targeting.age_min || !adSet.targeting.age_max) {
+      errors.push({ field: 'adSet.targeting', message: 'Audience targeting is incomplete' });
+    }
+    
+    // Ad Creative validation
+    if (!adCreative.object_story_spec) {
+      errors.push({ field: 'adCreative', message: 'Ad creative is missing required data' });
+    }
+    
+    setValidationErrors(errors);
+    
+    if (errors.length > 0) {
+      setErrorType('validation');
+      setErrorMessage(`Validation failed: ${errors.length} issues found`);
+      return false;
+    }
+    
+    return true;
+  };
+
   // Handle project selection
   const handleProjectChange = (value: string) => {
     setSelectedProject(value);
+    resetCampaignState();
   };
 
   // Handle image upload for campaign creation
@@ -204,19 +333,44 @@ export default function FacebookCampaignOverview() {
     }
   };
 
+  // Handle retry campaign creation
+  const handleRetry = () => {
+    if (retryCount >= 3) {
+      toast({
+        title: "Maximum Retries Exceeded",
+        description: "Please check your campaign settings and try again later.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setRetryCount(prev => prev + 1);
+    setErrorMessage(null);
+    setErrorType(null);
+    setValidationErrors([]);
+    handleCreateCampaign();
+  };
+
   // Handle campaign creation
   const handleCreateCampaign = async () => {
     setIsGenerating(true);
-    setCampaignStatus('uploading');
-    setProgressValue(10);
+    setCampaignStatus('validating');
+    setProgressValue(5);
     setErrorMessage(null);
+    setErrorType(null);
+    setValidationErrors([]);
     
     try {
-      if (!adPreview || !adPreview.facebookData) {
-        throw new Error('No ad preview data available');
+      // 1. Validate the campaign data
+      if (!validateCampaignData()) {
+        setCampaignStatus('error');
+        setProgressValue(0);
+        setIsGenerating(false);
+        return;
       }
       
-      // 1. Upload image if needed
+      // 2. Upload image if needed
+      setCampaignStatus('uploading');
       setProgressValue(20);
       let processedImageUrl = adPreview.imageUrl;
       if (adPreview.imageUrl) {
@@ -228,12 +382,12 @@ export default function FacebookCampaignOverview() {
           toast({
             title: "Image Upload Failed",
             description: "We'll continue with the campaign creation without an image.",
-            variant: "destructive",
+            variant: "warning",
           });
         }
       }
       
-      // 2. Create the campaign
+      // 3. Create the campaign
       setCampaignStatus('creating');
       setProgressValue(40);
       
@@ -251,35 +405,29 @@ export default function FacebookCampaignOverview() {
         throw new Error(campaignError.message || 'Failed to create campaign');
       }
       
-      // 3. Store the campaign data
+      // 4. Update state with campaign data
       setCampaignStatus('finalizing');
       setProgressValue(80);
       
-      // Save the campaign info to our database - with correct schema
-      const campaignName = adPreview.facebookData.campaign.name || `Facebook Campaign ${new Date().toLocaleDateString()}`;
-      const { data: savedCampaign, error: saveError } = await supabase
-        .from('ad_campaigns')
-        .insert({
-          name: campaignName,
-          platform: 'facebook',
-          status: 'draft',
-          platform_campaign_id: campaignData.campaignId || null,
-          platform_ad_set_id: campaignData.adSetId || null, 
-          campaign_data: adPreview.facebookData,
-          project_id: selectedProject,
-          image_url: processedImageUrl
-        })
-        .select()
-        .single();
-      
-      if (saveError) {
-        throw new Error(saveError.message || 'Failed to save campaign data');
+      // Store the campaign record for status polling
+      if (campaignData.campaignRecordId) {
+        const { data: savedCampaign, error: saveError } = await supabase
+          .from('ad_campaigns')
+          .select('*')
+          .eq('id', campaignData.campaignRecordId)
+          .single();
+        
+        if (saveError) {
+          console.error("Error fetching campaign record:", saveError);
+        } else {
+          setCampaignRecord(savedCampaign);
+        }
       }
       
       // Success
       setCampaignStatus('success');
       setProgressValue(100);
-      setCampaignId(savedCampaign.id);
+      setCampaignId(campaignData.campaignId);
       
       toast({
         title: "Campaign Created",
@@ -290,11 +438,29 @@ export default function FacebookCampaignOverview() {
       console.error("Error creating campaign:", error);
       setCampaignStatus('error');
       setProgressValue(0);
-      setErrorMessage(error instanceof Error ? error.message : 'Unknown error occurred');
+      
+      // Determine error type
+      let errorMsg = error instanceof Error ? error.message : 'Unknown error occurred';
+      let errorTypeVal: ErrorType = 'unknown';
+      
+      if (errorMsg.includes('validation')) {
+        errorTypeVal = 'validation';
+      } else if (errorMsg.includes('upload')) {
+        errorTypeVal = 'upload';
+      } else if (errorMsg.includes('Facebook API')) {
+        errorTypeVal = 'api';
+      } else if (errorMsg.includes('connect')) {
+        errorTypeVal = 'connection';
+      } else if (errorMsg.includes('server')) {
+        errorTypeVal = 'server';
+      }
+      
+      setErrorType(errorTypeVal);
+      setErrorMessage(errorMsg);
       
       toast({
         title: "Campaign Creation Failed",
-        description: error instanceof Error ? error.message : "Failed to create Facebook campaign",
+        description: errorMsg,
         variant: "destructive",
       });
     } finally {
@@ -488,16 +654,62 @@ export default function FacebookCampaignOverview() {
                         </div>
                       </div>
                       
+                      {/* Validation Errors Display */}
+                      {validationErrors.length > 0 && errorType === 'validation' && (
+                        <Alert variant="destructive" className="mt-3">
+                          <AlertTriangle className="h-4 w-4" />
+                          <AlertTitle>Validation Errors</AlertTitle>
+                          <AlertDescription>
+                            <ul className="list-disc pl-5 mt-2 text-xs space-y-1">
+                              {validationErrors.map((error, index) => (
+                                <li key={index}>{error.message}</li>
+                              ))}
+                            </ul>
+                          </AlertDescription>
+                        </Alert>
+                      )}
+                      
                       {/* Campaign Progress/Status Section */}
                       {campaignStatus !== 'idle' && (
                         <div className="pt-3 pb-2">
                           <div className="flex justify-between mb-2">
-                            <span className="text-sm font-medium">
-                              {campaignStatus === 'uploading' && 'Uploading image...'}
-                              {campaignStatus === 'creating' && 'Creating campaign...'}
-                              {campaignStatus === 'finalizing' && 'Finalizing...'}
-                              {campaignStatus === 'success' && 'Campaign created successfully!'}
-                              {campaignStatus === 'error' && 'Failed to create campaign'}
+                            <span className="text-sm font-medium flex items-center">
+                              {campaignStatus === 'validating' && (
+                                <>
+                                  <Info className="h-3.5 w-3.5 mr-1.5 text-blue-500" />
+                                  Validating campaign data...
+                                </>
+                              )}
+                              {campaignStatus === 'uploading' && (
+                                <>
+                                  <Upload className="h-3.5 w-3.5 mr-1.5 text-blue-500" />
+                                  Uploading image...
+                                </>
+                              )}
+                              {campaignStatus === 'creating' && (
+                                <>
+                                  <Loader2 className="h-3.5 w-3.5 mr-1.5 text-blue-500 animate-spin" />
+                                  Creating campaign...
+                                </>
+                              )}
+                              {campaignStatus === 'finalizing' && (
+                                <>
+                                  <Loader2 className="h-3.5 w-3.5 mr-1.5 text-green-500 animate-spin" />
+                                  Finalizing...
+                                </>
+                              )}
+                              {campaignStatus === 'success' && (
+                                <>
+                                  <CheckCircle className="h-3.5 w-3.5 mr-1.5 text-green-500" />
+                                  Campaign created successfully!
+                                </>
+                              )}
+                              {campaignStatus === 'error' && (
+                                <>
+                                  <AlertCircle className="h-3.5 w-3.5 mr-1.5 text-red-500" />
+                                  Failed to create campaign
+                                </>
+                              )}
                             </span>
                             <span className="text-xs text-muted-foreground">{progressValue}%</span>
                           </div>
@@ -507,7 +719,20 @@ export default function FacebookCampaignOverview() {
                             <Alert variant="destructive" className="mt-3">
                               <AlertCircle className="h-4 w-4" />
                               <AlertTitle>Error</AlertTitle>
-                              <AlertDescription>{errorMessage}</AlertDescription>
+                              <AlertDescription className="space-y-2">
+                                <p>{errorMessage}</p>
+                                {retryCount < 3 && (
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    className="mt-2"
+                                    onClick={handleRetry}
+                                  >
+                                    <RefreshCw className="w-3.5 h-3.5 mr-1" />
+                                    Retry
+                                  </Button>
+                                )}
+                              </AlertDescription>
                             </Alert>
                           )}
                           
@@ -537,9 +762,10 @@ export default function FacebookCampaignOverview() {
                           size="sm"
                           className="gap-1"
                           onClick={handleCreateCampaign}
-                          disabled={isGenerating || campaignStatus === 'success'}
+                          disabled={isGenerating || campaignStatus === 'success' || 
+                            ['uploading', 'creating', 'finalizing'].includes(campaignStatus)}
                         >
-                          {(isGenerating || ['uploading', 'creating', 'finalizing'].includes(campaignStatus)) ? (
+                          {isGenerating || ['uploading', 'creating', 'finalizing', 'validating'].includes(campaignStatus) ? (
                             <>
                               <Loader2 className="w-3.5 h-3.5 animate-spin" />
                               <span>Processing...</span>
