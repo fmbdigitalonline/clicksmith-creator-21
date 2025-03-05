@@ -56,7 +56,18 @@ export default function FacebookCampaignOverview() {
 
       if (error) throw error;
       
-      setCampaigns(data || []);
+      // Ensure each campaign has the required fields for the Campaign interface
+      const typedCampaigns: Campaign[] = data?.map((campaign) => ({
+        id: campaign.id,
+        name: campaign.name || "", 
+        status: campaign.status || "",
+        platform: campaign.platform,
+        created_at: campaign.created_at,
+        platform_campaign_id: campaign.platform_campaign_id,
+        image_url: campaign.image_url
+      })) || [];
+      
+      setCampaigns(typedCampaigns);
     } catch (error) {
       console.error("Error fetching campaigns:", error);
       toast({
