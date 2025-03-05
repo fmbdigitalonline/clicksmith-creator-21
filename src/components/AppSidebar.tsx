@@ -63,67 +63,55 @@ export default function AppSidebar() {
         </div>
         <Sidebar.SidebarMenu className="gap-2">
           <Sidebar.SidebarMenuItem>
-            <Sidebar.SidebarMenuButton
-              as={NavLink}
-              to="/dashboard"
-              className={getLinkClass}
-            >
-              <LayoutDashboard size={18} />
-              <span>Dashboard</span>
-            </Sidebar.SidebarMenuButton>
+            <NavLink to="/dashboard" className={getLinkClass}>
+              <Sidebar.SidebarMenuButton>
+                <LayoutDashboard size={18} />
+                <span>Dashboard</span>
+              </Sidebar.SidebarMenuButton>
+            </NavLink>
           </Sidebar.SidebarMenuItem>
           <Sidebar.SidebarMenuItem>
-            <Sidebar.SidebarMenuButton
-              as={NavLink}
-              to="/projects"
-              className={getLinkClass}
-            >
-              <Briefcase size={18} />
-              <span>Projects</span>
-            </Sidebar.SidebarMenuButton>
+            <NavLink to="/projects" className={getLinkClass}>
+              <Sidebar.SidebarMenuButton>
+                <Briefcase size={18} />
+                <span>Projects</span>
+              </Sidebar.SidebarMenuButton>
+            </NavLink>
           </Sidebar.SidebarMenuItem>
           <Sidebar.SidebarMenuItem>
-            <Sidebar.SidebarMenuButton
-              as={NavLink}
-              to="/saved-ads"
-              className={getLinkClass}
-            >
-              <ImageIcon size={18} />
-              <span>Saved Ads</span>
-            </Sidebar.SidebarMenuButton>
+            <NavLink to="/saved-ads" className={getLinkClass}>
+              <Sidebar.SidebarMenuButton>
+                <ImageIcon size={18} />
+                <span>Saved Ads</span>
+              </Sidebar.SidebarMenuButton>
+            </NavLink>
           </Sidebar.SidebarMenuItem>
           <Sidebar.SidebarMenuItem>
-            <Sidebar.SidebarMenuButton
-              as={NavLink}
-              to="/integrations"
-              className={getLinkClass}
-            >
-              <Link size={18} />
-              <span>Integrations</span>
-            </Sidebar.SidebarMenuButton>
+            <NavLink to="/integrations" className={getLinkClass}>
+              <Sidebar.SidebarMenuButton>
+                <Link size={18} />
+                <span>Integrations</span>
+              </Sidebar.SidebarMenuButton>
+            </NavLink>
           </Sidebar.SidebarMenuItem>
         </Sidebar.SidebarMenu>
         <div className="mt-auto">
           <Sidebar.SidebarMenu className="gap-2">
             <Sidebar.SidebarMenuItem>
-              <Sidebar.SidebarMenuButton
-                as={NavLink}
-                to="/settings"
-                className={getLinkClass}
-              >
-                <Settings size={18} />
-                <span>Settings</span>
-              </Sidebar.SidebarMenuButton>
+              <NavLink to="/settings" className={getLinkClass}>
+                <Sidebar.SidebarMenuButton>
+                  <Settings size={18} />
+                  <span>Settings</span>
+                </Sidebar.SidebarMenuButton>
+              </NavLink>
             </Sidebar.SidebarMenuItem>
             <Sidebar.SidebarMenuItem>
-              <Sidebar.SidebarMenuButton
-                as={NavLink}
-                to="/help"
-                className={getLinkClass}
-              >
-                <HelpCircle size={18} />
-                <span>Help</span>
-              </Sidebar.SidebarMenuButton>
+              <NavLink to="/help" className={getLinkClass}>
+                <Sidebar.SidebarMenuButton>
+                  <HelpCircle size={18} />
+                  <span>Help</span>
+                </Sidebar.SidebarMenuButton>
+              </NavLink>
             </Sidebar.SidebarMenuItem>
           </Sidebar.SidebarMenu>
           <Button
@@ -140,4 +128,3 @@ export default function AppSidebar() {
     </Sidebar.Sidebar>
   );
 }
-
