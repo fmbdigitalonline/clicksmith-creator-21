@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -41,6 +42,28 @@ type ErrorType = 'validation' | 'upload' | 'api' | 'connection' | 'server' | 'un
 interface ValidationError {
   field: string;
   message: string;
+}
+
+// Define interface for campaign targeting/data
+interface CampaignTargeting {
+  campaign?: Record<string, any>;
+  adSet?: Record<string, any>;
+  adCreative?: Record<string, any>;
+  platform_ad_set_id?: string;
+  platform_ad_id?: string;
+  error_message?: string;
+}
+
+// Define interface for campaign record
+interface CampaignRecord {
+  id: string;
+  platform: string;
+  status: string;
+  platform_campaign_id?: string;
+  targeting?: CampaignTargeting;
+  created_at: string;
+  updated_at: string;
+  [key: string]: any;
 }
 
 export default function FacebookCampaignOverview() {
@@ -224,20 +247,23 @@ export default function FacebookCampaignOverview() {
             
           if (error) throw error;
           
+          // Cast data to our defined interface
+          const campaign = data as CampaignRecord;
+          
           // Update local state based on campaign status
-          if (data.status === 'draft' || data.status === 'completed') {
+          if (campaign.status === 'draft' || campaign.status === 'completed') {
             setCampaignStatus('success');
             setProgressValue(100);
             clearInterval(intervalId);
-          } else if (data.status === 'error') {
+          } else if (campaign.status === 'error') {
             setCampaignStatus('error');
-            // Access error message from targeting instead of campaign_data
-            setErrorMessage(data.targeting?.error_message || 'Campaign creation failed');
+            // Access error message from targeting with proper type checking
+            setErrorMessage(campaign.targeting?.error_message || 'Campaign creation failed');
             setErrorType('api');
             clearInterval(intervalId);
-          } else if (data.status === 'campaign_created') {
+          } else if (campaign.status === 'campaign_created') {
             setProgressValue(50);
-          } else if (data.status === 'adset_created') {
+          } else if (campaign.status === 'adset_created') {
             setProgressValue(75);
           }
         } catch (error) {
