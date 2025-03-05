@@ -9,3 +9,6 @@ verify_jwt = false
 
 [functions.facebook-oauth]
 verify_jwt = false
+
+[functions.create-facebook-campaign]
+verify_jwt = false

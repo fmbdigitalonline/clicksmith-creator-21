@@ -1,6 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { createClient } from "@supabase/supabase-js";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 interface RequestData {
   campaignData: any;
@@ -227,6 +227,25 @@ serve(async (req) => {
 
     // Log the successful campaign creation (for debugging)
     console.log("Campaign created successfully:", response);
+
+    // Save to ad_campaigns table
+    const { data: campaignRecord, error: saveError } = await supabase
+      .from("ad_campaigns")
+      .insert({
+        platform: "facebook",
+        status: "draft", 
+        platform_campaign_id: response.campaignId,
+        platform_ad_id: response.adId,
+        campaign_data: campaignData,
+        project_id: projectId,
+        image_url: adCreativeData.object_story_spec?.link_data?.image_url
+      })
+      .select()
+      .single();
+
+    if (saveError) {
+      console.error("Error saving campaign:", saveError);
+    }
 
     // Return the response
     return new Response(JSON.stringify(response), { status: 200, headers });
