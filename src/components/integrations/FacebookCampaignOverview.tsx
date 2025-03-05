@@ -12,6 +12,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { transformToFacebookAdFormat } from "@/utils/facebookAdTransformer";
 import { BusinessIdea, TargetAudience } from "@/types/adWizard";
 
+// Define an interface for the ad structure
+interface AdCreative {
+  headline?: string;
+  description?: string;
+  imageUrl?: string;
+  [key: string]: any;
+}
+
 export default function FacebookCampaignOverview() {
   const [isLoading, setIsLoading] = useState(true);
   const [isConnected, setIsConnected] = useState(false);
@@ -111,7 +119,9 @@ export default function FacebookCampaignOverview() {
         if (projectData.generated_ads && 
             Array.isArray(projectData.generated_ads) && 
             projectData.generated_ads.length > 0) {
-          const firstAd = projectData.generated_ads[0];
+          
+          // Type cast firstAd to the AdCreative interface
+          const firstAd = projectData.generated_ads[0] as AdCreative;
           
           // Transform to Facebook format if we have business_idea and target_audience
           if (projectData.business_idea && projectData.target_audience) {
@@ -125,19 +135,19 @@ export default function FacebookCampaignOverview() {
               firstAd
             );
             
-            // Fix: Create a new object instead of using spread on potentially non-object values
+            // Create a new object with optional chaining to handle undefined properties
             setAdPreview({
-              headline: firstAd.headline || '',
-              description: firstAd.description || '',
-              imageUrl: firstAd.imageUrl || '',
+              headline: firstAd?.headline || '',
+              description: firstAd?.description || '',
+              imageUrl: firstAd?.imageUrl || '',
               facebookData: facebookAdData
             });
           } else {
-            // Fix: Ensure we're creating a proper object
+            // Create a proper object with optional chaining
             setAdPreview({
-              headline: firstAd.headline || '',
-              description: firstAd.description || '',
-              imageUrl: firstAd.imageUrl || ''
+              headline: firstAd?.headline || '',
+              description: firstAd?.description || '',
+              imageUrl: firstAd?.imageUrl || ''
             });
           }
         }
