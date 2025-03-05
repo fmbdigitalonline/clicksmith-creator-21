@@ -1,5 +1,3 @@
-
-import { useState } from "react";
 import { NavLink } from "react-router-dom";
 import { useSidebar } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
