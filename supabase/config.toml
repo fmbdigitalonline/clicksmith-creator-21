@@ -6,9 +6,3 @@ verify_jwt = false
 
 [functions.generate-images]
 verify_jwt = false
-
-[functions.facebook-auth]
-verify_jwt = false
-
-[functions.facebook-campaign]
-verify_jwt = false
