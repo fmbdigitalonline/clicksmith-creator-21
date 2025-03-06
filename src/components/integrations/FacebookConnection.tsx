@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useSession } from "@supabase/auth-helpers-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -24,7 +23,6 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
   const [connection, setConnection] = useState<PlatformConnection | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [isConnecting, setIsConnecting] = useState(false);
   const session = useSession();
   const { toast } = useToast();
 
@@ -43,23 +41,9 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
         .eq("platform", "facebook")
         .single();
 
-      if (error) {
-        if (error.code === "PGRST116") {
-          // No connection found, this is not an error
-          console.log("No Facebook connection found");
-          setConnection(null);
-        } else {
-          throw error;
-        }
-      } else {
-        // Transform the data to ensure metadata is correctly typed
-        const typedConnection: PlatformConnection = {
-          ...data,
-          metadata: data.metadata as PlatformConnectionMetadata
-        };
+      if (error) throw error;
 
-        setConnection(typedConnection);
-      }
+      setConnection(data);
     } catch (error) {
       console.error("Error fetching Facebook connection:", error);
       toast({
@@ -118,6 +102,9 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
     }
   };
 
+  const selectedAccountId = connection?.metadata?.selected_account_id || '';
+  const adAccounts = connection?.metadata?.ad_accounts || [];
+
   const handleDisconnect = async () => {
     if (!connection) return;
 
@@ -147,33 +134,6 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
       setIsUpdating(false);
     }
   };
-  
-  const handleConnectFacebook = () => {
-    setIsConnecting(true);
-    
-    try {
-      // Construct the OAuth URL
-      const facebookOAuthURL = `${
-        import.meta.env.VITE_SUPABASE_URL
-      }/auth/v1/authorize?provider=facebook&redirect_to=${
-        window.location.origin
-      }/integrations?connection=facebook`;
-      
-      console.log("Redirecting to Facebook OAuth URL:", facebookOAuthURL);
-      
-      // Redirect to Facebook OAuth
-      window.location.href = facebookOAuthURL;
-    } catch (error) {
-      console.error("Error initiating Facebook connection:", error);
-      setIsConnecting(false);
-      
-      toast({
-        title: "Connection Failed",
-        description: "Unable to connect to Facebook. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
 
   if (isLoading) {
     return (
@@ -184,6 +144,12 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
   }
 
   if (!connection) {
+    const facebookOAuthURL = `${
+      import.meta.env.VITE_SUPABASE_URL
+    }/auth/v1/authorize?provider=facebook&redirect_to=${
+      window.location.origin
+    }/integrations?connection=facebook`;
+
     return (
       <div className="space-y-4">
         <Alert>
@@ -193,15 +159,8 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
             Connect your Facebook account to automate ad creation.
           </AlertDescription>
         </Alert>
-        <Button onClick={handleConnectFacebook} disabled={isConnecting}>
-          {isConnecting ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Connecting...
-            </>
-          ) : (
-            "Connect Facebook"
-          )}
+        <Button asChild>
+          <a href={facebookOAuthURL}>Connect Facebook</a>
         </Button>
       </div>
     );
@@ -222,17 +181,17 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
 
       <div className="space-y-2">
         <h4 className="text-sm font-medium">Ad Accounts</h4>
-        {connection.metadata?.ad_accounts && connection.metadata.ad_accounts.length > 0 ? (
+        {adAccounts && adAccounts.length > 0 ? (
           <div className="grid gap-2">
-            {connection.metadata.ad_accounts.map((account: AdAccount) => (
+            {adAccounts.map((account: AdAccount) => (
               <Button
                 key={account.id}
-                variant={connection.metadata?.selected_account_id === account.id ? "default" : "outline"}
+                variant={selectedAccountId === account.id ? "default" : "outline"}
                 onClick={() => handleSelectAccount(account.id)}
                 disabled={isUpdating}
               >
                 {account.name}
-                {connection.metadata?.selected_account_id === account.id && (
+                {selectedAccountId === account.id && (
                   <CheckCircle className="ml-2 h-4 w-4" />
                 )}
               </Button>
