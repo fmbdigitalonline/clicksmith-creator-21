@@ -1134,7 +1134,6 @@ export type Database = {
           account_name: string | null
           created_at: string | null
           id: string
-          metadata: Json | null
           platform: Database["public"]["Enums"]["ad_platform"]
           refresh_token: string | null
           token_expires_at: string | null
@@ -1147,7 +1146,6 @@ export type Database = {
           account_name?: string | null
           created_at?: string | null
           id?: string
-          metadata?: Json | null
           platform: Database["public"]["Enums"]["ad_platform"]
           refresh_token?: string | null
           token_expires_at?: string | null
@@ -1160,7 +1158,6 @@ export type Database = {
           account_name?: string | null
           created_at?: string | null
           id?: string
-          metadata?: Json | null
           platform?: Database["public"]["Enums"]["ad_platform"]
           refresh_token?: string | null
           token_expires_at?: string | null

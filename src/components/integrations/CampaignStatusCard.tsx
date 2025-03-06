@@ -122,9 +122,7 @@ export default function CampaignStatusCard({
   }
 
   const status = getStatusBadge(campaign.status);
-  const errorMessage = campaign.targeting && typeof campaign.targeting === 'object' 
-    ? campaign.targeting.error_message 
-    : null;
+  const errorMessage = campaign.targeting?.error_message;
 
   return (
     <Card>
