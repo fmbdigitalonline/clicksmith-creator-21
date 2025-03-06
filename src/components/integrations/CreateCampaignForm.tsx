@@ -21,6 +21,14 @@ import {
   suggestDailyBudget,
   generateDefaultDates
 } from "@/utils/campaignDataUtils";
+import { AISuggestion } from "./AISuggestion";
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const campaignFormSchema = z.object({
   name: z.string().min(2, {
@@ -68,6 +76,7 @@ export default function CreateCampaignForm({
   projectDataCompleteness = 100
 }: CreateCampaignFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPerformancePrediction, setShowPerformancePrediction] = useState(false);
   const projectData = useProjectCampaignData(projectId);
   
   // Generate default values based on project data
@@ -161,6 +170,10 @@ export default function CreateCampaignForm({
     return null;
   };
 
+  const handleApplySuggestion = (field: keyof z.infer<typeof campaignFormSchema>, suggestion: string) => {
+    form.setValue(field, suggestion, { shouldValidate: true });
+  };
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
@@ -196,9 +209,34 @@ export default function CreateCampaignForm({
           name="objective"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Objective</FormLabel>
+              <div className="flex justify-between items-center">
+                <FormLabel>Objective</FormLabel>
+                <AISuggestion 
+                  type="objective"
+                  size="sm"
+                  businessIdea={projectData.businessIdea}
+                  targetAudience={projectData.targetAudience}
+                  onSuggestionSelected={(suggestion) => handleApplySuggestion("objective", suggestion)}
+                  disabled={projectData.loading}
+                />
+              </div>
               <FormControl>
-                <Input placeholder="Increase brand awareness" {...field} />
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select campaign objective" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="REACH">Reach</SelectItem>
+                    <SelectItem value="TRAFFIC">Traffic</SelectItem>
+                    <SelectItem value="ENGAGEMENT">Engagement</SelectItem>
+                    <SelectItem value="LEADS">Lead Generation</SelectItem>
+                    <SelectItem value="CONVERSIONS">Conversions</SelectItem>
+                    <SelectItem value="SALES">Sales</SelectItem>
+                  </SelectContent>
+                </Select>
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -210,7 +248,18 @@ export default function CreateCampaignForm({
           name="targetAudience"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Target Audience</FormLabel>
+              <div className="flex justify-between items-center">
+                <FormLabel>Target Audience</FormLabel>
+                <AISuggestion 
+                  type="targeting"
+                  size="sm"
+                  businessIdea={projectData.businessIdea}
+                  targetAudience={projectData.targetAudience}
+                  audienceAnalysis={projectData.audienceAnalysis}
+                  onSuggestionSelected={(suggestion) => handleApplySuggestion("targetAudience", suggestion)}
+                  disabled={projectData.loading}
+                />
+              </div>
               <FormControl>
                 <Textarea
                   placeholder="Describe your ideal customer"
@@ -228,7 +277,18 @@ export default function CreateCampaignForm({
           name="budget"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Budget</FormLabel>
+              <div className="flex justify-between items-center">
+                <FormLabel>Budget</FormLabel>
+                <AISuggestion 
+                  type="budget"
+                  size="sm"
+                  businessIdea={projectData.businessIdea}
+                  targetAudience={projectData.targetAudience}
+                  currentValue={field.value}
+                  onSuggestionSelected={(suggestion) => handleApplySuggestion("budget", suggestion)}
+                  disabled={projectData.loading}
+                />
+              </div>
               <FormControl>
                 <Input placeholder="1000" type="number" {...field} />
               </FormControl>
@@ -284,6 +344,30 @@ export default function CreateCampaignForm({
             </FormItem>
           )}
         />
+        
+        {/* Performance prediction section */}
+        <div className="pt-2">
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={() => setShowPerformancePrediction(!showPerformancePrediction)}
+            className="w-full justify-start text-sm"
+          >
+            {showPerformancePrediction ? "Hide" : "Show"} Performance Prediction
+          </Button>
+          
+          {showPerformancePrediction && (
+            <div className="mt-4">
+              <AISuggestion 
+                type="performance"
+                businessIdea={projectData.businessIdea}
+                targetAudience={projectData.targetAudience}
+                audienceAnalysis={projectData.audienceAnalysis}
+                disabled={projectData.loading}
+              />
+            </div>
+          )}
+        </div>
         
         <div className="flex justify-between">
           {onBack && (
