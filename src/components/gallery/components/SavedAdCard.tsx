@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { AdFeedbackControls } from "@/components/steps/gallery/components/AdFeedbackControls";
@@ -173,14 +174,15 @@ export const SavedAdCard = ({
   };
 
   return (
-    <Card className={`overflow-hidden ${selected ? 'ring-2 ring-primary border-primary' : ''}`}>
-      {/* Selection Checkbox */}
+    <Card className={`overflow-hidden relative ${selected ? 'ring-2 ring-primary border-primary' : ''}`}>
+      {/* Selection Checkbox - Made more visible with improved styling */}
       {selectable && (
-        <div className="absolute top-3 left-3 z-10 bg-white/80 p-1 rounded-md">
+        <div className="absolute top-3 left-3 z-10 bg-white/90 p-1.5 rounded-md shadow-sm border border-gray-200">
           <Checkbox 
             checked={selected} 
             onCheckedChange={handleSelectChange}
             className="h-5 w-5"
+            id={`select-ad-${id}`}
           />
         </div>
       )}
