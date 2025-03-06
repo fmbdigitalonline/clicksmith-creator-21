@@ -65,24 +65,20 @@ interface FacebookPage {
   access_token?: string;
 }
 
-// Extended connection type with custom metadata
-interface FacebookConnectionData {
+interface PlatformConnection {
   id: string;
   platform: string;
   account_id: string | null;
   account_name: string | null;
   created_at: string;
   updated_at: string;
-  access_token: string;
-  refresh_token?: string | null;
-  token_expires_at?: string | null;
-  user_id?: string;
-  // Extended properties stored in our components
-  adAccounts?: AdAccount[];
-  pages?: FacebookPage[];
-  selectedAdAccountId?: string;
-  selectedPageId?: string;
-  pageAccessToken?: string;
+  metadata?: {
+    adAccounts?: AdAccount[];
+    pages?: FacebookPage[];
+    selectedAdAccountId?: string;
+    selectedPageId?: string;
+    pageAccessToken?: string;
+  };
 }
 
 interface FacebookConnectionProps {
@@ -93,7 +89,7 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
-  const [connection, setConnection] = useState<FacebookConnectionData | null>(null);
+  const [connection, setConnection] = useState<PlatformConnection | null>(null);
   const [adAccounts, setAdAccounts] = useState<AdAccount[]>([]);
   const [pages, setPages] = useState<FacebookPage[]>([]); 
   const [selectedAdAccount, setSelectedAdAccount] = useState<string | null>(null);
@@ -139,97 +135,20 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
       
       console.log("Facebook connection data:", data);
       if (data) {
-        // Get additional metadata from a custom table or separate query
-        const { data: metadataData, error: metadataError } = await supabase
-          .from('platform_connections')
-          .select('*')
-          .eq('id', data.id)
-          .single();
+        setConnection(data);
+        
+        // Extract ad accounts and pages from metadata
+        if (data.metadata) {
+          const adAccounts = data.metadata.adAccounts || [];
+          const pages = data.metadata.pages || [];
           
-        // Create a combined object with standard fields and extended metadata
-        const connectionData: FacebookConnectionData = {
-          ...data,
-          adAccounts: [],
-          pages: [],
-          selectedAdAccountId: null,
-          selectedPageId: null,
-          pageAccessToken: null
-        };
-        
-        // If we have additional data from metadata
-        if (metadataData && !metadataError) {
-          // Try to parse metadata JSON fields from the response
-          try {
-            // Extract and set ad accounts with fallback
-            const metadata = metadataData;
-            const jsonData = metadata;
-            console.log("JSON Metadata:", jsonData);
-            
-            // Try to get ad accounts from a variety of possible structures
-            let extractedAdAccounts = [];
-            if (typeof jsonData === 'object' && jsonData !== null) {
-              if (jsonData.adAccounts) {
-                extractedAdAccounts = jsonData.adAccounts;
-              } else if (jsonData.metadata && jsonData.metadata.adAccounts) {
-                extractedAdAccounts = jsonData.metadata.adAccounts;
-              }
-            }
-            
-            // Try to get pages from possible structures
-            let extractedPages = [];
-            if (typeof jsonData === 'object' && jsonData !== null) {
-              if (jsonData.pages) {
-                extractedPages = jsonData.pages;
-              } else if (jsonData.metadata && jsonData.metadata.pages) {
-                extractedPages = jsonData.metadata.pages;
-              }
-            }
-            
-            // Set extracted data
-            connectionData.adAccounts = extractedAdAccounts || [];
-            connectionData.pages = extractedPages || [];
-            
-            // Try to get selected account and page IDs
-            if (typeof jsonData === 'object' && jsonData !== null) {
-              if (jsonData.selectedAdAccountId) {
-                connectionData.selectedAdAccountId = jsonData.selectedAdAccountId;
-              } else if (jsonData.metadata && jsonData.metadata.selectedAdAccountId) {
-                connectionData.selectedAdAccountId = jsonData.metadata.selectedAdAccountId;
-              }
-              
-              if (jsonData.selectedPageId) {
-                connectionData.selectedPageId = jsonData.selectedPageId;
-              } else if (jsonData.metadata && jsonData.metadata.selectedPageId) {
-                connectionData.selectedPageId = jsonData.metadata.selectedPageId;
-              }
-              
-              if (jsonData.pageAccessToken) {
-                connectionData.pageAccessToken = jsonData.pageAccessToken;
-              } else if (jsonData.metadata && jsonData.metadata.pageAccessToken) {
-                connectionData.pageAccessToken = jsonData.metadata.pageAccessToken;
-              }
-            }
-          } catch (parseError) {
-            console.error("Error parsing metadata JSON:", parseError);
-          }
+          setAdAccounts(adAccounts);
+          setPages(pages);
+          
+          // Set selected account and page
+          setSelectedAdAccount(data.metadata.selectedAdAccountId || (adAccounts.length > 0 ? adAccounts[0].id : null));
+          setSelectedPage(data.metadata.selectedPageId || (pages.length > 0 ? pages[0].id : null));
         }
-        
-        setConnection(connectionData);
-        
-        // Set component state from the connection data
-        setAdAccounts(connectionData.adAccounts || []);
-        setPages(connectionData.pages || []);
-        
-        // Set selected account and page
-        setSelectedAdAccount(
-          connectionData.selectedAdAccountId || 
-          (connectionData.adAccounts && connectionData.adAccounts.length > 0 ? connectionData.adAccounts[0].id : null)
-        );
-        
-        setSelectedPage(
-          connectionData.selectedPageId || 
-          (connectionData.pages && connectionData.pages.length > 0 ? connectionData.pages[0].id : null)
-        );
         
         return true;
       }
@@ -385,21 +304,16 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
       const selectedAccount = adAccounts.find(acc => acc.id === accountId);
       if (!selectedAccount) return;
       
-      // Store ad account selection in a more TypeScript-friendly way
-      const updatedConnection = {
-        ...connection,
-        account_id: accountId,
-        account_name: selectedAccount.name,
-        selectedAdAccountId: accountId
-      };
-      
       // Update the platform connection
       const { error } = await supabase
         .from('platform_connections')
         .update({
           account_id: accountId,
-          account_name: selectedAccount.name
-          // We can't update metadata field directly as it's not in the type
+          account_name: selectedAccount.name,
+          metadata: {
+            ...connection.metadata,
+            selectedAdAccountId: accountId
+          }
         })
         .eq('platform', 'facebook');
       
@@ -408,7 +322,15 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
       setSelectedAdAccount(accountId);
       
       // Update local state
-      setConnection(updatedConnection);
+      setConnection({
+        ...connection,
+        account_id: accountId,
+        account_name: selectedAccount.name,
+        metadata: {
+          ...connection.metadata,
+          selectedAdAccountId: accountId
+        }
+      });
       
       toast({
         title: "Account Updated",
@@ -441,18 +363,15 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
       const selectedPageData = pages.find(page => page.id === pageId);
       if (!selectedPageData) return;
       
-      // Store page selection in a more TypeScript-friendly way
-      const updatedConnection = {
-        ...connection,
-        selectedPageId: pageId,
-        pageAccessToken: selectedPageData.access_token
-      };
-      
-      // Update the platform connection - we can't update metadata directly
+      // Update the platform connection
       const { error } = await supabase
         .from('platform_connections')
         .update({
-          // Only update standard fields
+          metadata: {
+            ...connection.metadata,
+            selectedPageId: pageId,
+            pageAccessToken: selectedPageData.access_token
+          }
         })
         .eq('platform', 'facebook');
       
@@ -461,7 +380,14 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
       setSelectedPage(pageId);
       
       // Update local state
-      setConnection(updatedConnection);
+      setConnection({
+        ...connection,
+        metadata: {
+          ...connection.metadata,
+          selectedPageId: pageId,
+          pageAccessToken: selectedPageData.access_token
+        }
+      });
       
       toast({
         title: "Page Updated",

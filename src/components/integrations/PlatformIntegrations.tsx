@@ -12,13 +12,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { useLocation, useNavigate } from "react-router-dom";
 
-// Custom interface for platform connections with additional properties
 interface PlatformConnection {
   platform: string;
-  adAccounts?: Array<{id: string; name: string}>;
-  pages?: Array<{id: string; name: string; access_token?: string}>;
-  selectedAdAccountId?: string;
-  selectedPageId?: string;
+  metadata?: {
+    adAccounts?: Array<{id: string; name: string}>;
+  };
 }
 
 export default function PlatformIntegrations() {
@@ -176,83 +174,8 @@ export default function PlatformIntegrations() {
       } else {
         const hasAnyConnection = data && data.length > 0;
         console.log("Has connections:", hasAnyConnection, data);
-        
-        // Process the data to extract metadata-like fields
-        const processedConnections: PlatformConnection[] = [];
-        
-        if (data && data.length > 0) {
-          for (const conn of data) {
-            // For each connection, make a separate query to get additional custom fields
-            try {
-              // Attempt to extract additional data (we'll implement proper metadata handling via SQL)
-              const connectionWithMetadata: PlatformConnection = {
-                platform: conn.platform,
-                // Add more processed fields as needed
-              };
-              
-              // For Facebook connections, we need to augment with additional details
-              if (conn.platform === 'facebook') {
-                // Query for extended data
-                const { data: extendedData } = await supabase
-                  .from('platform_connections')
-                  .select('*')
-                  .eq('id', conn.id)
-                  .single();
-                  
-                // If we have extended data, try to parse it
-                if (extendedData) {
-                  // Extract any additional fields we might find
-                  try {
-                    // Check for fields in various potential locations based on backend structure
-                    const jsonData = extendedData;
-                    
-                    // Assign what we find to our processed connection
-                    if (jsonData) {
-                      // Build the adAccounts array from whatever structure it might be in
-                      if (jsonData.adAccounts) {
-                        connectionWithMetadata.adAccounts = jsonData.adAccounts;
-                      } else if (jsonData.metadata && jsonData.metadata.adAccounts) {
-                        connectionWithMetadata.adAccounts = jsonData.metadata.adAccounts;
-                      }
-                      
-                      // Build the pages array
-                      if (jsonData.pages) {
-                        connectionWithMetadata.pages = jsonData.pages;
-                      } else if (jsonData.metadata && jsonData.metadata.pages) {
-                        connectionWithMetadata.pages = jsonData.metadata.pages;
-                      }
-                      
-                      // Get selected account ID
-                      if (jsonData.selectedAdAccountId) {
-                        connectionWithMetadata.selectedAdAccountId = jsonData.selectedAdAccountId;
-                      } else if (jsonData.metadata && jsonData.metadata.selectedAdAccountId) {
-                        connectionWithMetadata.selectedAdAccountId = jsonData.metadata.selectedAdAccountId;
-                      } else if (jsonData.account_id) {
-                        connectionWithMetadata.selectedAdAccountId = jsonData.account_id;
-                      }
-                      
-                      // Get selected page ID
-                      if (jsonData.selectedPageId) {
-                        connectionWithMetadata.selectedPageId = jsonData.selectedPageId;
-                      } else if (jsonData.metadata && jsonData.metadata.selectedPageId) {
-                        connectionWithMetadata.selectedPageId = jsonData.metadata.selectedPageId;
-                      }
-                    }
-                  } catch (parseError) {
-                    console.error("Error processing connection metadata:", parseError);
-                  }
-                }
-              }
-              
-              processedConnections.push(connectionWithMetadata);
-            } catch (connectionError) {
-              console.error("Error processing connection:", connectionError);
-            }
-          }
-        }
-        
         setHasConnections(hasAnyConnection);
-        setConnections(processedConnections);
+        setConnections(data || []);
         
         // If we have connections and the user is on the integrations tab,
         // we can show the campaigns tab by default
@@ -294,7 +217,7 @@ export default function PlatformIntegrations() {
 
   // Find Facebook connection if exists
   const facebookConnection = connections.find(conn => conn.platform === 'facebook');
-  const hasFacebookAdAccounts = facebookConnection?.adAccounts?.length > 0;
+  const hasFacebookAdAccounts = facebookConnection?.metadata?.adAccounts?.length > 0;
 
   return (
     <div className="space-y-6">
@@ -360,9 +283,9 @@ export default function PlatformIntegrations() {
               </AlertDescription>
             </Alert>
           ) : hasFacebookAdAccounts ? (
-            <FacebookCampaignOverview connection={facebookConnection} />
+            <FacebookCampaignOverview />
           ) : (
-            <Alert>
+            <Alert variant="warning">
               <AlertCircle className="h-4 w-4" />
               <AlertTitle>No Ad Accounts Found</AlertTitle>
               <AlertDescription>
