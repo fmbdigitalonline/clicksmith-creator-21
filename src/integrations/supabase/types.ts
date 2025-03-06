@@ -348,6 +348,50 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_suggestion_feedback: {
+        Row: {
+          action: string
+          created_at: string | null
+          current_value: string | null
+          id: string
+          project_id: string | null
+          suggestion_confidence: string | null
+          suggestion_content: string | null
+          suggestion_type: string
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          current_value?: string | null
+          id?: string
+          project_id?: string | null
+          suggestion_confidence?: string | null
+          suggestion_content?: string | null
+          suggestion_type: string
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          current_value?: string | null
+          id?: string
+          project_id?: string | null
+          suggestion_confidence?: string | null
+          suggestion_content?: string | null
+          suggestion_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_suggestion_feedback_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       anonymous_usage: {
         Row: {
           completed: boolean | null
