@@ -186,7 +186,7 @@ export default function CampaignStatusCard({
   }
 
   const status = getStatusBadge(campaign.status);
-  const errorMessage = campaign.targeting?.error_message;
+  const errorMessage = campaign.campaign_data?.error_message;
 
   return (
     <Card>
@@ -221,7 +221,7 @@ export default function CampaignStatusCard({
             <CheckCircle className="h-4 w-4 text-green-600" />
             <AlertTitle>Campaign Created Successfully</AlertTitle>
             <AlertDescription className="text-sm">
-              Your campaign has been created and is currently in a paused state. You can activate it directly from this app or in Facebook Ads Manager.
+              Your campaign has been created and is currently in a paused state. You can activate it directly using the button below.
             </AlertDescription>
           </Alert>
         )}
@@ -268,17 +268,17 @@ export default function CampaignStatusCard({
             </div>
           )}
           
-          {campaign.targeting?.campaign?.objective && (
+          {campaign.campaign_data?.campaign?.objective && (
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Objective:</span>
-              <span className="font-medium">{campaign.targeting.campaign.objective}</span>
+              <span className="font-medium">{campaign.campaign_data.campaign.objective}</span>
             </div>
           )}
           
-          {campaign.targeting?.adSet?.daily_budget && (
+          {campaign.campaign_data?.adSet?.daily_budget && (
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Daily Budget:</span>
-              <span className="font-medium">${(campaign.targeting.adSet.daily_budget / 100).toFixed(2)}</span>
+              <span className="font-medium">${(campaign.campaign_data.adSet.daily_budget / 100).toFixed(2)}</span>
             </div>
           )}
         </div>
@@ -288,7 +288,7 @@ export default function CampaignStatusCard({
         {campaign.status === "completed" && (
           <>
             <Button 
-              className="w-full" 
+              className="w-full bg-facebook text-white hover:bg-facebook/90" 
               onClick={activateCampaign}
               disabled={isActivating}
             >

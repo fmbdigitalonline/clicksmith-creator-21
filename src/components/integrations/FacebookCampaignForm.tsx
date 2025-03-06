@@ -12,6 +12,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { extractTargetingData } from "@/utils/campaignDataUtils";
 import { useProjectCampaignData } from "@/hooks/useProjectCampaignData";
 import DataCompletionWarning from "@/components/projects/DataCompletionWarning";
+import CampaignStatusCard from "@/components/integrations/CampaignStatusCard";
 
 interface FacebookCampaignFormProps {
   open: boolean;
@@ -26,11 +27,12 @@ export default function FacebookCampaignForm({
   projectId: initialProjectId,
   onSuccess
 }: FacebookCampaignFormProps) {
-  const [step, setStep] = useState<"mode-selection" | "form">("mode-selection");
+  const [step, setStep] = useState<"mode-selection" | "form" | "status">("mode-selection");
   const [selectedMode, setSelectedMode] = useState<"manual" | "semi-automatic" | "automatic">("manual");
   const [selectedProjectId, setSelectedProjectId] = useState<string>(initialProjectId || "");
   const [formTab, setFormTab] = useState<"details" | "ads">("details");
   const [selectedAdIds, setSelectedAdIds] = useState<string[]>([]);
+  const [createdCampaignId, setCreatedCampaignId] = useState<string>("");
   
   // Fetch project data for targeting suggestions and validation
   const projectData = useProjectCampaignData(selectedProjectId || initialProjectId);
@@ -60,7 +62,12 @@ export default function FacebookCampaignForm({
   };
 
   const handleBack = () => {
-    setStep("mode-selection");
+    if (step === "form") {
+      setStep("mode-selection");
+    } else if (step === "status") {
+      setStep("form");
+      setCreatedCampaignId("");
+    }
   };
 
   const handleClose = () => {
@@ -73,12 +80,30 @@ export default function FacebookCampaignForm({
       setSelectedMode("manual");
       setFormTab("details");
       setSelectedAdIds([]);
+      setCreatedCampaignId("");
     }, 300); // Small delay to avoid seeing the reset during close animation
     onOpenChange(false);
   };
 
   const handleAdsSelected = (adIds: string[]) => {
     setSelectedAdIds(adIds);
+  };
+
+  const handleCampaignCreated = (campaignId: string) => {
+    setCreatedCampaignId(campaignId);
+    setStep("status");
+    
+    // Call onSuccess if provided
+    if (onSuccess) {
+      onSuccess();
+    }
+  };
+
+  const handleCampaignActivated = () => {
+    // Could refresh data or show a success message
+    if (onSuccess) {
+      onSuccess();
+    }
   };
 
   return (
@@ -91,7 +116,7 @@ export default function FacebookCampaignForm({
           </DialogDescription>
         </DialogHeader>
         
-        {step === "mode-selection" ? (
+        {step === "mode-selection" && (
           <>
             {!initialProjectId && (
               <div className="mb-6">
@@ -132,7 +157,9 @@ export default function FacebookCampaignForm({
               </Button>
             </div>
           </>
-        ) : (
+        )}
+        
+        {step === "form" && (
           <div className="space-y-6">
             {/* Show compact validation warning before tabs in form mode */}
             {(selectedProjectId || initialProjectId) && !projectData.loading && !projectData.validation.isComplete && (
@@ -163,10 +190,7 @@ export default function FacebookCampaignForm({
                 <CreateCampaignForm 
                   projectId={selectedProjectId || initialProjectId || ""} 
                   creationMode={selectedMode}
-                  onSuccess={() => {
-                    handleClose();
-                    if (onSuccess) onSuccess();
-                  }}
+                  onSuccess={handleCampaignCreated}
                   onCancel={handleClose}
                   onBack={handleBack}
                   selectedAdIds={selectedAdIds}
@@ -206,6 +230,29 @@ export default function FacebookCampaignForm({
                 </div>
               </TabsContent>
             </Tabs>
+          </div>
+        )}
+        
+        {step === "status" && createdCampaignId && (
+          <div className="space-y-6">
+            <Alert className="bg-green-50 border-green-200 mb-6">
+              <CheckCircle className="h-4 w-4 text-green-600" />
+              <AlertTitle className="text-green-800">Campaign Created Successfully</AlertTitle>
+              <AlertDescription className="text-green-700">
+                Your campaign has been created and is ready to be activated.
+              </AlertDescription>
+            </Alert>
+            
+            <CampaignStatusCard 
+              campaignId={createdCampaignId}
+              onActivate={handleCampaignActivated}
+            />
+            
+            <div className="flex justify-end mt-4">
+              <Button onClick={handleClose} variant="outline">
+                Close
+              </Button>
+            </div>
           </div>
         )}
       </DialogContent>
