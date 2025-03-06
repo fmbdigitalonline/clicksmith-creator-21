@@ -31,10 +31,19 @@ export function useAICampaignAssistant() {
     objective: false,
     performance: false
   });
+  const [suggestionsCache, setSuggestionsCache] = useState<Record<string, SuggestionResponse>>({});
   const { toast } = useToast();
 
   const getSuggestion = async (request: SuggestionRequest): Promise<SuggestionResponse | null> => {
     try {
+      // Create a cache key based on the request properties
+      const cacheKey = `${request.type}:${JSON.stringify(request.businessIdea)}:${JSON.stringify(request.targetAudience)}:${JSON.stringify(request.audienceAnalysis)}:${request.currentValue}`;
+      
+      // Check cache first for identical requests
+      if (suggestionsCache[cacheKey]) {
+        return suggestionsCache[cacheKey];
+      }
+      
       setIsLoading(prev => ({ ...prev, [request.type]: true }));
       
       const { data, error } = await supabase.functions.invoke('ai-campaign-assistant', {
@@ -49,6 +58,11 @@ export function useAICampaignAssistant() {
           variant: "destructive"
         });
         return null;
+      }
+      
+      // Save to cache
+      if (data) {
+        setSuggestionsCache(prev => ({ ...prev, [cacheKey]: data }));
       }
       
       return data as SuggestionResponse;

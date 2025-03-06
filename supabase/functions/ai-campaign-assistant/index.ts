@@ -38,19 +38,31 @@ serve(async (req) => {
     
     switch (request.type) {
       case "targeting":
-        systemPrompt = "You are a Facebook advertising expert specializing in audience targeting. Provide concise, specific targeting suggestions based on business and audience data.";
+        systemPrompt = `You are a Facebook advertising expert specializing in audience targeting. 
+                        Provide concise, specific targeting suggestions based on business and audience data.
+                        Your suggestions should be practical, specific, and directly applicable to Facebook's targeting system.
+                        Include demographic, interest, and behavioral targeting recommendations where possible.`;
         prompt = generateTargetingPrompt(request);
         break;
       case "budget":
-        systemPrompt = "You are a Facebook advertising budget optimization expert. Suggest optimal daily budget based on business data and industry benchmarks.";
+        systemPrompt = `You are a Facebook advertising budget optimization expert. 
+                        Suggest optimal daily budget based on business data and industry benchmarks.
+                        Consider factors like audience size, industry competition, and campaign objectives.
+                        Provide practical budget recommendations with clear justification.`;
         prompt = generateBudgetPrompt(request);
         break;
       case "objective":
-        systemPrompt = "You are a Facebook ad campaign objective specialist. Recommend the most suitable campaign objective based on business goals and target audience.";
+        systemPrompt = `You are a Facebook ad campaign objective specialist. 
+                        Recommend the most suitable campaign objective based on business goals and target audience.
+                        Consider the business's industry, current stage, and specific objectives.
+                        Prioritize objectives that will deliver the best results for their specific case.`;
         prompt = generateObjectivePrompt(request);
         break;
       case "performance":
-        systemPrompt = "You are a Facebook ad performance prediction expert. Forecast potential campaign performance based on industry benchmarks and provided data.";
+        systemPrompt = `You are a Facebook ad performance prediction expert. 
+                        Forecast potential campaign performance based on industry benchmarks and provided data.
+                        Include specific metrics like estimated CTR ranges, conversion rate expectations, and cost metrics.
+                        Clearly explain the factors that influence these predictions.`;
         prompt = generatePerformancePrompt(request);
         break;
       default:
