@@ -10,8 +10,11 @@ import {
   DollarSign,
   Puzzle,
   HeartHandshake,
-  BarChart3
+  BarChart3,
+  CheckCircle,
+  AlertTriangle
 } from "lucide-react";
+import { validateBusinessIdea, validateTargetAudience, validateAudienceAnalysis } from "@/utils/dataValidationUtils";
 
 interface ProjectProgressDetailsProps {
   businessIdea?: {
@@ -29,11 +32,27 @@ const ProjectProgressDetails = ({
 }: ProjectProgressDetailsProps) => {
   if (!businessIdea && !targetAudience && !audienceAnalysis) return null;
 
-  const renderCardHeader = (icon: React.ReactNode, title: string, gradientClasses: string) => (
+  // Validate each section
+  const businessValidation = validateBusinessIdea(businessIdea);
+  const audienceValidation = validateTargetAudience(targetAudience);
+  const analysisValidation = validateAudienceAnalysis(audienceAnalysis);
+
+  const renderCardHeader = (icon: React.ReactNode, title: string, gradientClasses: string, isComplete: boolean) => (
     <div className={`${gradientClasses} p-4 border-b`}>
-      <div className="flex items-center gap-2">
-        {icon}
-        <h3 className="font-semibold text-lg tracking-tight">{title}</h3>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          {icon}
+          <h3 className="font-semibold text-lg tracking-tight">{title}</h3>
+        </div>
+        {isComplete ? (
+          <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200">
+            <CheckCircle className="h-3 w-3 mr-1" /> Complete
+          </Badge>
+        ) : (
+          <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-200">
+            <AlertTriangle className="h-3 w-3 mr-1" /> Incomplete
+          </Badge>
+        )}
       </div>
     </div>
   );
@@ -49,6 +68,21 @@ const ProjectProgressDetails = ({
       </div>
     </div>
   );
+  
+  const renderMissingFields = (missingFields: string[]) => {
+    if (missingFields.length === 0) return null;
+    
+    return (
+      <div className="mt-3 p-3 bg-amber-50 rounded-md border border-amber-100">
+        <p className="text-sm font-medium text-amber-800 mb-1">Missing information:</p>
+        <ul className="list-disc pl-5 text-sm text-amber-700">
+          {missingFields.map((field, index) => (
+            <li key={index}>{field}</li>
+          ))}
+        </ul>
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-8">
@@ -57,7 +91,8 @@ const ProjectProgressDetails = ({
           {renderCardHeader(
             <Lightbulb className="w-5 h-5 text-facebook" />,
             "Business Concept",
-            "bg-gradient-to-r from-facebook/10 to-facebook/5"
+            "bg-gradient-to-r from-facebook/10 to-facebook/5",
+            businessValidation.isComplete
           )}
           <div className="p-6 space-y-6">
             {renderInfoItem(
@@ -70,6 +105,7 @@ const ProjectProgressDetails = ({
               "Value Proposition",
               businessIdea.valueProposition
             )}
+            {renderMissingFields(businessValidation.missingFields)}
           </div>
         </Card>
       )}
@@ -79,7 +115,8 @@ const ProjectProgressDetails = ({
           {renderCardHeader(
             <Users className="w-5 h-5 text-purple-600" />,
             "Target Audience",
-            "bg-gradient-to-r from-purple-100 to-purple-50"
+            "bg-gradient-to-r from-purple-100 to-purple-50",
+            audienceValidation.isComplete
           )}
           <div className="p-6">
             <div className="grid gap-6 md:grid-cols-2">
@@ -98,6 +135,7 @@ const ProjectProgressDetails = ({
                 )
               ))}
             </div>
+            {renderMissingFields(audienceValidation.missingFields)}
           </div>
         </Card>
       )}
@@ -107,7 +145,8 @@ const ProjectProgressDetails = ({
           {renderCardHeader(
             <BarChart3 className="w-5 h-5 text-green-600" />,
             "Market Analysis",
-            "bg-gradient-to-r from-green-100 to-green-50"
+            "bg-gradient-to-r from-green-100 to-green-50",
+            analysisValidation.isComplete
           )}
           <div className="p-6 space-y-6">
             {Object.entries(audienceAnalysis).map(([key, value]) => (
@@ -134,6 +173,7 @@ const ProjectProgressDetails = ({
                 </div>
               </div>
             ))}
+            {renderMissingFields(analysisValidation.missingFields)}
           </div>
         </Card>
       )}

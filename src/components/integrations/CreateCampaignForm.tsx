@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -55,6 +54,7 @@ interface CreateCampaignFormProps {
   onBack?: () => void;
   selectedAdIds?: string[];
   onContinue?: () => void;
+  projectDataCompleteness?: number; // Added prop for data completeness
 }
 
 export default function CreateCampaignForm({ 
@@ -64,7 +64,8 @@ export default function CreateCampaignForm({
   onCancel,
   onBack,
   selectedAdIds = [],
-  onContinue
+  onContinue,
+  projectDataCompleteness = 100
 }: CreateCampaignFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const projectData = useProjectCampaignData(projectId);
@@ -133,6 +134,33 @@ export default function CreateCampaignForm({
     }
   };
 
+  // Show appropriate messaging based on data completeness
+  const renderDataCompletenessMessage = () => {
+    if (!projectDataCompleteness || projectDataCompleteness === 100) return null;
+    
+    if (projectDataCompleteness < 50) {
+      return (
+        <div className="p-4 bg-amber-50 border border-amber-200 rounded-md mb-6">
+          <h3 className="text-amber-800 font-medium">Limited Data Available</h3>
+          <p className="text-amber-700 text-sm">
+            Your campaign might have limited effectiveness due to incomplete project data. Consider adding more information to your project.
+          </p>
+        </div>
+      );
+    } else if (projectDataCompleteness < 80) {
+      return (
+        <div className="p-4 bg-blue-50 border border-blue-100 rounded-md mb-6">
+          <h3 className="text-blue-800 font-medium">Additional Data May Help</h3>
+          <p className="text-blue-700 text-sm">
+            Your campaign could be more effective with additional project data, but the essentials are present.
+          </p>
+        </div>
+      );
+    }
+  
+    return null;
+  };
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
@@ -145,6 +173,9 @@ export default function CreateCampaignForm({
             </p>
           </div>
         )}
+        
+        {/* Show data completeness message */}
+        {renderDataCompletenessMessage()}
         
         <FormField
           control={form.control}

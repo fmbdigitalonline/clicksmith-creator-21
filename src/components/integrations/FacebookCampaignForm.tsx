@@ -11,6 +11,7 @@ import { AlertCircle, Info } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { extractTargetingData } from "@/utils/campaignDataUtils";
 import { useProjectCampaignData } from "@/hooks/useProjectCampaignData";
+import DataCompletionWarning from "@/components/projects/DataCompletionWarning";
 
 interface FacebookCampaignFormProps {
   open: boolean;
@@ -31,7 +32,7 @@ export default function FacebookCampaignForm({
   const [formTab, setFormTab] = useState<"details" | "ads">("details");
   const [selectedAdIds, setSelectedAdIds] = useState<string[]>([]);
   
-  // Fetch project data for targeting suggestions
+  // Fetch project data for targeting suggestions and validation
   const projectData = useProjectCampaignData(selectedProjectId || initialProjectId);
   
   // Extract targeting data if available
@@ -107,6 +108,15 @@ export default function FacebookCampaignForm({
               </div>
             )}
             
+            {/* Show data validation warning if project is selected */}
+            {(selectedProjectId || initialProjectId) && !projectData.loading && (
+              <DataCompletionWarning 
+                validation={projectData.validation}
+                completenessPercentage={projectData.dataCompleteness}
+                showDetails={true}
+              />
+            )}
+            
             <CampaignModeSelection 
               onModeSelect={handleModeSelect}
               selectedMode={selectedMode}
@@ -124,6 +134,15 @@ export default function FacebookCampaignForm({
           </>
         ) : (
           <div className="space-y-6">
+            {/* Show compact validation warning before tabs in form mode */}
+            {(selectedProjectId || initialProjectId) && !projectData.loading && !projectData.validation.isComplete && (
+              <DataCompletionWarning 
+                validation={projectData.validation}
+                completenessPercentage={projectData.dataCompleteness}
+                showDetails={false}
+              />
+            )}
+            
             <Tabs value={formTab} onValueChange={(value) => setFormTab(value as "details" | "ads")}>
               <TabsList className="grid w-full grid-cols-2 mb-6">
                 <TabsTrigger value="details">Campaign Details</TabsTrigger>
@@ -152,6 +171,7 @@ export default function FacebookCampaignForm({
                   onBack={handleBack}
                   selectedAdIds={selectedAdIds}
                   onContinue={() => setFormTab("ads")}
+                  projectDataCompleteness={projectData.dataCompleteness}
                 />
               </TabsContent>
               

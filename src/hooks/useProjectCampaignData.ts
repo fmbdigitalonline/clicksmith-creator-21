@@ -2,6 +2,14 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { BusinessIdea, TargetAudience, AudienceAnalysis, Project } from "@/types/adWizard";
+import { 
+  validateProjectDataCompleteness, 
+  ValidationResult,
+  createDefaultBusinessIdea,
+  createDefaultTargetAudience,
+  createDefaultAudienceAnalysis,
+  createDefaultFormatPreferences
+} from "@/utils/dataValidationUtils";
 
 interface ProjectData {
   businessIdea?: BusinessIdea;
@@ -10,6 +18,8 @@ interface ProjectData {
   formatPreferences?: string[];
   loading: boolean;
   error: string | null;
+  validation: ValidationResult;
+  dataCompleteness: number; // 0-100 percentage
 }
 
 // Define the database response type to match the actual Supabase structure
@@ -38,16 +48,24 @@ interface ProjectDataResponse {
 }
 
 export function useProjectCampaignData(projectId?: string) {
-  const [data, setData] = useState<ProjectData>({
+  const initialData: ProjectData = {
     loading: true,
     error: null,
-  });
+    validation: {
+      isComplete: false,
+      missingFields: [],
+      warningMessage: null
+    },
+    dataCompleteness: 0
+  };
+
+  const [data, setData] = useState<ProjectData>(initialData);
 
   useEffect(() => {
     if (!projectId) {
       setData({
+        ...initialData,
         loading: false,
-        error: null,
       });
       return;
     }
@@ -65,22 +83,50 @@ export function useProjectCampaignData(projectId?: string) {
         // Use our typed response to access the data
         const typedProjectData = projectData as ProjectDataResponse;
         
+        // Apply data fallbacks for missing values
+        const businessIdea = typedProjectData.business_idea as BusinessIdea || createDefaultBusinessIdea();
+        const targetAudience = typedProjectData.target_audience as TargetAudience || createDefaultTargetAudience();
+        const audienceAnalysis = typedProjectData.audience_analysis as AudienceAnalysis || createDefaultAudienceAnalysis();
+        
         // Check if format_preferences exists and ensure it's an array
-        const formatPreferences = typedProjectData.format_preferences || [];
+        const formatPreferences = Array.isArray(typedProjectData.format_preferences) 
+          ? typedProjectData.format_preferences 
+          : createDefaultFormatPreferences();
+
+        // Validate project data completeness
+        const validation = validateProjectDataCompleteness(
+          businessIdea, 
+          targetAudience, 
+          audienceAnalysis, 
+          formatPreferences
+        );
+
+        // Calculate data completeness percentage (simple version)
+        const totalFields = 4; // Business idea, target audience, audience analysis, format preferences
+        const missingCounts = validation.missingFields.length;
+        const dataCompleteness = Math.max(0, Math.min(100, Math.round((totalFields - missingCounts) / totalFields * 100)));
 
         setData({
-          businessIdea: typedProjectData.business_idea as BusinessIdea,
-          targetAudience: typedProjectData.target_audience as TargetAudience,
-          audienceAnalysis: typedProjectData.audience_analysis as AudienceAnalysis,
-          formatPreferences: Array.isArray(formatPreferences) ? formatPreferences : [],
+          businessIdea,
+          targetAudience,
+          audienceAnalysis,
+          formatPreferences,
           loading: false,
           error: null,
+          validation,
+          dataCompleteness
         });
       } catch (error) {
         console.error("Error fetching project data:", error);
         setData({
           loading: false,
           error: error instanceof Error ? error.message : "Failed to load project data",
+          validation: {
+            isComplete: false,
+            missingFields: ["data load failed"],
+            warningMessage: "Unable to load project data"
+          },
+          dataCompleteness: 0
         });
       }
     }
