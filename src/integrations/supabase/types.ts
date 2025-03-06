@@ -12,11 +12,15 @@ export type Database = {
       ad_campaigns: {
         Row: {
           budget: number | null
+          campaign_data: Json | null
           created_at: string | null
           end_date: string | null
           id: string
+          image_url: string | null
           name: string
           platform: Database["public"]["Enums"]["ad_platform"]
+          platform_ad_id: string | null
+          platform_ad_set_id: string | null
           platform_campaign_id: string | null
           project_id: string | null
           start_date: string | null
@@ -27,11 +31,15 @@ export type Database = {
         }
         Insert: {
           budget?: number | null
+          campaign_data?: Json | null
           created_at?: string | null
           end_date?: string | null
           id?: string
+          image_url?: string | null
           name: string
           platform: Database["public"]["Enums"]["ad_platform"]
+          platform_ad_id?: string | null
+          platform_ad_set_id?: string | null
           platform_campaign_id?: string | null
           project_id?: string | null
           start_date?: string | null
@@ -42,11 +50,15 @@ export type Database = {
         }
         Update: {
           budget?: number | null
+          campaign_data?: Json | null
           created_at?: string | null
           end_date?: string | null
           id?: string
+          image_url?: string | null
           name?: string
           platform?: Database["public"]["Enums"]["ad_platform"]
+          platform_ad_id?: string | null
+          platform_ad_set_id?: string | null
           platform_campaign_id?: string | null
           project_id?: string | null
           start_date?: string | null

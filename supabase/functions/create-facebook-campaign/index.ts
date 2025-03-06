@@ -9,6 +9,7 @@ interface RequestData {
   adSetData: any;
   adCreativeData: any;
   projectId: string;
+  campaignMode?: "manual" | "semi-automatic" | "automatic";
 }
 
 interface FacebookApiResponse {
@@ -147,7 +148,7 @@ serve(async (req) => {
 
     // Parse request data
     const requestData: RequestData = await req.json();
-    const { campaignData, adSetData, adCreativeData, projectId } = requestData;
+    const { campaignData, adSetData, adCreativeData, projectId, campaignMode = "manual" } = requestData;
 
     // Validate data before proceeding
     const validationErrors = validateCampaignData(campaignData, adSetData, adCreativeData);
@@ -208,11 +209,12 @@ serve(async (req) => {
         status: "pending", 
         project_id: projectId,
         user_id: user.id,
-        // Store campaign data in the targeting field which is JSONB
-        targeting: {
+        // Store campaign data in the campaign_data field which is JSONB
+        campaign_data: {
           campaign: campaignData,
           adSet: adSetData,
-          adCreative: adCreativeData
+          adCreative: adCreativeData,
+          mode: campaignMode
         },
         image_url: adCreativeData.object_story_spec?.link_data?.image_url
       })
@@ -417,11 +419,12 @@ serve(async (req) => {
           platform_campaign_id: campaignResult.id,
           platform_ad_set_id: adSetResult.id,
           platform_ad_id: adResult.id,
-          // Use targeting JSONB field for storing detailed campaign data
-          targeting: {
+          // Use campaign_data JSONB field for storing detailed campaign data
+          campaign_data: {
             campaign: campaignData,
             adSet: adSetData,
             adCreative: adCreativeData,
+            mode: campaignMode,
             platform_ad_set_id: adSetResult.id,
             platform_ad_id: adResult.id,
             platform_creative_id: creativeResult.id,
@@ -456,8 +459,8 @@ serve(async (req) => {
         .from("ad_campaigns")
         .update({ 
           status: "error",
-          targeting: {
-            ...initialCampaign.targeting,
+          campaign_data: {
+            ...initialCampaign.campaign_data,
             error_message: error.message
           }
         })
