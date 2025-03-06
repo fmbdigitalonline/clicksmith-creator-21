@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -446,7 +447,9 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
             </div>
             
             {/* Ad Account Selector */}
-            {connection.metadata?.ad_accounts && connection.metadata.ad_accounts.length > 0 && (
+            {connection.metadata && typeof connection.metadata === 'object' && 
+             (connection.metadata as PlatformConnectionMetadata).ad_accounts && 
+             (connection.metadata as PlatformConnectionMetadata).ad_accounts.length > 0 && (
               <div className="pt-2">
                 <label className="text-sm font-medium mb-1 block">
                   Select Ad Account
@@ -460,7 +463,7 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
                       <SelectValue placeholder="Select ad account" />
                     </SelectTrigger>
                     <SelectContent>
-                      {connection.metadata.ad_accounts.map(account => {
+                      {(connection.metadata as PlatformConnectionMetadata).ad_accounts.map(account => {
                         const status = formatAccountStatus(account.account_status);
                         return (
                           <SelectItem key={account.id} value={account.id}>
@@ -490,17 +493,19 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {connection.metadata.ad_accounts.length} ad account{connection.metadata.ad_accounts.length !== 1 ? 's' : ''} available
+                  {(connection.metadata as PlatformConnectionMetadata).ad_accounts.length} ad account{(connection.metadata as PlatformConnectionMetadata).ad_accounts.length !== 1 ? 's' : ''} available
                 </p>
               </div>
             )}
             
             {/* Pages Information */}
-            {connection.metadata?.pages && connection.metadata.pages.length > 0 && (
+            {connection.metadata && typeof connection.metadata === 'object' && 
+             (connection.metadata as PlatformConnectionMetadata).pages && 
+             (connection.metadata as PlatformConnectionMetadata).pages.length > 0 && (
               <div className="pt-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Connected Pages:</span>
-                  <span className="font-medium">{connection.metadata.pages.length}</span>
+                  <span className="font-medium">{(connection.metadata as PlatformConnectionMetadata).pages.length}</span>
                 </div>
               </div>
             )}

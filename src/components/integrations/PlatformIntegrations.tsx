@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -37,15 +36,25 @@ export default function PlatformIntegrations() {
       
       console.log("Detected OAuth callback:", { 
         connectionType, 
-        code: code ? 'present' : 'missing',
+        code: code ? `present (${code.length} chars)` : 'missing',
         error: error || 'none',
         errorReason: errorReason || 'none',
         errorDescription: errorDescription || 'none'
       });
       
       if (error) {
-        // Clean URL parameters but stay on the integrations page
-        navigate('/integrations', { replace: true });
+        // Keep error parameters for rendering but reset other params to avoid infinite loops
+        const cleanUrl = new URL(window.location.href);
+        cleanUrl.searchParams.delete('code');
+        cleanUrl.searchParams.delete('state');
+        navigate('/integrations', { 
+          replace: true,
+          state: { 
+            error, 
+            errorReason, 
+            errorDescription 
+          }
+        });
         
         const errorMsg = errorDescription || `Failed to connect to ${connectionType}`;
         setOauthError(errorMsg);
@@ -63,74 +72,63 @@ export default function PlatformIntegrations() {
         setOauthError(null);
         
         try {
-          console.log("Processing Facebook OAuth callback...");
+          console.log("Processing Facebook OAuth callback with code:", code.substring(0, 5) + '...');
           
-          // Wait a moment to ensure auth token is available
-          // This helps prevent issues with the session being unavailable
-          setTimeout(async () => {
-            try {
-              // Get current session to ensure we have a valid token
-              const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-              
-              if (sessionError || !sessionData.session) {
-                throw new Error("No valid session available. Please log in again.");
-              }
-              
-              // Clean URL parameters but stay on the integrations page
-              navigate('/integrations', { replace: true });
-              
-              const authToken = sessionData.session.access_token;
-              
-              // Call the function with the code and authorization token
-              const response = await supabase.functions.invoke('facebook-oauth', {
-                body: { code },
-                headers: {
-                  Authorization: `Bearer ${authToken}`,
-                },
-              });
-  
-              console.log("OAuth function response:", response);
-  
-              if (response.error) {
-                throw new Error(response.error);
-              }
-  
-              if (response.data && response.data.success) {
-                toast({
-                  title: "Success!",
-                  description: response.data.message || "Your Facebook Ads account has been connected",
-                });
-                
-                // Force reload connections
-                await checkConnections();
-                setActiveTab("campaigns");
-              } else {
-                throw new Error(response.data?.message || response.data?.error || "Unknown error occurred");
-              }
-            } catch (delayedError) {
-              console.error("Error in delayed processing:", delayedError);
-              const errorMessage = delayedError instanceof Error ? delayedError.message : "Failed to connect to Facebook";
-              setOauthError(errorMessage);
-              
-              toast({
-                title: "Connection Failed",
-                description: errorMessage,
-                variant: "destructive",
-              });
-            } finally {
-              setIsProcessingOAuth(false);
-            }
-          }, 1000); // Short delay to ensure session is established
+          if (!session) {
+            throw new Error("No active session found. Please log in again.");
+          }
+          
+          console.log("Current session found, using access token for API call");
+          
+          // Don't redirect immediately - wait for the API call to finish
+          
+          // Call the edge function with the code and authorization token
+          const response = await supabase.functions.invoke('facebook-oauth', {
+            body: { 
+              code,
+              origin: window.location.origin
+            },
+            headers: {
+              Authorization: `Bearer ${session.access_token}`,
+            },
+          });
+
+          console.log("OAuth function response:", response);
+          
+          // Now clean URL parameters but stay on the integrations page
+          navigate('/integrations', { replace: true });
+
+          if (response.error) {
+            throw new Error(response.error);
+          }
+
+          if (response.data && response.data.success) {
+            toast({
+              title: "Success!",
+              description: response.data.message || "Your Facebook Ads account has been connected",
+            });
+            
+            // Force reload connections
+            await checkConnections();
+            setActiveTab("campaigns");
+          } else {
+            const errorMessage = response.data?.message || response.data?.error || "Unknown error occurred connecting to Facebook";
+            throw new Error(errorMessage);
+          }
         } catch (error) {
           console.error("Error processing OAuth callback:", error);
           const errorMessage = error instanceof Error ? error.message : "Failed to connect to Facebook";
           setOauthError(errorMessage);
+          
+          // Now clean URL parameters but stay on the integrations page
+          navigate('/integrations', { replace: true });
           
           toast({
             title: "Connection Failed",
             description: errorMessage,
             variant: "destructive",
           });
+        } finally {
           setIsProcessingOAuth(false);
         }
       }
@@ -218,13 +216,25 @@ export default function PlatformIntegrations() {
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Connection Failed</AlertTitle>
-          <AlertDescription>
-            {oauthError}
+          <AlertDescription className="space-y-2">
+            <p>{oauthError}</p>
             {oauthError.includes("redirect") && (
               <div className="mt-2">
                 <strong>Important:</strong> Make sure to add{" "}
                 <code className="bg-gray-100 px-1 py-0.5 rounded">{window.location.origin}/integrations?connection=facebook</code>{" "}
                 as a valid OAuth Redirect URI in your Facebook App settings.
+              </div>
+            )}
+            {oauthError.includes("token") && (
+              <div className="mt-2">
+                <strong>Authentication Error:</strong> There was a problem with your session token.
+                Try logging out and back in, then retry the connection.
+              </div>
+            )}
+            {oauthError.includes("configuration") && (
+              <div className="mt-2">
+                <strong>Server Configuration Error:</strong> The server is missing required configuration for Facebook integration.
+                Please check that all required environment variables are set.
               </div>
             )}
           </AlertDescription>

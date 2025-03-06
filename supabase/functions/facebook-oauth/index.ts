@@ -10,10 +10,12 @@ const REDIRECT_URI = Deno.env.get('FACEBOOK_REDIRECT_URI') || Deno.env.get('VITE
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 
-// Log environment variables for debugging
-console.log('Environment variables check:', {
+// Enhanced logging for environment variables and configuration
+console.log('facebook-oauth function started with configuration:', {
   facebookAppIdExists: !!FACEBOOK_APP_ID,
+  facebookAppIdLength: FACEBOOK_APP_ID?.length,
   facebookAppSecretExists: !!FACEBOOK_APP_SECRET,
+  facebookAppSecretLength: FACEBOOK_APP_SECRET?.length,
   redirectUriExists: !!REDIRECT_URI,
   redirectUriValue: REDIRECT_URI,
   supabaseUrlExists: !!SUPABASE_URL,
@@ -25,6 +27,18 @@ const createClient = (supabaseUrl: string, supabaseKey: string) => {
   return {
     from: (table: string) => ({
       upsert: (data: any, options: any) => {
+        console.log(`Attempting to upsert data into ${table}:`, JSON.stringify(data, null, 2));
+        console.log('Upsert options:', JSON.stringify(options, null, 2));
+        
+        // Deep clone the data to avoid any reference issues
+        const dataToSave = JSON.parse(JSON.stringify(data));
+        
+        // Log access token length but not the actual token
+        if (dataToSave.access_token) {
+          console.log('Access token length:', dataToSave.access_token.length);
+          // Don't log the actual token for security
+        }
+        
         return fetch(`${supabaseUrl}/rest/v1/${table}`, {
           method: 'POST',
           headers: {
@@ -33,20 +47,49 @@ const createClient = (supabaseUrl: string, supabaseKey: string) => {
             'Authorization': `Bearer ${supabaseKey}`,
             'Prefer': options?.onConflict ? `resolution=merge-duplicates,merge-keys=user_id,platform` : ''
           },
-          body: JSON.stringify(data),
+          body: JSON.stringify(dataToSave),
         }).then(async (res) => {
           if (!res.ok) {
             const error = await res.json();
+            console.error(`Error upserting data into ${table}:`, error);
             return { data: null, error };
           }
           const data = await res.json();
+          console.log(`Successfully upserted data into ${table}`);
           return { data, error: null };
+        }).catch(err => {
+          console.error(`Exception in database operation on ${table}:`, err);
+          return { data: null, error: err };
         });
-      }
+      },
+      select: (columns: string) => ({
+        eq: (field: string, value: any) => {
+          console.log(`Selecting from ${table} where ${field} = ${value}`);
+          return fetch(`${supabaseUrl}/rest/v1/${table}?select=${columns}&${field}=eq.${value}`, {
+            headers: {
+              'apikey': supabaseKey,
+              'Authorization': `Bearer ${supabaseKey}`,
+            }
+          }).then(async (res) => {
+            if (!res.ok) {
+              const error = await res.json();
+              console.error(`Error selecting from ${table}:`, error);
+              return { data: null, error };
+            }
+            const data = await res.json();
+            console.log(`Successfully selected from ${table}, found ${data.length} records`);
+            return { data, error: null };
+          }).catch(err => {
+            console.error(`Exception in database query on ${table}:`, err);
+            return { data: null, error: err };
+          });
+        }
+      })
     }),
     auth: {
       getUser: async (token: string) => {
         try {
+          console.log('Getting user from auth token');
           const res = await fetch(`${supabaseUrl}/auth/v1/user`, {
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -55,12 +98,14 @@ const createClient = (supabaseUrl: string, supabaseKey: string) => {
           });
           if (!res.ok) {
             const error = await res.json();
+            console.error('Error getting user from auth token:', error);
             return { data: { user: null }, error };
           }
           const user = await res.json();
+          console.log('Successfully retrieved user from auth token, user ID:', user.id);
           return { data: { user }, error: null };
         } catch (error) {
-          console.error('Error in getUser:', error);
+          console.error('Exception in getUser:', error);
           return { data: { user: null }, error };
         }
       }
@@ -86,10 +131,11 @@ async function exchangeCodeForToken(code: string) {
   });
 
   console.log('Token exchange parameters:', {
-    clientIdPresent: !!FACEBOOK_APP_ID,
-    clientSecretPresent: !!FACEBOOK_APP_SECRET,
+    clientIdLength: FACEBOOK_APP_ID.length,
+    clientSecretLength: FACEBOOK_APP_SECRET.length,
     redirectUri: REDIRECT_URI,
-    codePresent: !!code,
+    codeLength: code.length,
+    fullUrl: `https://graph.facebook.com/v18.0/oauth/access_token?${params.toString()}`
   });
 
   try {
@@ -107,7 +153,7 @@ async function exchangeCodeForToken(code: string) {
     }
 
     const tokenData = await tokenResponse.json();
-    console.log('Token exchange successful, access token received');
+    console.log('Token exchange successful, access token received, length:', tokenData.access_token?.length);
     return tokenData;
   } catch (error) {
     console.error('Exception in exchangeCodeForToken:', error);
@@ -136,6 +182,9 @@ async function getAdAccounts(accessToken: string) {
 
     const data = await response.json();
     console.log(`Found ${data.data?.length || 0} ad accounts`);
+    if (data.data?.length > 0) {
+      console.log('Sample ad account:', JSON.stringify(data.data[0], null, 2));
+    }
     return data;
   } catch (error) {
     console.error('Error in getAdAccounts:', error);
@@ -160,6 +209,9 @@ async function getPages(accessToken: string) {
 
     const data = await response.json();
     console.log(`Found ${data.data?.length || 0} Facebook pages`);
+    if (data.data?.length > 0) {
+      console.log('Sample page:', JSON.stringify(data.data[0], null, 2));
+    }
     return data;
   } catch (error) {
     console.error('Error in getPages:', error);
@@ -183,7 +235,7 @@ async function getUserInfo(accessToken: string) {
     }
 
     const data = await response.json();
-    console.log('User info retrieved successfully');
+    console.log('User info retrieved successfully:', JSON.stringify(data, null, 2));
     return data;
   } catch (error) {
     console.error('Error in getUserInfo:', error);
@@ -212,6 +264,7 @@ async function validateToken(accessToken: string) {
     console.log('Token validation result:', data.data?.is_valid === true ? 'valid' : 'invalid');
     if (data.data?.is_valid) {
       console.log('Token scopes:', data.data?.scopes);
+      console.log('Token data:', JSON.stringify(data.data, null, 2));
     }
     return data.data?.is_valid === true;
   } catch (error) {
@@ -234,6 +287,29 @@ async function saveConnectionToDatabase(
   console.log('Saving connection to database for user:', userId);
   
   try {
+    // First check if a connection already exists for this user/platform
+    const { data: existingConnection, error: queryError } = await supabaseAdmin
+      .from('platform_connections')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('platform', platform);
+    
+    if (queryError) {
+      console.error('Error checking for existing connection:', queryError);
+    } else {
+      console.log(`Found ${existingConnection?.length || 0} existing connections for this user/platform`);
+    }
+    
+    // Prepare metadata object
+    const metadata = {
+      ad_accounts: adAccounts || [],
+      pages: pages || [],
+      selected_account_id: accountId,
+      last_fetched: new Date().toISOString()
+    };
+    
+    console.log('Prepared metadata structure:', JSON.stringify(metadata, null, 2));
+    
     // Store connection with ad accounts and pages as metadata
     const { data, error } = await supabaseAdmin
       .from('platform_connections')
@@ -245,12 +321,7 @@ async function saveConnectionToDatabase(
         token_expires_at: expiresAt,
         account_id: accountId,
         account_name: accountName,
-        metadata: {
-          ad_accounts: adAccounts || [],
-          pages: pages || [],
-          selected_account_id: accountId,
-          last_fetched: new Date().toISOString()
-        }
+        metadata: metadata
       }, {
         onConflict: 'user_id, platform'
       });
@@ -290,7 +361,9 @@ serve(async (req) => {
     // Extended environment variable logging
     console.log('Environment configuration:', {
       FACEBOOK_APP_ID_exists: !!FACEBOOK_APP_ID,
+      FACEBOOK_APP_ID_length: FACEBOOK_APP_ID?.length,
       FACEBOOK_APP_SECRET_exists: !!FACEBOOK_APP_SECRET,
+      FACEBOOK_APP_SECRET_length: FACEBOOK_APP_SECRET?.length,
       REDIRECT_URI_exists: !!REDIRECT_URI,
       REDIRECT_URI_value: REDIRECT_URI,
       ENV_keys: Object.keys(Deno.env.toObject()).filter(key => !key.includes('SECRET')).join(', ')
@@ -309,7 +382,9 @@ serve(async (req) => {
         error: 'Server configuration error: Missing Facebook credentials',
         details: {
           appIdPresent: !!FACEBOOK_APP_ID,
+          appIdLength: FACEBOOK_APP_ID?.length,
           appSecretPresent: !!FACEBOOK_APP_SECRET,
+          appSecretLength: FACEBOOK_APP_SECRET?.length,
           redirectUriPresent: !!REDIRECT_URI,
           redirectUri: REDIRECT_URI
         }
@@ -326,7 +401,7 @@ serve(async (req) => {
     if (contentType.includes('application/json')) {
       try {
         requestBody = await req.json();
-        console.log('Request body:', requestBody);
+        console.log('Request body:', JSON.stringify(requestBody, null, 2));
       } catch (e) {
         console.error('Error parsing JSON request body:', e);
       }
@@ -342,9 +417,8 @@ serve(async (req) => {
     
     // Log request details
     console.log('Request parameters:', { 
-      code: code ? 'present' : 'missing', 
-      codeLength: code?.length,
-      authToken: authToken ? 'present' : 'missing' 
+      code: code ? `present (${code.length} chars)` : 'missing', 
+      authToken: authToken ? `present (${authToken.length} chars)` : 'missing' 
     });
     
     if (!code) {
@@ -386,7 +460,11 @@ serve(async (req) => {
 
     // Exchange the code for an access token
     const tokenData = await exchangeCodeForToken(code);
-    console.log('Token exchange successful');
+    console.log('Token exchange successful with data:', JSON.stringify({
+      access_token_length: tokenData.access_token?.length,
+      token_type: tokenData.token_type,
+      expires_in: tokenData.expires_in
+    }, null, 2));
 
     // Validate the token
     const isTokenValid = await validateToken(tokenData.access_token);
