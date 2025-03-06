@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { BusinessIdea, TargetAudience, AudienceAnalysis } from "@/types/adWizard";
+import { BusinessIdea, TargetAudience, AudienceAnalysis, Project } from "@/types/adWizard";
 
 interface ProjectData {
   businessIdea?: BusinessIdea;
@@ -10,6 +10,31 @@ interface ProjectData {
   formatPreferences?: string[];
   loading: boolean;
   error: string | null;
+}
+
+// Define the database response type to match the actual Supabase structure
+interface ProjectDataResponse {
+  id: string;
+  user_id: string;
+  created_at: string;
+  updated_at: string;
+  title: string;
+  description?: string;
+  status?: string;
+  current_step?: number;
+  business_idea?: any;
+  target_audience?: any;
+  audience_analysis?: any;
+  marketing_campaign?: any;
+  selected_hooks?: any[];
+  generated_ads?: any[];
+  tags?: string[];
+  ad_format?: string;
+  ad_dimensions?: { width: number; height: number };
+  format_preferences?: string[];
+  video_ads_enabled?: boolean;
+  video_ad_settings?: { format: string; duration: number };
+  video_ad_preferences?: { format: string; duration: number };
 }
 
 export function useProjectCampaignData(projectId?: string) {
@@ -37,13 +62,16 @@ export function useProjectCampaignData(projectId?: string) {
 
         if (error) throw error;
 
-        // Check if format_preferences exists in the project data
-        const formatPreferences = projectData.format_preferences || [];
+        // Use our typed response to access the data
+        const typedProjectData = projectData as ProjectDataResponse;
+        
+        // Check if format_preferences exists and ensure it's an array
+        const formatPreferences = typedProjectData.format_preferences || [];
 
         setData({
-          businessIdea: projectData.business_idea as BusinessIdea,
-          targetAudience: projectData.target_audience as TargetAudience,
-          audienceAnalysis: projectData.audience_analysis as AudienceAnalysis,
+          businessIdea: typedProjectData.business_idea as BusinessIdea,
+          targetAudience: typedProjectData.target_audience as TargetAudience,
+          audienceAnalysis: typedProjectData.audience_analysis as AudienceAnalysis,
           formatPreferences: Array.isArray(formatPreferences) ? formatPreferences : [],
           loading: false,
           error: null,
