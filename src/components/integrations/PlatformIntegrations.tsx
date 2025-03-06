@@ -13,6 +13,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { useLocation, useNavigate } from "react-router-dom";
 import { 
   FacebookOAuthResponse, 
+  FacebookOAuthResponseSchema,
   isValidFacebookOAuthResponse, 
   validatePlatformConnectionMetadata 
 } from "@/types/platformConnection";
@@ -115,7 +116,29 @@ export default function PlatformIntegrations() {
 
           const oauthResponse = response.data as FacebookOAuthResponse;
           
+          // Extra validation check with zod
+          try {
+            FacebookOAuthResponseSchema.parse(oauthResponse);
+          } catch (error) {
+            console.error("Schema validation failed for OAuth response:", error);
+            throw new Error("Server response failed schema validation");
+          }
+          
           if (oauthResponse.success) {
+            // Validate metadata before proceeding
+            if (oauthResponse.adAccounts) {
+              console.log(`Validating ${oauthResponse.adAccounts.length} ad accounts`);
+              // Log any validation issues but don't fail
+              try {
+                validatePlatformConnectionMetadata({
+                  ad_accounts: oauthResponse.adAccounts,
+                  pages: oauthResponse.pages || []
+                });
+              } catch (error) {
+                console.warn("Metadata validation issue:", error);
+              }
+            }
+            
             toast({
               title: "Success!",
               description: oauthResponse.message || "Your Facebook Ads account has been connected",
@@ -160,7 +183,7 @@ export default function PlatformIntegrations() {
       console.log("Checking for any platform connections...");
       const { data, error } = await supabase
         .from('platform_connections')
-        .select('platform')
+        .select('platform, metadata')
         .limit(1);
       
       if (error) {
@@ -169,6 +192,17 @@ export default function PlatformIntegrations() {
       } else {
         const hasAnyConnection = data && data.length > 0;
         console.log("Has connections:", hasAnyConnection, data);
+
+        // Validate metadata in each connection
+        if (hasAnyConnection && data[0].metadata) {
+          try {
+            const validatedMetadata = validatePlatformConnectionMetadata(data[0].metadata);
+            console.log("Connection metadata validated:", validatedMetadata);
+          } catch (error) {
+            console.warn("Connection has invalid metadata:", error);
+          }
+        }
+                
         setHasConnections(hasAnyConnection);
         
         // If we have connections and the user is on the integrations tab,

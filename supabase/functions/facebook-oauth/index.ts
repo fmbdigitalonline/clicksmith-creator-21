@@ -1,4 +1,3 @@
-
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { corsHeaders } from '../_shared/cors.ts'
 
@@ -21,6 +20,28 @@ console.log('facebook-oauth function started with configuration:', {
   supabaseUrlExists: !!SUPABASE_URL,
   supabaseServiceRoleKeyExists: !!SUPABASE_SERVICE_ROLE_KEY
 });
+
+// Add zod for schema validation
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
+
+// Define validation schemas
+const AccountSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  account_id: z.string(),
+  account_status: z.number(),
+}).catchall(z.unknown());
+
+const PageSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+}).catchall(z.unknown());
+
+const TokenResponseSchema = z.object({
+  access_token: z.string(),
+  token_type: z.string(),
+  expires_in: z.number().optional(),
+}).catchall(z.unknown());
 
 // Improved type definitions for consistent response handling
 interface FacebookOAuthResponse {
@@ -185,6 +206,15 @@ async function exchangeCodeForToken(code: string) {
     }
 
     const tokenData = await tokenResponse.json();
+    
+    // Validate token response
+    try {
+      TokenResponseSchema.parse(tokenData);
+    } catch (error) {
+      console.error('Invalid token response format:', error);
+      throw new Error('Invalid token response format from Facebook');
+    }
+    
     console.log('Token exchange successful, access token received, length:', tokenData.access_token?.length);
     return tokenData;
   } catch (error) {
@@ -213,7 +243,28 @@ async function getAdAccounts(accessToken: string) {
     }
 
     const data = await response.json();
-    console.log(`Found ${data.data?.length || 0} ad accounts`);
+    
+    // Validate ad accounts
+    if (data.data && Array.isArray(data.data)) {
+      try {
+        const validatedAccounts = data.data.filter(account => {
+          try {
+            AccountSchema.parse(account);
+            return true;
+          } catch (error) {
+            console.warn('Invalid ad account data structure, filtering out:', account);
+            return false;
+          }
+        });
+        
+        // Replace with validated accounts
+        data.data = validatedAccounts;
+      } catch (error) {
+        console.error('Error validating ad accounts:', error);
+      }
+    }
+    
+    console.log(`Found ${data.data?.length || 0} valid ad accounts`);
     if (data.data?.length > 0) {
       console.log('Sample ad account:', JSON.stringify(data.data[0], null, 2));
     }
@@ -240,7 +291,28 @@ async function getPages(accessToken: string) {
     }
 
     const data = await response.json();
-    console.log(`Found ${data.data?.length || 0} Facebook pages`);
+    
+    // Validate pages
+    if (data.data && Array.isArray(data.data)) {
+      try {
+        const validatedPages = data.data.filter(page => {
+          try {
+            PageSchema.parse(page);
+            return true;
+          } catch (error) {
+            console.warn('Invalid page data structure, filtering out:', page);
+            return false;
+          }
+        });
+        
+        // Replace with validated pages
+        data.data = validatedPages;
+      } catch (error) {
+        console.error('Error validating pages:', error);
+      }
+    }
+    
+    console.log(`Found ${data.data?.length || 0} valid Facebook pages`);
     if (data.data?.length > 0) {
       console.log('Sample page:', JSON.stringify(data.data[0], null, 2));
     }
@@ -319,6 +391,44 @@ async function saveConnectionToDatabase(
   console.log('Saving connection to database for user:', userId);
   
   try {
+    // First validate all incoming data
+    if (!userId || typeof userId !== 'string') {
+      throw new Error('Invalid user ID');
+    }
+    
+    if (!platform || typeof platform !== 'string') {
+      throw new Error('Invalid platform');
+    }
+    
+    if (!accessToken || typeof accessToken !== 'string') {
+      throw new Error('Invalid access token');
+    }
+    
+    // Validate ad accounts and pages
+    const validatedAdAccounts = Array.isArray(adAccounts) 
+      ? adAccounts.filter(account => {
+          try {
+            AccountSchema.parse(account);
+            return true;
+          } catch (error) {
+            console.warn('Filtering out invalid ad account:', account);
+            return false;
+          }
+        }) 
+      : [];
+      
+    const validatedPages = Array.isArray(pages) 
+      ? pages.filter(page => {
+          try {
+            PageSchema.parse(page);
+            return true;
+          } catch (error) {
+            console.warn('Filtering out invalid page:', page);
+            return false;
+          }
+        }) 
+      : [];
+    
     // First check if a connection already exists for this user/platform
     const { data: existingConnection, error: queryError } = await supabaseAdmin
       .from('platform_connections')
@@ -334,13 +444,13 @@ async function saveConnectionToDatabase(
     
     // Prepare metadata object with validation
     const metadata = {
-      ad_accounts: Array.isArray(adAccounts) ? adAccounts : [],
-      pages: Array.isArray(pages) ? pages : [],
+      ad_accounts: validatedAdAccounts,
+      pages: validatedPages,
       selected_account_id: accountId,
       last_fetched: new Date().toISOString()
     };
     
-    console.log('Prepared metadata structure:', JSON.stringify(metadata, null, 2));
+    console.log('Prepared validated metadata structure:', JSON.stringify(metadata, null, 2));
     
     // Store connection with ad accounts and pages as metadata
     const { data, error } = await supabaseAdmin
@@ -499,100 +609,116 @@ serve(async (req) => {
 
     console.log('User authenticated:', user.id);
 
-    // Exchange the code for an access token
-    const tokenData = await exchangeCodeForToken(code);
-    console.log('Token exchange successful with data:', JSON.stringify({
-      access_token_length: tokenData.access_token?.length,
-      token_type: tokenData.token_type,
-      expires_in: tokenData.expires_in
-    }, null, 2));
-
-    // Validate the token
-    const isTokenValid = await validateToken(tokenData.access_token);
-    if (!isTokenValid) {
-      console.error('Invalid token received from Facebook');
-      
-      const response: FacebookOAuthResponse = {
-        success: false,
-        error: 'Invalid token received from Facebook'
-      };
-      
-      return new Response(JSON.stringify(response), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
-
-    // Get user information
-    const userInfo = await getUserInfo(tokenData.access_token);
-    console.log('Facebook user info:', userInfo);
-
-    // Get ad accounts for the user
-    const adAccountsData = await getAdAccounts(tokenData.access_token);
-    console.log('Ad accounts fetched successfully');
-
-    // Get pages for the user
-    const pagesData = await getPages(tokenData.access_token);
-    console.log('Pages fetched successfully');
-
-    // Use the first ad account if available
-    let accountId = null;
-    let accountName = null;
-    
-    if (adAccountsData && adAccountsData.data && adAccountsData.data.length > 0) {
-      accountId = adAccountsData.data[0].id;
-      accountName = adAccountsData.data[0].name;
-      console.log(`Selected account: ${accountName} (${accountId})`);
-    } else {
-      console.log('No ad accounts found');
-    }
-
-    // Calculate token expiration (if provided)
-    const expiresAt = tokenData.expires_in 
-      ? new Date(Date.now() + tokenData.expires_in * 1000) 
-      : null;
-    
-    if (expiresAt) {
-      console.log(`Token expires at: ${expiresAt.toISOString()}`);
-    } else {
-      console.log('No token expiration provided');
-    }
-
+    // Process the OAuth response with validation
     try {
-      // Save the connection to the database with ad accounts and pages
-      await saveConnectionToDatabase(
-        user.id,
-        'facebook',
-        tokenData.access_token,
-        tokenData.refresh_token || null,
-        expiresAt,
-        accountId,
-        accountName,
-        adAccountsData?.data || [],
-        pagesData?.data || []
-      );
+      // Exchange the code for an access token
+      const tokenData = await exchangeCodeForToken(code);
+      console.log('Token exchange successful with data:', JSON.stringify({
+        access_token_length: tokenData.access_token?.length,
+        token_type: tokenData.token_type,
+        expires_in: tokenData.expires_in
+      }, null, 2));
       
-      const response: FacebookOAuthResponse = {
-        success: true,
-        platform: 'facebook',
-        accountId,
-        accountName,
-        adAccounts: adAccountsData?.data || [],
-        pages: pagesData?.data || [],
-        message: 'Successfully connected to Facebook Ads'
-      };
+      // Validate the token
+      const isTokenValid = await validateToken(tokenData.access_token);
+      if (!isTokenValid) {
+        console.error('Invalid token received from Facebook');
+        
+        const response: FacebookOAuthResponse = {
+          success: false,
+          error: 'Invalid token received from Facebook'
+        };
+        
+        return new Response(JSON.stringify(response), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      // Get user information
+      const userInfo = await getUserInfo(tokenData.access_token);
+      console.log('Facebook user info:', userInfo);
+
+      // Get ad accounts for the user
+      const adAccountsData = await getAdAccounts(tokenData.access_token);
+      console.log('Ad accounts fetched successfully');
+
+      // Get pages for the user
+      const pagesData = await getPages(tokenData.access_token);
+      console.log('Pages fetched successfully');
+
+      // Use the first ad account if available
+      let accountId = null;
+      let accountName = null;
       
-      return new Response(JSON.stringify(response), {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+      if (adAccountsData && adAccountsData.data && adAccountsData.data.length > 0) {
+        accountId = adAccountsData.data[0].id;
+        accountName = adAccountsData.data[0].name;
+        console.log(`Selected account: ${accountName} (${accountId})`);
+      } else {
+        console.log('No ad accounts found');
+      }
+
+      // Calculate token expiration (if provided)
+      const expiresAt = tokenData.expires_in 
+        ? new Date(Date.now() + tokenData.expires_in * 1000) 
+        : null;
+      
+      if (expiresAt) {
+        console.log(`Token expires at: ${expiresAt.toISOString()}`);
+      } else {
+        console.log('No token expiration provided');
+      }
+
+      try {
+        // Save the connection to the database with ad accounts and pages
+        await saveConnectionToDatabase(
+          user.id,
+          'facebook',
+          tokenData.access_token,
+          tokenData.refresh_token || null,
+          expiresAt,
+          accountId,
+          accountName,
+          adAccountsData?.data || [],
+          pagesData?.data || []
+        );
+        
+        const response: FacebookOAuthResponse = {
+          success: true,
+          platform: 'facebook',
+          accountId,
+          accountName,
+          adAccounts: adAccountsData?.data || [],
+          pages: pagesData?.data || [],
+          message: 'Successfully connected to Facebook Ads'
+        };
+        
+        return new Response(JSON.stringify(response), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      } catch (error) {
+        console.error('Error saving connection:', error);
+        
+        const response: FacebookOAuthResponse = {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error occurred saving connection',
+          details: { stage: 'database_save' }
+        };
+        
+        return new Response(JSON.stringify(response), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
     } catch (error) {
-      console.error('Error saving connection:', error);
+      console.error('Error in Facebook OAuth:', error);
       
       const response: FacebookOAuthResponse = {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error occurred saving connection',
-        details: { stage: 'database_save' }
+        error: error instanceof Error ? error.message : 'Unknown error occurred',
+        stack: error instanceof Error ? error.stack : null
       };
       
       return new Response(JSON.stringify(response), {
