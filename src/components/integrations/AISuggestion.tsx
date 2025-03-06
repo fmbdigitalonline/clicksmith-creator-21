@@ -169,8 +169,6 @@ export function AISuggestion({
     return null;
   }
 
-  const buttonSizeClass = size === "sm" ? "h-7 px-2 text-xs" : "h-9 px-3";
-
   if (isLoading[type]) {
     return (
       <Button variant="outline" className={`${buttonSizeClass} text-muted-foreground`} disabled>
