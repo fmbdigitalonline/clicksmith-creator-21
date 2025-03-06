@@ -16,6 +16,9 @@ interface PlatformConnection {
   platform: string;
   metadata?: {
     adAccounts?: Array<{id: string; name: string}>;
+    pages?: Array<{id: string; name: string; access_token?: string}>;
+    selectedAdAccountId?: string;
+    selectedPageId?: string;
   };
 }
 
@@ -283,9 +286,9 @@ export default function PlatformIntegrations() {
               </AlertDescription>
             </Alert>
           ) : hasFacebookAdAccounts ? (
-            <FacebookCampaignOverview />
+            <FacebookCampaignOverview connection={facebookConnection} />
           ) : (
-            <Alert variant="warning">
+            <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertTitle>No Ad Accounts Found</AlertTitle>
               <AlertDescription>
