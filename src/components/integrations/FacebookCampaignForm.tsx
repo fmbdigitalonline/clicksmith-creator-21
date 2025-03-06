@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import CreateCampaignForm from "@/components/integrations/CreateCampaignForm";
@@ -32,6 +33,7 @@ export default function FacebookCampaignForm({
   const [formTab, setFormTab] = useState<"details" | "ads">("details");
   const [selectedAdIds, setSelectedAdIds] = useState<string[]>([]);
   const [createdCampaignId, setCreatedCampaignId] = useState<string>("");
+  const [formSubmitFn, setFormSubmitFn] = useState<(() => void) | null>(null);
   
   // Fetch project data for targeting suggestions and validation
   const projectData = useProjectCampaignData(selectedProjectId || initialProjectId);
@@ -80,6 +82,7 @@ export default function FacebookCampaignForm({
       setFormTab("details");
       setSelectedAdIds([]);
       setCreatedCampaignId("");
+      setFormSubmitFn(null);
     }, 300); // Small delay to avoid seeing the reset during close animation
     onOpenChange(false);
   };
@@ -106,18 +109,20 @@ export default function FacebookCampaignForm({
     }
   };
 
+  // Set the form submit function from the child component
+  const handleFormSubmitReady = (submitFn: () => void) => {
+    setFormSubmitFn(submitFn);
+  };
+
   // Add a new function to handle form submission directly
   const handleFormSubmit = () => {
     console.log("Submitting campaign with selected ads:", selectedAdIds);
     
-    // Find the form element and submit it
-    const form = document.querySelector('form');
-    if (form) {
-      // Create and dispatch a submit event that will bubble up and can be cancelled
-      const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
-      form.dispatchEvent(submitEvent);
+    if (formSubmitFn) {
+      // Call the form's submit function directly
+      formSubmitFn();
     } else {
-      console.error("Form element not found");
+      console.error("Form submit function not available");
     }
   };
 
@@ -211,6 +216,7 @@ export default function FacebookCampaignForm({
                   selectedAdIds={selectedAdIds}
                   onContinue={() => setFormTab("ads")}
                   projectDataCompleteness={projectData.dataCompleteness}
+                  onFormSubmitReady={handleFormSubmitReady}
                 />
               </TabsContent>
               
@@ -237,7 +243,7 @@ export default function FacebookCampaignForm({
                     </Button>
                     <Button 
                       onClick={handleFormSubmit}
-                      disabled={selectedAdIds.length === 0}
+                      disabled={selectedAdIds.length === 0 || !formSubmitFn}
                       variant="facebook"
                     >
                       Create Campaign with {selectedAdIds.length} ad{selectedAdIds.length !== 1 ? 's' : ''}

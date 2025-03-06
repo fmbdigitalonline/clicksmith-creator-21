@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -65,7 +64,8 @@ interface CreateCampaignFormProps {
   onBack?: () => void;
   selectedAdIds?: string[];
   onContinue?: () => void;
-  projectDataCompleteness?: number; // Added prop for data completeness
+  projectDataCompleteness?: number;
+  onFormSubmitReady?: (submitFn: () => void) => void; // New prop to expose the submit function
 }
 
 export default function CreateCampaignForm({ 
@@ -76,7 +76,8 @@ export default function CreateCampaignForm({
   onBack,
   selectedAdIds = [],
   onContinue,
-  projectDataCompleteness = 100
+  projectDataCompleteness = 100,
+  onFormSubmitReady
 }: CreateCampaignFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPerformancePrediction, setShowPerformancePrediction] = useState(false);
@@ -115,6 +116,13 @@ export default function CreateCampaignForm({
       });
     }
   }, [projectData.loading, projectData.businessIdea]);
+
+  // Expose the submit function to parent component
+  useEffect(() => {
+    if (onFormSubmitReady) {
+      onFormSubmitReady(() => form.handleSubmit(handleFormSubmit)());
+    }
+  }, [form, onFormSubmitReady]);
   
   const handleFormSubmit = async (values: z.infer<typeof campaignFormSchema>) => {
     try {
