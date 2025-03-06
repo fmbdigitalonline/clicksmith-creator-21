@@ -55,3 +55,29 @@ export interface AIDecisionMetrics {
     low: number;
   };
 }
+
+/**
+ * Structure of the ai_campaign_decisions table in Supabase
+ */
+export interface AIDecisionTable {
+  Row: AIDecision;
+  Insert: Omit<AIDecision, 'id' | 'timestamp'>;
+  Update: Partial<Omit<AIDecision, 'id' | 'timestamp'>>;
+}
+
+/**
+ * Structure of the ai_decision_stats view in Supabase
+ */
+export interface AIDecisionStatsTable {
+  Row: {
+    campaign_id: string;
+    total_decisions: number;
+    override_rate: number;
+    decisions_by_type: Record<string, number>;
+    decisions_by_confidence: {
+      high: number;
+      medium: number;
+      low: number;
+    };
+  };
+}
