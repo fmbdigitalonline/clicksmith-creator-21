@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { SuggestionResponse, SuggestionType, useAICampaignAssistant } from "@/hooks/useAICampaignAssistant";
@@ -100,8 +99,12 @@ export function AISuggestion({
         current_value: currentValue?.toString()
       };
       
-      // Use type assertion for now since the table exists but isn't in the type definitions
-      await (supabase.from('ai_suggestion_feedback') as any).insert(feedbackData);
+      // Use a more specific type assertion that includes the expected methods
+      const feedbackTable = supabase.from('ai_suggestion_feedback') as unknown as {
+        insert: (data: AISuggestionFeedback) => Promise<{ error: any; data: any; }>;
+      };
+      
+      await feedbackTable.insert(feedbackData);
       
       console.log(`Suggestion ${action} logged successfully`);
     } catch (error) {
