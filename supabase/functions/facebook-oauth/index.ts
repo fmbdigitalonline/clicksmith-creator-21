@@ -1,4 +1,3 @@
-
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { corsHeaders } from '../_shared/cors.ts'
 
@@ -212,6 +211,18 @@ async function exchangeCodeForToken(code: string, redirectUri: string) {
     if (!tokenResponse.ok) {
       const errorText = await tokenResponse.text();
       console.error('Error exchanging code for token:', errorText);
+      
+      // Parse error response to check for specific error types
+      try {
+        const errorData = JSON.parse(errorText);
+        if (errorData.error && errorData.error.type === 'OAuthException' && 
+            errorData.error.message.includes('configured as a desktop app')) {
+          throw new Error('Facebook App is incorrectly configured as a desktop app. Please reconfigure it as a web application in the Facebook Developers Console.');
+        }
+      } catch (parseError) {
+        console.error('Error parsing error response:', parseError);
+      }
+      
       throw new Error(`Failed to exchange code for token: ${errorText}`);
     }
 
