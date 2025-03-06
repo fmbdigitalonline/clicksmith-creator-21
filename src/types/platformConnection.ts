@@ -115,35 +115,56 @@ export function validatePlatformConnectionMetadata(metadata: any): PlatformConne
     // Parse the metadata with our schema
     const validatedData = PlatformConnectionMetadataSchema.parse(metadata);
     
-    // When we parse with Zod, ensure that required fields in our interfaces are present
-    // for each ad account and page
-    const result: PlatformConnectionMetadata = {
-      ...validatedData,
-    };
+    // Initialize the result object with known valid structure
+    const result: PlatformConnectionMetadata = {};
     
     // Ensure ad_accounts conform to AdAccount interface
-    if (validatedData.ad_accounts) {
-      result.ad_accounts = validatedData.ad_accounts.map(account => ({
-        id: account.id,
-        name: account.name,
-        account_id: account.account_id,
-        account_status: account.account_status,
-        currency: account.currency,
-        timezone_name: account.timezone_name,
-        capabilities: account.capabilities
-      }));
+    if (validatedData.ad_accounts && Array.isArray(validatedData.ad_accounts)) {
+      result.ad_accounts = validatedData.ad_accounts
+        .filter(account => 
+          // Only include accounts that have all required fields
+          account && 
+          typeof account.id === 'string' && 
+          typeof account.name === 'string' && 
+          typeof account.account_id === 'string' && 
+          typeof account.account_status === 'number'
+        )
+        .map(account => ({
+          id: account.id,
+          name: account.name,
+          account_id: account.account_id,
+          account_status: account.account_status,
+          currency: account.currency,
+          timezone_name: account.timezone_name,
+          capabilities: account.capabilities
+        }));
     }
     
     // Ensure pages conform to FacebookPage interface
-    if (validatedData.pages) {
-      result.pages = validatedData.pages.map(page => ({
-        id: page.id,
-        name: page.name,
-        access_token: page.access_token,
-        category: page.category,
-        followers_count: page.followers_count,
-        fan_count: page.fan_count
-      }));
+    if (validatedData.pages && Array.isArray(validatedData.pages)) {
+      result.pages = validatedData.pages
+        .filter(page => 
+          // Only include pages that have all required fields
+          page && 
+          typeof page.id === 'string' && 
+          typeof page.name === 'string'
+        )
+        .map(page => ({
+          id: page.id,
+          name: page.name,
+          access_token: page.access_token,
+          category: page.category,
+          followers_count: page.followers_count,
+          fan_count: page.fan_count
+        }));
+    }
+    
+    // Copy any additional metadata fields
+    if (validatedData.selected_account_id) {
+      result.selected_account_id = validatedData.selected_account_id;
+    }
+    if (validatedData.last_fetched) {
+      result.last_fetched = validatedData.last_fetched;
     }
     
     return result;
@@ -156,3 +177,4 @@ export function validatePlatformConnectionMetadata(metadata: any): PlatformConne
     };
   }
 }
+
