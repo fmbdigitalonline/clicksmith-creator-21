@@ -98,8 +98,10 @@ export default function FacebookCampaignForm({
     }
   };
 
-  const handleCampaignActivated = () => {
-    // This wrapper function matches the expected () => void signature
+  // Fix: Updated function to accept a campaignId parameter but not use it
+  // This makes it compatible with the onActivate prop in CampaignStatusCard
+  const handleCampaignActivated = (_campaignId?: string) => {
+    // This wrapper function makes it compatible with both signatures
     if (onSuccess) {
       onSuccess();
     }
