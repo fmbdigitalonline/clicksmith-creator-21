@@ -1,7 +1,7 @@
-
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { Json } from "@/integrations/supabase/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { SavedAdCard } from "@/components/gallery/components/SavedAdCard";
 import { Button } from "@/components/ui/button";
@@ -91,15 +91,41 @@ export default function AdSelectionGallery({
 
       if (error) throw error;
 
-      // Convert database response to SavedAd type
-      const formattedAds: SavedAd[] = (data || []).map(ad => ({
-        ...ad,
-        saved_images: Array.isArray(ad.saved_images) 
-          ? ad.saved_images 
-          : typeof ad.saved_images === 'string' 
-            ? [ad.saved_images] 
-            : [],
-      }));
+      // Convert database response to SavedAd type with proper type handling
+      const formattedAds: SavedAd[] = (data || []).map(ad => {
+        // Handle the saved_images field which could be a variety of types
+        let savedImages: string[] = [];
+        
+        if (ad.saved_images) {
+          if (Array.isArray(ad.saved_images)) {
+            // Try to convert each item to string if possible
+            savedImages = (ad.saved_images as Json[]).map(img => 
+              typeof img === 'string' ? img : String(img)
+            );
+          } else if (typeof ad.saved_images === 'string') {
+            savedImages = [ad.saved_images];
+          }
+        }
+        
+        // Handle the size field which is JSON
+        let sizeObj = { width: 1200, height: 628, label: "Default" };
+        if (ad.size) {
+          const size = ad.size as Json;
+          if (typeof size === 'object' && size !== null) {
+            sizeObj = {
+              width: typeof size.width === 'number' ? size.width : 1200,
+              height: typeof size.height === 'number' ? size.height : 628,
+              label: typeof size.label === 'string' ? size.label : "Default"
+            };
+          }
+        }
+        
+        return {
+          ...ad,
+          saved_images: savedImages,
+          size: sizeObj
+        };
+      });
 
       setSavedAds(formattedAds);
     } catch (error) {
