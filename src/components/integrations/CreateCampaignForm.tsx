@@ -568,7 +568,7 @@ export default function CreateCampaignForm({
                   <SelectValue placeholder="Max Age" />
                 </SelectTrigger>
                 <SelectContent>
-                  {[18, 21, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 65+].map(age => (
+                  {[18, 21, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, "65+"].map(age => (
                     <SelectItem key={age} value={age.toString()}>{age}</SelectItem>
                   ))}
                 </SelectContent>
