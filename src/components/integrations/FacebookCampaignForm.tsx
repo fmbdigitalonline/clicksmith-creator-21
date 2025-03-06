@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import CreateCampaignForm from "@/components/integrations/CreateCampaignForm";
@@ -7,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ProjectSelector } from "@/components/gallery/components/ProjectSelector";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AdSelectionGallery from "@/components/integrations/AdSelectionGallery";
-import { AlertCircle, Info } from "lucide-react";
+import { AlertCircle, Info, CheckCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { extractTargetingData } from "@/utils/campaignDataUtils";
 import { useProjectCampaignData } from "@/hooks/useProjectCampaignData";
@@ -100,7 +99,7 @@ export default function FacebookCampaignForm({
   };
 
   const handleCampaignActivated = () => {
-    // Could refresh data or show a success message
+    // This wrapper function matches the expected () => void signature
     if (onSuccess) {
       onSuccess();
     }
