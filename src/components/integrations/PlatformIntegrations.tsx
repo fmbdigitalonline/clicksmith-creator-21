@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -319,7 +318,7 @@ export default function PlatformIntegrations() {
           ) : hasFacebookAdAccounts ? (
             <FacebookCampaignOverview />
           ) : (
-            <Alert variant="warning">
+            <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertTitle>No Ad Accounts Found</AlertTitle>
               <AlertDescription>

@@ -45,7 +45,7 @@ interface FacebookConnection {
   access_token: string;
   account_id: string;
   account_name: string;
-  metadata?: {
+  extendedData?: {
     adAccounts?: AdAccount[];
     selectedAdAccountId?: string;
     selectedPageId?: string;
@@ -88,13 +88,30 @@ export default function FacebookCampaignOverview() {
       if (error) throw error;
       
       if (data) {
-        setConnection(data);
+        // Extract extended data from the raw database response
+        const rawMetadata = (data as any).metadata || {};
         
-        const adAccounts = data.metadata?.adAccounts || [];
+        const extendedData = {
+          adAccounts: rawMetadata.adAccounts || [],
+          selectedAdAccountId: rawMetadata.selectedAdAccountId || (rawMetadata.adAccounts?.length > 0 ? rawMetadata.adAccounts[0].id : ""),
+          selectedPageId: rawMetadata.selectedPageId || null,
+          pageAccessToken: rawMetadata.pageAccessToken || null
+        };
+        
+        // Create connection with extended data
+        const extendedConnection: FacebookConnection = {
+          ...data,
+          extendedData
+        };
+        
+        setConnection(extendedConnection);
+        
+        // Set ad accounts and selected account ID
+        const adAccounts = extendedData.adAccounts || [];
         setAdAccounts(adAccounts);
         
-        // Set the selected ad account to the one saved in metadata or the first one
-        const selectedId = data.metadata?.selectedAdAccountId || (adAccounts.length > 0 ? adAccounts[0].id : "");
+        // Set the selected ad account to the one saved or the first one
+        const selectedId = extendedData.selectedAdAccountId || (adAccounts.length > 0 ? adAccounts[0].id : "");
         setSelectedAdAccount(selectedId);
       }
     } catch (error) {
@@ -338,7 +355,7 @@ export default function FacebookCampaignOverview() {
   // If no Facebook connection with ad accounts
   if (!connection || !adAccounts || adAccounts.length === 0) {
     return (
-      <Alert variant="warning" className="mb-4">
+      <Alert variant="destructive" className="mb-4">
         <AlertCircle className="h-4 w-4" />
         <AlertTitle>No Facebook Ad Accounts Found</AlertTitle>
         <AlertDescription>

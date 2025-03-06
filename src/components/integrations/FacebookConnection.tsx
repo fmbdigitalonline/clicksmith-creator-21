@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -317,20 +316,20 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
       const selectedAccount = adAccounts.find(acc => acc.id === accountId);
       if (!selectedAccount) return;
       
-      // Get existing metadata
-      const currentMetadata = (connection as any).metadata || {};
-      const updatedMetadata = {
-        ...currentMetadata,
-        selectedAdAccountId: accountId
-      };
-      
-      // Update the platform connection
+      // Update the metadata in the database
+      // Since we can't directly use the metadata field in our type, we need to use any
       const { error } = await supabase
         .from('platform_connections')
         .update({
           account_id: accountId,
           account_name: selectedAccount.name,
-          metadata: updatedMetadata
+          metadata: {
+            ...(connection as any).metadata,
+            adAccounts: adAccounts,
+            pages: pages,
+            selectedAdAccountId: accountId,
+            selectedPageId: selectedPage
+          }
         })
         .eq('platform', 'facebook');
       
