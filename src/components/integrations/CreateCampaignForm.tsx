@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useSession } from "@supabase/auth-helpers-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -90,26 +89,36 @@ export default function CreateCampaignForm({
         // Initialize form with project data
         if (project) {
           // Extract business name for campaign name
-          const businessName = typeof project.business_idea === 'object' && project.business_idea !== null
-            ? project.business_idea.description || ""
-            : "";
+          let businessName = "";
+          const businessIdeaObj = project.business_idea;
+          
+          if (typeof businessIdeaObj === 'object' && businessIdeaObj !== null) {
+            businessName = (businessIdeaObj as any).description || "";
+          }
             
           // Extract image URL from generated ads if available
           let imageUrl = "";
           if (wizard?.generated_ads && Array.isArray(wizard.generated_ads) && wizard.generated_ads.length > 0) {
-            imageUrl = wizard.generated_ads[0].imageUrl || "";
+            const firstAd = wizard.generated_ads[0];
+            if (typeof firstAd === 'object' && firstAd !== null) {
+              imageUrl = (firstAd as any).imageUrl || "";
+            }
           }
           
           // Create a landing page URL
           const landingPageUrl = `https://${window.location.hostname}/share/${projectId}`;
           
+          // Get value proposition if available
+          let valueProposition = "";
+          if (typeof businessIdeaObj === 'object' && businessIdeaObj !== null) {
+            valueProposition = (businessIdeaObj as any).valueProposition || "";
+          }
+          
           setFormData(prev => ({
             ...prev,
             name: `${businessName.substring(0, 30)} Campaign`,
             headline: businessName.substring(0, 40),
-            description: typeof project.business_idea === 'object' && project.business_idea !== null 
-              ? project.business_idea.valueProposition || "" 
-              : "",
+            description: valueProposition,
             imageUrl,
             landingPageUrl
           }));
@@ -258,10 +267,11 @@ export default function CreateCampaignForm({
       
       // Add scheduling if in advanced mode
       if (formData.isAdvancedMode && formData.startDate) {
-        facebookAdData.adSet.start_time = new Date(formData.startDate).toISOString();
+        // Add custom start_time and end_time properties to adSet
+        (facebookAdData.adSet as any).start_time = new Date(formData.startDate).toISOString();
         
         if (formData.endDate) {
-          facebookAdData.adSet.end_time = new Date(formData.endDate).toISOString();
+          (facebookAdData.adSet as any).end_time = new Date(formData.endDate).toISOString();
         }
       }
       
@@ -614,7 +624,7 @@ export default function CreateCampaignForm({
           </div>
           
           <div className="pt-4">
-            <Alert variant="outline">
+            <Alert variant="default">
               <AlertDescription className="text-sm">
                 Detailed targeting (interests, behaviors) will be generated based on your audience data and campaign objective.
               </AlertDescription>

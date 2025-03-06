@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -143,7 +144,7 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
       
       console.log("Facebook connection data:", data);
       if (data) {
-        setConnection(data);
+        setConnection(data as PlatformConnection);
         // Set the selected account ID if available in metadata
         if (data.metadata?.selected_account_id) {
           setSelectedAccountId(data.metadata.selected_account_id);

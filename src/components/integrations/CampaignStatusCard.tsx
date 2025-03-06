@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -154,7 +153,7 @@ export default function CampaignStatusCard({
         )}
         
         {campaign.status === "completed" && (
-          <Alert variant="success" className="mb-4 bg-green-50 border-green-200">
+          <Alert variant="default" className="mb-4 bg-green-50 border-green-200">
             <CheckCircle className="h-4 w-4 text-green-600" />
             <AlertTitle>Campaign Created Successfully</AlertTitle>
             <AlertDescription className="text-sm">
