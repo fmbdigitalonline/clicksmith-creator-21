@@ -42,6 +42,7 @@ export function ProjectSelector({ onSelect, selectedProjectId }: ProjectSelector
         if (!userData?.user) {
           console.error("No user found when fetching projects");
           setProjects([]);
+          setLoading(false);
           return;
         }
 
@@ -52,8 +53,11 @@ export function ProjectSelector({ onSelect, selectedProjectId }: ProjectSelector
           .order('updated_at', { ascending: false });
 
         if (error) throw error;
-        setProjects(Array.isArray(data) ? data : []);
-        console.log("Projects fetched:", data);
+        
+        // Ensure data is an array before setting it
+        const projectsArray = Array.isArray(data) ? data : [];
+        console.log("Projects fetched:", projectsArray);
+        setProjects(projectsArray);
       } catch (error) {
         console.error('Error fetching projects:', error);
         toast({
@@ -61,6 +65,7 @@ export function ProjectSelector({ onSelect, selectedProjectId }: ProjectSelector
           description: "Failed to load projects. Please try again.",
           variant: "destructive",
         });
+        // Ensure we set an empty array on error
         setProjects([]);
       } finally {
         setLoading(false);
@@ -70,7 +75,10 @@ export function ProjectSelector({ onSelect, selectedProjectId }: ProjectSelector
     fetchProjects();
   }, [toast]);
 
-  const selectedProject = projects.find(project => project.id === selectedProjectId);
+  // Find the selected project safely
+  const selectedProject = selectedProjectId 
+    ? projects.find(project => project?.id === selectedProjectId) 
+    : undefined;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -95,7 +103,7 @@ export function ProjectSelector({ onSelect, selectedProjectId }: ProjectSelector
           <CommandInput placeholder="Search projects..." className="h-9" />
           <CommandEmpty className="py-3 text-center text-sm">No projects found.</CommandEmpty>
           <CommandGroup className="max-h-[200px] overflow-auto">
-            {Array.isArray(projects) && projects.length > 0 ? (
+            {projects && projects.length > 0 ? (
               projects.map((project) => (
                 <CommandItem
                   key={project.id}
