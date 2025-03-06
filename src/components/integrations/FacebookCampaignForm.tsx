@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import CreateCampaignForm from "@/components/integrations/CreateCampaignForm";
@@ -100,11 +99,25 @@ export default function FacebookCampaignForm({
     }
   };
 
-  // Create a callback function for campaign activation
   const handleCampaignActivated = () => {
     console.log("Campaign activated!");
     if (onSuccess) {
       onSuccess();
+    }
+  };
+
+  // Add a new function to handle form submission directly
+  const handleFormSubmit = () => {
+    console.log("Submitting campaign with selected ads:", selectedAdIds);
+    
+    // Find the form element and submit it
+    const form = document.querySelector('form');
+    if (form) {
+      // Create and dispatch a submit event that will bubble up and can be cancelled
+      const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
+      form.dispatchEvent(submitEvent);
+    } else {
+      console.error("Form element not found");
     }
   };
 
@@ -223,12 +236,7 @@ export default function FacebookCampaignForm({
                       Back to Campaign Details
                     </Button>
                     <Button 
-                      onClick={form => {
-                        console.log("Submitting campaign with selected ads:", selectedAdIds);
-                        document.querySelector('form')?.dispatchEvent(
-                          new Event('submit', { cancelable: true, bubbles: true })
-                        );
-                      }}
+                      onClick={handleFormSubmit}
                       disabled={selectedAdIds.length === 0}
                       variant="facebook"
                     >
