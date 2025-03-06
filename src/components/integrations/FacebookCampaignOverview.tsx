@@ -205,8 +205,9 @@ export default function FacebookCampaignOverview() {
       const { data, error } = await supabase
         .from("ad_campaigns")
         .insert({
+          // Fix: Explicitly specify all required fields with correct types
           name: `Template: ${campaign.name}`,
-          platform: campaign.platform,
+          platform: "facebook" as const, // Fix: Use literal type to match expected "facebook" | "google" | "linkedin" | "tiktok"
           status: "template",
           is_template: true,
           template_name: campaign.name,
