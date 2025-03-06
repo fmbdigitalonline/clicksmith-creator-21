@@ -1,3 +1,4 @@
+
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { corsHeaders } from '../_shared/cors.ts'
 
@@ -147,14 +148,23 @@ const createClient = (supabaseUrl: string, supabaseKey: string) => {
           });
         }
       }),
-      match: (query: Record<string, any>) => {
-        const queryParams = new URLSearchParams();
-        for (const key in query) {
-          queryParams.append(key, `eq.${query[key]}`);
+      // Use simpler query approach with direct URL construction instead of chained methods
+      selectWhere: (conditions: Record<string, any>) => {
+        console.log(`Querying ${table} with conditions:`, conditions);
+        
+        // Build query parameters
+        const params = new URLSearchParams();
+        params.append('select', '*'); // Select all fields
+        
+        // Add each condition as a filter
+        for (const [key, value] of Object.entries(conditions)) {
+          params.append(key, `eq.${value}`);
         }
-        const queryStr = queryParams.toString();
-        console.log(`Selecting from ${table} with query: ${queryStr}`);
-        return fetch(`${supabaseUrl}/rest/v1/${table}?${queryStr}`, {
+        
+        const queryString = params.toString();
+        console.log(`Query string: ${queryString}`);
+        
+        return fetch(`${supabaseUrl}/rest/v1/${table}?${queryString}`, {
           headers: {
             'apikey': supabaseKey,
             'Authorization': `Bearer ${supabaseKey}`,
@@ -162,11 +172,11 @@ const createClient = (supabaseUrl: string, supabaseKey: string) => {
         }).then(async (res) => {
           if (!res.ok) {
             const error = await res.json();
-            console.error(`Error selecting from ${table}:`, error);
+            console.error(`Error querying ${table}:`, error);
             return { data: null, error };
           }
           const data = await res.json();
-          console.log(`Successfully selected from ${table}, found ${data.length} records`);
+          console.log(`Query successful, found ${data.length} records in ${table}`);
           return { data, error: null };
         }).catch(err => {
           console.error(`Exception in database query on ${table}:`, err);
@@ -476,11 +486,14 @@ async function saveConnectionToDatabase(
         }) 
       : [];
     
-    // Check for existing connection using proper query syntax
+    // Check for existing connection - using direct querystring approach instead of chained methods
+    console.log('Checking for existing connection with user_id:', userId, 'and platform:', platform);
     const { data: existingConnections, error: queryError } = await supabaseAdmin
       .from('platform_connections')
-      .select('*')
-      .match({ user_id: userId, platform: platform });
+      .selectWhere({ 
+        user_id: userId, 
+        platform: platform 
+      });
     
     if (queryError) {
       console.error('Error checking for existing connection:', queryError);
