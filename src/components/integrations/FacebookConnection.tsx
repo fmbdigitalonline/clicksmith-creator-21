@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -78,11 +77,15 @@ interface PlatformConnection {
   platform: string;
   account_id: string | null;
   account_name: string | null;
+  access_token: string;
+  refresh_token: string | null;
+  token_expires_at: string | null;
   created_at: string;
   updated_at: string;
+  user_id: string;
   metadata?: {
-    ad_accounts: AdAccount[];
-    pages: FacebookPage[];
+    ad_accounts?: AdAccount[];
+    pages?: FacebookPage[];
     selected_account_id?: string;
     last_fetched?: string;
   };

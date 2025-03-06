@@ -1,4 +1,6 @@
 
+// This file implements the Facebook campaign creation edge function
+
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -340,7 +342,9 @@ serve(async (req) => {
         // If the creative has a page_id placeholder, replace it with the actual page ID
         if (adCreativeData.object_story_spec.page_id === '{{page_id}}') {
           // Get the user's Facebook pages from the connection data
-          const pageId = connectionData.page_id || connectionData.account_name;
+          const metadata = connectionData.metadata || {};
+          const pages = metadata.pages || [];
+          const pageId = pages.length > 0 ? pages[0].id : null;
           
           if (!pageId) {
             throw new Error("No Facebook page ID available");
