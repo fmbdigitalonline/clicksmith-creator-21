@@ -1,11 +1,11 @@
 
-import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { generateAutomatedCampaignSettings } from "@/utils/aiCampaignAutomation";
 import { BusinessIdea, TargetAudience, AudienceAnalysis } from "@/types/adWizard";
-import { Button } from "@/components/ui/button";
-import { Loader2, AlertCircle, CheckCircle, CheckCheck, Lightbulb, Edit, Settings, AlertTriangle } from "lucide-react";
-import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
+import { CircleCheck, CircleDashed, ArrowRightCircle, AlertCircle, Check } from "lucide-react";
+import { useState } from "react";
 import { AISuggestion } from "./AISuggestion";
 
 interface AutomatedCampaignSummaryProps {
@@ -13,269 +13,213 @@ interface AutomatedCampaignSummaryProps {
   targetAudience?: TargetAudience;
   audienceAnalysis?: AudienceAnalysis;
   projectId?: string;
-  onApprove: (settings: any) => void;
-  onEdit: () => void;
+  onConfirm: (settings: any) => void;
+  onCancel: () => void;
   loading?: boolean;
 }
 
-export default function AutomatedCampaignSummary({
+export function AutomatedCampaignSummary({
   businessIdea,
   targetAudience,
   audienceAnalysis,
   projectId,
-  onApprove,
-  onEdit,
+  onConfirm,
+  onCancel,
   loading = false
 }: AutomatedCampaignSummaryProps) {
-  const [settings, setSettings] = useState<any>(null);
-  const [processingStatus, setProcessingStatus] = useState<string>("Analyzing project data...");
-  const [processingStep, setProcessingStep] = useState<number>(0);
-  const [overallConfidence, setOverallConfidence] = useState<"high" | "medium" | "low">("medium");
+  const [campaignSettings, setCampaignSettings] = useState(() => 
+    generateAutomatedCampaignSettings(businessIdea, targetAudience, audienceAnalysis)
+  );
   
-  useEffect(() => {
-    // Simulated AI processing with steps for better UX
-    if (loading) {
-      const steps = [
-        "Analyzing project data...",
-        "Evaluating audience characteristics...",
-        "Determining optimal budget...",
-        "Generating targeting parameters...",
-        "Applying decision algorithms...",
-        "Finalizing campaign recommendations..."
-      ];
-      
-      let currentStep = 0;
-      const interval = setInterval(() => {
-        setProcessingStep(currentStep);
-        setProcessingStatus(steps[currentStep]);
-        currentStep++;
-        
-        if (currentStep >= steps.length) {
-          clearInterval(interval);
-          
-          // Generate actual settings after simulation completes
-          const generatedSettings = generateAutomatedCampaignSettings(
-            businessIdea,
-            targetAudience,
-            audienceAnalysis
-          );
-          
-          setSettings(generatedSettings);
-          setOverallConfidence(generatedSettings.confidenceLevel);
-        }
-      }, 1000);
-      
-      return () => clearInterval(interval);
-    } else if (!settings) {
-      // Generate settings immediately if not loading
-      const generatedSettings = generateAutomatedCampaignSettings(
-        businessIdea,
-        targetAudience,
-        audienceAnalysis
-      );
-      
-      setSettings(generatedSettings);
-      setOverallConfidence(generatedSettings.confidenceLevel);
-    }
-  }, [businessIdea, targetAudience, audienceAnalysis, loading]);
+  const [customizedSettings, setCustomizedSettings] = useState(campaignSettings);
+  const [isReviewing, setIsReviewing] = useState(true);
   
-  const renderConfidenceBadge = (confidence: "high" | "medium" | "low") => {
-    switch (confidence) {
-      case "high":
-        return (
-          <div className="flex items-center text-green-600 text-sm font-medium">
-            <CheckCheck className="h-4 w-4 mr-1" />
-            High confidence
-          </div>
-        );
-      case "medium":
-        return (
-          <div className="flex items-center text-amber-600 text-sm font-medium">
-            <CheckCircle className="h-4 w-4 mr-1" />
-            Medium confidence
-          </div>
-        );
-      case "low":
-        return (
-          <div className="flex items-center text-red-600 text-sm font-medium">
-            <AlertCircle className="h-4 w-4 mr-1" />
-            Low confidence
-          </div>
-        );
+  const handleUpdateSetting = (key: string, value: any) => {
+    setCustomizedSettings(prev => ({
+      ...prev,
+      [key]: value
+    }));
+  };
+  
+  const handleTargetingSuggestion = (suggestion: string) => {
+    setCustomizedSettings(prev => ({
+      ...prev,
+      targeting: {
+        ...prev.targeting,
+        recommendation: suggestion
+      }
+    }));
+  };
+  
+  const handleObjectiveSuggestion = (suggestion: string) => {
+    setCustomizedSettings(prev => ({
+      ...prev,
+      objective: suggestion
+    }));
+  };
+  
+  const handleBudgetSuggestion = (suggestion: string) => {
+    // Extract number from suggestion (e.g., "$1000-2000" -> 1000)
+    const budget = parseInt(suggestion.replace(/[^\d-]/g, '').split('-')[0]) || 1000;
+    
+    setCustomizedSettings(prev => ({
+      ...prev,
+      budget: budget
+    }));
+  };
+  
+  const getConfidenceBadge = (confidence: number) => {
+    if (confidence >= 0.8) {
+      return <Badge className="bg-green-600">High Confidence</Badge>;
+    } else if (confidence >= 0.6) {
+      return <Badge className="bg-yellow-600">Medium Confidence</Badge>;
+    } else {
+      return <Badge className="bg-red-600">Low Confidence</Badge>;
     }
   };
   
-  if (loading || !settings) {
-    return (
-      <Card className="w-full">
-        <CardHeader>
-          <CardTitle>AI Campaign Analysis</CardTitle>
-          <CardDescription>
-            Our AI is analyzing your project data to create the optimal campaign
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex justify-between items-center">
-            <div className="text-sm font-medium">{processingStatus}</div>
-            <div className="text-sm text-muted-foreground">
-              Step {processingStep + 1}/6
-            </div>
-          </div>
-          <Progress value={(processingStep + 1) * 16.66} className="h-2" />
-          <div className="flex justify-center mt-6">
-            <Loader2 className="h-10 w-10 animate-spin text-primary" />
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
+  const handleConfirmSettings = () => {
+    onConfirm(customizedSettings);
+  };
   
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <div className="flex justify-between items-start">
-          <div>
-            <CardTitle>AI Campaign Recommendations</CardTitle>
-            <CardDescription>
-              Based on your project data, our AI has created these campaign settings
-            </CardDescription>
-          </div>
-          {renderConfidenceBadge(overallConfidence)}
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Data completeness indicator */}
-        <div className="space-y-2">
-          <div className="flex justify-between items-center">
-            <div className="text-sm font-medium">Data completeness</div>
-            <div className="text-sm text-muted-foreground">
-              {settings.dataCompleteness}%
-            </div>
-          </div>
-          <Progress value={settings.dataCompleteness} className="h-2" />
-          {settings.dataCompleteness < 70 && (
-            <div className="flex items-start p-3 bg-amber-50 rounded border border-amber-100 mt-2">
-              <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5 mr-2 flex-shrink-0" />
-              <div className="text-xs text-amber-800">
-                Limited project data available. Consider adding more information to your project for better AI suggestions.
-              </div>
-            </div>
-          )}
-        </div>
-        
-        {/* Campaign objective */}
-        <div className="space-y-2">
-          <h3 className="text-sm font-medium">Campaign Objective</h3>
-          <div className="flex items-start justify-between p-3 bg-gray-50 rounded border">
-            <div className="space-y-1">
-              <p className="font-semibold">{settings.objective}</p>
-              <p className="text-xs text-gray-600">Determined based on your business type and goals</p>
-            </div>
-            <AISuggestion 
-              type="objective"
-              size="sm"
-              businessIdea={businessIdea}
-              targetAudience={targetAudience}
-              projectId={projectId}
-            />
-          </div>
-        </div>
-        
-        {/* Budget recommendation */}
-        <div className="space-y-2">
-          <h3 className="text-sm font-medium">Daily Budget</h3>
-          <div className="flex items-start justify-between p-3 bg-gray-50 rounded border">
-            <div className="space-y-1">
-              <p className="font-semibold">${settings.budget}</p>
-              <p className="text-xs text-gray-600">Optimized for your business type and audience</p>
-            </div>
-            <AISuggestion 
-              type="budget"
-              size="sm"
-              businessIdea={businessIdea}
-              targetAudience={targetAudience}
-              projectId={projectId}
-              currentValue={settings.budget}
-            />
-          </div>
-        </div>
-        
-        {/* Targeting */}
-        <div className="space-y-2">
-          <h3 className="text-sm font-medium">Audience Targeting</h3>
-          <div className="flex items-start justify-between p-3 bg-gray-50 rounded border">
-            <div className="space-y-1">
-              <p className="text-sm">{settings.targetingDescription}</p>
-            </div>
-            <AISuggestion 
-              type="targeting"
-              size="sm"
-              businessIdea={businessIdea}
-              targetAudience={targetAudience}
-              audienceAnalysis={audienceAnalysis}
-              projectId={projectId}
-            />
-          </div>
-        </div>
-        
-        {/* Performance prediction */}
-        <div className="space-y-2">
-          <h3 className="text-sm font-medium">Performance Prediction</h3>
-          <div className="p-3 bg-gray-50 rounded border">
-            <AISuggestion 
-              type="performance"
-              businessIdea={businessIdea}
-              targetAudience={targetAudience}
-              audienceAnalysis={audienceAnalysis}
-              projectId={projectId}
-            />
-          </div>
-        </div>
-        
-        {/* Safety warnings */}
-        {!settings.safetyChecksPassed && settings.validationIssues.length > 0 && (
-          <div className="p-3 bg-red-50 rounded border border-red-100">
-            <div className="flex items-start">
-              <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 mr-2" />
-              <div>
-                <h4 className="text-sm font-medium text-red-800">Safety Warnings</h4>
-                <ul className="text-xs text-red-700 mt-1 list-disc list-inside">
-                  {settings.validationIssues.map((issue: string, index: number) => (
-                    <li key={index}>{issue}</li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          </div>
-        )}
-        
-        {/* AI explainer */}
-        <div className="flex items-start p-3 bg-purple-50 rounded border border-purple-100">
-          <Lightbulb className="h-4 w-4 text-purple-600 mt-0.5 mr-2 flex-shrink-0" />
-          <p className="text-xs text-purple-800">
-            These recommendations are generated using specialized decision trees and algorithms that analyze your business data and apply industry best practices. You can modify any setting after approving.
+    <div className="space-y-6 max-w-4xl mx-auto">
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h2 className="text-2xl font-bold">AI Campaign Recommendation</h2>
+          <p className="text-muted-foreground">
+            Our AI has analyzed your business and audience data to create an optimized campaign
           </p>
         </div>
-        
-        {/* Action buttons */}
-        <div className="flex justify-between pt-2">
-          <Button
-            variant="outline"
-            onClick={onEdit}
-            className="flex items-center"
-          >
-            <Edit className="h-4 w-4 mr-2" />
-            Customize
-          </Button>
-          <Button
-            onClick={() => onApprove(settings)}
-            className="flex items-center bg-purple-600 hover:bg-purple-700"
-          >
-            <CheckCheck className="h-4 w-4 mr-2" />
-            Apply Recommendations
+        {getConfidenceBadge(campaignSettings.confidence)}
+      </div>
+      
+      {isReviewing ? (
+        <div className="space-y-8">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center text-lg">
+                <CircleCheck className="mr-2 h-5 w-5 text-green-600" />
+                Campaign Objective
+              </CardTitle>
+              <CardDescription>The recommended goal for your campaign</CardDescription>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="p-4 bg-gray-50 rounded-md mb-2">
+                <p className="font-medium">{campaignSettings.objective}</p>
+                <p className="text-sm text-muted-foreground">
+                  {campaignSettings.recommendations.objective.explanation}
+                </p>
+              </div>
+              
+              <div className="mt-4">
+                <AISuggestion
+                  type="objective"
+                  businessIdea={businessIdea}
+                  targetAudience={targetAudience}
+                  audienceAnalysis={audienceAnalysis}
+                  projectId={projectId}
+                  currentValue={campaignSettings.objective}
+                  onSuggestionSelected={handleObjectiveSuggestion}
+                  size="sm"
+                />
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center text-lg">
+                <CircleCheck className="mr-2 h-5 w-5 text-green-600" />
+                Campaign Budget
+              </CardTitle>
+              <CardDescription>Recommended budget allocation</CardDescription>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="p-4 bg-gray-50 rounded-md mb-2">
+                <p className="font-medium">${campaignSettings.budget}</p>
+                <p className="text-sm text-muted-foreground">
+                  {campaignSettings.recommendations.budget.explanation}
+                </p>
+              </div>
+              
+              <div className="mt-4">
+                <AISuggestion
+                  type="budget"
+                  businessIdea={businessIdea}
+                  targetAudience={targetAudience}
+                  audienceAnalysis={audienceAnalysis}
+                  projectId={projectId}
+                  currentValue={campaignSettings.budget.toString()}
+                  onSuggestionSelected={handleBudgetSuggestion}
+                  size="sm"
+                />
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center text-lg">
+                <CircleCheck className="mr-2 h-5 w-5 text-green-600" />
+                Audience Targeting
+              </CardTitle>
+              <CardDescription>Who your campaign will reach</CardDescription>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="p-4 bg-gray-50 rounded-md mb-2">
+                <p className="font-medium">{campaignSettings.targeting.recommendation}</p>
+                <p className="text-sm text-muted-foreground">
+                  {campaignSettings.recommendations.targeting.explanation}
+                </p>
+              </div>
+              
+              <div className="mt-4">
+                <AISuggestion
+                  type="targeting"
+                  businessIdea={businessIdea}
+                  targetAudience={targetAudience}
+                  audienceAnalysis={audienceAnalysis}
+                  projectId={projectId}
+                  currentValue={campaignSettings.targeting.recommendation}
+                  onSuggestionSelected={handleTargetingSuggestion}
+                  size="sm"
+                />
+              </div>
+            </CardContent>
+          </Card>
+          
+          <div className="flex justify-between pt-4 mt-6 border-t">
+            <Button 
+              variant="outline" 
+              onClick={onCancel}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleConfirmSettings}
+              disabled={loading}
+              className="bg-purple-600 hover:bg-purple-700"
+            >
+              {loading ? (
+                <>Creating Campaign...</>
+              ) : (
+                <>
+                  <Check className="mr-2 h-4 w-4" /> 
+                  Confirm & Create Campaign
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="p-6 text-center border rounded-md">
+          <p>Customization interface would go here</p>
+          <Button className="mt-4" onClick={() => setIsReviewing(true)}>
+            Return to Review
           </Button>
         </div>
-      </CardContent>
-    </Card>
+      )}
+    </div>
   );
 }

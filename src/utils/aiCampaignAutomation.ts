@@ -1,3 +1,4 @@
+
 import { BusinessIdea, TargetAudience, AudienceAnalysis } from "@/types/adWizard";
 import { AICampaignRecommendation, mapToSuggestionResponse } from "@/types/aiRecommendationTypes";
 import { SuggestionResponse } from "@/hooks/useAICampaignAssistant";
@@ -42,12 +43,12 @@ export function generateBudgetRecommendation(
     confidenceLevel = "low";
   }
 
-  // Convert recommendation format to match SuggestionResponse interface
-  return mapToSuggestionResponse({
+  // Return the recommendation in SuggestionResponse format
+  return {
     suggestion: recommendedBudget, 
     explanation: budgetExplanation,
     confidence: confidenceLevel
-  });
+  };
 }
 
 /**
@@ -68,7 +69,7 @@ export function generateTargetingRecommendation(
   }
 
   // Extract relevant data
-  const { demographics, interests } = targetAudience;
+  const { demographics, painPoints, marketingChannels } = targetAudience;
   const { expandedDefinition } = audienceAnalysis || {};
 
   let targetingRecommendation = "";
@@ -76,9 +77,13 @@ export function generateTargetingRecommendation(
   let confidenceLevel: "high" | "medium" | "low" = "low";
 
   // Logic to determine targeting based on available data
-  if (interests?.length > 0) {
-    targetingRecommendation = `Target users interested in ${interests.join(", ")}`;
-    targetingExplanation = "Interest-based targeting can help reach users who are already interested in similar topics.";
+  if (marketingChannels?.includes("social media")) {
+    targetingRecommendation = `Target users on social media platforms focusing on ${demographics || "relevant demographics"}`;
+    targetingExplanation = "Social media targeting can be effective based on your audience's platform preferences.";
+    confidenceLevel = "medium";
+  } else if (painPoints?.length > 0) {
+    targetingRecommendation = `Target audiences with pain points around ${painPoints.join(", ")}`;
+    targetingExplanation = "Targeting based on specific pain points can increase relevance and engagement.";
     confidenceLevel = "medium";
   } else if (demographics?.includes("young adults")) {
     targetingRecommendation = "Target young adults aged 18-25 on social media platforms";
@@ -90,12 +95,12 @@ export function generateTargetingRecommendation(
     confidenceLevel = "low";
   }
 
-  // Convert recommendation format to match SuggestionResponse interface
-  return mapToSuggestionResponse({
+  // Return the recommendation in SuggestionResponse format
+  return {
     suggestion: targetingRecommendation,
     explanation: targetingExplanation,
     confidence: confidenceLevel
-  });
+  };
 }
 
 /**
@@ -138,12 +143,12 @@ export function generateObjectiveRecommendation(
     confidenceLevel = "low";
   }
 
-  // Convert recommendation format to match SuggestionResponse interface
-  return mapToSuggestionResponse({
+  // Return the recommendation in SuggestionResponse format
+  return {
     suggestion: recommendedObjective,
     explanation: objectiveExplanation,
     confidence: confidenceLevel
-  });
+  };
 }
 
 /**
@@ -187,10 +192,60 @@ export function predictCampaignPerformance(
     confidenceLevel = "low";
   }
 
-  // Convert recommendation format to match SuggestionResponse interface
-  return mapToSuggestionResponse({
+  // Return the prediction in SuggestionResponse format
+  return {
     suggestion: performancePrediction,
     explanation: performanceExplanation,
     confidence: confidenceLevel
-  });
+  };
+}
+
+/**
+ * Generates automated campaign settings based on business and audience data
+ */
+export function generateAutomatedCampaignSettings(
+  businessIdea?: BusinessIdea,
+  targetAudience?: TargetAudience,
+  audienceAnalysis?: AudienceAnalysis
+) {
+  // Get recommendations from individual functions
+  const budgetRecommendation = generateBudgetRecommendation(businessIdea, targetAudience, audienceAnalysis);
+  const targetingRecommendation = generateTargetingRecommendation(businessIdea, targetAudience, audienceAnalysis);
+  const objectiveRecommendation = generateObjectiveRecommendation(businessIdea, targetAudience, audienceAnalysis);
+  
+  // Extract relevant data for campaign creation
+  const budget = budgetRecommendation.suggestion.replace(/[^\d-]/g, '').split('-')[0]; // Extract first number from budget range
+  
+  // Create campaign settings
+  return {
+    name: `${targetAudience?.name || 'Automated'} Campaign`,
+    objective: objectiveRecommendation.suggestion,
+    budget: parseInt(budget) || 1000,
+    targeting: {
+      recommendation: targetingRecommendation.suggestion,
+      demographics: targetAudience?.demographics || '',
+      interests: [],
+      locations: []
+    },
+    recommendations: {
+      budget: budgetRecommendation,
+      targeting: targetingRecommendation,
+      objective: objectiveRecommendation
+    },
+    confidence: Math.min(
+      confidenceToNumber(budgetRecommendation.confidence),
+      confidenceToNumber(targetingRecommendation.confidence),
+      confidenceToNumber(objectiveRecommendation.confidence)
+    ) / 100
+  };
+}
+
+// Helper function to convert confidence level to number for calculations
+function confidenceToNumber(confidence: 'high' | 'medium' | 'low'): number {
+  switch (confidence) {
+    case 'high': return 90;
+    case 'medium': return 70;
+    case 'low': return 50;
+    default: return 50;
+  }
 }
