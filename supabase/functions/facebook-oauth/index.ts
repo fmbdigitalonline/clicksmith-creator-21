@@ -329,6 +329,7 @@ serve(async (req) => {
         console.log('Request body:', requestBody);
       } catch (e) {
         console.error('Error parsing JSON request body:', e);
+        requestBody = {};
       }
     }
     

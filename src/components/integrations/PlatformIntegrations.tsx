@@ -80,11 +80,14 @@ export default function PlatformIntegrations() {
               
               const authToken = sessionData.session.access_token;
               
+              console.log("Invoking facebook-oauth function with code:", code.substring(0, 10) + "...");
+              
               // Call the function with the code and authorization token
               const response = await supabase.functions.invoke('facebook-oauth', {
                 body: { code },
                 headers: {
                   Authorization: `Bearer ${authToken}`,
+                  'Content-Type': 'application/json'
                 },
               });
   
