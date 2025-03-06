@@ -11,7 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 interface CampaignStatusCardProps {
   campaignId: string;
   refreshInterval?: number; // in milliseconds
-  onActivate?: () => void;
+  onActivate?: () => void; // Updated to not expect any arguments
 }
 
 export default function CampaignStatusCard({ 
@@ -129,7 +129,7 @@ export default function CampaignStatusCard({
 
       // Call the onActivate callback if provided
       if (onActivate) {
-        onActivate();
+        onActivate(); // Call with no arguments
       }
 
     } catch (err) {
