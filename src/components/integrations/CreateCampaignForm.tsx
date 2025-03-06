@@ -29,6 +29,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/components/ui/use-toast";
 
 const campaignFormSchema = z.object({
   name: z.string().min(2, {
@@ -57,7 +59,7 @@ const campaignFormSchema = z.object({
 interface CreateCampaignFormProps {
   projectId?: string;
   creationMode: "manual" | "semi-automatic" | "automatic";
-  onSuccess?: () => void;
+  onSuccess?: (campaignId: string) => void;
   onCancel?: () => void;
   onBack?: () => void;
   selectedAdIds?: string[];
@@ -78,6 +80,7 @@ export default function CreateCampaignForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPerformancePrediction, setShowPerformancePrediction] = useState(false);
   const projectData = useProjectCampaignData(projectId);
+  const { toast } = useToast();
   
   // Generate default values based on project data
   const getDefaultValues = () => {
@@ -132,12 +135,38 @@ export default function CreateCampaignForm({
       
       console.log("Form submitted with values:", campaignData);
       
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // Create the campaign record in the database
+      const { data: campaignRecord, error: dbError } = await supabase
+        .from("ad_campaigns")
+        .insert({
+          name: values.name,
+          status: "completed", // Set initial status to completed so the button shows
+          campaign_data: campaignData,
+          project_id: projectId
+        })
+        .select()
+        .single();
       
-      if (onSuccess) onSuccess();
+      if (dbError) {
+        throw dbError;
+      }
+      
+      toast({
+        title: "Campaign created",
+        description: "Your campaign has been created successfully.",
+      });
+      
+      // Call onSuccess with the campaign ID
+      if (onSuccess && campaignRecord) {
+        onSuccess(campaignRecord.id);
+      }
     } catch (error) {
       console.error("Form submission error:", error);
+      toast({
+        title: "Error creating campaign",
+        description: "There was an error creating your campaign. Please try again.",
+        variant: "destructive"
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -189,6 +218,7 @@ export default function CreateCampaignForm({
         
         {/* Show data completeness message */}
         {renderDataCompletenessMessage()}
+        
         
         <FormField
           control={form.control}
