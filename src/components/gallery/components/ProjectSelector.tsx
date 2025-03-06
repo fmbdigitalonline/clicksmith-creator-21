@@ -9,6 +9,7 @@ import {
   CommandGroup,
   CommandInput,
   CommandItem,
+  CommandList
 } from "@/components/ui/command";
 import {
   Popover,
@@ -32,12 +33,16 @@ export function ProjectSelector({ onSelect, selectedProjectId }: ProjectSelector
   const [open, setOpen] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
     const fetchProjects = async () => {
       try {
+        console.log("Fetching projects...");
         setLoading(true);
+        setError(null);
+        
         const { data: userData } = await supabase.auth.getUser();
         if (!userData?.user) {
           console.error("No user found when fetching projects");
@@ -46,20 +51,25 @@ export function ProjectSelector({ onSelect, selectedProjectId }: ProjectSelector
           return;
         }
 
+        console.log("User found, fetching projects for user:", userData.user.id);
         const { data, error } = await supabase
           .from('projects')
           .select('id, title')
           .eq('user_id', userData.user.id)
           .order('updated_at', { ascending: false });
 
-        if (error) throw error;
+        if (error) {
+          console.error("Supabase error:", error);
+          throw error;
+        }
         
         // Ensure data is an array before setting it
         const projectsArray = Array.isArray(data) ? data : [];
-        console.log("Projects fetched:", projectsArray);
+        console.log("Projects fetched successfully:", projectsArray);
         setProjects(projectsArray);
       } catch (error) {
         console.error('Error fetching projects:', error);
+        setError('Failed to load projects');
         toast({
           title: "Error",
           description: "Failed to load projects. Please try again.",
@@ -80,6 +90,39 @@ export function ProjectSelector({ onSelect, selectedProjectId }: ProjectSelector
     ? projects.find(project => project?.id === selectedProjectId) 
     : undefined;
 
+  // Safe rendering of the projects list
+  const renderProjectItems = () => {
+    // Always return something renderable
+    if (!projects || projects.length === 0) {
+      return (
+        <CommandItem disabled className="py-3 text-center">
+          {loading ? "Loading projects..." : "No projects available"}
+        </CommandItem>
+      );
+    }
+
+    return projects.map((project) => (
+      <CommandItem
+        key={project.id}
+        value={project.id}
+        onSelect={(currentValue) => {
+          console.log("Selected project:", currentValue);
+          onSelect(currentValue);
+          setOpen(false);
+        }}
+        className="flex items-center py-2"
+      >
+        <Check
+          className={cn(
+            "mr-2 h-4 w-4",
+            selectedProjectId === project.id ? "opacity-100" : "opacity-0"
+          )}
+        />
+        {project.title}
+      </CommandItem>
+    ));
+  };
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -95,40 +138,18 @@ export function ProjectSelector({ onSelect, selectedProjectId }: ProjectSelector
         </Button>
       </PopoverTrigger>
       <PopoverContent 
-        className="w-[300px] p-0 bg-white border border-gray-200 shadow-lg rounded-md z-50 animate-in fade-in-0 zoom-in-95 duration-100"
+        className="w-[300px] p-0 bg-white border border-gray-200 shadow-lg rounded-md z-50"
         align="start"
         sideOffset={5}
       >
         <Command className="rounded-md border-0">
           <CommandInput placeholder="Search projects..." className="h-9" />
-          <CommandEmpty className="py-3 text-center text-sm">No projects found.</CommandEmpty>
-          <CommandGroup className="max-h-[200px] overflow-auto">
-            {projects && projects.length > 0 ? (
-              projects.map((project) => (
-                <CommandItem
-                  key={project.id}
-                  value={project.id}
-                  onSelect={(currentValue) => {
-                    onSelect(currentValue);
-                    setOpen(false);
-                  }}
-                  className="flex items-center py-2"
-                >
-                  <Check
-                    className={cn(
-                      "mr-2 h-4 w-4",
-                      selectedProjectId === project.id ? "opacity-100" : "opacity-0"
-                    )}
-                  />
-                  {project.title}
-                </CommandItem>
-              ))
-            ) : (
-              <CommandItem disabled className="py-3 text-center">
-                {loading ? "Loading projects..." : "No projects available"}
-              </CommandItem>
-            )}
-          </CommandGroup>
+          <CommandList>
+            <CommandEmpty className="py-3 text-center text-sm">No projects found.</CommandEmpty>
+            <CommandGroup className="max-h-[200px] overflow-auto">
+              {renderProjectItems()}
+            </CommandGroup>
+          </CommandList>
         </Command>
       </PopoverContent>
     </Popover>
