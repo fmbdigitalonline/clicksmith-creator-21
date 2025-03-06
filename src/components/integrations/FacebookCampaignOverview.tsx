@@ -1,284 +1,257 @@
+
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { Label } from "@/components/ui/label";
-import { useToast } from "@/components/ui/use-toast";
 import { useSession } from "@supabase/auth-helpers-react";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, PlusCircle, Trash2, RefreshCw, AlertCircle, FacebookIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Separator } from "@/components/ui/separator";
+import { Loader2, AlertCircle, Plus, CheckCircle, Facebook } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { transformToFacebookAdFormat } from "@/utils/facebookAdTransformer";
-import { useParams } from "react-router-dom";
 import { BusinessIdea, TargetAudience } from "@/types/adWizard";
+import { Badge } from "@/components/ui/badge";
 
-interface PlatformConnection {
-  id: string;
-  platform: string;
-  access_token: string;
-  account_id: string | null;
-  account_name: string | null;
-  metadata?: {
-    adAccounts?: Array<{id: string; name: string}>;
-    pages?: Array<{id: string; name: string, access_token?: string}>;
-    selectedAdAccountId?: string;
-    selectedPageId?: string;
-    pageAccessToken?: string;
-  };
-}
-
+// Update the Campaign interface to match the database schema and include image_url
 interface Campaign {
   id: string;
   name: string;
-  platform: string;
   status: string;
-  budget: number;
-  platform_campaign_id: string;
+  platform: string;
   created_at: string;
+  platform_campaign_id: string | null;
+  image_url?: string | null;
+  targeting?: any;
+  budget?: number | null;
+  end_date?: string | null;
+  start_date?: string | null;
+  user_id?: string | null;
+  project_id?: string | null;
+  updated_at?: string | null;
 }
 
 export default function FacebookCampaignOverview() {
-  const [isLoading, setIsLoading] = useState(true);
-  const [isCreating, setIsCreating] = useState(isCreating);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [connection, setConnection] = useState<PlatformConnection | null>(null);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [adAccounts, setAdAccounts] = useState<Array<{id: string; name: string}>>([]);
-  const [pages, setPages] = useState<Array<{id: string; name: string}>>([]);
-  const [selectedAdAccount, setSelectedAdAccount] = useState<string | null>(null);
-  const [selectedPage, setSelectedPage] = useState<string | null>(null);
-  const [campaignName, setCampaignName] = useState("");
-  const [campaignObjective, setCampaignObjective] = useState("OUTCOME_AWARENESS");
-  const [campaignBudget, setCampaignBudget] = useState(5);
-  const [campaignMessage, setCampaignMessage] = useState("");
-  const [selectedAdId, setSelectedAdId] = useState<string | null>(null);
-  const [savedAds, setSavedAds] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isCreating, setIsCreating] = useState(false);
+  const [showDialog, setShowDialog] = useState(false);
   const [projects, setProjects] = useState<any[]>([]);
-  const [selectedProject, setSelectedProject] = useState<string | null>(null);
-  const { toast } = useToast();
+  const [selectedProject, setSelectedProject] = useState("");
+  const [budget, setBudget] = useState("5");
+  const [error, setError] = useState<string | null>(null);
   const session = useSession();
-  const { projectId } = useParams();
+  const { toast } = useToast();
 
-  // Fetch connection and campaigns
   useEffect(() => {
-    const fetchData = async () => {
-      if (!session) {
-        setIsLoading(false);
-        return;
-      }
+    if (session) {
+      fetchCampaigns();
+      fetchProjects();
+    }
+  }, [session]);
 
-      try {
-        // Fetch Facebook connection
-        const { data: connectionsData, error: connectionsError } = await supabase
-          .from('platform_connections')
-          .select('*')
-          .eq('platform', 'facebook')
-          .maybeSingle();
+  const fetchCampaigns = async () => {
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from("ad_campaigns")
+        .select("*")
+        .eq("platform", "facebook")
+        .order("created_at", { ascending: false });
 
-        if (connectionsError) throw connectionsError;
-
-        if (connectionsData) {
-          console.log("Facebook connection data:", connectionsData);
-          setConnection(connectionsData as PlatformConnection);
-          
-          // Extract ad accounts and pages from metadata
-          const metadata = (connectionsData as any).metadata || {};
-          const fetchedAdAccounts = metadata.adAccounts || [];
-          const fetchedPages = metadata.pages || [];
-          
-          setAdAccounts(fetchedAdAccounts);
-          setPages(fetchedPages);
-          
-          // Set selected account and page from metadata
-          setSelectedAdAccount(metadata.selectedAdAccountId || (fetchedAdAccounts.length > 0 ? fetchedAdAccounts[0].id : null));
-          setSelectedPage(metadata.selectedPageId || (fetchedPages.length > 0 ? fetchedPages[0].id : null));
-        }
-
-        // Fetch campaigns
-        const { data: campaignsData, error: campaignsError } = await supabase
-          .from('ad_campaigns')
-          .select('*')
-          .eq('platform', 'facebook')
-          .order('created_at', { ascending: false });
-
-        if (campaignsError) throw campaignsError;
+      if (error) throw error;
+      
+      // Map database response to Campaign interface
+      const typedCampaigns: Campaign[] = data?.map((campaign: any) => {
+        // Extract image URL from either direct image_url field or from targeting JSON
+        let imageUrl = campaign.image_url;
         
-        setCampaigns(campaignsData || []);
-
-        // Fetch saved ads
-        const { data: adsData, error: adsError } = await supabase
-          .from('ad_feedback')
-          .select('*')
-          .eq('platform', 'facebook')
-          .eq('feedback', 'saved');
-
-        if (adsError) throw adsError;
-        setSavedAds(adsData || []);
-
-        // Fetch projects
-        const { data: projectsData, error: projectsError } = await supabase
-          .from('projects')
-          .select('id, title, business_idea, target_audience')
-          .order('created_at', { ascending: false });
-
-        if (projectsError) throw projectsError;
-        setProjects(projectsData || []);
-
-        // If we have a project ID from URL, preselect it
-        if (projectId && projectId !== 'new') {
-          setSelectedProject(projectId);
-          
-          // Get data from the project
-          const project = projectsData?.find(p => p.id === projectId);
-          if (project) {
-            setCampaignName(project.title + " Campaign");
-            if (project.business_idea && typeof project.business_idea === 'object') {
-              const businessIdea = project.business_idea as Record<string, any>;
-              setCampaignMessage(businessIdea.valueProposition || "");
-            }
+        // If no direct image_url, try to extract it from the targeting field
+        if (!imageUrl && campaign.targeting) {
+          const targeting = typeof campaign.targeting === 'string' 
+            ? JSON.parse(campaign.targeting) 
+            : campaign.targeting;
+            
+          if (targeting?.adCreative?.object_story_spec?.link_data?.image_url) {
+            imageUrl = targeting.adCreative.object_story_spec.link_data.image_url;
           }
         }
-      } catch (error) {
-        console.error("Error fetching data:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load campaign data",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
+        
+        return {
+          id: campaign.id,
+          name: campaign.name || "", 
+          status: campaign.status || "",
+          platform: campaign.platform,
+          created_at: campaign.created_at,
+          platform_campaign_id: campaign.platform_campaign_id,
+          image_url: imageUrl,
+          targeting: campaign.targeting,
+          budget: campaign.budget,
+          start_date: campaign.start_date,
+          end_date: campaign.end_date,
+          user_id: campaign.user_id,
+          project_id: campaign.project_id,
+          updated_at: campaign.updated_at
+        };
+      }) || [];
+      
+      setCampaigns(typedCampaigns);
+    } catch (error) {
+      console.error("Error fetching campaigns:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load campaigns",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-    fetchData();
-  }, [session, projectId, toast]);
+  const fetchProjects = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("projects")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      
+      setProjects(data || []);
+      if (data && data.length > 0) {
+        setSelectedProject(data[0].id);
+      }
+    } catch (error) {
+      console.error("Error fetching projects:", error);
+    }
+  };
+
+  const formatStatus = (status: string) => {
+    switch (status) {
+      case "pending":
+        return { label: "Pending", color: "bg-yellow-100 text-yellow-800" };
+      case "campaign_created":
+        return { label: "Campaign Created", color: "bg-blue-100 text-blue-800" };
+      case "adset_created":
+        return { label: "Ad Set Created", color: "bg-blue-100 text-blue-800" };
+      case "completed":
+        return { label: "Active", color: "bg-green-100 text-green-800" };
+      case "error":
+        return { label: "Error", color: "bg-red-100 text-red-800" };
+      default:
+        return { label: status, color: "bg-gray-100 text-gray-800" };
+    }
+  };
 
   const handleCreateCampaign = async () => {
-    if (!connection || !selectedAdAccount || !selectedPage) {
-      toast({
-        title: "Error",
-        description: "Missing required account or page information",
-        variant: "destructive",
-      });
+    if (!selectedProject) {
+      setError("Please select a project");
       return;
     }
 
-    if (!campaignName) {
-      toast({
-        title: "Error",
-        description: "Campaign name is required",
-        variant: "destructive",
-      });
+    if (!budget || isNaN(Number(budget)) || Number(budget) < 1) {
+      setError("Please enter a valid budget (minimum $1)");
       return;
     }
-
-    setIsCreating(true);
 
     try {
-      // Get ad data if an ad was selected
-      let adData: any = {};
-      let targetUrl = "https://example.com";
-      let imageUrl = null;
-      let headline = "";
-      let description = "";
+      setIsCreating(true);
+      setError(null);
       
-      if (selectedAdId) {
-        const selectedAd = savedAds.find(ad => ad.id === selectedAdId);
-        if (selectedAd) {
-          imageUrl = selectedAd.imageUrl || selectedAd.imageurl;
-          headline = selectedAd.headline || "";
-          description = selectedAd.primary_text || "";
-        }
-      }
+      // Get project data
+      const { data: projectData, error: projectError } = await supabase
+        .from("projects")
+        .select("*")
+        .eq("id", selectedProject)
+        .single();
+
+      if (projectError) throw projectError;
       
-      // Get project information if a project was selected
-      let businessIdea: Partial<BusinessIdea> = {};
-      let targetAudience: Partial<TargetAudience> = {};
-      
-      if (selectedProject) {
-        const project = projects.find(p => p.id === selectedProject);
-        if (project) {
-          businessIdea = project.business_idea || {};
-          targetAudience = project.target_audience || {};
-        }
+      if (!projectData) {
+        throw new Error("Project not found");
       }
 
-      // Create campaign payload
-      const campaignPayload = {
-        name: campaignName,
-        objective: campaignObjective,
-        budget: campaignBudget,
-        adAccountId: selectedAdAccount.replace('act_', ''),
-        pageId: selectedPage,
-        link: targetUrl,
-        imageUrl: imageUrl,
-        headline: headline || campaignName,
-        description: description || campaignMessage,
-        message: campaignMessage,
-        callToAction: "LEARN_MORE",
-        targeting: {
-          age_min: 18,
-          age_max: 65,
-          geo_locations: {
-            countries: ["US"]
-          }
-        },
-        projectId: selectedProject
-      };
+      // Get wizard data
+      const { data: wizardData, error: wizardError } = await supabase
+        .from("wizard_progress")
+        .select("business_idea, target_audience, audience_analysis, generated_ads")
+        .eq("user_id", session?.user?.id)
+        .single();
 
-      // Call the edge function to create the campaign
-      const { data, error } = await supabase.functions.invoke('create-facebook-campaign', {
-        body: campaignPayload
+      if (wizardError && wizardError.code !== 'PGRST116') {
+        throw wizardError;
+      }
+
+      if (!wizardData || !wizardData.business_idea || !wizardData.target_audience) {
+        throw new Error("No ad data found. Please complete the ad creation wizard first.");
+      }
+
+      // Use the transformer to create Facebook-compatible ad data
+      const businessIdea = wizardData.business_idea as BusinessIdea;
+      const targetAudience = wizardData.target_audience as TargetAudience;
+      
+      // Get the first ad variant from generated_ads if available
+      let adVariant = null;
+      if (wizardData.generated_ads && Array.isArray(wizardData.generated_ads) && wizardData.generated_ads.length > 0) {
+        adVariant = wizardData.generated_ads[0];
+      } else {
+        // Create a basic ad variant from business idea
+        adVariant = {
+          headline: businessIdea.description.substring(0, 40),
+          description: businessIdea.valueProposition,
+          imageUrl: null
+        };
+      }
+
+      // Create a landing page URL (placeholder for now)
+      const landingPageUrl = `https://${window.location.hostname}/share/${projectData.id}`;
+      
+      // Transform the data into Facebook ad format
+      const facebookAdData = transformToFacebookAdFormat(
+        businessIdea,
+        targetAudience,
+        adVariant,
+        Number(budget),
+        landingPageUrl
+      );
+
+      // Now call the Edge Function to create the campaign
+      const response = await supabase.functions.invoke("create-facebook-campaign", {
+        body: {
+          campaignData: facebookAdData.campaign,
+          adSetData: facebookAdData.adSet,
+          adCreativeData: facebookAdData.adCreative,
+          projectId: selectedProject
+        }
       });
 
-      if (error) {
-        throw new Error(error.message);
+      if (response.error) {
+        throw new Error(response.error);
       }
 
-      if (!data.success) {
-        throw new Error(data.error || "Failed to create campaign");
+      if (!response.data.success) {
+        throw new Error(response.data.error || "Failed to create campaign");
       }
 
-      // Refresh campaigns after creation
-      const { data: newCampaigns, error: campaignsError } = await supabase
-        .from('ad_campaigns')
-        .select('*')
-        .eq('platform', 'facebook')
-        .order('created_at', { ascending: false });
-
-      if (!campaignsError) {
-        setCampaigns(newCampaigns || []);
-      }
-
+      // Success! Refresh campaigns and close dialog
       toast({
         title: "Success!",
-        description: "Your Facebook ad campaign has been created",
+        description: "Facebook campaign created successfully",
       });
-
-      // Reset form and close dialog
-      setIsDialogOpen(false);
-      setCampaignName("");
-      setCampaignMessage("");
-      setSelectedAdId(null);
-      setSelectedProject(null);
+      
+      setShowDialog(false);
+      fetchCampaigns();
+      
     } catch (error) {
       console.error("Error creating campaign:", error);
+      setError(error.message || "Failed to create campaign");
+      
       toast({
-        title: "Campaign Creation Failed",
-        description: error instanceof Error ? error.message : "An unknown error occurred",
+        title: "Error",
+        description: error.message || "Failed to create campaign",
         variant: "destructive",
       });
     } finally {
@@ -288,261 +261,177 @@ export default function FacebookCampaignOverview() {
 
   if (isLoading) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Facebook Ad Campaigns</CardTitle>
-          <CardDescription>Create and manage your ad campaigns</CardDescription>
-        </CardHeader>
-        <CardContent className="flex justify-center p-6">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (!connection) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Facebook Ad Campaigns</CardTitle>
-          <CardDescription>Connect your account to create campaigns</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Connection Required</AlertTitle>
-            <AlertDescription>
-              You need to connect your Facebook Ads account before creating campaigns.
-              Please go to the "Connect Platforms" tab first.
-            </AlertDescription>
-          </Alert>
-        </CardContent>
-      </Card>
+      <div className="flex justify-center p-8">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
     );
   }
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div>
-          <CardTitle>Facebook Ad Campaigns</CardTitle>
-          <CardDescription>Create and manage your ad campaigns</CardDescription>
-        </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Create Campaign
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[600px]">
-            <DialogHeader>
-              <DialogTitle>Create Facebook Ad Campaign</DialogTitle>
-              <DialogDescription>
-                Configure your campaign settings. The campaign will be created in paused state for your review.
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="grid gap-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="campaign-name">Campaign Name</Label>
-                <Input
-                  id="campaign-name"
-                  value={campaignName}
-                  onChange={(e) => setCampaignName(e.target.value)}
-                  placeholder="Summer Sale 2023"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
+    <div className="space-y-6">
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle>Facebook Campaigns</CardTitle>
+            <CardDescription>
+              Create and manage your Facebook ad campaigns
+            </CardDescription>
+          </div>
+          <Dialog open={showDialog} onOpenChange={setShowDialog}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" /> Create Campaign
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Create Facebook Campaign</DialogTitle>
+                <DialogDescription>
+                  Create a new campaign from one of your projects
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                {error && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Error</AlertTitle>
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                )}
+                
                 <div className="space-y-2">
-                  <Label htmlFor="campaign-objective">Objective</Label>
-                  <Select value={campaignObjective} onValueChange={setCampaignObjective}>
-                    <SelectTrigger id="campaign-objective">
-                      <SelectValue placeholder="Select objective" />
+                  <Label htmlFor="project">Select Project</Label>
+                  <Select 
+                    value={selectedProject} 
+                    onValueChange={setSelectedProject}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a project" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="OUTCOME_AWARENESS">Awareness</SelectItem>
-                      <SelectItem value="OUTCOME_ENGAGEMENT">Engagement</SelectItem>
-                      <SelectItem value="OUTCOME_SALES">Sales</SelectItem>
-                      <SelectItem value="OUTCOME_LEADS">Leads</SelectItem>
-                      <SelectItem value="OUTCOME_TRAFFIC">Traffic</SelectItem>
+                      {projects.map(project => (
+                        <SelectItem key={project.id} value={project.id}>
+                          {project.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
-
+                
                 <div className="space-y-2">
-                  <Label htmlFor="campaign-budget">Daily Budget (USD)</Label>
+                  <Label htmlFor="budget">Daily Budget ($)</Label>
                   <Input
-                    id="campaign-budget"
+                    id="budget"
+                    placeholder="5"
+                    value={budget}
+                    onChange={(e) => setBudget(e.target.value)}
                     type="number"
                     min="1"
-                    value={campaignBudget}
-                    onChange={(e) => setCampaignBudget(Number(e.target.value))}
+                    step="1"
                   />
                 </div>
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="project">Project (Optional)</Label>
-                <Select value={selectedProject || ""} onValueChange={setSelectedProject}>
-                  <SelectTrigger id="project">
-                    <SelectValue placeholder="Select a project" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">None</SelectItem>
-                    {projects.map(project => (
-                      <SelectItem key={project.id} value={project.id}>
-                        {project.title}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="saved-ad">Use Saved Ad (Optional)</Label>
-                <Select value={selectedAdId || ""} onValueChange={setSelectedAdId}>
-                  <SelectTrigger id="saved-ad">
-                    <SelectValue placeholder="Select a saved ad" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">None</SelectItem>
-                    {savedAds.map(ad => (
-                      <SelectItem key={ad.id} value={ad.id}>
-                        {ad.headline || "Untitled Ad"}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="campaign-message">Ad Message</Label>
-                <Textarea
-                  id="campaign-message"
-                  value={campaignMessage}
-                  onChange={(e) => setCampaignMessage(e.target.value)}
-                  placeholder="Enter your ad message here..."
-                  rows={3}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Ad Account</Label>
-                  <div className="p-2 border rounded-md text-sm">
-                    {connection.account_name || "Default Account"}
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Facebook Page</Label>
-                  <div className="p-2 border rounded-md text-sm">
-                    {pages.find(p => p.id === selectedPage)?.name || "No page selected"}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-              <Button onClick={handleCreateCampaign} disabled={isCreating}>
-                {isCreating ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Creating...
-                  </>
-                ) : (
-                  "Create Campaign"
-                )}
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setShowDialog(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleCreateCampaign} disabled={isCreating}>
+                  {isCreating ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    'Create Campaign'
+                  )}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </CardHeader>
+        <CardContent>
+          {campaigns.length === 0 ? (
+            <div className="text-center py-8">
+              <Facebook className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <h3 className="text-lg font-medium">No campaigns yet</h3>
+              <p className="text-muted-foreground mt-2 mb-4">
+                Create your first Facebook ad campaign to start reaching customers.
+              </p>
+              <Button onClick={() => setShowDialog(true)}>
+                <Plus className="mr-2 h-4 w-4" /> Create Campaign
               </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </CardHeader>
-
-      <CardContent>
-        <Tabs defaultValue="active">
-          <TabsList>
-            <TabsTrigger value="active">Active Campaigns</TabsTrigger>
-            <TabsTrigger value="paused">Paused Campaigns</TabsTrigger>
-            <TabsTrigger value="all">All Campaigns</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="active" className="space-y-4 mt-4">
-            {renderCampaignsList(campaigns.filter(c => c.status === 'ACTIVE'))}
-          </TabsContent>
-          
-          <TabsContent value="paused" className="space-y-4 mt-4">
-            {renderCampaignsList(campaigns.filter(c => c.status === 'PAUSED'))}
-          </TabsContent>
-          
-          <TabsContent value="all" className="space-y-4 mt-4">
-            {renderCampaignsList(campaigns)}
-          </TabsContent>
-        </Tabs>
-      </CardContent>
-    </Card>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {campaigns.map((campaign) => {
+                const status = formatStatus(campaign.status);
+                
+                return (
+                  <Card key={campaign.id} className="overflow-hidden">
+                    <div className="flex flex-col sm:flex-row">
+                      {campaign.image_url && (
+                        <div className="w-full sm:w-1/4 max-h-32 overflow-hidden">
+                          <img 
+                            src={campaign.image_url} 
+                            alt={campaign.name}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      )}
+                      <div className={`flex-1 p-4 ${campaign.image_url ? '' : 'w-full'}`}>
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h3 className="font-medium text-lg">{campaign.name}</h3>
+                            <p className="text-sm text-muted-foreground">
+                              Created {new Date(campaign.created_at).toLocaleDateString()}
+                            </p>
+                          </div>
+                          <Badge className={status.color}>
+                            {status.label}
+                          </Badge>
+                        </div>
+                        
+                        <div className="mt-4 flex justify-between items-center">
+                          <div className="flex items-center text-sm text-muted-foreground">
+                            <Facebook className="h-4 w-4 mr-1" />
+                            {campaign.platform_campaign_id ? (
+                              <span className="flex items-center">
+                                <CheckCircle className="h-3 w-3 mr-1 text-green-600" />
+                                Live on Facebook
+                              </span>
+                            ) : (
+                              "Facebook Ads"
+                            )}
+                          </div>
+                          <div>
+                            {campaign.status === "completed" && (
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => {
+                                  // Open Facebook Ads Manager in a new tab
+                                  if (campaign.platform_campaign_id) {
+                                    window.open(
+                                      `https://www.facebook.com/adsmanager/manage/campaigns?act=${campaign.platform_campaign_id}`,
+                                      '_blank'
+                                    );
+                                  }
+                                }}
+                              >
+                                View on Facebook
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
-
-  function renderCampaignsList(campaignsList: Campaign[]) {
-    if (campaignsList.length === 0) {
-      return (
-        <div className="text-center py-10 border rounded-lg bg-muted/30">
-          <div className="mb-2">
-            <FacebookIcon className="mx-auto h-10 w-10 text-muted-foreground/50" />
-          </div>
-          <p className="text-muted-foreground mb-4">No campaigns found</p>
-          <Button variant="outline" onClick={() => setIsDialogOpen(true)}>
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Create Your First Campaign
-          </Button>
-        </div>
-      );
-    }
-
-    return (
-      <div className="space-y-4">
-        {campaignsList.map((campaign) => (
-          <div key={campaign.id} className="border rounded-lg p-4">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-lg font-semibold">{campaign.name}</h3>
-              <Badge 
-                variant={campaign.status === 'ACTIVE' ? "default" : "secondary"}
-              >
-                {campaign.status}
-              </Badge>
-            </div>
-            <div className="grid grid-cols-2 gap-2 text-sm mb-3">
-              <div>
-                <span className="text-muted-foreground">Budget:</span> ${campaign.budget}/day
-              </div>
-              <div>
-                <span className="text-muted-foreground">Created:</span> {new Date(campaign.created_at).toLocaleDateString()}
-              </div>
-            </div>
-            <div className="flex gap-2 mt-2">
-              <Button 
-                variant="outline" 
-                size="sm"
-                disabled={true}
-                title="Coming soon"
-              >
-                <RefreshCw className="h-4 w-4 mr-1" /> Update
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm"
-                disabled={true}
-                title="Coming soon"
-              >
-                <Trash2 className="h-4 w-4 mr-1" /> Delete
-              </Button>
-            </div>
-          </div>
-        ))}
-      </div>
-    );
-  }
 }

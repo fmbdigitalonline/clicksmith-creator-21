@@ -3,18 +3,12 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Facebook, Check, AlertCircle, Loader2, ChevronDown, ExternalLink, RefreshCw } from "lucide-react";
+import { Facebook, Check, AlertCircle, Loader2, ChevronDown, ExternalLink } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useSession } from "@supabase/auth-helpers-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { 
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger
-} from "@/components/ui/dropdown-menu";
 
 // URL redirecting to Facebook OAuth with environment variables and expanded permissions
 const generateFacebookAuthURL = () => {
@@ -37,55 +31,20 @@ const generateFacebookAuthURL = () => {
   }
   
   // Include enhanced permissions for Ads Manager access
-  const scopes = encodeURIComponent("ads_management,ads_read,business_management,pages_show_list,pages_read_engagement");
+  const scopes = encodeURIComponent("ads_management,ads_read,business_management");
   
   console.log("Generating Facebook Auth URL with redirectUri:", redirectUri);
   
   return `https://www.facebook.com/v18.0/dialog/oauth?client_id=${facebookAppId}&redirect_uri=${redirectUri}&scope=${scopes}&response_type=code&state=${Date.now()}`;
 };
 
-interface AdAccount {
-  id: string;
-  name: string;
-  account_id?: string;
-  status?: number;
-}
-
-interface FacebookPage {
-  id: string;
-  name: string;
-  category?: string;
-  access_token?: string;
-}
-
-// Define a custom interface that extends the database type with our extended data
-interface ExtendedPlatformConnection {
+interface PlatformConnection {
   id: string;
   platform: string;
-  access_token: string;
-  refresh_token: string | null;
-  token_expires_at: string | null;
   account_id: string | null;
   account_name: string | null;
   created_at: string;
   updated_at: string;
-  user_id: string;
-  // Store extended data in this field
-  metadata?: {
-    adAccounts?: AdAccount[];
-    pages?: FacebookPage[];
-    selectedAdAccountId?: string;
-    selectedPageId?: string;
-    pageAccessToken?: string;
-  };
-  // For backward compatibility
-  extendedData?: {
-    adAccounts?: AdAccount[];
-    pages?: FacebookPage[];
-    selectedAdAccountId?: string;
-    selectedPageId?: string;
-    pageAccessToken?: string;
-  };
 }
 
 interface FacebookConnectionProps {
@@ -96,11 +55,7 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
-  const [connection, setConnection] = useState<ExtendedPlatformConnection | null>(null);
-  const [adAccounts, setAdAccounts] = useState<AdAccount[]>([]);
-  const [pages, setPages] = useState<FacebookPage[]>([]); 
-  const [selectedAdAccount, setSelectedAdAccount] = useState<string | null>(null);
-  const [selectedPage, setSelectedPage] = useState<string | null>(null);
+  const [connection, setConnection] = useState<PlatformConnection | null>(null);
   const [showDetails, setShowDetails] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { toast } = useToast();
@@ -142,28 +97,7 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
       
       console.log("Facebook connection data:", data);
       if (data) {
-        // Get metadata from the response
-        const metadata = (data as any).metadata || {};
-        
-        // Create the extended connection object with metadata
-        const extendedConnection: ExtendedPlatformConnection = {
-          ...data,
-          metadata
-        };
-        
-        setConnection(extendedConnection);
-        
-        // Extract ad accounts and pages from metadata
-        const adAccounts = metadata.adAccounts || [];
-        const pages = metadata.pages || [];
-        
-        setAdAccounts(adAccounts);
-        setPages(pages);
-        
-        // Set selected account and page
-        setSelectedAdAccount(metadata.selectedAdAccountId || (adAccounts.length > 0 ? adAccounts[0].id : null));
-        setSelectedPage(metadata.selectedPageId || (pages.length > 0 ? pages[0].id : null));
-        
+        setConnection(data);
         return true;
       }
       
@@ -282,10 +216,6 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
 
       setIsConnected(false);
       setConnection(null);
-      setAdAccounts([]);
-      setPages([]);
-      setSelectedAdAccount(null);
-      setSelectedPage(null);
       
       toast({
         title: "Disconnected",
@@ -307,145 +237,11 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
     }
   };
 
-  // Update selected ad account
-  const handleAdAccountChange = async (accountId: string) => {
-    if (!connection || !session) return;
-    
-    try {
-      setIsProcessing(true);
-      
-      // Find the account details
-      const selectedAccount = adAccounts.find(acc => acc.id === accountId);
-      if (!selectedAccount) return;
-      
-      // Use type assertion to add metadata field to the update object
-      // This is necessary because the TypeScript type doesn't include metadata
-      const updateObject: any = {
-        account_id: accountId,
-        account_name: selectedAccount.name,
-        metadata: {
-          ...(connection as any).metadata,
-          adAccounts: adAccounts,
-          pages: pages,
-          selectedAdAccountId: accountId,
-          selectedPageId: selectedPage
-        }
-      };
-      
-      // Update the database with the custom object
-      const { error } = await supabase
-        .from('platform_connections')
-        .update(updateObject)
-        .eq('platform', 'facebook');
-      
-      if (error) throw error;
-      
-      setSelectedAdAccount(accountId);
-      
-      // Update local state
-      if (connection.metadata) {
-        setConnection({
-          ...connection,
-          account_id: accountId,
-          account_name: selectedAccount.name,
-          metadata: {
-            ...connection.metadata,
-            selectedAdAccountId: accountId
-          }
-        });
-      }
-      
-      toast({
-        title: "Account Updated",
-        description: `Now using '${selectedAccount.name}' as your primary ad account.`,
-      });
-      
-      if (onConnectionChange) {
-        onConnectionChange();
-      }
-    } catch (error) {
-      console.error("Error updating ad account:", error);
-      toast({
-        title: "Error",
-        description: "Failed to update ad account selection",
-        variant: "destructive",
-      });
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  // Update selected page
-  const handlePageChange = async (pageId: string) => {
-    if (!connection || !session) return;
-    
-    try {
-      setIsProcessing(true);
-      
-      // Find the page details
-      const selectedPageData = pages.find(page => page.id === pageId);
-      if (!selectedPageData) return;
-      
-      // Get existing metadata and prepare update object using type assertion
-      const currentMetadata = (connection as any).metadata || {};
-      const updatedMetadata = {
-        ...currentMetadata,
-        selectedPageId: pageId,
-        pageAccessToken: selectedPageData.access_token
-      };
-      
-      // Use type assertion for the update object
-      const updateObject: any = {
-        metadata: updatedMetadata
-      };
-      
-      // Update the platform connection
-      const { error } = await supabase
-        .from('platform_connections')
-        .update(updateObject)
-        .eq('platform', 'facebook');
-      
-      if (error) throw error;
-      
-      setSelectedPage(pageId);
-      
-      // Update local state
-      if (connection.metadata) {
-        setConnection({
-          ...connection,
-          metadata: {
-            ...connection.metadata,
-            selectedPageId: pageId,
-            pageAccessToken: selectedPageData.access_token
-          }
-        });
-      }
-      
-      toast({
-        title: "Page Updated",
-        description: `Now using '${selectedPageData.name}' as your Facebook page.`,
-      });
-      
-      if (onConnectionChange) {
-        onConnectionChange();
-      }
-    } catch (error) {
-      console.error("Error updating page selection:", error);
-      toast({
-        title: "Error",
-        description: "Failed to update page selection",
-        variant: "destructive",
-      });
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
   // Create campaign
   const handleCreateCampaign = async () => {
     toast({
       title: "Campaign Creation",
-      description: "Please use the Campaign tab to create a campaign.",
+      description: "Campaign creation feature is under development",
     });
     
     // This will be expanded in future phases
@@ -508,77 +304,11 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
         )}
       
         {isConnected && connection ? (
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <span className="text-muted-foreground">Primary Ad Account:</span>
-              {adAccounts.length > 0 ? (
-                <div className="flex items-center">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="sm" className="ml-2">
-                        {adAccounts.find(acc => acc.id === selectedAdAccount)?.name || "Select Account"} 
-                        <ChevronDown className="h-4 w-4 ml-1" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent>
-                      {adAccounts.map(account => (
-                        <DropdownMenuItem 
-                          key={account.id}
-                          onClick={() => handleAdAccountChange(account.id)}
-                          className={selectedAdAccount === account.id ? "bg-primary/10" : ""}
-                        >
-                          {account.name}
-                          {selectedAdAccount === account.id && <Check className="h-4 w-4 ml-2" />}
-                        </DropdownMenuItem>
-                      ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                  <div className="text-sm font-medium">
-                    {adAccounts.length > 1 && (
-                      <Badge variant="secondary" className="ml-2">
-                        {adAccounts.length} accounts available
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <span className="text-yellow-600 text-sm">No Ad Accounts Found</span>
-              )}
+          <div className="space-y-2">
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Account:</span>
+              <span className="font-medium">{connection.account_name || 'Default Account'}</span>
             </div>
-            
-            {pages.length > 0 && (
-              <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Facebook Page:</span>
-                <div className="flex items-center">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="sm" className="ml-2">
-                        {pages.find(page => page.id === selectedPage)?.name || "Select Page"} 
-                        <ChevronDown className="h-4 w-4 ml-1" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent>
-                      {pages.map(page => (
-                        <DropdownMenuItem 
-                          key={page.id}
-                          onClick={() => handlePageChange(page.id)}
-                          className={selectedPage === page.id ? "bg-primary/10" : ""}
-                        >
-                          {page.name}
-                          {selectedPage === page.id && <Check className="h-4 w-4 ml-2" />}
-                        </DropdownMenuItem>
-                      ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                  {pages.length > 1 && (
-                    <Badge variant="secondary" className="ml-2">
-                      {pages.length} pages available
-                    </Badge>
-                  )}
-                </div>
-              </div>
-            )}
-            
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Connected on:</span>
               <span className="font-medium">
@@ -646,43 +376,23 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
         )}
       </CardContent>
       
-      <CardFooter className="flex flex-col sm:flex-row gap-2">
+      <CardFooter>
         {isConnected ? (
-          <>
-            <Button 
-              variant="default" 
-              className="w-full sm:w-auto" 
-              onClick={handleConnect}
-              disabled={isProcessing}
-            >
-              {isProcessing ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Refreshing...
-                </>
-              ) : (
-                <>
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  Refresh Connection
-                </>
-              )}
-            </Button>
-            <Button 
-              variant="outline" 
-              className="w-full sm:w-auto" 
-              onClick={handleDisconnect}
-              disabled={isProcessing}
-            >
-              {isProcessing ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Disconnecting...
-                </>
-              ) : (
-                'Disconnect Account'
-              )}
-            </Button>
-          </>
+          <Button 
+            variant="outline" 
+            className="w-full" 
+            onClick={handleDisconnect}
+            disabled={isProcessing}
+          >
+            {isProcessing ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Disconnecting...
+              </>
+            ) : (
+              'Disconnect Account'
+            )}
+          </Button>
         ) : (
           <Button 
             className="w-full" 
