@@ -10,6 +10,9 @@ interface RequestData {
   adCreativeData: any;
   projectId: string;
   campaignMode?: "manual" | "semi-automatic" | "automatic";
+  templateId?: string;
+  templateName?: string;
+  aiSuggestionsUsed?: any[];
 }
 
 interface FacebookApiResponse {
@@ -148,7 +151,16 @@ serve(async (req) => {
 
     // Parse request data
     const requestData: RequestData = await req.json();
-    const { campaignData, adSetData, adCreativeData, projectId, campaignMode = "manual" } = requestData;
+    const { 
+      campaignData, 
+      adSetData, 
+      adCreativeData, 
+      projectId, 
+      campaignMode = "manual",
+      templateId,
+      templateName,
+      aiSuggestionsUsed = [] 
+    } = requestData;
 
     // Validate data before proceeding
     const validationErrors = validateCampaignData(campaignData, adSetData, adCreativeData);
@@ -209,6 +221,10 @@ serve(async (req) => {
         status: "pending", 
         project_id: projectId,
         user_id: user.id,
+        creation_mode: campaignMode,
+        template_id: templateId,
+        template_name: templateName,
+        ai_suggestions_used: aiSuggestionsUsed.length > 0 ? aiSuggestionsUsed : null,
         // Store campaign data in the campaign_data field which is JSONB
         campaign_data: {
           campaign: campaignData,
@@ -409,6 +425,14 @@ serve(async (req) => {
         return { id: data.id, success: true };
       });
       
+      // Initialize empty performance metrics
+      const initialPerformanceMetrics = {
+        impressions: 0,
+        clicks: 0,
+        spend: 0,
+        last_updated: new Date().toISOString()
+      };
+      
       // Update campaign record with all IDs
       await supabase
         .from("ad_campaigns")
@@ -419,6 +443,8 @@ serve(async (req) => {
           platform_campaign_id: campaignResult.id,
           platform_ad_set_id: adSetResult.id,
           platform_ad_id: adResult.id,
+          performance_metrics: initialPerformanceMetrics,
+          last_synced_at: new Date().toISOString(),
           // Use campaign_data JSONB field for storing detailed campaign data
           campaign_data: {
             campaign: campaignData,
@@ -446,7 +472,8 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({
           ...response,
-          campaignRecordId: initialCampaign.id
+          campaignRecordId: initialCampaign.id,
+          creationMode: campaignMode
         }),
         { status: 200, headers }
       );

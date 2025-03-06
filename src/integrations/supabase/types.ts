@@ -11,13 +11,18 @@ export type Database = {
     Tables: {
       ad_campaigns: {
         Row: {
+          ai_suggestions_used: Json | null
           budget: number | null
           campaign_data: Json | null
           created_at: string | null
+          creation_mode: string | null
           end_date: string | null
           id: string
           image_url: string | null
+          is_template: boolean | null
+          last_synced_at: string | null
           name: string
+          performance_metrics: Json | null
           platform: Database["public"]["Enums"]["ad_platform"]
           platform_ad_id: string | null
           platform_ad_set_id: string | null
@@ -26,17 +31,24 @@ export type Database = {
           start_date: string | null
           status: string
           targeting: Json | null
+          template_id: string | null
+          template_name: string | null
           updated_at: string | null
           user_id: string | null
         }
         Insert: {
+          ai_suggestions_used?: Json | null
           budget?: number | null
           campaign_data?: Json | null
           created_at?: string | null
+          creation_mode?: string | null
           end_date?: string | null
           id?: string
           image_url?: string | null
+          is_template?: boolean | null
+          last_synced_at?: string | null
           name: string
+          performance_metrics?: Json | null
           platform: Database["public"]["Enums"]["ad_platform"]
           platform_ad_id?: string | null
           platform_ad_set_id?: string | null
@@ -45,17 +57,24 @@ export type Database = {
           start_date?: string | null
           status: string
           targeting?: Json | null
+          template_id?: string | null
+          template_name?: string | null
           updated_at?: string | null
           user_id?: string | null
         }
         Update: {
+          ai_suggestions_used?: Json | null
           budget?: number | null
           campaign_data?: Json | null
           created_at?: string | null
+          creation_mode?: string | null
           end_date?: string | null
           id?: string
           image_url?: string | null
+          is_template?: boolean | null
+          last_synced_at?: string | null
           name?: string
+          performance_metrics?: Json | null
           platform?: Database["public"]["Enums"]["ad_platform"]
           platform_ad_id?: string | null
           platform_ad_set_id?: string | null
@@ -64,6 +83,8 @@ export type Database = {
           start_date?: string | null
           status?: string
           targeting?: Json | null
+          template_id?: string | null
+          template_name?: string | null
           updated_at?: string | null
           user_id?: string | null
         }
@@ -1428,7 +1449,33 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      campaign_templates: {
+        Row: {
+          campaign_data: Json | null
+          creation_mode: string | null
+          id: string | null
+          name: string | null
+          platform: Database["public"]["Enums"]["ad_platform"] | null
+          template_name: string | null
+        }
+        Insert: {
+          campaign_data?: Json | null
+          creation_mode?: string | null
+          id?: string | null
+          name?: string | null
+          platform?: Database["public"]["Enums"]["ad_platform"] | null
+          template_name?: string | null
+        }
+        Update: {
+          campaign_data?: Json | null
+          creation_mode?: string | null
+          id?: string | null
+          name?: string | null
+          platform?: Database["public"]["Enums"]["ad_platform"] | null
+          template_name?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       add_user_credits: {
