@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -53,7 +52,7 @@ interface Campaign {
 
 export default function FacebookCampaignOverview() {
   const [isLoading, setIsLoading] = useState(true);
-  const [isCreating, setIsCreating] = useState(false);
+  const [isCreating, setIsCreating] = useState(isCreating);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [connection, setConnection] = useState<PlatformConnection | null>(null);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
@@ -146,8 +145,9 @@ export default function FacebookCampaignOverview() {
           const project = projectsData?.find(p => p.id === projectId);
           if (project) {
             setCampaignName(project.title + " Campaign");
-            if (project.business_idea) {
-              setCampaignMessage(project.business_idea.valueProposition || "");
+            if (project.business_idea && typeof project.business_idea === 'object') {
+              const businessIdea = project.business_idea as Record<string, any>;
+              setCampaignMessage(businessIdea.valueProposition || "");
             }
           }
         }
