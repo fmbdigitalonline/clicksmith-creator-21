@@ -86,11 +86,15 @@ export function ProjectSelector({ onSelect, selectedProjectId }: ProjectSelector
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[300px] p-0">
-        <Command>
-          <CommandInput placeholder="Search projects..." />
-          <CommandEmpty>No projects found.</CommandEmpty>
-          <CommandGroup>
+      <PopoverContent 
+        className="w-[300px] p-0 bg-white border border-gray-200 shadow-lg rounded-md z-50 animate-in fade-in-0 zoom-in-95 duration-100"
+        align="start"
+        sideOffset={5}
+      >
+        <Command className="rounded-md border-0">
+          <CommandInput placeholder="Search projects..." className="h-9" />
+          <CommandEmpty className="py-3 text-center text-sm">No projects found.</CommandEmpty>
+          <CommandGroup className="max-h-[200px] overflow-auto">
             {Array.isArray(projects) && projects.length > 0 ? (
               projects.map((project) => (
                 <CommandItem
@@ -100,6 +104,7 @@ export function ProjectSelector({ onSelect, selectedProjectId }: ProjectSelector
                     onSelect(currentValue);
                     setOpen(false);
                   }}
+                  className="flex items-center py-2"
                 >
                   <Check
                     className={cn(
@@ -111,7 +116,7 @@ export function ProjectSelector({ onSelect, selectedProjectId }: ProjectSelector
                 </CommandItem>
               ))
             ) : (
-              <CommandItem disabled>
+              <CommandItem disabled className="py-3 text-center">
                 {loading ? "Loading projects..." : "No projects available"}
               </CommandItem>
             )}
