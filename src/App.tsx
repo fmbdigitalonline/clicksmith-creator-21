@@ -1,4 +1,3 @@
-
 import {
   BrowserRouter as Router,
   Routes,
@@ -10,9 +9,8 @@ import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { useSession, useSupabaseClient } from "@supabase/auth-helpers-react";
 import Account from "@/components/Account";
 import Home from "@/components/Home";
-import AppLayout from "@/components/layout/AppLayout";
-import AdWizard from "@/components/AdWizard";
-import Integrations from "@/components/Integrations";
+import { AppLayout } from "@/components/layout/AppLayout"; // Changed to named import
+import Integrations from "@/components/integrations/PlatformIntegrations"; // Fixed import path
 import FacebookCampaignOverview from "@/components/integrations/FacebookCampaignOverview";
 import CampaignDetailsView from "@/components/integrations/CampaignDetailsView";
 

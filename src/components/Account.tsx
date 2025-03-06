@@ -50,7 +50,7 @@ export default function Account({ session }: { session: Session | null }) {
         id: session?.user.id,
         username,
         full_name: fullName,
-        updated_at: new Date(),
+        updated_at: new Date().toISOString(), // Convert Date to string
       };
 
       const { error } = await supabase.from("profiles").upsert(updates);
