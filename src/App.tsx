@@ -1,3 +1,4 @@
+
 import {
   BrowserRouter as Router,
   Routes,
@@ -103,14 +104,14 @@ function App() {
           }
         />
         <Route
-          path="integrations/campaigns/:campaignId",
-          element: (
+          path="/integrations/campaigns/:campaignId"
+          element={
             <ProtectedRoute>
               <AppLayout>
                 <CampaignDetailsView />
               </AppLayout>
             </ProtectedRoute>
-          ),
+          }
         />
       </Routes>
     </Router>
