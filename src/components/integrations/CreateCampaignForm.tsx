@@ -1,335 +1,230 @@
+
 import { useState, useEffect } from "react";
-import { useSession } from "@supabase/auth-helpers-react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Loader2, AlertCircle, Info } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
-import { Label } from "@/components/ui/label";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
-import { transformToFacebookAdFormat } from "@/utils/facebookAdTransformer";
-import { BusinessIdea, TargetAudience } from "@/types/adWizard";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { format } from "date-fns";
+import { CalendarIcon, Loader2, AlertCircle, ArrowLeft } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useToast } from "@/components/ui/use-toast";
+
+// Form schema definition
+const formSchema = z.object({
+  name: z.string().min(2, "Campaign name must be at least 2 characters."),
+  status: z.string().default("pending"),
+  project_id: z.string().uuid(),
+  platform: z.literal("facebook"),
+  objective: z.string(),
+  special_ad_categories: z.string().default("NONE"),
+  budget: z.coerce.number().min(1, "Budget must be at least 1."),
+  start_date: z.date(),
+  end_date: z.date().optional(),
+  headline: z.string().min(1, "Headline is required"),
+  primary_text: z.string().min(1, "Ad text is required"),
+  description: z.string().optional(),
+  website_url: z.string().url("Please enter a valid URL"),
+  call_to_action: z.string(),
+  image_url: z.string().url("Please enter a valid image URL")
+});
+
+type FormData = z.infer<typeof formSchema>;
 
 interface CreateCampaignFormProps {
   projectId: string;
+  creationMode?: "manual" | "semi-automatic" | "automatic"; // New prop
   onSuccess?: () => void;
   onCancel?: () => void;
+  onBack?: () => void; // New prop for navigation
 }
 
 export default function CreateCampaignForm({ 
   projectId, 
+  creationMode = "manual", // Default to manual if not provided
   onSuccess, 
-  onCancel 
+  onCancel, 
+  onBack 
 }: CreateCampaignFormProps) {
-  const [isCreating, setIsCreating] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [formData, setFormData] = useState({
-    name: "",
-    objective: "CONVERSIONS",
-    budget: "5",
-    startDate: "",
-    endDate: "",
-    headline: "",
-    description: "",
-    imageUrl: "",
-    callToAction: "LEARN_MORE",
-    ageMin: "18",
-    ageMax: "65",
-    genders: "all",
-    countries: "US",
-    landingPageUrl: "",
-    isAdvancedMode: false,
-  });
   const [projectData, setProjectData] = useState<any>(null);
-  const [wizardData, setWizardData] = useState<any>(null);
-  const [isLoadingData, setIsLoadingData] = useState(true);
-  const [formTab, setFormTab] = useState("basic");
-  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
-  
-  const session = useSession();
   const { toast } = useToast();
 
-  // Fetch project and wizard data
+  // Setup form with default values
+  const form = useForm<FormData>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      name: "",
+      status: "pending",
+      project_id: projectId,
+      platform: "facebook",
+      objective: "CONVERSIONS",
+      special_ad_categories: "NONE",
+      budget: 5,
+      start_date: new Date(),
+      headline: "",
+      primary_text: "",
+      description: "",
+      website_url: "",
+      call_to_action: "LEARN_MORE",
+      image_url: ""
+    }
+  });
+
+  // Fetch project data for semi-automatic and automatic modes
   useEffect(() => {
-    async function fetchData() {
-      if (!session || !projectId) return;
-      
-      try {
-        setIsLoadingData(true);
-        
-        // Fetch project data
-        const { data: project, error: projectError } = await supabase
-          .from("projects")
-          .select("*")
-          .eq("id", projectId)
-          .single();
+    if (creationMode !== "manual" && projectId) {
+      const fetchProjectData = async () => {
+        try {
+          const { data, error } = await supabase
+            .from("projects")
+            .select("*")
+            .eq("id", projectId)
+            .single();
 
-        if (projectError) throw projectError;
-        
-        // Fetch wizard data
-        const { data: wizard, error: wizardError } = await supabase
-          .from("wizard_progress")
-          .select("business_idea, target_audience, audience_analysis, generated_ads")
-          .eq("user_id", session?.user?.id)
-          .single();
+          if (error) throw error;
+          setProjectData(data);
 
-        if (wizardError && wizardError.code !== 'PGRST116') {
-          console.warn("No wizard data found:", wizardError);
-        }
-        
-        setProjectData(project);
-        setWizardData(wizard || {});
-        
-        // Initialize form with project data
-        if (project) {
-          // Extract business name for campaign name
-          let businessName = "";
-          const businessIdeaObj = project.business_idea;
-          
-          if (typeof businessIdeaObj === 'object' && businessIdeaObj !== null) {
-            businessName = (businessIdeaObj as any).description || "";
-          }
+          // Pre-fill form based on project data for semi-automatic mode
+          if (creationMode === "semi-automatic" && data) {
+            // Set campaign name based on project title
+            form.setValue("name", `${data.title} Campaign`);
             
-          // Extract image URL from generated ads if available
-          let imageUrl = "";
-          if (wizard?.generated_ads && Array.isArray(wizard.generated_ads) && wizard.generated_ads.length > 0) {
-            const firstAd = wizard.generated_ads[0];
-            if (typeof firstAd === 'object' && firstAd !== null) {
-              imageUrl = (firstAd as any).imageUrl || "";
+            // If we have business_idea with a website
+            if (data.business_idea?.website) {
+              form.setValue("website_url", data.business_idea.website);
             }
+            
+            // If we have generated ad copy from hooks
+            if (data.selected_hooks?.length > 0) {
+              const hook = data.selected_hooks[0];
+              if (hook.title) form.setValue("headline", hook.title);
+              if (hook.description) form.setValue("primary_text", hook.description);
+            }
+            
+            // If we have saved ad images
+            const fetchSavedAds = async () => {
+              const { data: adData } = await supabase
+                .from("ad_feedback")
+                .select("imageUrl")
+                .eq("project_id", projectId)
+                .order("created_at", { ascending: false })
+                .limit(1);
+                
+              if (adData && adData.length > 0 && adData[0].imageUrl) {
+                form.setValue("image_url", adData[0].imageUrl);
+              }
+            };
+            
+            fetchSavedAds();
           }
           
-          // Create a landing page URL
-          const landingPageUrl = `https://${window.location.hostname}/share/${projectId}`;
-          
-          // Get value proposition if available
-          let valueProposition = "";
-          if (typeof businessIdeaObj === 'object' && businessIdeaObj !== null) {
-            valueProposition = (businessIdeaObj as any).valueProposition || "";
-          }
-          
-          setFormData(prev => ({
-            ...prev,
-            name: `${businessName.substring(0, 30)} Campaign`,
-            headline: businessName.substring(0, 40),
-            description: valueProposition,
-            imageUrl,
-            landingPageUrl
-          }));
+          // For automatic mode, we'll just load the data and use it later
+          // when the form is submitted
+        } catch (error) {
+          console.error("Error fetching project data:", error);
         }
-      } catch (error) {
-        console.error("Error fetching project data:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load project data",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoadingData(false);
-      }
-    }
+      };
 
-    fetchData();
-  }, [session, projectId, toast]);
+      fetchProjectData();
+    }
+  }, [creationMode, projectId, form]);
 
-  // Handle form change
-  const handleChange = (field: string, value: string | boolean) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-    
-    // Clear validation error when field is changed
-    if (validationErrors[field]) {
-      setValidationErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors[field];
-        return newErrors;
-      });
-    }
-  };
-
-  // Validate form
-  const validateForm = (): boolean => {
-    const errors: Record<string, string> = {};
-    
-    if (!formData.name.trim()) errors.name = "Campaign name is required";
-    if (!formData.budget || isNaN(Number(formData.budget)) || Number(formData.budget) < 1) {
-      errors.budget = "Valid budget is required (min $1)";
-    }
-    if (!formData.headline.trim()) errors.headline = "Ad headline is required";
-    if (!formData.description.trim()) errors.description = "Ad description is required";
-    if (!formData.landingPageUrl.trim()) errors.landingPageUrl = "Landing page URL is required";
-    
-    // If we're in advanced mode, validate those fields too
-    if (formData.isAdvancedMode) {
-      if (!formData.startDate) errors.startDate = "Start date is required";
-      if (formData.startDate && formData.endDate && new Date(formData.endDate) <= new Date(formData.startDate)) {
-        errors.endDate = "End date must be after start date";
-      }
-    }
-    
-    setValidationErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
-
-  // Handle create campaign
-  const handleCreateCampaign = async () => {
-    if (!session) {
-      toast({
-        title: "Authentication Required",
-        description: "Please sign in to create a campaign",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    // Validate form
-    if (!validateForm()) {
-      toast({
-        title: "Form Error",
-        description: "Please fix the errors in the form",
-        variant: "destructive",
-      });
-      return;
-    }
+  const onSubmit = async (data: FormData) => {
+    setIsLoading(true);
+    setError(null);
     
     try {
-      setIsCreating(true);
-      setError(null);
-      
-      // Prepare business idea from project or wizard data
-      let businessIdea: BusinessIdea = {
-        description: "",
-        valueProposition: ""
-      };
-      
-      // Try to get business idea from wizard data first, then fall back to project data
-      if (wizardData?.business_idea && typeof wizardData.business_idea === 'object') {
-        businessIdea = wizardData.business_idea as BusinessIdea;
-      } else if (projectData?.business_idea && typeof projectData.business_idea === 'object') {
-        businessIdea = projectData.business_idea as BusinessIdea;
-      } else {
-        // Create a basic business idea from form data
-        businessIdea = {
-          description: formData.headline,
-          valueProposition: formData.description
-        };
-      }
-      
-      // Prepare target audience
-      let targetAudience: TargetAudience = {
-        name: "Target Audience",
-        description: "",
-        demographics: `${formData.ageMin}-${formData.ageMax}, ${formData.genders === 'all' ? 'men and women' : formData.genders} in ${formData.countries}`,
-        painPoints: [],
-        icp: "",
-        coreMessage: "",
-        positioning: "",
-        marketingAngle: "",
-        messagingApproach: "",
-        marketingChannels: []
-      };
-      
-      // Try to get target audience from wizard data, then fall back to project data
-      if (wizardData?.target_audience && typeof wizardData.target_audience === 'object') {
-        targetAudience = wizardData.target_audience as TargetAudience;
-      } else if (projectData?.target_audience && typeof projectData.target_audience === 'object') {
-        targetAudience = projectData.target_audience as TargetAudience;
-      }
-      
-      // Create ad variant
-      const adVariant = {
-        headline: formData.headline,
-        description: formData.description,
-        imageUrl: formData.imageUrl,
-        callToAction: formData.callToAction
-      };
-      
-      // Transform to Facebook-compatible format
-      const facebookAdData = transformToFacebookAdFormat(
-        businessIdea,
-        targetAudience,
-        adVariant,
-        Number(formData.budget),
-        formData.landingPageUrl
-      );
-      
-      // Add form-specific data
-      facebookAdData.campaign.name = formData.name;
-      facebookAdData.campaign.objective = formData.objective as string;
-      
-      // Add scheduling if in advanced mode
-      if (formData.isAdvancedMode && formData.startDate) {
-        // Add custom start_time and end_time properties to adSet
-        (facebookAdData.adSet as any).start_time = new Date(formData.startDate).toISOString();
+      // For automatic mode, we'll generate campaign data using AI
+      if (creationMode === "automatic" && projectData) {
+        toast({
+          title: "AI Campaign Creation",
+          description: "Your campaign is being created automatically. This may take a moment...",
+        });
         
-        if (formData.endDate) {
-          (facebookAdData.adSet as any).end_time = new Date(formData.endDate).toISOString();
-        }
+        // This would call an AI function to generate the campaign
+        // For now, we'll simulate with preset values
+        data.headline = `${projectData.title} - Special Offer`;
+        data.primary_text = `Discover the best solution for your needs with ${projectData.title}. Limited time offer!`;
+        data.call_to_action = "SHOP_NOW";
       }
       
-      // Log what we're sending
-      console.log("Sending Facebook ad data:", facebookAdData);
+      // Add creation mode to the campaign data
+      const campaignData = {
+        ...data,
+        creation_mode: creationMode,
+        // Include any AI suggestions that were used
+        ai_suggestions_used: creationMode === "automatic" ? {
+          headline: true,
+          primary_text: true,
+          call_to_action: true
+        } : {}
+      };
       
-      // Call the Edge Function to create the campaign
-      const response = await supabase.functions.invoke("create-facebook-campaign", {
-        body: {
-          campaignData: facebookAdData.campaign,
-          adSetData: facebookAdData.adSet,
-          adCreativeData: facebookAdData.adCreative,
-          projectId
-        }
-      });
+      // Submit to Supabase
+      const { data: campaign, error } = await supabase
+        .from("ad_campaigns")
+        .insert(campaignData)
+        .select()
+        .single();
 
-      if (response.error) {
-        throw new Error(response.error);
-      }
-
-      if (!response.data.success) {
-        throw new Error(response.data.error || "Failed to create campaign");
-      }
-
-      // Success!
+      if (error) throw error;
+      
       toast({
-        title: "Success!",
-        description: "Facebook campaign created successfully",
+        title: "Campaign created",
+        description: "Your campaign has been created successfully and is being processed.",
       });
       
-      if (onSuccess) {
-        onSuccess();
-      }
-      
+      if (onSuccess) onSuccess();
     } catch (error) {
       console.error("Error creating campaign:", error);
-      setError(error.message || "Failed to create campaign");
-      
+      setError("Failed to create campaign. Please try again.");
       toast({
         title: "Error",
-        description: error.message || "Failed to create campaign",
+        description: "Failed to create campaign. Please try again.",
         variant: "destructive",
       });
     } finally {
-      setIsCreating(false);
+      setIsLoading(false);
     }
   };
 
-  if (isLoadingData) {
-    return (
-      <div className="flex justify-center p-6">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
+      {onBack && (
+        <Button 
+          variant="ghost" 
+          onClick={onBack} 
+          className="mb-4 px-0"
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Mode Selection
+        </Button>
+      )}
+      
+      {creationMode !== "manual" && (
+        <Alert className="bg-blue-50 border-blue-200 mb-6">
+          <AlertCircle className="h-4 w-4 text-blue-600" />
+          <AlertTitle className="text-blue-800">
+            {creationMode === "semi-automatic" 
+              ? "Semi-Automatic Mode" 
+              : "AI-Driven Campaign Creation"}
+          </AlertTitle>
+          <AlertDescription className="text-blue-700">
+            {creationMode === "semi-automatic"
+              ? "We've pre-filled some fields based on your project data. Feel free to adjust as needed."
+              : "Our AI will optimize your campaign based on your project data. Review the settings before creating."}
+          </AlertDescription>
+        </Alert>
+      )}
+
       {error && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
@@ -338,318 +233,293 @@ export default function CreateCampaignForm({
         </Alert>
       )}
 
-      <Tabs value={formTab} onValueChange={setFormTab} className="w-full">
-        <TabsList className="w-full">
-          <TabsTrigger value="basic" className="flex-1">Basic Settings</TabsTrigger>
-          <TabsTrigger value="creative" className="flex-1">Ad Creative</TabsTrigger>
-          <TabsTrigger value="targeting" className="flex-1">Targeting</TabsTrigger>
-        </TabsList>
-        
-        {/* Basic Settings Tab */}
-        <TabsContent value="basic" className="space-y-4 py-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">Campaign Name</Label>
-            <Input
-              id="name"
-              value={formData.name}
-              onChange={(e) => handleChange('name', e.target.value)}
-              placeholder="Enter campaign name"
-              className={validationErrors.name ? "border-red-500" : ""}
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          {/* Campaign Details Section */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium">Campaign Details</h3>
+            
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Campaign Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter campaign name" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-            {validationErrors.name && (
-              <p className="text-sm text-red-500">{validationErrors.name}</p>
-            )}
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="objective">Campaign Objective</Label>
-            <Select 
-              value={formData.objective} 
-              onValueChange={(value) => handleChange('objective', value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select objective" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="CONVERSIONS">Conversions</SelectItem>
-                <SelectItem value="TRAFFIC">Traffic</SelectItem>
-                <SelectItem value="REACH">Reach</SelectItem>
-                <SelectItem value="BRAND_AWARENESS">Brand Awareness</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="budget">Daily Budget ($)</Label>
-            <Input
-              id="budget"
-              value={formData.budget}
-              onChange={(e) => handleChange('budget', e.target.value)}
-              type="number"
-              min="1"
-              step="1"
-              className={validationErrors.budget ? "border-red-500" : ""}
-            />
-            {validationErrors.budget && (
-              <p className="text-sm text-red-500">{validationErrors.budget}</p>
-            )}
-          </div>
-          
-          <div className="flex items-center space-x-2 pt-2">
-            <Switch
-              checked={formData.isAdvancedMode}
-              onCheckedChange={(checked) => handleChange('isAdvancedMode', checked)}
-            />
-            <Label htmlFor="advanced-mode">Advanced Mode</Label>
-          </div>
-          
-          {formData.isAdvancedMode && (
-            <div className="space-y-4 pt-2">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="startDate">Start Date</Label>
-                  <Input
-                    id="startDate"
-                    type="date"
-                    value={formData.startDate}
-                    onChange={(e) => handleChange('startDate', e.target.value)}
-                    min={new Date().toISOString().split('T')[0]}
-                    className={validationErrors.startDate ? "border-red-500" : ""}
-                  />
-                  {validationErrors.startDate && (
-                    <p className="text-sm text-red-500">{validationErrors.startDate}</p>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="endDate">End Date (Optional)</Label>
-                  <Input
-                    id="endDate"
-                    type="date"
-                    value={formData.endDate}
-                    onChange={(e) => handleChange('endDate', e.target.value)}
-                    min={new Date().toISOString().split('T')[0]}
-                    className={validationErrors.endDate ? "border-red-500" : ""}
-                  />
-                  {validationErrors.endDate && (
-                    <p className="text-sm text-red-500">{validationErrors.endDate}</p>
-                  )}
-                </div>
-              </div>
+            
+            <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
+              <FormField
+                control={form.control}
+                name="objective"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Campaign Objective</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select objective" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="AWARENESS">Brand Awareness</SelectItem>
+                        <SelectItem value="TRAFFIC">Traffic</SelectItem>
+                        <SelectItem value="ENGAGEMENT">Engagement</SelectItem>
+                        <SelectItem value="LEADS">Lead Generation</SelectItem>
+                        <SelectItem value="CONVERSIONS">Conversions</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="budget"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Daily Budget (USD)</FormLabel>
+                    <FormControl>
+                      <Input type="number" min="1" step="1" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
-          )}
-        </TabsContent>
-        
-        {/* Creative Tab */}
-        <TabsContent value="creative" className="space-y-4 py-4">
-          <div className="space-y-2">
-            <Label htmlFor="headline">Ad Headline</Label>
-            <Input
-              id="headline"
-              value={formData.headline}
-              onChange={(e) => handleChange('headline', e.target.value)}
-              placeholder="Enter headline (max 40 characters)"
-              maxLength={40}
-              className={validationErrors.headline ? "border-red-500" : ""}
-            />
-            {validationErrors.headline && (
-              <p className="text-sm text-red-500">{validationErrors.headline}</p>
-            )}
-            <p className="text-xs text-muted-foreground">
-              {formData.headline.length}/40 characters
-            </p>
+
+            <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
+              <FormField
+                control={form.control}
+                name="start_date"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>Start Date</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant={"outline"}
+                            className={`w-full pl-3 text-left font-normal ${
+                              !field.value ? "text-muted-foreground" : ""
+                            }`}
+                          >
+                            {field.value ? (
+                              format(field.value, "PPP")
+                            ) : (
+                              <span>Pick a date</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={field.onChange}
+                          disabled={(date) => date < new Date()}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="end_date"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>End Date (Optional)</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant={"outline"}
+                            className={`w-full pl-3 text-left font-normal ${
+                              !field.value ? "text-muted-foreground" : ""
+                            }`}
+                          >
+                            {field.value ? (
+                              format(field.value, "PPP")
+                            ) : (
+                              <span>Pick a date</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value || undefined}
+                          onSelect={field.onChange}
+                          disabled={(date) => 
+                            date < new Date() || 
+                            (form.getValues("start_date") && date < form.getValues("start_date"))
+                          }
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
           </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="description">Ad Description</Label>
-            <Textarea
-              id="description"
-              value={formData.description}
-              onChange={(e) => handleChange('description', e.target.value)}
-              placeholder="Enter description (max 125 characters)"
-              maxLength={125}
-              className={validationErrors.description ? "border-red-500" : ""}
+
+          {/* Ad Creative Section */}
+          <div className="space-y-4 pt-4">
+            <h3 className="text-lg font-medium">Ad Creative</h3>
+            
+            <FormField
+              control={form.control}
+              name="headline"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Headline</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter ad headline" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-            {validationErrors.description && (
-              <p className="text-sm text-red-500">{validationErrors.description}</p>
-            )}
-            <p className="text-xs text-muted-foreground">
-              {formData.description.length}/125 characters
-            </p>
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="imageUrl">Image URL</Label>
-            <Input
-              id="imageUrl"
-              value={formData.imageUrl}
-              onChange={(e) => handleChange('imageUrl', e.target.value)}
-              placeholder="Enter image URL"
+            
+            <FormField
+              control={form.control}
+              name="primary_text"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Ad Text</FormLabel>
+                  <FormControl>
+                    <Textarea 
+                      placeholder="Enter your ad text" 
+                      className="min-h-[100px]" 
+                      {...field} 
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-            <p className="text-xs text-muted-foreground">
-              Enter a direct URL to your image (1200×628px recommended)
-            </p>
-          </div>
-          
-          {formData.imageUrl && (
-            <div className="mt-4">
-              <Label>Image Preview</Label>
-              <div className="mt-2 border rounded-md overflow-hidden max-h-[200px]">
+            
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description (Optional)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter a short description" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
+              <FormField
+                control={form.control}
+                name="website_url"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Website URL</FormLabel>
+                    <FormControl>
+                      <Input placeholder="https://example.com" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="call_to_action"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Call to Action</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select CTA" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="LEARN_MORE">Learn More</SelectItem>
+                        <SelectItem value="SHOP_NOW">Shop Now</SelectItem>
+                        <SelectItem value="SIGN_UP">Sign Up</SelectItem>
+                        <SelectItem value="BOOK_TRAVEL">Book Now</SelectItem>
+                        <SelectItem value="DOWNLOAD">Download</SelectItem>
+                        <SelectItem value="SUBSCRIBE">Subscribe</SelectItem>
+                        <SelectItem value="CONTACT_US">Contact Us</SelectItem>
+                        <SelectItem value="APPLY_NOW">Apply Now</SelectItem>
+                        <SelectItem value="GET_QUOTE">Get Quote</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            
+            <FormField
+              control={form.control}
+              name="image_url"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Image URL</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter image URL" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            {field => field.value && (
+              <div className="mt-2 rounded-md overflow-hidden border">
                 <img 
-                  src={formData.imageUrl} 
-                  alt="Ad Preview" 
-                  className="w-full h-auto object-contain"
+                  src={form.watch("image_url")} 
+                  alt="Ad preview" 
+                  className="max-h-[200px] object-contain mx-auto"
                   onError={(e) => {
-                    e.currentTarget.src = 'https://placehold.co/1200x628/e2e8f0/64748b?text=Image+Not+Found';
+                    (e.target as HTMLImageElement).style.display = 'none';
                   }}
                 />
               </div>
-            </div>
-          )}
-          
-          <div className="space-y-2">
-            <Label htmlFor="callToAction">Call to Action</Label>
-            <Select 
-              value={formData.callToAction} 
-              onValueChange={(value) => handleChange('callToAction', value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select CTA" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="LEARN_MORE">Learn More</SelectItem>
-                <SelectItem value="SIGN_UP">Sign Up</SelectItem>
-                <SelectItem value="SHOP_NOW">Shop Now</SelectItem>
-                <SelectItem value="BOOK_TRAVEL">Book Now</SelectItem>
-                <SelectItem value="DOWNLOAD">Download</SelectItem>
-                <SelectItem value="GET_OFFER">Get Offer</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="landingPageUrl">Landing Page URL</Label>
-            <Input
-              id="landingPageUrl"
-              value={formData.landingPageUrl}
-              onChange={(e) => handleChange('landingPageUrl', e.target.value)}
-              placeholder="Enter landing page URL"
-              className={validationErrors.landingPageUrl ? "border-red-500" : ""}
-            />
-            {validationErrors.landingPageUrl && (
-              <p className="text-sm text-red-500">{validationErrors.landingPageUrl}</p>
             )}
           </div>
-        </TabsContent>
-        
-        {/* Targeting Tab */}
-        <TabsContent value="targeting" className="space-y-4 py-4">
-          <Alert>
-            <Info className="h-4 w-4" />
-            <AlertTitle>About Targeting</AlertTitle>
-            <AlertDescription>
-              We've pre-filled targeting based on your audience information. You can customize it below.
-            </AlertDescription>
-          </Alert>
-          
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="ageMin">Minimum Age</Label>
-              <Select 
-                value={formData.ageMin} 
-                onValueChange={(value) => handleChange('ageMin', value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Min Age" />
-                </SelectTrigger>
-                <SelectContent>
-                  {[13, 18, 21, 25, 30, 35, 40, 45, 50, 55, 60, 65].map(age => (
-                    <SelectItem key={age} value={age.toString()}>{age}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="ageMax">Maximum Age</Label>
-              <Select 
-                value={formData.ageMax} 
-                onValueChange={(value) => handleChange('ageMax', value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Max Age" />
-                </SelectTrigger>
-                <SelectContent>
-                  {[18, 21, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, "65+"].map(age => (
-                    <SelectItem key={age} value={age.toString()}>{age}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="genders">Gender</Label>
-            <Select 
-              value={formData.genders} 
-              onValueChange={(value) => handleChange('genders', value)}
+
+          {/* Form Actions */}
+          <div className="flex justify-end gap-2 pt-4">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={onCancel}
+              disabled={isLoading}
             >
-              <SelectTrigger>
-                <SelectValue placeholder="Select Gender" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Genders</SelectItem>
-                <SelectItem value="men">Men</SelectItem>
-                <SelectItem value="women">Women</SelectItem>
-              </SelectContent>
-            </Select>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isLoading}>
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {creationMode === "automatic" 
+                ? "Generate & Create Campaign" 
+                : "Create Campaign"}
+            </Button>
           </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="countries">Countries</Label>
-            <Select 
-              value={formData.countries} 
-              onValueChange={(value) => handleChange('countries', value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select Countries" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="US">United States</SelectItem>
-                <SelectItem value="CA">Canada</SelectItem>
-                <SelectItem value="GB">United Kingdom</SelectItem>
-                <SelectItem value="AU">Australia</SelectItem>
-                <SelectItem value="US,CA">US and Canada</SelectItem>
-                <SelectItem value="US,CA,GB,AU">English Speaking Countries</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div className="pt-4">
-            <Alert variant="default">
-              <AlertDescription className="text-sm">
-                Detailed targeting (interests, behaviors) will be generated based on your audience data and campaign objective.
-              </AlertDescription>
-            </Alert>
-          </div>
-        </TabsContent>
-      </Tabs>
-      
-      <Separator />
-      
-      <div className="flex justify-between pt-4">
-        <Button variant="outline" onClick={onCancel} disabled={isCreating}>
-          Cancel
-        </Button>
-        <Button onClick={handleCreateCampaign} disabled={isCreating}>
-          {isCreating ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Creating Campaign...
-            </>
-          ) : (
-            'Create Campaign'
-          )}
-        </Button>
-      </div>
+        </form>
+      </Form>
     </div>
   );
 }
