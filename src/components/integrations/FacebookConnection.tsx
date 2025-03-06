@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -330,13 +331,13 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
       
       if (error) throw error;
       
-      // Update local state
+      // Update local state - Make sure to use the typed metadata, not the Json version
       setSelectedAccountId(accountId);
       setConnection({
         ...connection,
         account_id: accountId,
         account_name: selectedAccount.name,
-        metadata: dbSafeMetadata
+        metadata: updatedMetadata // Use the typed metadata for the local state
       });
       
       toast({
