@@ -209,9 +209,28 @@ export default function FacebookCampaignOverview() {
       // Create a landing page URL (placeholder for now)
       const landingPageUrl = `https://${window.location.hostname}/share/${projectData.id}`;
       
+      // Get value proposition from business idea and ensure it's a string
+      let valueProposition = "";
+      
+      // Check if business_idea exists and is an object before accessing valueProposition
+      if (typeof businessIdea === 'object' && businessIdea !== null && 'valueProposition' in businessIdea) {
+        valueProposition = businessIdea.valueProposition as string;
+      } else if (typeof projectData.business_idea === 'object' && 
+                projectData.business_idea !== null && 
+                'valueProposition' in projectData.business_idea) {
+        // Fallback to project data if wizard data doesn't have it
+        valueProposition = projectData.business_idea.valueProposition as string;
+      }
+      
+      // Create a safe business idea object with required fields
+      const safeBussinessIdea: BusinessIdea = {
+        ...businessIdea,
+        valueProposition: valueProposition || businessIdea.description || "Check out our product"
+      };
+      
       // Transform the data into Facebook ad format
       const facebookAdData = transformToFacebookAdFormat(
-        businessIdea,
+        safeBussinessIdea,
         targetAudience,
         adVariant,
         Number(budget),

@@ -3,12 +3,28 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Facebook, Check, AlertCircle, Loader2, ChevronDown, ExternalLink } from "lucide-react";
+import { 
+  Facebook, 
+  Check, 
+  AlertCircle, 
+  Loader2, 
+  ChevronDown, 
+  ExternalLink,
+  RefreshCw,
+  Building2
+} from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useSession } from "@supabase/auth-helpers-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
 
 // URL redirecting to Facebook OAuth with environment variables and expanded permissions
 const generateFacebookAuthURL = () => {
@@ -31,12 +47,31 @@ const generateFacebookAuthURL = () => {
   }
   
   // Include enhanced permissions for Ads Manager access
-  const scopes = encodeURIComponent("ads_management,ads_read,business_management");
+  const scopes = encodeURIComponent("ads_management,ads_read,business_management,pages_read_engagement,pages_show_list");
   
   console.log("Generating Facebook Auth URL with redirectUri:", redirectUri);
   
   return `https://www.facebook.com/v18.0/dialog/oauth?client_id=${facebookAppId}&redirect_uri=${redirectUri}&scope=${scopes}&response_type=code&state=${Date.now()}`;
 };
+
+interface AdAccount {
+  id: string;
+  name: string;
+  account_id: string;
+  account_status: number;
+  currency?: string;
+  timezone_name?: string;
+  capabilities?: string[];
+}
+
+interface FacebookPage {
+  id: string;
+  name: string;
+  access_token?: string;
+  category?: string;
+  followers_count?: number;
+  fan_count?: number;
+}
 
 interface PlatformConnection {
   id: string;
@@ -45,6 +80,12 @@ interface PlatformConnection {
   account_name: string | null;
   created_at: string;
   updated_at: string;
+  metadata?: {
+    ad_accounts: AdAccount[];
+    pages: FacebookPage[];
+    selected_account_id?: string;
+    last_fetched?: string;
+  };
 }
 
 interface FacebookConnectionProps {
@@ -55,9 +96,11 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [connection, setConnection] = useState<PlatformConnection | null>(null);
   const [showDetails, setShowDetails] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
   const { toast } = useToast();
   const session = useSession();
 
@@ -98,6 +141,12 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
       console.log("Facebook connection data:", data);
       if (data) {
         setConnection(data);
+        // Set the selected account ID if available in metadata
+        if (data.metadata?.selected_account_id) {
+          setSelectedAccountId(data.metadata.selected_account_id);
+        } else if (data.account_id) {
+          setSelectedAccountId(data.account_id);
+        }
         return true;
       }
       
@@ -216,6 +265,7 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
 
       setIsConnected(false);
       setConnection(null);
+      setSelectedAccountId(null);
       
       toast({
         title: "Disconnected",
@@ -237,6 +287,103 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
     }
   };
 
+  // Refresh ad accounts and pages
+  const handleRefreshAccounts = async () => {
+    if (!session || !connection) return;
+    
+    setIsRefreshing(true);
+    try {
+      // Call our OAuth endpoint with a special refresh parameter
+      const response = await fetch('/api/facebook-oauth', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({ refresh: true })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to refresh accounts');
+      }
+      
+      // Refresh the connection data
+      await fetchConnectionStatus();
+      
+      toast({
+        title: "Accounts Refreshed",
+        description: "Your Facebook ad accounts and pages have been refreshed",
+      });
+    } catch (error) {
+      console.error("Error refreshing accounts:", error);
+      toast({
+        title: "Error",
+        description: "Failed to refresh ad accounts. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  // Handle account selection
+  const handleAccountSelection = async (accountId: string) => {
+    if (!session || !connection) return;
+    
+    try {
+      // Find the account details
+      const selectedAccount = connection.metadata?.ad_accounts.find(account => account.id === accountId);
+      
+      if (!selectedAccount) {
+        throw new Error("Selected account not found");
+      }
+      
+      // Update the platform_connection in the database
+      const { error } = await supabase
+        .from('platform_connections')
+        .update({
+          account_id: accountId,
+          account_name: selectedAccount.name,
+          metadata: {
+            ...connection.metadata,
+            selected_account_id: accountId
+          }
+        })
+        .eq('platform', 'facebook');
+      
+      if (error) throw error;
+      
+      // Update local state
+      setSelectedAccountId(accountId);
+      setConnection({
+        ...connection,
+        account_id: accountId,
+        account_name: selectedAccount.name,
+        metadata: {
+          ...connection.metadata,
+          selected_account_id: accountId
+        }
+      });
+      
+      toast({
+        title: "Account Selected",
+        description: `Now using "${selectedAccount.name}" for Facebook Ads`,
+      });
+      
+      if (onConnectionChange) {
+        onConnectionChange();
+      }
+    } catch (error) {
+      console.error("Error setting account:", error);
+      toast({
+        title: "Error",
+        description: "Failed to set selected account",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Create campaign
   const handleCreateCampaign = async () => {
     toast({
@@ -246,6 +393,18 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
     
     // This will be expanded in future phases
     setShowDetails(!showDetails);
+  };
+
+  // Format account status
+  const formatAccountStatus = (status: number) => {
+    switch (status) {
+      case 1: return { label: "Active", color: "bg-green-100 text-green-800" };
+      case 2: return { label: "Disabled", color: "bg-red-100 text-red-800" };
+      case 3: return { label: "Unsettled", color: "bg-yellow-100 text-yellow-800" };
+      case 7: return { label: "Pending Review", color: "bg-blue-100 text-blue-800" };
+      case 9: return { label: "In Grace Period", color: "bg-orange-100 text-orange-800" };
+      default: return { label: "Unknown", color: "bg-gray-100 text-gray-800" };
+    }
   };
 
   if (isLoading) {
@@ -304,7 +463,7 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
         )}
       
         {isConnected && connection ? (
-          <div className="space-y-2">
+          <div className="space-y-4">
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Account:</span>
               <span className="font-medium">{connection.account_name || 'Default Account'}</span>
@@ -316,32 +475,91 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
               </span>
             </div>
             
-            {isConnected && (
-              <Collapsible open={showDetails} onOpenChange={setShowDetails} className="mt-4">
-                <CollapsibleTrigger asChild>
-                  <Button variant="outline" className="flex items-center justify-between w-full mt-2">
-                    <span>Ad Campaign Details</span>
-                    <ChevronDown className="h-4 w-4" />
-                  </Button>
-                </CollapsibleTrigger>
-                <CollapsibleContent className="mt-4 space-y-4 p-4 border rounded-md">
-                  <div className="space-y-2">
-                    <h4 className="font-medium">Campaign Status</h4>
-                    <p className="text-sm text-muted-foreground">
-                      Create a new Facebook ad campaign from your saved ad creatives. 
-                      You'll be able to review and edit all details before the campaign goes live.
-                    </p>
-                  </div>
-                  <Button 
-                    className="w-full" 
-                    onClick={handleCreateCampaign}
-                    disabled={isProcessing}
+            {/* Ad Account Selector */}
+            {connection.metadata?.ad_accounts && connection.metadata.ad_accounts.length > 0 && (
+              <div className="pt-2">
+                <label className="text-sm font-medium mb-1 block">
+                  Select Ad Account
+                </label>
+                <div className="flex gap-2">
+                  <Select 
+                    value={selectedAccountId || undefined} 
+                    onValueChange={handleAccountSelection}
                   >
-                    Create Campaign
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select ad account" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {connection.metadata.ad_accounts.map(account => {
+                        const status = formatAccountStatus(account.account_status);
+                        return (
+                          <SelectItem key={account.id} value={account.id}>
+                            <div className="flex justify-between items-center w-full">
+                              <span>{account.name}</span>
+                              <Badge variant="outline" className={status.color}>
+                                {status.label}
+                              </Badge>
+                            </div>
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                  
+                  <Button 
+                    variant="outline" 
+                    size="icon" 
+                    onClick={handleRefreshAccounts}
+                    disabled={isRefreshing}
+                  >
+                    {isRefreshing ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <RefreshCw className="h-4 w-4" />
+                    )}
                   </Button>
-                </CollapsibleContent>
-              </Collapsible>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {connection.metadata.ad_accounts.length} ad account{connection.metadata.ad_accounts.length !== 1 ? 's' : ''} available
+                </p>
+              </div>
             )}
+            
+            {/* Pages Information */}
+            {connection.metadata?.pages && connection.metadata.pages.length > 0 && (
+              <div className="pt-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Connected Pages:</span>
+                  <span className="font-medium">{connection.metadata.pages.length}</span>
+                </div>
+              </div>
+            )}
+            
+            {/* Expanded details */}
+            <Collapsible open={showDetails} onOpenChange={setShowDetails} className="mt-4">
+              <CollapsibleTrigger asChild>
+                <Button variant="outline" className="flex items-center justify-between w-full mt-2">
+                  <span>Ad Campaign Details</span>
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="mt-4 space-y-4 p-4 border rounded-md">
+                <div className="space-y-2">
+                  <h4 className="font-medium">Campaign Status</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Create a new Facebook ad campaign from your saved ad creatives. 
+                    You'll be able to review and edit all details before the campaign goes live.
+                  </p>
+                </div>
+                <Button 
+                  className="w-full" 
+                  onClick={handleCreateCampaign}
+                  disabled={isProcessing}
+                >
+                  Create Campaign
+                </Button>
+              </CollapsibleContent>
+            </Collapsible>
           </div>
         ) : (
           <div className="py-2">

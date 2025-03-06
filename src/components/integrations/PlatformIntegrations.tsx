@@ -176,6 +176,11 @@ export default function PlatformIntegrations() {
     }
   };
 
+  // Handle connection changes - refresh the connection status
+  const handleConnectionChange = () => {
+    checkConnections();
+  };
+
   // Check connections on mount and when session changes
   useEffect(() => {
     checkConnections();
@@ -240,7 +245,7 @@ export default function PlatformIntegrations() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <FacebookConnection onConnectionChange={checkConnections} />
+              <FacebookConnection onConnectionChange={handleConnectionChange} />
               
               <Separator className="my-6" />
               

@@ -120,8 +120,9 @@ async function getAdAccounts(accessToken: string) {
   
   try {
     // Request with expanded permissions to include business_management
+    // Add fields for more comprehensive ad account data
     const response = await fetch(
-      `https://graph.facebook.com/v18.0/me/adaccounts?fields=id,name,account_id,account_status,business&access_token=${accessToken}`,
+      `https://graph.facebook.com/v18.0/me/adaccounts?fields=id,name,account_id,account_status,currency,business,timezone_name,funding_source_details,capabilities,owner,amount_spent,min_daily_budget&limit=100&access_token=${accessToken}`,
       { method: 'GET' }
     );
 
@@ -138,6 +139,30 @@ async function getAdAccounts(accessToken: string) {
     return data;
   } catch (error) {
     console.error('Error in getAdAccounts:', error);
+    throw error;
+  }
+}
+
+async function getPages(accessToken: string) {
+  console.log('Getting Facebook pages');
+  
+  try {
+    const response = await fetch(
+      `https://graph.facebook.com/v18.0/me/accounts?fields=id,name,access_token,category,followers_count,fan_count&limit=100&access_token=${accessToken}`,
+      { method: 'GET' }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Error fetching pages:', errorText);
+      throw new Error(`Failed to fetch pages: ${errorText}`);
+    }
+
+    const data = await response.json();
+    console.log(`Found ${data.data?.length || 0} Facebook pages`);
+    return data;
+  } catch (error) {
+    console.error('Error in getPages:', error);
     throw error;
   }
 }
@@ -195,10 +220,21 @@ async function validateToken(accessToken: string) {
   }
 }
 
-async function saveConnectionToDatabase(userId: string, platform: string, accessToken: string, refreshToken: string | null, expiresAt: Date | null, accountId: string | null, accountName: string | null) {
+async function saveConnectionToDatabase(
+  userId: string, 
+  platform: string, 
+  accessToken: string, 
+  refreshToken: string | null, 
+  expiresAt: Date | null, 
+  accountId: string | null, 
+  accountName: string | null,
+  adAccounts: any[] | null,
+  pages: any[] | null
+) {
   console.log('Saving connection to database for user:', userId);
   
   try {
+    // Store connection with ad accounts and pages as metadata
     const { data, error } = await supabaseAdmin
       .from('platform_connections')
       .upsert({
@@ -208,7 +244,13 @@ async function saveConnectionToDatabase(userId: string, platform: string, access
         refresh_token: refreshToken,
         token_expires_at: expiresAt,
         account_id: accountId,
-        account_name: accountName
+        account_name: accountName,
+        metadata: {
+          ad_accounts: adAccounts || [],
+          pages: pages || [],
+          selected_account_id: accountId,
+          last_fetched: new Date().toISOString()
+        }
       }, {
         onConflict: 'user_id, platform'
       });
@@ -218,7 +260,7 @@ async function saveConnectionToDatabase(userId: string, platform: string, access
       throw new Error(`Failed to save connection: ${error.message}`);
     }
 
-    console.log('Successfully saved connection to database');
+    console.log('Successfully saved connection to database with ad accounts and pages');
     return data;
   } catch (error) {
     console.error('Error in saveConnectionToDatabase:', error);
@@ -367,6 +409,10 @@ serve(async (req) => {
     const adAccountsData = await getAdAccounts(tokenData.access_token);
     console.log('Ad accounts fetched successfully');
 
+    // Get pages for the user
+    const pagesData = await getPages(tokenData.access_token);
+    console.log('Pages fetched successfully');
+
     // Use the first ad account if available
     let accountId = null;
     let accountName = null;
@@ -390,7 +436,7 @@ serve(async (req) => {
       console.log('No token expiration provided');
     }
 
-    // Save the connection to the database
+    // Save the connection to the database with ad accounts and pages
     await saveConnectionToDatabase(
       user.id,
       'facebook',
@@ -398,7 +444,9 @@ serve(async (req) => {
       tokenData.refresh_token || null,
       expiresAt,
       accountId,
-      accountName
+      accountName,
+      adAccountsData?.data || [],
+      pagesData?.data || []
     );
     
     return new Response(JSON.stringify({
@@ -406,6 +454,8 @@ serve(async (req) => {
       platform: 'facebook',
       accountId,
       accountName,
+      adAccounts: adAccountsData?.data || [],
+      pages: pagesData?.data || [],
       message: 'Successfully connected to Facebook Ads'
     }), {
       status: 200,
