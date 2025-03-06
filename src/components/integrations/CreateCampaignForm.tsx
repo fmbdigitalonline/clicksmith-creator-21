@@ -142,7 +142,8 @@ export default function CreateCampaignForm({
           name: values.name,
           status: "completed", // Set initial status to completed so the button shows
           campaign_data: campaignData,
-          project_id: projectId
+          project_id: projectId,
+          platform: "facebook" // Add the required platform field
         })
         .select()
         .single();
