@@ -6,6 +6,7 @@ import { Json } from "@/integrations/supabase/types";
 import { SavedAdCard } from "./components/SavedAdCard";
 import { EmptyState } from "./components/EmptyState";
 import { Loader2 } from "lucide-react";
+import { AD_FORMATS } from "@/components/steps/gallery/components/AdSizeSelector";
 
 interface SavedAd {
   id: string;
@@ -62,6 +63,9 @@ export const SavedAdsGallery = () => {
         throw error;
       }
 
+      // Find the default format (square 1:1)
+      const defaultFormat = AD_FORMATS.find(format => format.width === 1080 && format.height === 1080) || AD_FORMATS[0];
+
       const convertedAds: SavedAd[] = (data as AdFeedbackRow[]).map(ad => ({
         ...ad,
         saved_images: Array.isArray(ad.saved_images) 
@@ -69,7 +73,10 @@ export const SavedAdsGallery = () => {
           : typeof ad.saved_images === 'string'
             ? [ad.saved_images as string]
             : [],
-        size: ad.size as { width: number; height: number; label: string }
+        platform: ad.platform || 'facebook',
+        size: ad.size 
+          ? (ad.size as { width: number; height: number; label: string }) 
+          : defaultFormat
       }));
 
       setSavedAds(convertedAds);
@@ -93,8 +100,8 @@ export const SavedAdsGallery = () => {
     return (
       <div className="flex flex-col items-center justify-center py-12">
         <Loader2 className="w-8 h-8 animate-spin text-facebook mb-4" />
-        <p className="text-gray-600">Generating your ad variations...</p>
-        <p className="text-sm text-gray-500">We're crafting engaging ad content for your campaign</p>
+        <p className="text-gray-600">Loading your saved ads...</p>
+        <p className="text-sm text-gray-500">We're retrieving your saved ad content</p>
       </div>
     );
   }
@@ -112,6 +119,8 @@ export const SavedAdsGallery = () => {
           primaryText={ad.primary_text}
           headline={ad.headline}
           imageUrl={ad.imageUrl || ad.imageurl || ad.saved_images[0]}
+          platform={ad.platform}
+          size={ad.size}
           onFeedbackSubmit={fetchSavedAds}
         />
       ))}
