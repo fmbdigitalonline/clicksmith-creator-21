@@ -37,6 +37,25 @@ const formSchema = z.object({
 
 type FormData = z.infer<typeof formSchema>;
 
+// Define types for project data to prevent TypeScript errors
+interface BusinessIdea {
+  website?: string;
+  [key: string]: any;
+}
+
+interface Hook {
+  title?: string;
+  description?: string;
+  [key: string]: any;
+}
+
+interface ProjectData {
+  title: string;
+  business_idea?: BusinessIdea;
+  selected_hooks?: Hook[];
+  [key: string]: any;
+}
+
 interface CreateCampaignFormProps {
   projectId: string;
   creationMode?: "manual" | "semi-automatic" | "automatic"; // New prop
@@ -54,7 +73,7 @@ export default function CreateCampaignForm({
 }: CreateCampaignFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [projectData, setProjectData] = useState<any>(null);
+  const [projectData, setProjectData] = useState<ProjectData | null>(null);
   const { toast } = useToast();
 
   // Setup form with default values
@@ -90,7 +109,7 @@ export default function CreateCampaignForm({
             .single();
 
           if (error) throw error;
-          setProjectData(data);
+          setProjectData(data as ProjectData);
 
           // Pre-fill form based on project data for semi-automatic mode
           if (creationMode === "semi-automatic" && data) {
@@ -98,12 +117,12 @@ export default function CreateCampaignForm({
             form.setValue("name", `${data.title} Campaign`);
             
             // If we have business_idea with a website
-            if (data.business_idea?.website) {
-              form.setValue("website_url", data.business_idea.website);
+            if (data.business_idea && typeof data.business_idea === 'object' && 'website' in data.business_idea) {
+              form.setValue("website_url", data.business_idea.website as string);
             }
             
             // If we have generated ad copy from hooks
-            if (data.selected_hooks?.length > 0) {
+            if (data.selected_hooks && Array.isArray(data.selected_hooks) && data.selected_hooks.length > 0) {
               const hook = data.selected_hooks[0];
               if (hook.title) form.setValue("headline", hook.title);
               if (hook.description) form.setValue("primary_text", hook.description);
@@ -159,6 +178,9 @@ export default function CreateCampaignForm({
       // Add creation mode to the campaign data
       const campaignData = {
         ...data,
+        // Convert dates to ISO string format for storage in Supabase
+        start_date: data.start_date.toISOString(),
+        end_date: data.end_date ? data.end_date.toISOString() : null,
         creation_mode: creationMode,
         // Include any AI suggestions that were used
         ai_suggestions_used: creationMode === "automatic" ? {
@@ -487,7 +509,8 @@ export default function CreateCampaignForm({
               )}
             />
             
-            {field => field.value && (
+            {/* Image preview - Fixed the ReactNode error by using a proper conditional render */}
+            {form.watch("image_url") && (
               <div className="mt-2 rounded-md overflow-hidden border">
                 <img 
                   src={form.watch("image_url")} 
