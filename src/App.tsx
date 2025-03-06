@@ -1,3 +1,4 @@
+
 import {
   BrowserRouter as Router,
   Routes,
@@ -13,6 +14,7 @@ import { AppLayout } from "@/components/layout/AppLayout"; // Changed to named i
 import Integrations from "@/components/integrations/PlatformIntegrations"; // Fixed import path
 import FacebookCampaignOverview from "@/components/integrations/FacebookCampaignOverview";
 import CampaignDetailsView from "@/components/integrations/CampaignDetailsView";
+import AdWizard from "@/components/AdWizard"; // Added missing import
 
 function App() {
   const session = useSession();
