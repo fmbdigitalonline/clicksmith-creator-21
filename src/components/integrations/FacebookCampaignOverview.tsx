@@ -1,12 +1,12 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useSession } from "@supabase/auth-helpers-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, AlertCircle, Plus, CheckCircle, Facebook } from "lucide-react";
+import { Loader2, AlertCircle, Plus, CheckCircle, Facebook, ExternalLink } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { transformToFacebookAdFormat } from "@/utils/facebookAdTransformer";
 import { BusinessIdea, TargetAudience } from "@/types/adWizard";
 import { Badge } from "@/components/ui/badge";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 // Update the Campaign interface to match the database schema and include image_url
 interface Campaign {
@@ -34,13 +35,35 @@ interface Campaign {
   updated_at?: string | null;
 }
 
+interface AdAccount {
+  id: string;
+  name: string;
+}
+
+interface FacebookConnection {
+  platform: string;
+  access_token: string;
+  account_id: string;
+  account_name: string;
+  metadata?: {
+    adAccounts?: AdAccount[];
+    selectedAdAccountId?: string;
+    selectedPageId?: string;
+    pageAccessToken?: string;
+  };
+}
+
 export default function FacebookCampaignOverview() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [showDialog, setShowDialog] = useState(false);
   const [projects, setProjects] = useState<any[]>([]);
+  const [connection, setConnection] = useState<FacebookConnection | null>(null);
+  const [adAccounts, setAdAccounts] = useState<AdAccount[]>([]);
+  const [selectedAdAccount, setSelectedAdAccount] = useState<string>("");
   const [selectedProject, setSelectedProject] = useState("");
+  const [objective, setObjective] = useState("CONVERSIONS");
   const [budget, setBudget] = useState("5");
   const [error, setError] = useState<string | null>(null);
   const session = useSession();
@@ -50,8 +73,39 @@ export default function FacebookCampaignOverview() {
     if (session) {
       fetchCampaigns();
       fetchProjects();
+      fetchFacebookConnection();
     }
   }, [session]);
+
+  const fetchFacebookConnection = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("platform_connections")
+        .select("*")
+        .eq("platform", "facebook")
+        .maybeSingle();
+
+      if (error) throw error;
+      
+      if (data) {
+        setConnection(data);
+        
+        const adAccounts = data.metadata?.adAccounts || [];
+        setAdAccounts(adAccounts);
+        
+        // Set the selected ad account to the one saved in metadata or the first one
+        const selectedId = data.metadata?.selectedAdAccountId || (adAccounts.length > 0 ? adAccounts[0].id : "");
+        setSelectedAdAccount(selectedId);
+      }
+    } catch (error) {
+      console.error("Error fetching Facebook connection:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load Facebook account information",
+        variant: "destructive",
+      });
+    }
+  };
 
   const fetchCampaigns = async () => {
     try {
@@ -152,6 +206,11 @@ export default function FacebookCampaignOverview() {
       return;
     }
 
+    if (!selectedAdAccount) {
+      setError("Please select an ad account");
+      return;
+    }
+
     if (!budget || isNaN(Number(budget)) || Number(budget) < 1) {
       setError("Please enter a valid budget (minimum $1)");
       return;
@@ -209,7 +268,7 @@ export default function FacebookCampaignOverview() {
       // Create a landing page URL (placeholder for now)
       const landingPageUrl = `https://${window.location.hostname}/share/${projectData.id}`;
       
-      // Transform the data into Facebook ad format
+      // Transform the data into Facebook ad format with selected objective
       const facebookAdData = transformToFacebookAdFormat(
         businessIdea,
         targetAudience,
@@ -217,6 +276,12 @@ export default function FacebookCampaignOverview() {
         Number(budget),
         landingPageUrl
       );
+      
+      // Override the objective with user selection
+      facebookAdData.campaign.objective = objective;
+      
+      // Add the selected account ID for the edge function to use
+      const selectedAccountInfo = adAccounts.find(acc => acc.id === selectedAdAccount);
 
       // Now call the Edge Function to create the campaign
       const response = await supabase.functions.invoke("create-facebook-campaign", {
@@ -224,7 +289,9 @@ export default function FacebookCampaignOverview() {
           campaignData: facebookAdData.campaign,
           adSetData: facebookAdData.adSet,
           adCreativeData: facebookAdData.adCreative,
-          projectId: selectedProject
+          projectId: selectedProject,
+          adAccountId: selectedAdAccount,
+          adAccountName: selectedAccountInfo?.name || null
         }
       });
 
@@ -259,11 +326,26 @@ export default function FacebookCampaignOverview() {
     }
   };
 
+  // Return loading state
   if (isLoading) {
     return (
       <div className="flex justify-center p-8">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
+    );
+  }
+
+  // If no Facebook connection with ad accounts
+  if (!connection || !adAccounts || adAccounts.length === 0) {
+    return (
+      <Alert variant="warning" className="mb-4">
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>No Facebook Ad Accounts Found</AlertTitle>
+        <AlertDescription>
+          We couldn't find any Facebook Ad accounts connected to your profile. 
+          Please connect your Facebook account with ad accounts first.
+        </AlertDescription>
+      </Alert>
     );
   }
 
@@ -283,7 +365,7 @@ export default function FacebookCampaignOverview() {
                 <Plus className="mr-2 h-4 w-4" /> Create Campaign
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="sm:max-w-[500px]">
               <DialogHeader>
                 <DialogTitle>Create Facebook Campaign</DialogTitle>
                 <DialogDescription>
@@ -311,11 +393,52 @@ export default function FacebookCampaignOverview() {
                     <SelectContent>
                       {projects.map(project => (
                         <SelectItem key={project.id} value={project.id}>
-                          {project.name}
+                          {project.name || project.title}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="adAccount">Select Ad Account</Label>
+                  <Select 
+                    value={selectedAdAccount} 
+                    onValueChange={setSelectedAdAccount}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select an ad account" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {adAccounts.map(account => (
+                        <SelectItem key={account.id} value={account.id}>
+                          {account.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>Campaign Objective</Label>
+                  <RadioGroup 
+                    value={objective} 
+                    onValueChange={setObjective} 
+                    className="flex flex-col space-y-1"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="AWARENESS" id="awareness" />
+                      <Label htmlFor="awareness">Brand Awareness</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="TRAFFIC" id="traffic" />
+                      <Label htmlFor="traffic">Traffic</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="CONVERSIONS" id="conversions" />
+                      <Label htmlFor="conversions">Conversions</Label>
+                    </div>
+                  </RadioGroup>
                 </div>
                 
                 <div className="space-y-2">
@@ -411,14 +534,16 @@ export default function FacebookCampaignOverview() {
                                 onClick={() => {
                                   // Open Facebook Ads Manager in a new tab
                                   if (campaign.platform_campaign_id) {
+                                    // Extract the numeric account ID from the full account ID (act_123456789)
+                                    const accountId = connection?.account_id?.replace('act_', '');
                                     window.open(
-                                      `https://www.facebook.com/adsmanager/manage/campaigns?act=${campaign.platform_campaign_id}`,
+                                      `https://www.facebook.com/adsmanager/manage/campaigns?act=${accountId}&selected_campaign_ids=${campaign.platform_campaign_id.replace('act_', '')}`,
                                       '_blank'
                                     );
                                   }
                                 }}
                               >
-                                View on Facebook
+                                <ExternalLink className="h-3 w-3 mr-1" /> View on Facebook
                               </Button>
                             )}
                           </div>

@@ -12,9 +12,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { useLocation, useNavigate } from "react-router-dom";
 
+interface PlatformConnection {
+  platform: string;
+  metadata?: {
+    adAccounts?: Array<{id: string; name: string}>;
+  };
+}
+
 export default function PlatformIntegrations() {
   const [activeTab, setActiveTab] = useState("integrations");
   const [hasConnections, setHasConnections] = useState(false);
+  const [connections, setConnections] = useState<PlatformConnection[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessingOAuth, setIsProcessingOAuth] = useState(false);
   const [oauthError, setOauthError] = useState<string | null>(null);
@@ -96,9 +104,14 @@ export default function PlatformIntegrations() {
               }
   
               if (response.data && response.data.success) {
+                const accountsFound = response.data.accountsFound || 0;
+                const message = accountsFound > 0 
+                  ? `Your Facebook Ads account has been connected with ${accountsFound} ad account${accountsFound > 1 ? 's' : ''}`
+                  : "Your Facebook account has been connected, but no ad accounts were found.";
+                  
                 toast({
                   title: "Success!",
-                  description: response.data.message || "Your Facebook Ads account has been connected",
+                  description: message,
                 });
                 
                 // Force reload connections
@@ -152,16 +165,17 @@ export default function PlatformIntegrations() {
       console.log("Checking for any platform connections...");
       const { data, error } = await supabase
         .from('platform_connections')
-        .select('platform')
-        .limit(1);
+        .select('*');
       
       if (error) {
         console.error("Error checking connections:", error);
         setHasConnections(false);
+        setConnections([]);
       } else {
         const hasAnyConnection = data && data.length > 0;
         console.log("Has connections:", hasAnyConnection, data);
         setHasConnections(hasAnyConnection);
+        setConnections(data || []);
         
         // If we have connections and the user is on the integrations tab,
         // we can show the campaigns tab by default
@@ -171,6 +185,7 @@ export default function PlatformIntegrations() {
       }
     } catch (error) {
       console.error("Exception checking connections:", error);
+      setConnections([]);
     } finally {
       setIsLoading(false);
     }
@@ -199,6 +214,10 @@ export default function PlatformIntegrations() {
       </div>
     );
   }
+
+  // Find Facebook connection if exists
+  const facebookConnection = connections.find(conn => conn.platform === 'facebook');
+  const hasFacebookAdAccounts = facebookConnection?.metadata?.adAccounts?.length > 0;
 
   return (
     <div className="space-y-6">
@@ -263,8 +282,17 @@ export default function PlatformIntegrations() {
                 You need to connect at least one ad platform before creating campaigns.
               </AlertDescription>
             </Alert>
-          ) : (
+          ) : hasFacebookAdAccounts ? (
             <FacebookCampaignOverview />
+          ) : (
+            <Alert variant="warning">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>No Ad Accounts Found</AlertTitle>
+              <AlertDescription>
+                We couldn't find any ad accounts associated with your Facebook connection. 
+                Please make sure you have at least one Facebook Ads account and reconnect.
+              </AlertDescription>
+            </Alert>
           )}
         </TabsContent>
       </Tabs>

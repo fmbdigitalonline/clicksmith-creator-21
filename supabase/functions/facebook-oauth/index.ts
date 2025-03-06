@@ -142,6 +142,30 @@ async function getAdAccounts(accessToken: string) {
   }
 }
 
+async function getPageAccounts(accessToken: string) {
+  console.log('Getting Facebook pages');
+  
+  try {
+    const response = await fetch(
+      `https://graph.facebook.com/v18.0/me/accounts?fields=id,name,access_token,category&access_token=${accessToken}`,
+      { method: 'GET' }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Error fetching pages:', errorText);
+      throw new Error(`Failed to fetch pages: ${errorText}`);
+    }
+
+    const data = await response.json();
+    console.log(`Found ${data.data?.length || 0} Facebook pages`);
+    return data;
+  } catch (error) {
+    console.error('Error in getPageAccounts:', error);
+    throw error;
+  }
+}
+
 async function getUserInfo(accessToken: string) {
   console.log('Getting user information');
   
@@ -195,10 +219,30 @@ async function validateToken(accessToken: string) {
   }
 }
 
-async function saveConnectionToDatabase(userId: string, platform: string, accessToken: string, refreshToken: string | null, expiresAt: Date | null, accountId: string | null, accountName: string | null) {
+async function saveConnectionToDatabase(userId: string, platform: string, accessToken: string, refreshToken: string | null, expiresAt: Date | null, adAccounts: any[], pages: any[]) {
   console.log('Saving connection to database for user:', userId);
   
   try {
+    // Select first ad account and page
+    const primaryAdAccount = adAccounts && adAccounts.length > 0 ? adAccounts[0] : null;
+    const primaryPage = pages && pages.length > 0 ? pages[0] : null;
+    
+    // Format all ad accounts to store as metadata
+    const formattedAdAccounts = adAccounts.map(account => ({
+      id: account.id,
+      account_id: account.account_id,
+      name: account.name,
+      status: account.account_status
+    }));
+    
+    // Format all pages to store as metadata
+    const formattedPages = pages.map(page => ({
+      id: page.id,
+      name: page.name,
+      category: page.category,
+      access_token: page.access_token
+    }));
+    
     const { data, error } = await supabaseAdmin
       .from('platform_connections')
       .upsert({
@@ -207,8 +251,15 @@ async function saveConnectionToDatabase(userId: string, platform: string, access
         access_token: accessToken,
         refresh_token: refreshToken,
         token_expires_at: expiresAt,
-        account_id: accountId,
-        account_name: accountName
+        account_id: primaryAdAccount?.id || null,
+        account_name: primaryAdAccount?.name || null,
+        metadata: {
+          adAccounts: formattedAdAccounts,
+          pages: formattedPages,
+          selectedAdAccountId: primaryAdAccount?.id || null,
+          selectedPageId: primaryPage?.id || null,
+          pageAccessToken: primaryPage?.access_token || null
+        }
       }, {
         onConflict: 'user_id, platform'
       });
@@ -365,19 +416,13 @@ serve(async (req) => {
 
     // Get ad accounts for the user
     const adAccountsData = await getAdAccounts(tokenData.access_token);
-    console.log('Ad accounts fetched successfully');
-
-    // Use the first ad account if available
-    let accountId = null;
-    let accountName = null;
+    const adAccounts = adAccountsData?.data || [];
+    console.log('Ad accounts fetched successfully:', adAccounts.length);
     
-    if (adAccountsData && adAccountsData.data && adAccountsData.data.length > 0) {
-      accountId = adAccountsData.data[0].id;
-      accountName = adAccountsData.data[0].name;
-      console.log(`Selected account: ${accountName} (${accountId})`);
-    } else {
-      console.log('No ad accounts found');
-    }
+    // Get Facebook pages for the user
+    const pagesData = await getPageAccounts(tokenData.access_token);
+    const pages = pagesData?.data || [];
+    console.log('Facebook pages fetched successfully:', pages.length);
 
     // Calculate token expiration (if provided)
     const expiresAt = tokenData.expires_in 
@@ -390,23 +435,30 @@ serve(async (req) => {
       console.log('No token expiration provided');
     }
 
-    // Save the connection to the database
+    // Save the connection to the database with all ad accounts and pages
     await saveConnectionToDatabase(
       user.id,
       'facebook',
       tokenData.access_token,
       tokenData.refresh_token || null,
       expiresAt,
-      accountId,
-      accountName
+      adAccounts,
+      pages
     );
+    
+    // Determine account details for response
+    const accountId = adAccounts.length > 0 ? adAccounts[0].id : null;
+    const accountName = adAccounts.length > 0 ? adAccounts[0].name : null;
     
     return new Response(JSON.stringify({
       success: true,
       platform: 'facebook',
       accountId,
       accountName,
-      message: 'Successfully connected to Facebook Ads'
+      adAccounts: adAccounts.map(acc => ({ id: acc.id, name: acc.name })),
+      pages: pages.map(page => ({ id: page.id, name: page.name })),
+      message: 'Successfully connected to Facebook Ads',
+      accountsFound: adAccounts.length
     }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
