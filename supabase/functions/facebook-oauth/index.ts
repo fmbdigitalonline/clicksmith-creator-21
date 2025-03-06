@@ -10,15 +10,14 @@ const REDIRECT_URI = Deno.env.get('FACEBOOK_REDIRECT_URI') || Deno.env.get('VITE
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 
-// Enhanced environment variables logging
+// Log environment variables for debugging
 console.log('Environment variables check:', {
   facebookAppIdExists: !!FACEBOOK_APP_ID,
   facebookAppSecretExists: !!FACEBOOK_APP_SECRET,
   redirectUriExists: !!REDIRECT_URI,
   redirectUriValue: REDIRECT_URI,
   supabaseUrlExists: !!SUPABASE_URL,
-  supabaseServiceRoleKeyExists: !!SUPABASE_SERVICE_ROLE_KEY,
-  envKeys: Object.keys(Deno.env.toObject()).filter(key => !key.includes('SECRET')).join(', ')
+  supabaseServiceRoleKeyExists: !!SUPABASE_SERVICE_ROLE_KEY
 });
 
 // Create Supabase client for admin operations

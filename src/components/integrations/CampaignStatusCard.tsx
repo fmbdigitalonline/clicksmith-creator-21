@@ -1,169 +1,227 @@
-
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Loader2, AlertCircle, Clock, CheckCircle, ExternalLink } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Card } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { AlertTriangle, CheckCircle, Loader2 } from "lucide-react";
 
 interface CampaignStatusCardProps {
   campaignId: string;
+  refreshInterval?: number; // in milliseconds
 }
 
-export default function CampaignStatusCard({ campaignId }: CampaignStatusCardProps) {
+export default function CampaignStatusCard({ 
+  campaignId, 
+  refreshInterval = 5000 
+}: CampaignStatusCardProps) {
   const [campaign, setCampaign] = useState<any>(null);
-  const [progress, setProgress] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
 
+  // Fetch campaign data initially and on interval
   useEffect(() => {
+    let intervalId: number;
+    
     const fetchCampaign = async () => {
       try {
+        setError(null);
+        
         const { data, error } = await supabase
           .from("ad_campaigns")
           .select("*")
           .eq("id", campaignId)
           .single();
-
+          
         if (error) throw error;
-        
         setCampaign(data);
         
-        // Set progress based on status
-        switch (data.status) {
-          case "pending":
-            setProgress(25);
-            break;
-          case "campaign_created":
-            setProgress(50);
-            break;
-          case "adset_created":
-            setProgress(75);
-            break;
-          case "completed":
-            setProgress(100);
-            break;
-          case "error":
-            setProgress(0);
-            setError(data.targeting?.error_message || "An error occurred");
-            break;
-          default:
-            setProgress(10);
+        // If campaign is in a terminal state, clear the interval
+        if (data.status === "completed" || data.status === "error") {
+          clearInterval(intervalId);
         }
       } catch (err) {
         console.error("Error fetching campaign:", err);
-        setError("Could not fetch campaign status");
+        setError("Failed to load campaign data");
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     };
-
+    
     fetchCampaign();
     
-    // Set up real-time listener
-    const subscription = supabase
-      .channel(`campaign_${campaignId}`)
-      .on('postgres_changes', {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'ad_campaigns',
-        filter: `id=eq.${campaignId}`
-      }, (payload) => {
-        setCampaign(payload.new);
-        
-        // Update progress based on new status
-        switch (payload.new.status) {
-          case "pending":
-            setProgress(25);
-            break;
-          case "campaign_created":
-            setProgress(50);
-            break;
-          case "adset_created":
-            setProgress(75);
-            break;
-          case "completed":
-            setProgress(100);
-            break;
-          case "error":
-            setProgress(0);
-            setError(payload.new.targeting?.error_message || "An error occurred");
-            break;
-          default:
-            setProgress(10);
-        }
-      })
-      .subscribe();
-
-    // Clean up subscription
+    // Set up interval for polling if campaign is not in terminal state
+    if (campaign?.status !== "completed" && campaign?.status !== "error") {
+      intervalId = window.setInterval(fetchCampaign, refreshInterval);
+    }
+    
     return () => {
-      subscription.unsubscribe();
+      if (intervalId) clearInterval(intervalId);
     };
-  }, [campaignId]);
+  }, [campaignId, refreshInterval]);
 
-  if (loading) {
+  // Format status badge
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "pending":
+        return { label: "Pending", icon: <Clock className="h-3 w-3 mr-1" />, color: "bg-yellow-100 text-yellow-800" };
+      case "campaign_created":
+        return { label: "Creating Campaign", icon: <Loader2 className="h-3 w-3 mr-1 animate-spin" />, color: "bg-blue-100 text-blue-800" };
+      case "adset_created":
+        return { label: "Creating Ad Set", icon: <Loader2 className="h-3 w-3 mr-1 animate-spin" />, color: "bg-blue-100 text-blue-800" };
+      case "completed":
+        return { label: "Completed", icon: <CheckCircle className="h-3 w-3 mr-1" />, color: "bg-green-100 text-green-800" };
+      case "error":
+        return { label: "Error", icon: <AlertCircle className="h-3 w-3 mr-1" />, color: "bg-red-100 text-red-800" };
+      default:
+        return { label: status, icon: null, color: "bg-gray-100 text-gray-800" };
+    }
+  };
+
+  // View campaign in Facebook Ads Manager
+  const viewOnFacebook = () => {
+    if (campaign?.platform_campaign_id) {
+      window.open(
+        `https://www.facebook.com/adsmanager/manage/campaigns?act=${campaign.platform_campaign_id}`,
+        '_blank'
+      );
+    }
+  };
+
+  if (isLoading) {
     return (
-      <Card className="p-4">
-        <div className="flex items-center justify-center space-x-2">
-          <Loader2 className="h-5 w-5 animate-spin text-primary" />
-          <span>Loading campaign status...</span>
-        </div>
+      <Card>
+        <CardContent className="pt-6 text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2 text-primary" />
+          <p>Loading campaign status...</p>
+        </CardContent>
       </Card>
     );
   }
 
   if (error) {
     return (
-      <Card className="p-4 border-red-300 bg-red-50">
-        <div className="flex items-start space-x-2">
-          <AlertTriangle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
-          <div>
-            <h3 className="font-medium text-red-800">Campaign Error</h3>
-            <p className="text-sm text-red-700">{error}</p>
-          </div>
-        </div>
-      </Card>
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>Error</AlertTitle>
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>
     );
   }
 
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case "pending":
-        return "Initializing campaign...";
-      case "campaign_created":
-        return "Creating ad set...";
-      case "adset_created":
-        return "Creating ad creative...";
-      case "completed":
-        return "Campaign created successfully!";
-      default:
-        return "Processing...";
-    }
-  };
+  if (!campaign) {
+    return (
+      <Alert>
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>Campaign Not Found</AlertTitle>
+        <AlertDescription>The campaign could not be found or has been deleted.</AlertDescription>
+      </Alert>
+    );
+  }
+
+  const status = getStatusBadge(campaign.status);
+  const errorMessage = campaign.targeting?.error_message;
 
   return (
-    <Card className="p-4">
-      <div className="space-y-3">
-        <h3 className="font-medium">{campaign?.name || "Facebook Campaign"}</h3>
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex justify-between items-center">
+          <span>{campaign.name || "Facebook Campaign"}</span>
+          <Badge className={status.color}>
+            <span className="flex items-center">
+              {status.icon}
+              {status.label}
+            </span>
+          </Badge>
+        </CardTitle>
+        <CardDescription>
+          Created on {new Date(campaign.created_at).toLocaleDateString()}
+        </CardDescription>
+      </CardHeader>
+      
+      <CardContent>
+        {campaign.status === "error" && errorMessage && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Campaign Creation Failed</AlertTitle>
+            <AlertDescription className="text-sm">
+              {errorMessage}
+            </AlertDescription>
+          </Alert>
+        )}
         
-        <div>
-          <div className="flex justify-between text-sm mb-1">
-            <div className="flex items-center">
-              {campaign?.status === "completed" ? (
-                <CheckCircle className="h-4 w-4 text-green-500 mr-1" />
-              ) : (
-                <Loader2 className="h-4 w-4 animate-spin text-primary mr-1" />
-              )}
-              <span>{getStatusLabel(campaign?.status)}</span>
+        {campaign.status === "completed" && (
+          <Alert variant="default" className="mb-4 bg-green-50 border-green-200">
+            <CheckCircle className="h-4 w-4 text-green-600" />
+            <AlertTitle>Campaign Created Successfully</AlertTitle>
+            <AlertDescription className="text-sm">
+              Your campaign has been created and is currently in a paused state. You can activate it in Facebook Ads Manager.
+            </AlertDescription>
+          </Alert>
+        )}
+        
+        {(campaign.status === "pending" || campaign.status === "campaign_created" || campaign.status === "adset_created") && (
+          <Alert className="mb-4">
+            <Clock className="h-4 w-4" />
+            <AlertTitle>Campaign Creation in Progress</AlertTitle>
+            <AlertDescription className="text-sm">
+              Your campaign is being created. This may take a moment to complete.
+            </AlertDescription>
+          </Alert>
+        )}
+        
+        <div className="space-y-2">
+          {campaign.platform_campaign_id && (
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Campaign ID:</span>
+              <span className="font-medium">{campaign.platform_campaign_id}</span>
             </div>
-            <span>{progress}%</span>
-          </div>
-          <Progress value={progress} className="h-2" />
+          )}
+          
+          {campaign.platform_ad_set_id && (
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Ad Set ID:</span>
+              <span className="font-medium">{campaign.platform_ad_set_id}</span>
+            </div>
+          )}
+          
+          {campaign.platform_ad_id && (
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Ad ID:</span>
+              <span className="font-medium">{campaign.platform_ad_id}</span>
+            </div>
+          )}
+          
+          {campaign.targeting?.campaign?.objective && (
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Objective:</span>
+              <span className="font-medium">{campaign.targeting.campaign.objective}</span>
+            </div>
+          )}
+          
+          {campaign.targeting?.adSet?.daily_budget && (
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Daily Budget:</span>
+              <span className="font-medium">${(campaign.targeting.adSet.daily_budget / 100).toFixed(2)}</span>
+            </div>
+          )}
         </div>
-        
-        <div className="text-xs text-muted-foreground">
-          Created: {new Date(campaign?.created_at).toLocaleString()}
-        </div>
-      </div>
+      </CardContent>
+      
+      {campaign.status === "completed" && (
+        <CardFooter>
+          <Button 
+            variant="outline" 
+            className="w-full" 
+            onClick={viewOnFacebook}
+          >
+            <ExternalLink className="h-4 w-4 mr-2" />
+            View in Facebook Ads Manager
+          </Button>
+        </CardFooter>
+      )}
     </Card>
   );
 }
