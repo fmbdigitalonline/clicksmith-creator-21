@@ -1,3 +1,4 @@
+
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { corsHeaders } from '../_shared/cors.ts'
 
@@ -181,21 +182,21 @@ const supabaseAdmin = createClient(
   SUPABASE_SERVICE_ROLE_KEY,
 );
 
-async function exchangeCodeForToken(code: string) {
-  console.log('Exchanging code for token');
+async function exchangeCodeForToken(code: string, redirectUri: string) {
+  console.log('Exchanging code for token with redirectUri:', redirectUri);
   
   // Create URL params with required fields
   const params = new URLSearchParams({
     client_id: FACEBOOK_APP_ID,
     client_secret: FACEBOOK_APP_SECRET,
-    redirect_uri: REDIRECT_URI,
+    redirect_uri: redirectUri,
     code: code,
   });
 
   console.log('Token exchange parameters:', {
     clientIdLength: FACEBOOK_APP_ID.length,
     clientSecretLength: FACEBOOK_APP_SECRET.length,
-    redirectUri: REDIRECT_URI,
+    redirectUri: redirectUri,
     codeLength: code.length,
     fullUrl: `https://graph.facebook.com/v18.0/oauth/access_token?${params.toString()}`
   });
@@ -556,11 +557,10 @@ serve(async (req) => {
     });
     
     // Validate environment variables
-    if (!FACEBOOK_APP_ID || !FACEBOOK_APP_SECRET || !REDIRECT_URI) {
+    if (!FACEBOOK_APP_ID || !FACEBOOK_APP_SECRET) {
       console.error('Missing required environment variables:', {
         FACEBOOK_APP_ID: !!FACEBOOK_APP_ID,
         FACEBOOK_APP_SECRET: !!FACEBOOK_APP_SECRET,
-        REDIRECT_URI: !!REDIRECT_URI
       });
       
       const response: FacebookOAuthResponse = {
@@ -571,8 +571,6 @@ serve(async (req) => {
           appIdLength: FACEBOOK_APP_ID?.length,
           appSecretPresent: !!FACEBOOK_APP_SECRET,
           appSecretLength: FACEBOOK_APP_SECRET?.length,
-          redirectUriPresent: !!REDIRECT_URI,
-          redirectUri: REDIRECT_URI
         }
       };
       
@@ -601,8 +599,39 @@ serve(async (req) => {
     const stateFromParam = url.searchParams.get('state');
     const codeFromBody = requestBody?.code;
     const stateFromBody = requestBody?.state;
+    const originFromBody = requestBody?.origin;
     const code = codeFromBody || codeFromParam;
     const state = stateFromBody || stateFromParam;
+    
+    // Try to extract origin from state parameter
+    let stateObject = null;
+    try {
+      if (state) {
+        stateObject = JSON.parse(decodeURIComponent(state));
+        console.log('Extracted state object:', stateObject);
+      }
+    } catch (e) {
+      console.error('Error parsing state:', e);
+    }
+    
+    // Use origin from state parameter or body to dynamically set redirect URI
+    const originFromState = stateObject?.origin;
+    const origin = originFromState || originFromBody || null;
+    
+    // If we have an origin from state, use it for the redirect URI
+    if (origin) {
+      REDIRECT_URI = `${origin}/integrations?connection=facebook`;
+      console.log('Using dynamic redirect URI from state/origin:', REDIRECT_URI);
+    } else if (!REDIRECT_URI) {
+      console.error('No redirect URI available from environment or state');
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'No redirect URI available'
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
     
     const authToken = req.headers.get('Authorization')?.split(' ')[1];
     
@@ -610,7 +639,9 @@ serve(async (req) => {
     console.log('Request parameters:', { 
       code: code ? `present (${code.length} chars)` : 'missing', 
       authToken: authToken ? `present (${authToken.length} chars)` : 'missing',
-      state: state ? `present (${state.length} chars)` : 'missing'
+      state: state ? `present (${state.length} chars)` : 'missing',
+      origin: origin || 'not provided',
+      redirectUri: REDIRECT_URI
     });
     
     if (!code) {
@@ -679,8 +710,8 @@ serve(async (req) => {
     // Process the OAuth response with validation
     try {
       transactionStage = 'token_exchange';
-      // Exchange the code for an access token
-      const tokenData = await exchangeCodeForToken(code);
+      // Exchange the code for an access token - now passing the explicit redirect URI
+      const tokenData = await exchangeCodeForToken(code, REDIRECT_URI);
       console.log('Token exchange successful with data:', JSON.stringify({
         access_token_length: tokenData.access_token?.length,
         token_type: tokenData.token_type,
