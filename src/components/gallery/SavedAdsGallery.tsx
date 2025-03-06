@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -46,7 +45,11 @@ interface AdFeedbackRow {
   size?: Json;
 }
 
-export const SavedAdsGallery = () => {
+interface SavedAdsGalleryProps {
+  projectFilter?: string;
+}
+
+export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps) => {
   const [savedAds, setSavedAds] = useState<SavedAd[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedAdIds, setSelectedAdIds] = useState<string[]>([]);
@@ -63,11 +66,18 @@ export const SavedAdsGallery = () => {
         return;
       }
 
-      const { data, error } = await supabase
+      let query = supabase
         .from('ad_feedback')
         .select('id, saved_images, headline, primary_text, rating, feedback, created_at, imageurl, imageUrl, platform, project_id, size')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+        .eq('user_id', user.id);
+      
+      // If projectFilter is provided, filter ads by that project
+      if (projectFilter) {
+        query = query.eq('project_id', projectFilter);
+        console.log("Filtering ads for project:", projectFilter);
+      }
+      
+      const { data, error } = await query.order('created_at', { ascending: false });
 
       if (error) {
         throw error;
@@ -89,6 +99,7 @@ export const SavedAdsGallery = () => {
           : defaultFormat
       }));
 
+      console.log("Fetched ads count:", convertedAds.length);
       setSavedAds(convertedAds);
     } catch (error) {
       console.error('Error fetching saved ads:', error);
@@ -104,7 +115,7 @@ export const SavedAdsGallery = () => {
 
   useEffect(() => {
     fetchSavedAds();
-  }, []);
+  }, [projectFilter]);
 
   const handleAdSelect = (adId: string, isSelected: boolean) => {
     if (isSelected) {
@@ -220,6 +231,21 @@ export const SavedAdsGallery = () => {
   }
 
   if (savedAds.length === 0) {
+    if (projectFilter) {
+      return (
+        <div className="py-8 text-center">
+          <p className="text-muted-foreground">No ads have been assigned to this project yet.</p>
+          <p className="mt-2">
+            <Button 
+              variant="link" 
+              onClick={() => window.location.href = "/gallery/saved"}
+            >
+              Go to your saved ads gallery to assign ads to this project
+            </Button>
+          </p>
+        </div>
+      );
+    }
     return <EmptyState />;
   }
 
@@ -227,74 +253,78 @@ export const SavedAdsGallery = () => {
     savedAds.find(ad => ad.id === id)?.project_id !== undefined
   );
 
+  // Only show action bar when not filtering by project
+  const showActionBar = !projectFilter;
+
   return (
     <div className="space-y-6">
-      {/* Action Bar */}
-      <div className="bg-gray-50 p-4 rounded-lg shadow-sm">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleSelectAll}
-              className="flex items-center"
-            >
-              {selectedAdIds.length === savedAds.length ? (
-                <>
-                  <CheckSquare className="h-4 w-4 mr-2" />
-                  Deselect All
-                </>
-              ) : (
-                <>
-                  <SquareCheckIcon className="h-4 w-4 mr-2" />
-                  Select All
-                </>
+      {/* Action Bar - Only show when not filtering by project */}
+      {showActionBar && (
+        <div className="bg-gray-50 p-4 rounded-lg shadow-sm">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleSelectAll}
+                className="flex items-center"
+              >
+                {selectedAdIds.length === savedAds.length ? (
+                  <>
+                    <CheckSquare className="h-4 w-4 mr-2" />
+                    Deselect All
+                  </>
+                ) : (
+                  <>
+                    <SquareCheckIcon className="h-4 w-4 mr-2" />
+                    Select All
+                  </>
+                )}
+              </Button>
+              {selectedAdIds.length > 0 && (
+                <Badge variant="secondary">
+                  {selectedAdIds.length} selected
+                </Badge>
               )}
-            </Button>
-            {selectedAdIds.length > 0 && (
-              <Badge variant="secondary">
-                {selectedAdIds.length} selected
-              </Badge>
-            )}
-          </div>
-          
-          <div className="flex items-center gap-3 flex-wrap sm:flex-nowrap">
-            <div className="w-full sm:w-64">
-              <ProjectSelector
-                selectedProjectId={selectedProjectId}
-                onSelect={handleProjectSelect}
-              />
             </div>
             
-            <AlertDialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
-              <AlertDialogTrigger asChild>
-                <Button 
-                  variant="default" 
-                  disabled={selectedAdIds.length === 0 || !selectedProjectId || isAssigning}
-                  className="whitespace-nowrap"
-                  onClick={() => {
-                    if (selectedAdIds.length > 0 && selectedProjectId) {
-                      setIsConfirmDialogOpen(true);
-                    }
-                  }}
-                >
-                  {isAssigning ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : null}
-                  Add to Project
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Assign Ads to Project</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Are you sure you want to add {selectedAdIds.length} ad(s) to the selected project?
-                    {hasProjectAssigned && (
-                      <p className="mt-2 text-amber-600">
-                        Warning: Some of the selected ads are already assigned to a project and will be reassigned.
-                      </p>
-                    )}
-                  </AlertDialogDescription>
+            <div className="flex items-center gap-3 flex-wrap sm:flex-nowrap">
+              <div className="w-full sm:w-64">
+                <ProjectSelector
+                  selectedProjectId={selectedProjectId}
+                  onSelect={handleProjectSelect}
+                />
+              </div>
+              
+              <AlertDialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
+                <AlertDialogTrigger asChild>
+                  <Button 
+                    variant="default" 
+                    disabled={selectedAdIds.length === 0 || !selectedProjectId || isAssigning}
+                    className="whitespace-nowrap"
+                    onClick={() => {
+                      if (selectedAdIds.length > 0 && selectedProjectId) {
+                        setIsConfirmDialogOpen(true);
+                      }
+                    }}
+                  >
+                    {isAssigning ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : null}
+                    Add to Project
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Assign Ads to Project</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Are you sure you want to add {selectedAdIds.length} ad(s) to the selected project?
+                      {hasProjectAssigned && (
+                        <p className="mt-2 text-amber-600">
+                          Warning: Some of the selected ads are already assigned to a project and will be reassigned.
+                        </p>
+                      )}
+                    </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
@@ -330,7 +360,16 @@ export const SavedAdsGallery = () => {
             )}
           </div>
         </div>
-      </div>
+      )}
+
+      {/* Project Filter Info - Show when filtering by project */}
+      {projectFilter && (
+        <div className="mb-4">
+          <Badge variant="outline" className="text-sm font-normal">
+            Showing ads for selected project
+          </Badge>
+        </div>
+      )}
 
       {/* Ads Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -345,7 +384,7 @@ export const SavedAdsGallery = () => {
             size={ad.size}
             projectId={ad.project_id}
             onFeedbackSubmit={fetchSavedAds}
-            selectable={true}
+            selectable={!projectFilter}
             selected={selectedAdIds.includes(ad.id)}
             onSelect={handleAdSelect}
           />

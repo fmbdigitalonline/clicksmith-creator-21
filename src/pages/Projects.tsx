@@ -4,9 +4,12 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, FileImage } from "lucide-react";
 import ProjectProgressDetails from "@/components/projects/ProjectProgressDetails";
 import { BusinessIdea, TargetAudience, AudienceAnalysis } from "@/types/adWizard";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { SavedAdsGallery } from "@/components/gallery/SavedAdsGallery";
+import { Separator } from "@/components/ui/separator";
 
 interface Project {
   id: string;
@@ -21,7 +24,7 @@ const Projects = () => {
   const navigate = useNavigate();
   const { projectId } = useParams();
 
-  const { data: project, isError } = useQuery({
+  const { data: project, isError, isLoading: isProjectLoading } = useQuery({
     queryKey: ["project", projectId],
     queryFn: async () => {
       if (!projectId) return null;
@@ -50,7 +53,7 @@ const Projects = () => {
     }
   };
 
-  if (projectId && !project) {
+  if (projectId && !project && !isProjectLoading) {
     return (
       <div className="container mx-auto px-4 py-4">
         <div className="flex flex-col items-center justify-center py-12">
@@ -65,19 +68,38 @@ const Projects = () => {
     );
   }
 
+  if (isProjectLoading) {
+    return (
+      <div className="container mx-auto px-4 py-4">
+        <div className="flex items-center justify-center h-64">
+          <p className="text-lg text-muted-foreground">Loading project...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto px-4 py-4">
-      {projectId ? (
-        project ? (
-          <div>
-            <div className="flex items-center gap-4 mb-6">
-              <Button onClick={() => navigate("/projects")} variant="outline" size="sm">
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back
-              </Button>
-              <h1 className="text-2xl font-bold">{project.title}</h1>
-            </div>
-            <div className="space-y-6">
+      {projectId && project ? (
+        <div>
+          <div className="flex items-center gap-4 mb-6">
+            <Button onClick={() => navigate("/projects")} variant="outline" size="sm">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back
+            </Button>
+            <h1 className="text-2xl font-bold">{project.title}</h1>
+          </div>
+          
+          <Tabs defaultValue="details" className="space-y-6">
+            <TabsList>
+              <TabsTrigger value="details">Project Details</TabsTrigger>
+              <TabsTrigger value="ads" className="flex items-center">
+                <FileImage className="w-4 h-4 mr-2" />
+                Saved Ads
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="details" className="space-y-6">
               <div className="flex items-center gap-2">
                 <Button 
                   onClick={() => handleStartAdWizard(project.id)}
@@ -91,16 +113,79 @@ const Projects = () => {
                 targetAudience={project.target_audience || undefined}
                 audienceAnalysis={project.audience_analysis || undefined}
               />
-            </div>
-          </div>
-        ) : (
-          <div>Loading project...</div>
-        )
+            </TabsContent>
+            
+            <TabsContent value="ads">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl font-semibold">Project Ads</h2>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => navigate("/gallery/saved")}
+                  >
+                    View All Saved Ads
+                  </Button>
+                </div>
+                <Separator />
+                <ProjectAdsGallery projectId={project.id} />
+              </div>
+            </TabsContent>
+          </Tabs>
+        </div>
       ) : (
         <ProjectList onStartAdWizard={handleStartAdWizard} />
       )}
     </div>
   );
+};
+
+// Component to display ads for a specific project
+const ProjectAdsGallery = ({ projectId }: { projectId: string }) => {
+  const { data: projectAds, isLoading, error } = useQuery({
+    queryKey: ["projectAds", projectId],
+    queryFn: async () => {
+      console.log("Fetching ads for project:", projectId);
+      const { data, error } = await supabase
+        .from('ad_feedback')
+        .select('*')
+        .eq('project_id', projectId);
+        
+      if (error) {
+        console.error("Error fetching project ads:", error);
+        throw error;
+      }
+      
+      console.log("Fetched ads:", data);
+      return data || [];
+    }
+  });
+
+  if (isLoading) {
+    return <div className="py-8 text-center">Loading project ads...</div>;
+  }
+
+  if (error) {
+    return <div className="py-8 text-center text-red-500">Error loading ads. Please try again.</div>;
+  }
+
+  if (!projectAds || projectAds.length === 0) {
+    return (
+      <div className="py-8 text-center">
+        <p className="text-muted-foreground">No ads have been assigned to this project yet.</p>
+        <p className="mt-2">
+          <Button 
+            variant="link" 
+            onClick={() => window.location.href = "/gallery/saved"}
+          >
+            Go to your saved ads gallery to assign ads to this project
+          </Button>
+        </p>
+      </div>
+    );
+  }
+
+  return <SavedAdsGallery projectFilter={projectId} />;
 };
 
 export default Projects;
