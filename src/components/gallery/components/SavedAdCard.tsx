@@ -172,38 +172,16 @@ export const SavedAdCard = ({
     }
   };
 
-  // New function to handle card click for selection
-  const handleCardClick = (e: React.MouseEvent) => {
-    // Only handle selection if selectable and if the click is not on a button or control
-    const isClickOnControl = (e.target as HTMLElement).closest('button, .checkbox-exclude');
-    if (selectable && !isClickOnControl && onSelect) {
-      onSelect(id, !selected);
-    }
-  };
-
   return (
-    <Card 
-      className={`overflow-hidden ${selectable ? 'cursor-pointer transition hover:border-primary' : ''} ${selected ? 'ring-2 ring-primary border-primary' : ''}`}
-      onClick={handleCardClick}
-    >
-      {/* Selection UI */}
+    <Card className={`overflow-hidden ${selected ? 'ring-2 ring-primary border-primary' : ''}`}>
+      {/* Selection Checkbox */}
       {selectable && (
-        <div className="absolute top-3 left-3 z-10 checkbox-exclude">
-          <Button 
-            variant="outline" 
-            size="icon" 
-            className="h-8 w-8 rounded-full bg-white/80 border-gray-300 hover:bg-white"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleSelectChange(!selected);
-            }}
-          >
-            {selected ? (
-              <CheckSquare className="h-4 w-4 text-primary" />
-            ) : (
-              <Square className="h-4 w-4 text-gray-500" />
-            )}
-          </Button>
+        <div className="absolute top-3 left-3 z-10 bg-white/80 p-1 rounded-md">
+          <Checkbox 
+            checked={selected} 
+            onCheckedChange={handleSelectChange}
+            className="h-5 w-5"
+          />
         </div>
       )}
 
@@ -215,7 +193,7 @@ export const SavedAdCard = ({
       )}
 
       {/* Format Selector */}
-      <div className="p-4 space-y-4 checkbox-exclude">
+      <div className="p-4 space-y-4">
         <div className="flex justify-end mb-2">
           <AdSizeSelector
             selectedFormat={selectedFormat}
