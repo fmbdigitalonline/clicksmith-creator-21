@@ -39,7 +39,11 @@ export function ProjectSelector({ onSelect, selectedProjectId }: ProjectSelector
       try {
         setLoading(true);
         const { data: userData } = await supabase.auth.getUser();
-        if (!userData.user) return;
+        if (!userData?.user) {
+          console.error("No user found when fetching projects");
+          setProjects([]);
+          return;
+        }
 
         const { data, error } = await supabase
           .from('projects')
@@ -48,7 +52,8 @@ export function ProjectSelector({ onSelect, selectedProjectId }: ProjectSelector
           .order('updated_at', { ascending: false });
 
         if (error) throw error;
-        setProjects(data || []);
+        setProjects(Array.isArray(data) ? data : []);
+        console.log("Projects fetched:", data);
       } catch (error) {
         console.error('Error fetching projects:', error);
         toast({
@@ -56,6 +61,7 @@ export function ProjectSelector({ onSelect, selectedProjectId }: ProjectSelector
           description: "Failed to load projects. Please try again.",
           variant: "destructive",
         });
+        setProjects([]);
       } finally {
         setLoading(false);
       }
@@ -85,24 +91,30 @@ export function ProjectSelector({ onSelect, selectedProjectId }: ProjectSelector
           <CommandInput placeholder="Search projects..." />
           <CommandEmpty>No projects found.</CommandEmpty>
           <CommandGroup>
-            {projects.map((project) => (
-              <CommandItem
-                key={project.id}
-                value={project.id}
-                onSelect={(currentValue) => {
-                  onSelect(currentValue);
-                  setOpen(false);
-                }}
-              >
-                <Check
-                  className={cn(
-                    "mr-2 h-4 w-4",
-                    selectedProjectId === project.id ? "opacity-100" : "opacity-0"
-                  )}
-                />
-                {project.title}
+            {Array.isArray(projects) && projects.length > 0 ? (
+              projects.map((project) => (
+                <CommandItem
+                  key={project.id}
+                  value={project.id}
+                  onSelect={(currentValue) => {
+                    onSelect(currentValue);
+                    setOpen(false);
+                  }}
+                >
+                  <Check
+                    className={cn(
+                      "mr-2 h-4 w-4",
+                      selectedProjectId === project.id ? "opacity-100" : "opacity-0"
+                    )}
+                  />
+                  {project.title}
+                </CommandItem>
+              ))
+            ) : (
+              <CommandItem disabled>
+                {loading ? "Loading projects..." : "No projects available"}
               </CommandItem>
-            ))}
+            )}
           </CommandGroup>
         </Command>
       </PopoverContent>
