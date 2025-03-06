@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { AdSizeSelector, AD_FORMATS } from "@/components/steps/gallery/components/AdSizeSelector";
 import DownloadControls from "@/components/steps/gallery/components/DownloadControls";
 import { convertImage } from "@/utils/imageUtils";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface SavedAdCardProps {
   id: string;
@@ -24,6 +25,10 @@ interface SavedAdCardProps {
     height: number;
     label: string;
   };
+  projectId?: string;
+  selected?: boolean;
+  onSelect?: (id: string, isSelected: boolean) => void;
+  selectable?: boolean;
 }
 
 export const SavedAdCard = ({ 
@@ -33,7 +38,11 @@ export const SavedAdCard = ({
   imageUrl,
   onFeedbackSubmit,
   platform = "facebook",
-  size = AD_FORMATS[0]
+  size = AD_FORMATS[0],
+  projectId,
+  selected = false,
+  onSelect,
+  selectable = false,
 }: SavedAdCardProps) => {
   const [isEditingText, setIsEditingText] = useState(false);
   const [editedHeadline, setEditedHeadline] = useState(headline || "");
@@ -158,8 +167,32 @@ export const SavedAdCard = ({
     }
   };
 
+  const handleSelectChange = (checked: boolean) => {
+    if (onSelect) {
+      onSelect(id, checked);
+    }
+  };
+
   return (
     <Card className="overflow-hidden">
+      {/* Selection Checkbox */}
+      {selectable && (
+        <div className="absolute top-3 left-3 z-10">
+          <Checkbox 
+            checked={selected} 
+            onCheckedChange={handleSelectChange}
+            className="h-5 w-5 border-2 bg-white/90"
+          />
+        </div>
+      )}
+
+      {/* Project Label */}
+      {projectId && (
+        <div className="absolute top-3 right-3 z-10 bg-primary/90 text-white text-xs px-2 py-1 rounded-md">
+          Project
+        </div>
+      )}
+
       {/* Format Selector */}
       <div className="p-4 space-y-4">
         <div className="flex justify-end mb-2">
