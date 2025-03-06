@@ -56,7 +56,7 @@ export interface FacebookOAuthResponse {
   details?: Record<string, any>;
 }
 
-// Zod schema for AdAccount validation
+// Zod schema for AdAccount validation - make required fields non-optional to match the interface
 export const AdAccountSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -67,7 +67,7 @@ export const AdAccountSchema = z.object({
   capabilities: z.array(z.string()).optional()
 });
 
-// Zod schema for FacebookPage validation
+// Zod schema for FacebookPage validation - make required fields non-optional to match the interface
 export const FacebookPageSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -112,7 +112,41 @@ export function isValidFacebookOAuthResponse(data: any): data is FacebookOAuthRe
 // Helper to validate metadata structure
 export function validatePlatformConnectionMetadata(metadata: any): PlatformConnectionMetadata {
   try {
-    return PlatformConnectionMetadataSchema.parse(metadata);
+    // Parse the metadata with our schema
+    const validatedData = PlatformConnectionMetadataSchema.parse(metadata);
+    
+    // When we parse with Zod, ensure that required fields in our interfaces are present
+    // for each ad account and page
+    const result: PlatformConnectionMetadata = {
+      ...validatedData,
+    };
+    
+    // Ensure ad_accounts conform to AdAccount interface
+    if (validatedData.ad_accounts) {
+      result.ad_accounts = validatedData.ad_accounts.map(account => ({
+        id: account.id,
+        name: account.name,
+        account_id: account.account_id,
+        account_status: account.account_status,
+        currency: account.currency,
+        timezone_name: account.timezone_name,
+        capabilities: account.capabilities
+      }));
+    }
+    
+    // Ensure pages conform to FacebookPage interface
+    if (validatedData.pages) {
+      result.pages = validatedData.pages.map(page => ({
+        id: page.id,
+        name: page.name,
+        access_token: page.access_token,
+        category: page.category,
+        followers_count: page.followers_count,
+        fan_count: page.fan_count
+      }));
+    }
+    
+    return result;
   } catch (error) {
     console.error("Invalid metadata structure:", error);
     // Return a valid empty object that conforms to the expected type
