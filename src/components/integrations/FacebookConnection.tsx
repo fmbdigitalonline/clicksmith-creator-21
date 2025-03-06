@@ -316,21 +316,24 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
       const selectedAccount = adAccounts.find(acc => acc.id === accountId);
       if (!selectedAccount) return;
       
-      // Update the metadata in the database
-      // Since we can't directly use the metadata field in our type, we need to use any
+      // Use type assertion to add metadata field to the update object
+      // This is necessary because the TypeScript type doesn't include metadata
+      const updateObject: any = {
+        account_id: accountId,
+        account_name: selectedAccount.name,
+        metadata: {
+          ...(connection as any).metadata,
+          adAccounts: adAccounts,
+          pages: pages,
+          selectedAdAccountId: accountId,
+          selectedPageId: selectedPage
+        }
+      };
+      
+      // Update the database with the custom object
       const { error } = await supabase
         .from('platform_connections')
-        .update({
-          account_id: accountId,
-          account_name: selectedAccount.name,
-          metadata: {
-            ...(connection as any).metadata,
-            adAccounts: adAccounts,
-            pages: pages,
-            selectedAdAccountId: accountId,
-            selectedPageId: selectedPage
-          }
-        })
+        .update(updateObject)
         .eq('platform', 'facebook');
       
       if (error) throw error;
@@ -381,7 +384,7 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
       const selectedPageData = pages.find(page => page.id === pageId);
       if (!selectedPageData) return;
       
-      // Get existing metadata
+      // Get existing metadata and prepare update object using type assertion
       const currentMetadata = (connection as any).metadata || {};
       const updatedMetadata = {
         ...currentMetadata,
@@ -389,12 +392,15 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
         pageAccessToken: selectedPageData.access_token
       };
       
+      // Use type assertion for the update object
+      const updateObject: any = {
+        metadata: updatedMetadata
+      };
+      
       // Update the platform connection
       const { error } = await supabase
         .from('platform_connections')
-        .update({
-          metadata: updatedMetadata
-        })
+        .update(updateObject)
         .eq('platform', 'facebook');
       
       if (error) throw error;
