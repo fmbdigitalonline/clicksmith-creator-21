@@ -17,32 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
-interface SavedAd {
-  id: string;
-  saved_images: string[];
-  headline?: string;
-  primary_text?: string;
-  rating: number;
-  feedback: string;
-  created_at: string;
-  imageurl?: string;
-  imageUrl?: string;
-  platform?: string;
-  project_id?: string;
-  size?: {
-    width: number;
-    height: number;
-    label: string;
-  };
-}
-
-interface AdSelectionGalleryProps {
-  projectId?: string;
-  onAdsSelected: (adIds: string[]) => void;
-  selectedAdIds?: string[];
-  maxSelection?: number;
-}
+import { SavedAd, AdSelectionGalleryProps, AdSize } from "@/types/campaignTypes";
 
 export default function AdSelectionGallery({ 
   projectId, 
@@ -108,14 +83,17 @@ export default function AdSelectionGallery({
         }
         
         // Handle the size field which is JSON
-        let sizeObj = { width: 1200, height: 628, label: "Default" };
+        let sizeObj: AdSize = { width: 1200, height: 628, label: "Default" };
         if (ad.size) {
-          const size = ad.size as Json;
-          if (typeof size === 'object' && size !== null) {
+          // First ensure we're dealing with an object
+          if (typeof ad.size === 'object' && ad.size !== null) {
+            const sizeData = ad.size as Record<string, Json>;
+            
+            // Now we can safely access properties with type checking
             sizeObj = {
-              width: typeof size.width === 'number' ? size.width : 1200,
-              height: typeof size.height === 'number' ? size.height : 628,
-              label: typeof size.label === 'string' ? size.label : "Default"
+              width: typeof sizeData.width === 'number' ? sizeData.width : 1200,
+              height: typeof sizeData.height === 'number' ? sizeData.height : 628,
+              label: typeof sizeData.label === 'string' ? sizeData.label : "Default"
             };
           }
         }
@@ -140,6 +118,7 @@ export default function AdSelectionGallery({
     }
   };
 
+  
   const handleAdSelect = (adId: string, isSelected: boolean) => {
     if (isSelected) {
       // Check if we've hit the selection limit
