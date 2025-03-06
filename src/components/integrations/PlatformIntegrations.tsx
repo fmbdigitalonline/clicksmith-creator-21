@@ -12,17 +12,32 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { useLocation, useNavigate } from "react-router-dom";
 
-interface PlatformConnection {
+// Define an extended interface that includes the metadata field
+interface ExtendedPlatformConnection {
+  id: string;
   platform: string;
-  metadata?: {
-    adAccounts?: Array<{id: string; name: string}>;
+  access_token: string;
+  refresh_token: string | null;
+  token_expires_at: string | null;
+  account_id: string | null;
+  account_name: string | null;
+  created_at: string;
+  updated_at: string;
+  user_id: string;
+  // Store extended data in this field
+  extendedData?: {
+    adAccounts?: Array<{id: string; name: string; account_id?: string; status?: number}>;
+    pages?: Array<{id: string; name: string; category?: string; access_token?: string}>;
+    selectedAdAccountId?: string;
+    selectedPageId?: string;
+    pageAccessToken?: string;
   };
 }
 
 export default function PlatformIntegrations() {
   const [activeTab, setActiveTab] = useState("integrations");
   const [hasConnections, setHasConnections] = useState(false);
-  const [connections, setConnections] = useState<PlatformConnection[]>([]);
+  const [connections, setConnections] = useState<ExtendedPlatformConnection[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessingOAuth, setIsProcessingOAuth] = useState(false);
   const [oauthError, setOauthError] = useState<string | null>(null);
@@ -174,8 +189,27 @@ export default function PlatformIntegrations() {
       } else {
         const hasAnyConnection = data && data.length > 0;
         console.log("Has connections:", hasAnyConnection, data);
+        
+        // Process the connections to extract extended data
+        const processedConnections = data ? data.map(conn => {
+          // If the connection has a metadata field (stored as JSON in the database)
+          const extendedData = (conn as any).metadata ? {
+            adAccounts: (conn as any).metadata.adAccounts || [],
+            pages: (conn as any).metadata.pages || [],
+            selectedAdAccountId: (conn as any).metadata.selectedAdAccountId || null,
+            selectedPageId: (conn as any).metadata.selectedPageId || null,
+            pageAccessToken: (conn as any).metadata.pageAccessToken || null
+          } : undefined;
+          
+          // Return the connection with the extended data
+          return {
+            ...conn,
+            extendedData
+          } as ExtendedPlatformConnection;
+        }) : [];
+        
         setHasConnections(hasAnyConnection);
-        setConnections(data || []);
+        setConnections(processedConnections);
         
         // If we have connections and the user is on the integrations tab,
         // we can show the campaigns tab by default
@@ -217,7 +251,7 @@ export default function PlatformIntegrations() {
 
   // Find Facebook connection if exists
   const facebookConnection = connections.find(conn => conn.platform === 'facebook');
-  const hasFacebookAdAccounts = facebookConnection?.metadata?.adAccounts?.length > 0;
+  const hasFacebookAdAccounts = facebookConnection?.extendedData?.adAccounts?.length > 0;
 
   return (
     <div className="space-y-6">

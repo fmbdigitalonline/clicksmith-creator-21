@@ -10,13 +10,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select";
-import { 
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -65,14 +58,20 @@ interface FacebookPage {
   access_token?: string;
 }
 
-interface PlatformConnection {
+// Define a custom interface that extends the database type with our extended data
+interface ExtendedPlatformConnection {
   id: string;
   platform: string;
+  access_token: string;
+  refresh_token: string | null;
+  token_expires_at: string | null;
   account_id: string | null;
   account_name: string | null;
   created_at: string;
   updated_at: string;
-  metadata?: {
+  user_id: string;
+  // Store extended data in this field
+  extendedData?: {
     adAccounts?: AdAccount[];
     pages?: FacebookPage[];
     selectedAdAccountId?: string;
@@ -89,7 +88,7 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
-  const [connection, setConnection] = useState<PlatformConnection | null>(null);
+  const [connection, setConnection] = useState<ExtendedPlatformConnection | null>(null);
   const [adAccounts, setAdAccounts] = useState<AdAccount[]>([]);
   const [pages, setPages] = useState<FacebookPage[]>([]); 
   const [selectedAdAccount, setSelectedAdAccount] = useState<string | null>(null);
@@ -135,20 +134,34 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
       
       console.log("Facebook connection data:", data);
       if (data) {
-        setConnection(data);
+        // Extract metadata from the database response (which might be stored as JSON)
+        const rawMetadata = (data as any).metadata || {};
+        const extendedData = {
+          adAccounts: rawMetadata.adAccounts || [],
+          pages: rawMetadata.pages || [],
+          selectedAdAccountId: rawMetadata.selectedAdAccountId || (rawMetadata.adAccounts?.length > 0 ? rawMetadata.adAccounts[0].id : null),
+          selectedPageId: rawMetadata.selectedPageId || (rawMetadata.pages?.length > 0 ? rawMetadata.pages[0].id : null),
+          pageAccessToken: rawMetadata.pageAccessToken || null
+        };
+        
+        // Create the extended connection object
+        const extendedConnection: ExtendedPlatformConnection = {
+          ...data,
+          extendedData
+        };
+        
+        setConnection(extendedConnection);
         
         // Extract ad accounts and pages from metadata
-        if (data.metadata) {
-          const adAccounts = data.metadata.adAccounts || [];
-          const pages = data.metadata.pages || [];
-          
-          setAdAccounts(adAccounts);
-          setPages(pages);
-          
-          // Set selected account and page
-          setSelectedAdAccount(data.metadata.selectedAdAccountId || (adAccounts.length > 0 ? adAccounts[0].id : null));
-          setSelectedPage(data.metadata.selectedPageId || (pages.length > 0 ? pages[0].id : null));
-        }
+        const adAccounts = extendedData.adAccounts || [];
+        const pages = extendedData.pages || [];
+        
+        setAdAccounts(adAccounts);
+        setPages(pages);
+        
+        // Set selected account and page
+        setSelectedAdAccount(extendedData.selectedAdAccountId || (adAccounts.length > 0 ? adAccounts[0].id : null));
+        setSelectedPage(extendedData.selectedPageId || (pages.length > 0 ? pages[0].id : null));
         
         return true;
       }
@@ -304,16 +317,20 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
       const selectedAccount = adAccounts.find(acc => acc.id === accountId);
       if (!selectedAccount) return;
       
+      // Get existing metadata
+      const currentMetadata = (connection as any).metadata || {};
+      const updatedMetadata = {
+        ...currentMetadata,
+        selectedAdAccountId: accountId
+      };
+      
       // Update the platform connection
       const { error } = await supabase
         .from('platform_connections')
         .update({
           account_id: accountId,
           account_name: selectedAccount.name,
-          metadata: {
-            ...connection.metadata,
-            selectedAdAccountId: accountId
-          }
+          metadata: updatedMetadata
         })
         .eq('platform', 'facebook');
       
@@ -322,15 +339,17 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
       setSelectedAdAccount(accountId);
       
       // Update local state
-      setConnection({
-        ...connection,
-        account_id: accountId,
-        account_name: selectedAccount.name,
-        metadata: {
-          ...connection.metadata,
-          selectedAdAccountId: accountId
-        }
-      });
+      if (connection.extendedData) {
+        setConnection({
+          ...connection,
+          account_id: accountId,
+          account_name: selectedAccount.name,
+          extendedData: {
+            ...connection.extendedData,
+            selectedAdAccountId: accountId
+          }
+        });
+      }
       
       toast({
         title: "Account Updated",
@@ -363,15 +382,19 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
       const selectedPageData = pages.find(page => page.id === pageId);
       if (!selectedPageData) return;
       
+      // Get existing metadata
+      const currentMetadata = (connection as any).metadata || {};
+      const updatedMetadata = {
+        ...currentMetadata,
+        selectedPageId: pageId,
+        pageAccessToken: selectedPageData.access_token
+      };
+      
       // Update the platform connection
       const { error } = await supabase
         .from('platform_connections')
         .update({
-          metadata: {
-            ...connection.metadata,
-            selectedPageId: pageId,
-            pageAccessToken: selectedPageData.access_token
-          }
+          metadata: updatedMetadata
         })
         .eq('platform', 'facebook');
       
@@ -380,14 +403,16 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
       setSelectedPage(pageId);
       
       // Update local state
-      setConnection({
-        ...connection,
-        metadata: {
-          ...connection.metadata,
-          selectedPageId: pageId,
-          pageAccessToken: selectedPageData.access_token
-        }
-      });
+      if (connection.extendedData) {
+        setConnection({
+          ...connection,
+          extendedData: {
+            ...connection.extendedData,
+            selectedPageId: pageId,
+            pageAccessToken: selectedPageData.access_token
+          }
+        });
+      }
       
       toast({
         title: "Page Updated",
