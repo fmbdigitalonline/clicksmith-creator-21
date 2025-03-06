@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { SavedAdCard } from "@/components/gallery/components/SavedAdCard";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, CheckSquare, Square, Filter } from "lucide-react";
+import { Loader2, CheckSquare, Square, Filter, LayoutGrid, MapPin } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,6 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SavedAd, AdSelectionGalleryProps, AdSize } from "@/types/campaignTypes";
+import { AD_FORMATS } from "@/components/steps/gallery/components/AdSizeSelector";
 
 export default function AdSelectionGallery({ 
   projectId, 
@@ -30,6 +32,7 @@ export default function AdSelectionGallery({
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [ratingFilter, setRatingFilter] = useState<string>("all");
+  const [formatFilter, setFormatFilter] = useState<string>("all");
   const { toast } = useToast();
 
   useEffect(() => {
@@ -169,11 +172,41 @@ export default function AdSelectionGallery({
       const matchesRating = ratingFilter === "all" || 
         (ad.rating && ad.rating >= parseInt(ratingFilter));
       
-      return matchesSearch && matchesRating;
+      // Apply format/size filter
+      const matchesFormat = formatFilter === "all" || 
+        (ad.size && formatLabelToString(ad.size) === formatFilter);
+      
+      return matchesSearch && matchesRating && matchesFormat;
     });
   };
 
+  // Helper to convert size object to string representation for filtering
+  const formatLabelToString = (size: AdSize): string => {
+    return `${size.width}x${size.height}`;
+  };
+
+  // Get unique formats from available ads
+  const getUniqueFormats = (): {value: string, label: string}[] => {
+    const formatMap = new Map<string, AdSize>();
+    
+    savedAds.forEach(ad => {
+      if (ad.size) {
+        const formatKey = formatLabelToString(ad.size);
+        if (!formatMap.has(formatKey)) {
+          formatMap.set(formatKey, ad.size);
+        }
+      }
+    });
+    
+    // Convert map to array of format options
+    return Array.from(formatMap.entries()).map(([value, size]) => ({
+      value,
+      label: size.label || `${size.width}x${size.height}`
+    }));
+  };
+
   const filteredAds = getFilteredAds();
+  const uniqueFormats = getUniqueFormats();
 
   if (isLoading) {
     return (
@@ -261,6 +294,29 @@ export default function AdSelectionGallery({
               </SelectContent>
             </Select>
           </div>
+          
+          {/* Format/Size Filter */}
+          <div className="flex items-center gap-2">
+            <Label htmlFor="format-filter" className="whitespace-nowrap text-sm">
+              Format:
+            </Label>
+            <Select
+              value={formatFilter}
+              onValueChange={setFormatFilter}
+            >
+              <SelectTrigger id="format-filter" className="w-40 h-9">
+                <SelectValue placeholder="Any format" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Formats</SelectItem>
+                {uniqueFormats.map(format => (
+                  <SelectItem key={format.value} value={format.value}>
+                    {format.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
       
@@ -268,6 +324,55 @@ export default function AdSelectionGallery({
       {filteredAds.length === 0 && (
         <div className="text-center py-6 border rounded-lg">
           <p className="text-muted-foreground">No ads match your filters</p>
+        </div>
+      )}
+      
+      {/* Selected Ads Preview Section */}
+      {selectedAds.length > 0 && (
+        <div className="border rounded-lg p-4 bg-blue-50/50">
+          <h3 className="text-lg font-medium mb-3 flex items-center">
+            <CheckSquare className="mr-2 h-5 w-5" />
+            Selected Ads Preview
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+            {selectedAds.map(adId => {
+              const ad = savedAds.find(a => a.id === adId);
+              if (!ad) return null;
+              
+              return (
+                <div 
+                  key={ad.id} 
+                  className="relative border rounded-md p-2 bg-white shadow-sm cursor-pointer"
+                  onClick={() => handleAdSelect(ad.id, false)}
+                >
+                  {/* Image */}
+                  <div 
+                    style={{ 
+                      aspectRatio: ad.size ? `${ad.size.width} / ${ad.size.height}` : "1.91 / 1",
+                    }} 
+                    className="overflow-hidden rounded mb-1"
+                  >
+                    <img
+                      src={ad.imageUrl || ad.imageurl || (ad.saved_images && ad.saved_images[0])}
+                      alt={ad.headline || "Ad creative"}
+                      className="object-cover w-full h-full"
+                    />
+                  </div>
+                  
+                  {/* Size Badge */}
+                  {ad.size && (
+                    <div className="absolute top-1 right-1 bg-black/70 text-white text-xs rounded px-1 py-0.5 flex items-center">
+                      <LayoutGrid className="h-3 w-3 mr-1" />
+                      {ad.size.label}
+                    </div>
+                  )}
+                  
+                  {/* Headline (truncated) */}
+                  <p className="text-xs font-medium truncate">{ad.headline}</p>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
       
@@ -283,6 +388,14 @@ export default function AdSelectionGallery({
                 id={`select-ad-${ad.id}`}
               />
             </div>
+            
+            {/* Format Badge */}
+            {ad.size && (
+              <div className="absolute top-3 right-3 z-10 bg-white/90 px-2 py-1 rounded text-xs font-medium border border-gray-200 flex items-center">
+                <LayoutGrid className="h-3 w-3 mr-1" />
+                {ad.size.label}
+              </div>
+            )}
             
             {/* Ad Preview */}
             <div className="p-4">

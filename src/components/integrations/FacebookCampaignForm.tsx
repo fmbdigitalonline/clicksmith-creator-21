@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { ProjectSelector } from "@/components/gallery/components/ProjectSelector";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AdSelectionGallery from "@/components/integrations/AdSelectionGallery";
+import { AlertCircle } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface FacebookCampaignFormProps {
   open: boolean;
@@ -114,9 +116,9 @@ export default function FacebookCampaignForm({
         ) : (
           <div className="space-y-6">
             <Tabs value={formTab} onValueChange={(value) => setFormTab(value as "details" | "ads")}>
-              <TabsList className="mb-6">
+              <TabsList className="grid w-full grid-cols-2 mb-6">
                 <TabsTrigger value="details">Campaign Details</TabsTrigger>
-                <TabsTrigger value="ads">Select Ads</TabsTrigger>
+                <TabsTrigger value="ads">Creative Selection</TabsTrigger>
               </TabsList>
               
               <TabsContent value="details">
@@ -136,12 +138,13 @@ export default function FacebookCampaignForm({
               
               <TabsContent value="ads">
                 <div className="space-y-6">
-                  <div className="bg-blue-50 p-4 rounded-md border border-blue-100">
-                    <h3 className="text-blue-800 font-medium mb-1">Select Ads for Campaign</h3>
-                    <p className="text-blue-600 text-sm">
-                      Choose the ads you want to include in your campaign. You can select up to 5 ads.
-                    </p>
-                  </div>
+                  <Alert className="bg-blue-50 border-blue-200">
+                    <AlertCircle className="h-4 w-4 text-blue-600" />
+                    <AlertTitle className="text-blue-800">Creative Selection</AlertTitle>
+                    <AlertDescription className="text-blue-700">
+                      Choose the ads you want to include in your campaign. You can select up to 5 creatives to test in your campaign.
+                    </AlertDescription>
+                  </Alert>
                   
                   <AdSelectionGallery
                     projectId={selectedProjectId || initialProjectId}
@@ -150,9 +153,9 @@ export default function FacebookCampaignForm({
                     maxSelection={5}
                   />
                   
-                  <div className="flex items-center justify-between pt-4">
+                  <div className="flex items-center justify-between pt-4 border-t">
                     <Button variant="outline" onClick={() => setFormTab("details")}>
-                      Back to Details
+                      Back to Campaign Details
                     </Button>
                     <Button 
                       onClick={() => setFormTab("details")}
