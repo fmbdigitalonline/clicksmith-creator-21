@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, AlertCircle, Plus, CheckCircle, Facebook, RefreshCw } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { Loader2, AlertCircle, Plus, CheckCircle, Facebook, RefreshCw, BarChart3 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { Badge } from "@/components/ui/badge";
 import FacebookCampaignForm from "./FacebookCampaignForm";
@@ -28,6 +29,8 @@ interface Campaign {
   user_id?: string | null;
   project_id?: string | null;
   updated_at?: string | null;
+  insights_data?: any;
+  insights_last_updated?: string | null;
 }
 
 export default function FacebookCampaignOverview() {
@@ -42,6 +45,7 @@ export default function FacebookCampaignOverview() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const session = useSession();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (session) {
@@ -91,7 +95,9 @@ export default function FacebookCampaignOverview() {
           end_date: campaign.end_date,
           user_id: campaign.user_id,
           project_id: campaign.project_id,
-          updated_at: campaign.updated_at
+          updated_at: campaign.updated_at,
+          insights_data: campaign.insights_data,
+          insights_last_updated: campaign.insights_last_updated
         };
       }) || [];
       
@@ -147,6 +153,10 @@ export default function FacebookCampaignOverview() {
     setIsRefreshing(true);
     await fetchCampaigns();
     setIsRefreshing(false);
+  };
+  
+  const handleCampaignClick = (campaignId: string) => {
+    navigate(`/integrations/campaigns/${campaignId}`);
   };
 
   if (isLoading) {
@@ -208,8 +218,29 @@ export default function FacebookCampaignOverview() {
                 
                 const status = formatStatus(campaign.status);
                 
+                // Check if we have insights data
+                const hasInsights = campaign.insights_data && 
+                                   campaign.insights_data.data && 
+                                   campaign.insights_data.data.length > 0;
+                
+                // Extract key metrics if available
+                let impressions = 0;
+                let clicks = 0;
+                let spend = 0;
+                
+                if (hasInsights) {
+                  const insightData = campaign.insights_data.data[0];
+                  impressions = insightData.impressions || 0;
+                  clicks = insightData.clicks || 0;
+                  spend = insightData.spend || 0;
+                }
+                
                 return (
-                  <Card key={campaign.id} className="overflow-hidden">
+                  <Card 
+                    key={campaign.id} 
+                    className="overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
+                    onClick={() => handleCampaignClick(campaign.id)}
+                  >
                     <div className="flex flex-col sm:flex-row">
                       {campaign.image_url && (
                         <div className="w-full sm:w-1/4 max-h-32 overflow-hidden">
@@ -233,6 +264,23 @@ export default function FacebookCampaignOverview() {
                           </Badge>
                         </div>
                         
+                        {hasInsights && campaign.status === "completed" && (
+                          <div className="mt-4 grid grid-cols-3 gap-2">
+                            <div className="text-center p-2 bg-slate-50 rounded">
+                              <p className="text-xs text-muted-foreground">Impressions</p>
+                              <p className="font-semibold">{impressions.toLocaleString()}</p>
+                            </div>
+                            <div className="text-center p-2 bg-slate-50 rounded">
+                              <p className="text-xs text-muted-foreground">Clicks</p>
+                              <p className="font-semibold">{clicks.toLocaleString()}</p>
+                            </div>
+                            <div className="text-center p-2 bg-slate-50 rounded">
+                              <p className="text-xs text-muted-foreground">Spend</p>
+                              <p className="font-semibold">${spend.toFixed(2)}</p>
+                            </div>
+                          </div>
+                        )}
+                        
                         <div className="mt-4 flex justify-between items-center">
                           <div className="flex items-center text-sm text-muted-foreground">
                             <Facebook className="h-4 w-4 mr-1" />
@@ -247,27 +295,28 @@ export default function FacebookCampaignOverview() {
                           </div>
                           <div>
                             {campaign.status === "completed" && (
-                              <Button 
-                                variant="outline" 
-                                size="sm" 
-                                onClick={() => {
-                                  // Open Facebook Ads Manager in a new tab
-                                  if (campaign.platform_campaign_id) {
-                                    window.open(
-                                      `https://www.facebook.com/adsmanager/manage/campaigns?act=${campaign.platform_campaign_id}`,
-                                      '_blank'
-                                    );
-                                  }
-                                }}
-                              >
-                                View on Facebook
-                              </Button>
+                              <div className="flex items-center gap-2">
+                                {hasInsights && (
+                                  <BarChart3 className="h-4 w-4 text-blue-500" />
+                                )}
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    navigate(`/integrations/campaigns/${campaign.id}`);
+                                  }}
+                                >
+                                  View Details
+                                </Button>
+                              </div>
                             )}
                             {campaign.status === "error" && (
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => {
+                                onClick={(e) => {
+                                  e.stopPropagation();
                                   // Show detailed error in a toast
                                   if (campaign.targeting?.error_message) {
                                     toast({
