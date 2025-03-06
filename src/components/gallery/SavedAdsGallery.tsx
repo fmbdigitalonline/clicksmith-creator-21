@@ -325,39 +325,40 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps) => {
                         </p>
                       )}
                     </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleAssignToProject}>Continue</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-            
-            {hasProjectAssigned && (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button 
-                    variant="outline" 
-                    disabled={selectedAdIds.length === 0 || isAssigning}
-                    className="whitespace-nowrap"
-                  >
-                    Remove from Project
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Remove Ads from Project</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Are you sure you want to remove these {selectedAdIds.length} ad(s) from their projects?
-                    </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleRemoveFromProject}>Continue</AlertDialogAction>
+                    <AlertDialogAction onClick={handleAssignToProject}>Continue</AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
-            )}
+            
+              {hasProjectAssigned && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      disabled={selectedAdIds.length === 0 || isAssigning}
+                      className="whitespace-nowrap"
+                    >
+                      Remove from Project
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Remove Ads from Project</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to remove these {selectedAdIds.length} ad(s) from their projects?
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleRemoveFromProject}>Continue</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+            </div>
           </div>
         </div>
       )}
