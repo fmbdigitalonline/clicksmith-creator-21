@@ -24,7 +24,7 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
-import { PlatformConnection, AdAccount, FacebookPage } from "@/types/platformConnection";
+import { PlatformConnection, AdAccount, FacebookPage, PlatformConnectionMetadata } from "@/types/platformConnection";
 
 // URL redirecting to Facebook OAuth with environment variables and expanded permissions
 const generateFacebookAuthURL = () => {
@@ -108,10 +108,13 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
       if (data) {
         setConnection(data as PlatformConnection);
         // Set the selected account ID if available in metadata
-        if (data.metadata?.selected_account_id) {
-          setSelectedAccountId(data.metadata.selected_account_id);
-        } else if (data.account_id) {
-          setSelectedAccountId(data.account_id);
+        if (data.metadata && typeof data.metadata === 'object') {
+          const metadata = data.metadata as PlatformConnectionMetadata;
+          if (metadata.selected_account_id) {
+            setSelectedAccountId(metadata.selected_account_id);
+          } else if (data.account_id) {
+            setSelectedAccountId(data.account_id);
+          }
         }
         return true;
       }
@@ -299,7 +302,8 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
     
     try {
       // Find the account details
-      const selectedAccount = connection.metadata?.ad_accounts.find(account => account.id === accountId);
+      const metadata = connection.metadata as PlatformConnectionMetadata;
+      const selectedAccount = metadata?.ad_accounts?.find(account => account.id === accountId);
       
       if (!selectedAccount) {
         throw new Error("Selected account not found");
@@ -312,9 +316,9 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
           account_id: accountId,
           account_name: selectedAccount.name,
           metadata: {
-            ...connection.metadata,
+            ...metadata,
             selected_account_id: accountId
-          }
+          } as PlatformConnectionMetadata
         })
         .eq('platform', 'facebook');
       
@@ -327,9 +331,9 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
         account_id: accountId,
         account_name: selectedAccount.name,
         metadata: {
-          ...connection.metadata,
+          ...metadata,
           selected_account_id: accountId
-        }
+        } as PlatformConnectionMetadata
       });
       
       toast({
