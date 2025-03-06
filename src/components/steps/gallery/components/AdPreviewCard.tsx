@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useParams } from "react-router-dom";
@@ -206,9 +207,12 @@ const AdPreviewCard = ({
   };
 
   return (
-    <Card className="overflow-hidden">
+    <Card className="overflow-hidden relative">
       {selectable && (
-        <div className="absolute top-2 left-2 z-10 bg-white bg-opacity-80 rounded-md p-1 cursor-pointer" onClick={handleSelectToggle}>
+        <div 
+          className="absolute top-2 left-2 z-10 bg-white bg-opacity-80 rounded-md p-1 cursor-pointer shadow-sm hover:bg-opacity-100 transition-all" 
+          onClick={handleSelectToggle}
+        >
           {selected ? (
             <CheckSquare className="h-6 w-6 text-primary" />
           ) : (
