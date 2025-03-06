@@ -37,11 +37,14 @@ export function useProjectCampaignData(projectId?: string) {
 
         if (error) throw error;
 
+        // Check if format_preferences exists in the project data
+        const formatPreferences = projectData.format_preferences || [];
+
         setData({
           businessIdea: projectData.business_idea as BusinessIdea,
           targetAudience: projectData.target_audience as TargetAudience,
           audienceAnalysis: projectData.audience_analysis as AudienceAnalysis,
-          formatPreferences: projectData.format_preferences as string[],
+          formatPreferences: Array.isArray(formatPreferences) ? formatPreferences : [],
           loading: false,
           error: null,
         });
