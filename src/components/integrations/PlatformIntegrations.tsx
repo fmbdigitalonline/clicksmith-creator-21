@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -136,10 +135,11 @@ export default function PlatformIntegrations() {
       }
     };
 
-    if (session) {
+    // Only run the OAuth callback if we have a session and are on the integrations page
+    if (session && location.pathname === '/integrations') {
       processOAuthCallback();
     }
-  }, [session, location.search, navigate, toast]);
+  }, [session, location.search, navigate, toast, location.pathname]);
 
   // Check if any platform is connected
   const checkConnections = async () => {
