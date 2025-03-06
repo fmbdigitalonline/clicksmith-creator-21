@@ -1,3 +1,4 @@
+
 export type BusinessIdea = {
   description: string;
   valueProposition: string;
@@ -60,3 +61,28 @@ export type AdImage = {
 };
 
 export type Step = "idea" | "audience" | "analysis" | "campaign" | "format" | "size" | "hook" | "complete";
+
+// Type for the project structure in the database
+export type Project = {
+  id: string;
+  user_id: string;
+  created_at: string;
+  updated_at: string;
+  title: string;
+  description?: string;
+  status?: string;
+  current_step?: number;
+  business_idea?: BusinessIdea;
+  target_audience?: TargetAudience;
+  audience_analysis?: AudienceAnalysis;
+  marketing_campaign?: MarketingCampaign;
+  selected_hooks?: AdHook[];
+  generated_ads?: any[];
+  tags?: string[];
+  ad_format?: string;
+  ad_dimensions?: { width: number; height: number };
+  format_preferences?: string[];
+  video_ads_enabled?: boolean;
+  video_ad_settings?: { format: string; duration: number };
+  video_ad_preferences?: { format: string; duration: number };
+};
