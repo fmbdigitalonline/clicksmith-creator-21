@@ -124,8 +124,12 @@ export default function CreateCampaignForm({
             // If we have generated ad copy from hooks
             if (data.selected_hooks && Array.isArray(data.selected_hooks) && data.selected_hooks.length > 0) {
               const hook = data.selected_hooks[0];
-              if (hook.title) form.setValue("headline", hook.title);
-              if (hook.description) form.setValue("primary_text", hook.description);
+              if (hook && typeof hook === 'object' && 'title' in hook) {
+                form.setValue("headline", hook.title as string);
+              }
+              if (hook && typeof hook === 'object' && 'description' in hook) {
+                form.setValue("primary_text", hook.description as string);
+              }
             }
             
             // If we have saved ad images
@@ -175,14 +179,24 @@ export default function CreateCampaignForm({
         data.call_to_action = "SHOP_NOW";
       }
       
-      // Add creation mode to the campaign data
+      // Prepare data for Supabase insert
       const campaignData = {
-        ...data,
-        // Convert dates to ISO string format for storage in Supabase
+        name: data.name,
+        status: data.status,
+        project_id: data.project_id,
+        platform: data.platform,
+        objective: data.objective,
+        special_ad_categories: data.special_ad_categories,
+        budget: data.budget,
         start_date: data.start_date.toISOString(),
         end_date: data.end_date ? data.end_date.toISOString() : null,
+        headline: data.headline,
+        primary_text: data.primary_text,
+        description: data.description,
+        website_url: data.website_url,
+        call_to_action: data.call_to_action,
+        image_url: data.image_url,
         creation_mode: creationMode,
-        // Include any AI suggestions that were used
         ai_suggestions_used: creationMode === "automatic" ? {
           headline: true,
           primary_text: true,
