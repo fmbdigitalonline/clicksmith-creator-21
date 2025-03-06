@@ -11,6 +11,12 @@ import AdGenerationControls from "./gallery/AdGenerationControls";
 import { useEffect, useState } from "react";
 import { AdSizeSelector, AD_FORMATS } from "./gallery/components/AdSizeSelector";
 import { useToast } from "@/hooks/use-toast";
+import { ProjectSelector } from "../gallery/components/ProjectSelector";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { CheckSquare, Loader2, SquareCheckIcon } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AdGalleryStepProps {
   businessIdea: BusinessIdea;
@@ -34,6 +40,10 @@ const AdGalleryStep = ({
   // Find the square format (1:1) and use it as default, fallback to first format if not found
   const defaultFormat = AD_FORMATS.find(format => format.width === 1080 && format.height === 1080) || AD_FORMATS[0];
   const [selectedFormat, setSelectedFormat] = useState(defaultFormat);
+  const [selectedAdIds, setSelectedAdIds] = useState<string[]>([]);
+  const [selectedProjectId, setSelectedProjectId] = useState<string>("");
+  const [isAssigning, setIsAssigning] = useState(false);
+  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const { toast } = useToast();
   
   const {
@@ -124,6 +134,85 @@ const AdGalleryStep = ({
     }
   };
 
+  const handleAdSelect = (adId: string, isSelected: boolean) => {
+    if (isSelected) {
+      setSelectedAdIds(prev => [...prev, adId]);
+    } else {
+      setSelectedAdIds(prev => prev.filter(id => id !== adId));
+    }
+  };
+
+  const handleSelectAll = () => {
+    const platformAds = adVariants.filter(ad => ad.platform === platform);
+    if (selectedAdIds.length === platformAds.length) {
+      setSelectedAdIds([]);
+    } else {
+      setSelectedAdIds(platformAds.map(ad => ad.id));
+    }
+  };
+
+  const handleProjectSelect = (projectId: string) => {
+    setSelectedProjectId(projectId);
+  };
+
+  const handleAssignToProject = async () => {
+    setIsAssigning(true);
+    try {
+      if (!selectedProjectId || selectedAdIds.length === 0) {
+        toast({
+          title: "Selection required",
+          description: "Please select both ads and a project.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const selectedAds = adVariants.filter(ad => selectedAdIds.includes(ad.id));
+      
+      for (const ad of selectedAds) {
+        const imageUrl = ad.imageUrl || ad.image?.url;
+        if (!imageUrl) continue;
+
+        const { error } = await supabase
+          .from('ad_feedback')
+          .insert({
+            user_id: (await supabase.auth.getUser()).data.user?.id,
+            project_id: selectedProjectId,
+            saved_images: [imageUrl],
+            primary_text: ad.description,
+            headline: ad.headline,
+            imageUrl: imageUrl,
+            platform: ad.platform,
+            size: ad.size || selectedFormat,
+            feedback: 'saved',
+            rating: 5
+          });
+
+        if (error) {
+          console.error("Error saving ad to project:", error);
+          throw error;
+        }
+      }
+
+      toast({
+        title: "Ads saved to project",
+        description: `${selectedAdIds.length} ad(s) saved to project successfully.`,
+      });
+      
+      setSelectedAdIds([]);
+      setIsConfirmDialogOpen(false);
+    } catch (error) {
+      console.error('Error assigning ads to project:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save ads to project. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAssigning(false);
+    }
+  };
+
   const renderPlatformContent = (platformName: string) => (
     <TabsContent value={platformName} className="space-y-4">
       <div className="flex justify-end mb-4">
@@ -138,6 +227,9 @@ const AdGalleryStep = ({
         onCreateProject={onCreateProject}
         videoAdsEnabled={videoAdsEnabled}
         selectedFormat={selectedFormat}
+        selectable={true}
+        selectedAdIds={selectedAdIds}
+        onAdSelect={handleAdSelect}
       />
     </TabsContent>
   );
@@ -151,6 +243,78 @@ const AdGalleryStep = ({
         isGenerating={isGenerating}
         generationStatus={generationStatus}
       />
+
+      {/* Project Assignment Controls */}
+      <div className="bg-gray-50 p-4 rounded-lg shadow-sm">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSelectAll}
+              className="flex items-center"
+            >
+              {adVariants.filter(ad => ad.platform === platform).length === selectedAdIds.length ? (
+                <>
+                  <CheckSquare className="h-4 w-4 mr-2" />
+                  Deselect All
+                </>
+              ) : (
+                <>
+                  <SquareCheckIcon className="h-4 w-4 mr-2" />
+                  Select All
+                </>
+              )}
+            </Button>
+            {selectedAdIds.length > 0 && (
+              <Badge variant="secondary">
+                {selectedAdIds.length} selected
+              </Badge>
+            )}
+          </div>
+          
+          <div className="flex items-center gap-3 flex-wrap sm:flex-nowrap">
+            <div className="w-full sm:w-64">
+              <ProjectSelector
+                selectedProjectId={selectedProjectId}
+                onSelect={handleProjectSelect}
+              />
+            </div>
+            
+            <AlertDialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
+              <AlertDialogTrigger asChild>
+                <Button 
+                  variant="default" 
+                  disabled={selectedAdIds.length === 0 || !selectedProjectId || isAssigning}
+                  className="whitespace-nowrap"
+                  onClick={() => {
+                    if (selectedAdIds.length > 0 && selectedProjectId) {
+                      setIsConfirmDialogOpen(true);
+                    }
+                  }}
+                >
+                  {isAssigning ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : null}
+                  Save to Project
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Save Ads to Project</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to save {selectedAdIds.length} ad(s) to the selected project?
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleAssignToProject}>Continue</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+        </div>
+      </div>
 
       {isGenerating ? (
         <LoadingState />

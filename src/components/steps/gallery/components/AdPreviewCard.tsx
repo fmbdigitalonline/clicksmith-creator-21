@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useParams } from "react-router-dom";
@@ -12,7 +11,7 @@ import AdDetails from "./AdDetails";
 import DownloadControls from "./DownloadControls";
 import { AdFeedbackControls } from "./AdFeedbackControls";
 import { convertImage } from "@/utils/imageUtils";
-import { Pencil, Check, X } from "lucide-react";
+import { Pencil, Check, X, CheckSquare, Square } from "lucide-react";
 import { useAdPersistence } from "@/hooks/gallery/useAdPersistence";
 import { AdSizeSelector, AD_FORMATS } from "../components/AdSizeSelector";
 
@@ -37,6 +36,9 @@ interface AdPreviewCardProps {
   onCreateProject: () => void;
   isVideo?: boolean;
   selectedFormat?: { width: number; height: number; label: string };
+  selectable?: boolean;
+  selected?: boolean;
+  onSelect?: (id: string, selected: boolean) => void;
 }
 
 const AdPreviewCard = ({ 
@@ -44,7 +46,10 @@ const AdPreviewCard = ({
   adVariants = [],
   onCreateProject, 
   isVideo = false,
-  selectedFormat: initialFormat
+  selectedFormat: initialFormat,
+  selectable = false,
+  selected = false,
+  onSelect
 }: AdPreviewCardProps) => {
   const [downloadFormat, setDownloadFormat] = useState<"jpg" | "png" | "pdf" | "docx">("jpg");
   const [isSaving, setIsSaving] = useState(false);
@@ -194,8 +199,24 @@ const AdPreviewCard = ({
     });
   };
 
+  const handleSelectToggle = () => {
+    if (selectable && onSelect) {
+      onSelect(variant.id, !selected);
+    }
+  };
+
   return (
     <Card className="overflow-hidden">
+      {selectable && (
+        <div className="absolute top-2 left-2 z-10 bg-white bg-opacity-80 rounded-md p-1 cursor-pointer" onClick={handleSelectToggle}>
+          {selected ? (
+            <CheckSquare className="h-6 w-6 text-primary" />
+          ) : (
+            <Square className="h-6 w-6 text-muted-foreground" />
+          )}
+        </div>
+      )}
+      
       <div className="p-4 space-y-4">
         {/* Format Selector */}
         <div className="flex justify-end mb-2">
@@ -299,4 +320,3 @@ const AdPreviewCard = ({
 };
 
 export default AdPreviewCard;
-

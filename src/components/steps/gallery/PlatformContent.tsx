@@ -8,6 +8,9 @@ interface PlatformContentProps {
   onCreateProject: () => void;
   videoAdsEnabled?: boolean;
   selectedFormat?: { width: number; height: number; label: string };
+  selectable?: boolean;
+  selectedAdIds?: string[];
+  onAdSelect?: (id: string, selected: boolean) => void;
 }
 
 const PlatformContent = ({ 
@@ -15,7 +18,10 @@ const PlatformContent = ({
   adVariants = [], 
   onCreateProject,
   videoAdsEnabled = false,
-  selectedFormat
+  selectedFormat,
+  selectable = false,
+  selectedAdIds = [],
+  onAdSelect
 }: PlatformContentProps) => {
   // Filter variants by platform and ensure we only show 2 variants per unique image
   const filteredVariants = (() => {
@@ -66,6 +72,9 @@ const PlatformContent = ({
             onCreateProject={onCreateProject}
             isVideo={videoAdsEnabled}
             selectedFormat={selectedFormat}
+            selectable={selectable}
+            selected={selectedAdIds.includes(variant.id)}
+            onSelect={onAdSelect}
           />
         ))}
       </div>
