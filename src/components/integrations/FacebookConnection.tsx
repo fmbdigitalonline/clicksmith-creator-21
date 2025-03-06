@@ -25,7 +25,13 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
-import { PlatformConnection, AdAccount, FacebookPage, PlatformConnectionMetadata } from "@/types/platformConnection";
+import { 
+  PlatformConnection, 
+  AdAccount, 
+  FacebookPage, 
+  PlatformConnectionMetadata, 
+  validatePlatformConnectionMetadata 
+} from "@/types/platformConnection";
 
 // URL redirecting to Facebook OAuth with environment variables and expanded permissions
 const generateFacebookAuthURL = () => {
@@ -107,7 +113,13 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
       
       console.log("Facebook connection data:", data);
       if (data) {
+        // Safely process metadata
+        if (data.metadata) {
+          data.metadata = validatePlatformConnectionMetadata(data.metadata);
+        }
+        
         setConnection(data as PlatformConnection);
+        
         // Set the selected account ID if available in metadata
         if (data.metadata && typeof data.metadata === 'object') {
           const metadata = data.metadata as PlatformConnectionMetadata;

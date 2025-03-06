@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +11,11 @@ import { useSession } from "@supabase/auth-helpers-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { useLocation, useNavigate } from "react-router-dom";
+import { 
+  FacebookOAuthResponse, 
+  isValidFacebookOAuthResponse, 
+  validatePlatformConnectionMetadata 
+} from "@/types/platformConnection";
 
 export default function PlatformIntegrations() {
   const [activeTab, setActiveTab] = useState("integrations");
@@ -80,12 +86,15 @@ export default function PlatformIntegrations() {
           
           console.log("Current session found, using access token for API call");
           
-          // Don't redirect immediately - wait for the API call to finish
+          // Clean URL parameters immediately to prevent accidental refreshes
+          // Store the code in memory for processing
+          const codeToProcess = code;
+          navigate('/integrations', { replace: true });
           
           // Call the edge function with the code and authorization token
           const response = await supabase.functions.invoke('facebook-oauth', {
             body: { 
-              code,
+              code: codeToProcess,
               origin: window.location.origin
             },
             headers: {
@@ -95,33 +104,34 @@ export default function PlatformIntegrations() {
 
           console.log("OAuth function response:", response);
           
-          // Now clean URL parameters but stay on the integrations page
-          navigate('/integrations', { replace: true });
-
           if (response.error) {
-            throw new Error(response.error);
+            throw new Error(response.error.message || response.error);
           }
 
-          if (response.data && response.data.success) {
+          // Validate response structure
+          if (!isValidFacebookOAuthResponse(response.data)) {
+            throw new Error("Invalid response format from server");
+          }
+
+          const oauthResponse = response.data as FacebookOAuthResponse;
+          
+          if (oauthResponse.success) {
             toast({
               title: "Success!",
-              description: response.data.message || "Your Facebook Ads account has been connected",
+              description: oauthResponse.message || "Your Facebook Ads account has been connected",
             });
             
             // Force reload connections
             await checkConnections();
             setActiveTab("campaigns");
           } else {
-            const errorMessage = response.data?.message || response.data?.error || "Unknown error occurred connecting to Facebook";
+            const errorMessage = oauthResponse.error || oauthResponse.message || "Unknown error occurred connecting to Facebook";
             throw new Error(errorMessage);
           }
         } catch (error) {
           console.error("Error processing OAuth callback:", error);
           const errorMessage = error instanceof Error ? error.message : "Failed to connect to Facebook";
           setOauthError(errorMessage);
-          
-          // Now clean URL parameters but stay on the integrations page
-          navigate('/integrations', { replace: true });
           
           toast({
             title: "Connection Failed",

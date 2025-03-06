@@ -22,6 +22,25 @@ console.log('facebook-oauth function started with configuration:', {
   supabaseServiceRoleKeyExists: !!SUPABASE_SERVICE_ROLE_KEY
 });
 
+// Improved type definitions for consistent response handling
+interface FacebookOAuthResponse {
+  success: boolean;
+  platform?: string;
+  accountId?: string;
+  accountName?: string;
+  adAccounts?: any[];
+  pages?: any[];
+  message?: string;
+  error?: string;
+  details?: Record<string, any>;
+}
+
+interface ApiUser {
+  id: string;
+  email?: string;
+  [key: string]: any;
+}
+
 // Create Supabase client for admin operations
 const createClient = (supabaseUrl: string, supabaseKey: string) => {
   return {
@@ -37,6 +56,19 @@ const createClient = (supabaseUrl: string, supabaseKey: string) => {
         if (dataToSave.access_token) {
           console.log('Access token length:', dataToSave.access_token.length);
           // Don't log the actual token for security
+        }
+        
+        // Validate metadata if present
+        if (dataToSave.metadata) {
+          // Ensure ad_accounts is an array
+          if (dataToSave.metadata.ad_accounts && !Array.isArray(dataToSave.metadata.ad_accounts)) {
+            dataToSave.metadata.ad_accounts = [];
+          }
+          
+          // Ensure pages is an array
+          if (dataToSave.metadata.pages && !Array.isArray(dataToSave.metadata.pages)) {
+            dataToSave.metadata.pages = [];
+          }
         }
         
         return fetch(`${supabaseUrl}/rest/v1/${table}`, {
@@ -300,10 +332,10 @@ async function saveConnectionToDatabase(
       console.log(`Found ${existingConnection?.length || 0} existing connections for this user/platform`);
     }
     
-    // Prepare metadata object
+    // Prepare metadata object with validation
     const metadata = {
-      ad_accounts: adAccounts || [],
-      pages: pages || [],
+      ad_accounts: Array.isArray(adAccounts) ? adAccounts : [],
+      pages: Array.isArray(pages) ? pages : [],
       selected_account_id: accountId,
       last_fetched: new Date().toISOString()
     };
@@ -377,7 +409,7 @@ serve(async (req) => {
         REDIRECT_URI: !!REDIRECT_URI
       });
       
-      return new Response(JSON.stringify({ 
+      const response: FacebookOAuthResponse = {
         success: false,
         error: 'Server configuration error: Missing Facebook credentials',
         details: {
@@ -388,7 +420,9 @@ serve(async (req) => {
           redirectUriPresent: !!REDIRECT_URI,
           redirectUri: REDIRECT_URI
         }
-      }), {
+      };
+      
+      return new Response(JSON.stringify(response), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
@@ -422,20 +456,24 @@ serve(async (req) => {
     });
     
     if (!code) {
-      return new Response(JSON.stringify({ 
+      const response: FacebookOAuthResponse = {
         success: false,
-        error: 'Authorization code is required' 
-      }), {
+        error: 'Authorization code is required'
+      };
+      
+      return new Response(JSON.stringify(response), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
     if (!authToken) {
-      return new Response(JSON.stringify({ 
+      const response: FacebookOAuthResponse = {
         success: false,
-        error: 'Authorization header is required' 
-      }), {
+        error: 'Authorization header is required'
+      };
+      
+      return new Response(JSON.stringify(response), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
@@ -446,11 +484,14 @@ serve(async (req) => {
     
     if (userError || !user) {
       console.error('Invalid user token:', userError);
-      return new Response(JSON.stringify({ 
+      
+      const response: FacebookOAuthResponse = {
         success: false,
         error: 'Invalid user token',
         details: userError
-      }), {
+      };
+      
+      return new Response(JSON.stringify(response), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
@@ -470,10 +511,13 @@ serve(async (req) => {
     const isTokenValid = await validateToken(tokenData.access_token);
     if (!isTokenValid) {
       console.error('Invalid token received from Facebook');
-      return new Response(JSON.stringify({ 
+      
+      const response: FacebookOAuthResponse = {
         success: false,
-        error: 'Invalid token received from Facebook' 
-      }), {
+        error: 'Invalid token received from Facebook'
+      };
+      
+      return new Response(JSON.stringify(response), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
@@ -514,39 +558,58 @@ serve(async (req) => {
       console.log('No token expiration provided');
     }
 
-    // Save the connection to the database with ad accounts and pages
-    await saveConnectionToDatabase(
-      user.id,
-      'facebook',
-      tokenData.access_token,
-      tokenData.refresh_token || null,
-      expiresAt,
-      accountId,
-      accountName,
-      adAccountsData?.data || [],
-      pagesData?.data || []
-    );
-    
-    return new Response(JSON.stringify({
-      success: true,
-      platform: 'facebook',
-      accountId,
-      accountName,
-      adAccounts: adAccountsData?.data || [],
-      pages: pagesData?.data || [],
-      message: 'Successfully connected to Facebook Ads'
-    }), {
-      status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
+    try {
+      // Save the connection to the database with ad accounts and pages
+      await saveConnectionToDatabase(
+        user.id,
+        'facebook',
+        tokenData.access_token,
+        tokenData.refresh_token || null,
+        expiresAt,
+        accountId,
+        accountName,
+        adAccountsData?.data || [],
+        pagesData?.data || []
+      );
+      
+      const response: FacebookOAuthResponse = {
+        success: true,
+        platform: 'facebook',
+        accountId,
+        accountName,
+        adAccounts: adAccountsData?.data || [],
+        pages: pagesData?.data || [],
+        message: 'Successfully connected to Facebook Ads'
+      };
+      
+      return new Response(JSON.stringify(response), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    } catch (error) {
+      console.error('Error saving connection:', error);
+      
+      const response: FacebookOAuthResponse = {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error occurred saving connection',
+        details: { stage: 'database_save' }
+      };
+      
+      return new Response(JSON.stringify(response), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
   } catch (error) {
     console.error('Error in Facebook OAuth:', error);
     
-    return new Response(JSON.stringify({ 
+    const response: FacebookOAuthResponse = {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred',
       stack: error instanceof Error ? error.stack : null
-    }), {
+    };
+    
+    return new Response(JSON.stringify(response), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
