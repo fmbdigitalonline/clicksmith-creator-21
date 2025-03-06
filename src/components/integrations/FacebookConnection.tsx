@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useSession } from "@supabase/auth-helpers-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -43,7 +44,13 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
 
       if (error) throw error;
 
-      setConnection(data);
+      // Transform the data to ensure metadata is correctly typed
+      const typedConnection: PlatformConnection = {
+        ...data,
+        metadata: data.metadata as PlatformConnectionMetadata
+      };
+
+      setConnection(typedConnection);
     } catch (error) {
       console.error("Error fetching Facebook connection:", error);
       toast({
@@ -181,17 +188,17 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
 
       <div className="space-y-2">
         <h4 className="text-sm font-medium">Ad Accounts</h4>
-        {adAccounts && adAccounts.length > 0 ? (
+        {connection.metadata?.ad_accounts && connection.metadata.ad_accounts.length > 0 ? (
           <div className="grid gap-2">
-            {adAccounts.map((account: AdAccount) => (
+            {connection.metadata.ad_accounts.map((account: AdAccount) => (
               <Button
                 key={account.id}
-                variant={selectedAccountId === account.id ? "default" : "outline"}
+                variant={connection.metadata?.selected_account_id === account.id ? "default" : "outline"}
                 onClick={() => handleSelectAccount(account.id)}
                 disabled={isUpdating}
               >
                 {account.name}
-                {selectedAccountId === account.id && (
+                {connection.metadata?.selected_account_id === account.id && (
                   <CheckCircle className="ml-2 h-4 w-4" />
                 )}
               </Button>
