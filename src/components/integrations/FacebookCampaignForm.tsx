@@ -90,6 +90,7 @@ export default function FacebookCampaignForm({
   };
 
   const handleCampaignCreated = (campaignId: string) => {
+    console.log("Campaign created with ID:", campaignId);
     setCreatedCampaignId(campaignId);
     setStep("status");
     
@@ -99,9 +100,9 @@ export default function FacebookCampaignForm({
     }
   };
 
-  // Create a callback function that matches the expected signature
-  // In CampaignStatusCard, onActivate expects a function with no parameters
+  // Create a callback function for campaign activation
   const handleCampaignActivated = () => {
+    console.log("Campaign activated!");
     if (onSuccess) {
       onSuccess();
     }
@@ -222,10 +223,16 @@ export default function FacebookCampaignForm({
                       Back to Campaign Details
                     </Button>
                     <Button 
-                      onClick={() => setFormTab("details")}
+                      onClick={form => {
+                        console.log("Submitting campaign with selected ads:", selectedAdIds);
+                        document.querySelector('form')?.dispatchEvent(
+                          new Event('submit', { cancelable: true, bubbles: true })
+                        );
+                      }}
                       disabled={selectedAdIds.length === 0}
+                      variant="facebook"
                     >
-                      Continue with {selectedAdIds.length} ad{selectedAdIds.length !== 1 ? 's' : ''}
+                      Create Campaign with {selectedAdIds.length} ad{selectedAdIds.length !== 1 ? 's' : ''}
                     </Button>
                   </div>
                 </div>
