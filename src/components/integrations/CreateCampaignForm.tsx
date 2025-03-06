@@ -11,10 +11,14 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
-import { CalendarIcon, Loader2, AlertCircle, ArrowLeft } from "lucide-react";
+import { CalendarIcon, Loader2, AlertCircle, ArrowLeft, InfoIcon } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/components/ui/use-toast";
+import { Card, CardContent } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
+import { useProjectTitle } from "@/hooks/useProjectTitle";
 
 // Form schema definition
 const formSchema = z.object({
@@ -40,6 +44,8 @@ type FormData = z.infer<typeof formSchema>;
 // Define types for project data to prevent TypeScript errors
 interface BusinessIdea {
   website?: string;
+  description?: string;
+  valueProposition?: string;
   [key: string]: any;
 }
 
@@ -50,11 +56,74 @@ interface Hook {
 }
 
 interface ProjectData {
+  id: string;
   title: string;
   business_idea?: BusinessIdea;
   selected_hooks?: Hook[];
   [key: string]: any;
 }
+
+interface ProjectPreviewProps {
+  projectData: ProjectData | null;
+  isLoading: boolean;
+}
+
+const ProjectPreview = ({ projectData, isLoading }: ProjectPreviewProps) => {
+  if (isLoading) {
+    return <div className="text-sm text-muted-foreground">Loading project data...</div>;
+  }
+  
+  if (!projectData) {
+    return null;
+  }
+  
+  const businessIdea = projectData.business_idea;
+  
+  return (
+    <Card className="bg-blue-50 border-blue-200 mb-6">
+      <CardContent className="pt-4">
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="font-medium flex items-center gap-2">
+              <InfoIcon className="w-4 h-4 text-blue-600" /> 
+              Project Information
+            </h3>
+            <Badge variant="outline" className="bg-white border-blue-200">
+              {projectData.title}
+            </Badge>
+          </div>
+          
+          <Separator className="bg-blue-200" />
+          
+          {businessIdea && (
+            <div className="text-sm space-y-2">
+              {businessIdea.description && (
+                <div>
+                  <span className="font-medium">Business Description:</span> 
+                  <p className="text-muted-foreground">{businessIdea.description}</p>
+                </div>
+              )}
+              
+              {businessIdea.valueProposition && (
+                <div>
+                  <span className="font-medium">Value Proposition:</span> 
+                  <p className="text-muted-foreground">{businessIdea.valueProposition}</p>
+                </div>
+              )}
+              
+              {businessIdea.website && (
+                <div>
+                  <span className="font-medium">Website:</span> 
+                  <p className="text-blue-600">{businessIdea.website}</p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
 
 interface CreateCampaignFormProps {
   projectId: string;
@@ -74,7 +143,9 @@ export default function CreateCampaignForm({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [projectData, setProjectData] = useState<ProjectData | null>(null);
+  const [isLoadingProject, setIsLoadingProject] = useState(false);
   const { toast } = useToast();
+  const { title: projectTitle } = useProjectTitle(projectId);
 
   // Setup form with default values
   const form = useForm<FormData>({
@@ -102,6 +173,7 @@ export default function CreateCampaignForm({
     if (creationMode !== "manual" && projectId) {
       const fetchProjectData = async () => {
         try {
+          setIsLoadingProject(true);
           const { data, error } = await supabase
             .from("projects")
             .select("*")
@@ -109,16 +181,22 @@ export default function CreateCampaignForm({
             .single();
 
           if (error) throw error;
-          setProjectData(data as ProjectData);
+          
+          const typedData = data as unknown as ProjectData;
+          setProjectData(typedData);
 
-          // Pre-fill form based on project data for semi-automatic mode
-          if (creationMode === "semi-automatic" && data) {
+          // Pre-fill form based on project data for semi-automatic and automatic modes
+          if ((creationMode === "semi-automatic" || creationMode === "automatic") && data) {
             // Set campaign name based on project title
-            form.setValue("name", `${data.title} Campaign`);
+            if (data.title) {
+              form.setValue("name", `${data.title} Campaign`);
+            }
             
             // If we have business_idea with a website
-            if (data.business_idea && typeof data.business_idea === 'object' && 'website' in data.business_idea) {
-              form.setValue("website_url", data.business_idea.website as string);
+            if (data.business_idea && typeof data.business_idea === 'object') {
+              if ('website' in data.business_idea && data.business_idea.website) {
+                form.setValue("website_url", data.business_idea.website as string);
+              }
             }
             
             // If we have generated ad copy from hooks
@@ -148,11 +226,10 @@ export default function CreateCampaignForm({
             
             fetchSavedAds();
           }
-          
-          // For automatic mode, we'll just load the data and use it later
-          // when the form is submitted
         } catch (error) {
           console.error("Error fetching project data:", error);
+        } finally {
+          setIsLoadingProject(false);
         }
       };
 
@@ -173,10 +250,25 @@ export default function CreateCampaignForm({
         });
         
         // This would call an AI function to generate the campaign
-        // For now, we'll simulate with preset values
-        data.headline = `${projectData.title} - Special Offer`;
-        data.primary_text = `Discover the best solution for your needs with ${projectData.title}. Limited time offer!`;
-        data.call_to_action = "SHOP_NOW";
+        // For now, we'll simulate with preset values based on project data
+        if (projectData.business_idea) {
+          const businessIdea = projectData.business_idea;
+          
+          // Create more compelling headline and text based on business idea
+          if (businessIdea.valueProposition) {
+            data.headline = `${projectData.title} - ${businessIdea.valueProposition.substring(0, 30)}`;
+            data.primary_text = `${businessIdea.valueProposition}. Limited time offer - act now!`;
+          } else if (businessIdea.description) {
+            data.headline = `${projectData.title} - Special Offer`;
+            data.primary_text = `${businessIdea.description.substring(0, 100)}. Discover how we can help you today!`;
+          } else {
+            data.headline = `${projectData.title} - Special Offer`;
+            data.primary_text = `Discover the best solution for your needs with ${projectData.title}. Limited time offer!`;
+          }
+          
+          // Set more appropriate call to action based on business type
+          data.call_to_action = "SHOP_NOW";
+        }
       }
       
       // Prepare data for Supabase insert
@@ -243,6 +335,11 @@ export default function CreateCampaignForm({
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Mode Selection
         </Button>
+      )}
+      
+      {/* Project Information Preview */}
+      {creationMode !== "manual" && projectId && (
+        <ProjectPreview projectData={projectData} isLoading={isLoadingProject} />
       )}
       
       {creationMode !== "manual" && (
@@ -523,7 +620,7 @@ export default function CreateCampaignForm({
               )}
             />
             
-            {/* Image preview - Fixed the ReactNode error by using a proper conditional render */}
+            {/* Image preview */}
             {form.watch("image_url") && (
               <div className="mt-2 rounded-md overflow-hidden border">
                 <img 
