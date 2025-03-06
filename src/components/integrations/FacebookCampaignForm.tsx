@@ -7,8 +7,10 @@ import { Button } from "@/components/ui/button";
 import { ProjectSelector } from "@/components/gallery/components/ProjectSelector";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AdSelectionGallery from "@/components/integrations/AdSelectionGallery";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Info } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { extractTargetingData } from "@/utils/campaignDataUtils";
+import { useProjectCampaignData } from "@/hooks/useProjectCampaignData";
 
 interface FacebookCampaignFormProps {
   open: boolean;
@@ -28,6 +30,13 @@ export default function FacebookCampaignForm({
   const [selectedProjectId, setSelectedProjectId] = useState<string>(initialProjectId || "");
   const [formTab, setFormTab] = useState<"details" | "ads">("details");
   const [selectedAdIds, setSelectedAdIds] = useState<string[]>([]);
+  
+  // Fetch project data for targeting suggestions
+  const projectData = useProjectCampaignData(selectedProjectId || initialProjectId);
+  
+  // Extract targeting data if available
+  const targetingData = projectData.targetAudience ? 
+    extractTargetingData(projectData.targetAudience, projectData.audienceAnalysis) : null;
 
   const handleModeSelect = (mode: "manual" | "semi-automatic" | "automatic") => {
     setSelectedMode(mode);
@@ -122,6 +131,16 @@ export default function FacebookCampaignForm({
               </TabsList>
               
               <TabsContent value="details">
+                {targetingData && selectedMode !== "manual" && (
+                  <Alert className="mb-6 bg-blue-50 border-blue-200">
+                    <Info className="h-4 w-4 text-blue-600" />
+                    <AlertTitle className="text-blue-800">Smart Targeting Active</AlertTitle>
+                    <AlertDescription className="text-blue-700">
+                      {`Using ${selectedMode === "automatic" ? "automated" : "assisted"} targeting with age range ${targetingData.age_min}-${targetingData.age_max} and ${targetingData.interests.length} interest categories.`}
+                    </AlertDescription>
+                  </Alert>
+                )}
+                
                 <CreateCampaignForm 
                   projectId={selectedProjectId || initialProjectId || ""} 
                   creationMode={selectedMode}

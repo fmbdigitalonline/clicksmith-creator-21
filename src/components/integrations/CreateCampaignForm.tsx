@@ -1,4 +1,5 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -13,8 +14,14 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
+import { useProjectCampaignData } from "@/hooks/useProjectCampaignData";
+import { 
+  generateCampaignName, 
+  generateCampaignDescription, 
+  suggestDailyBudget,
+  generateDefaultDates
+} from "@/utils/campaignDataUtils";
 
 const campaignFormSchema = z.object({
   name: z.string().min(2, {
@@ -46,8 +53,8 @@ interface CreateCampaignFormProps {
   onSuccess?: () => void;
   onCancel?: () => void;
   onBack?: () => void;
-  selectedAdIds?: string[]; // Add this new prop
-  onContinue?: () => void;  // Add this new prop
+  selectedAdIds?: string[];
+  onContinue?: () => void;
 }
 
 export default function CreateCampaignForm({ 
@@ -60,34 +67,63 @@ export default function CreateCampaignForm({
   onContinue
 }: CreateCampaignFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const projectData = useProjectCampaignData(projectId);
+  
+  // Generate default values based on project data
+  const getDefaultValues = () => {
+    const dates = generateDefaultDates();
+    const defaultTargetAudience = projectData.targetAudience?.description || 
+                                  "People interested in our products and services";
+    
+    return {
+      name: generateCampaignName(projectData.businessIdea),
+      objective: "REACH",
+      targetAudience: defaultTargetAudience,
+      budget: suggestDailyBudget().toString(),
+      startDate: dates.startDate,
+      endDate: dates.endDate,
+      creativeBrief: generateCampaignDescription(projectData.businessIdea),
+    };
+  };
 
   const form = useForm<z.infer<typeof campaignFormSchema>>({
     resolver: zodResolver(campaignFormSchema),
-    defaultValues: {
-      name: "",
-      objective: "",
-      targetAudience: "",
-      budget: "",
-      startDate: "",
-      endDate: "",
-      creativeBrief: "",
-    },
+    defaultValues: getDefaultValues(),
   });
+  
+  // Update form values when project data loads
+  useEffect(() => {
+    if (!projectData.loading && projectData.businessIdea) {
+      const defaults = getDefaultValues();
+      
+      Object.entries(defaults).forEach(([field, value]) => {
+        form.setValue(field as any, value);
+      });
+    }
+  }, [projectData.loading, projectData.businessIdea]);
   
   const handleFormSubmit = async (values: z.infer<typeof campaignFormSchema>) => {
     try {
       setIsSubmitting(true);
 
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // Extract targeting data for Facebook API
+      const targetingData = projectData.targetAudience ? {
+        targeting: projectData.targetAudience,
+        analysis: projectData.audienceAnalysis
+      } : undefined;
 
-      // Include selected ad IDs in the campaign data
+      // Include selected ad IDs and extracted targeting
       const campaignData = {
         ...values,
         selected_ad_ids: selectedAdIds,
+        targeting_data: targetingData,
+        smart_targeting: creationMode !== "manual"
       };
       
       console.log("Form submitted with values:", campaignData);
+      
+      // Simulate API call
+      await new Promise((resolve) => setTimeout(resolve, 1000));
       
       if (onSuccess) onSuccess();
     } catch (error) {
@@ -100,6 +136,16 @@ export default function CreateCampaignForm({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
+        {/* Smart data integration notification */}
+        {projectData.businessIdea && creationMode !== "manual" && (
+          <div className="p-4 bg-blue-50 border border-blue-100 rounded-md mb-6">
+            <h3 className="text-blue-800 font-medium">Smart Data Integration Active</h3>
+            <p className="text-blue-700 text-sm">
+              Campaign details have been pre-filled based on your project data.
+            </p>
+          </div>
+        )}
+        
         <FormField
           control={form.control}
           name="name"
@@ -246,6 +292,7 @@ export default function CreateCampaignForm({
           </div>
         </div>
         
+        {/* Display selected ads count */}
         {selectedAdIds.length > 0 && !onContinue && (
           <div className="p-4 bg-green-50 border border-green-100 rounded-md">
             <h3 className="text-green-800 font-medium">Selected Ads</h3>
