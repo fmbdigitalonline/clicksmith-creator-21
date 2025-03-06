@@ -2,11 +2,23 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { corsHeaders } from '../_shared/cors.ts'
 
-const FACEBOOK_APP_ID = Deno.env.get('FACEBOOK_APP_ID') || '';
+// Update to use both environment variable formats for compatibility
+const FACEBOOK_APP_ID = Deno.env.get('FACEBOOK_APP_ID') || import.meta.env?.VITE_FACEBOOK_APP_ID || '';
 const FACEBOOK_APP_SECRET = Deno.env.get('FACEBOOK_APP_SECRET') || '';
-const REDIRECT_URI = Deno.env.get('FACEBOOK_REDIRECT_URI') || '';
+// Try different possible names for the redirect URI
+const REDIRECT_URI = Deno.env.get('FACEBOOK_REDIRECT_URI') || Deno.env.get('REDIRECT_URI') || '';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+
+// Log environment variables (without sensitive data) for debugging
+console.log('Environment variables check:', {
+  facebookAppIdExists: !!FACEBOOK_APP_ID,
+  facebookAppSecretExists: !!FACEBOOK_APP_SECRET,
+  redirectUriExists: !!REDIRECT_URI,
+  redirectUriValue: REDIRECT_URI,
+  supabaseUrlExists: !!SUPABASE_URL,
+  supabaseServiceRoleKeyExists: !!SUPABASE_SERVICE_ROLE_KEY
+});
 
 // Create Supabase client - Define this function first before using it
 const createClient = (supabaseUrl: string, supabaseKey: string) => {
@@ -199,6 +211,15 @@ serve(async (req) => {
       requestHeaders[key] = value;
     });
     console.log('Request headers:', requestHeaders);
+    
+    // Extended environment variable logging
+    console.log('Environment configuration:', {
+      FACEBOOK_APP_ID_exists: !!FACEBOOK_APP_ID,
+      FACEBOOK_APP_SECRET_exists: !!FACEBOOK_APP_SECRET,
+      REDIRECT_URI_exists: !!REDIRECT_URI,
+      REDIRECT_URI_value: REDIRECT_URI,
+      ENV_keys: Object.keys(Deno.env.toObject()).filter(key => !key.includes('SECRET')).join(', ')
+    });
     
     // Validate environment variables
     if (!FACEBOOK_APP_ID || !FACEBOOK_APP_SECRET || !REDIRECT_URI) {

@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Facebook, Check, AlertCircle, Loader2, ChevronDown } from "lucide-react";
+import { Facebook, Check, AlertCircle, Loader2, ChevronDown, ExternalLink } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useSession } from "@supabase/auth-helpers-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -143,15 +143,12 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
       return;
     }
     
-    // Log the redirect URL for debugging
-    console.log("Redirecting to Facebook OAuth URL:", authUrl);
-    
-    // Check if Facebook Redirect URI is properly configured
-    if (!import.meta.env.VITE_FACEBOOK_REDIRECT_URI) {
-      console.warn("VITE_FACEBOOK_REDIRECT_URI is not set in environment variables");
-    } else {
-      console.log("Configured redirect URI:", import.meta.env.VITE_FACEBOOK_REDIRECT_URI);
-    }
+    // Enhanced logging for debugging
+    console.log("Facebook connection details:", {
+      appId: import.meta.env.VITE_FACEBOOK_APP_ID ? "configured" : "missing",
+      redirectUri: import.meta.env.VITE_FACEBOOK_REDIRECT_URI,
+      authUrl: authUrl
+    });
     
     window.location.href = authUrl;
   };
@@ -244,7 +241,19 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
           <Alert variant="destructive" className="mb-4">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Connection Error</AlertTitle>
-            <AlertDescription>{errorMessage}</AlertDescription>
+            <AlertDescription>
+              {errorMessage}
+              {errorMessage.includes("Missing") && (
+                <div className="mt-2">
+                  <p className="text-sm">Please check if:</p>
+                  <ul className="list-disc list-inside text-sm ml-2 mt-1">
+                    <li>Your Facebook App ID is correct in the .env file</li>
+                    <li>Your Facebook Redirect URI is correct in the .env file</li>
+                    <li>The Facebook App has the exact same Redirect URI in its settings</li>
+                  </ul>
+                </div>
+              )}
+            </AlertDescription>
           </Alert>
         )}
       
@@ -296,8 +305,25 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
             <Alert className="mb-4">
               <AlertCircle className="h-4 w-4" />
               <AlertTitle>Important Facebook Setup</AlertTitle>
-              <AlertDescription>
-                Make sure your Facebook App settings include <strong>{window.location.origin}/integrations</strong> as a valid OAuth redirect URI.
+              <AlertDescription className="space-y-2">
+                <p>Make sure your Facebook App settings include <strong>{window.location.origin}/integrations?connection=facebook</strong> as a valid OAuth redirect URI.</p>
+                <div className="flex items-center text-xs text-muted-foreground mt-2">
+                  <p>Current environment configuration:</p>
+                </div>
+                <div className="text-xs bg-muted p-2 rounded overflow-auto">
+                  <p>App ID: {import.meta.env.VITE_FACEBOOK_APP_ID ? import.meta.env.VITE_FACEBOOK_APP_ID : "Not configured"}</p>
+                  <p>Redirect URI: {import.meta.env.VITE_FACEBOOK_REDIRECT_URI || "Not configured"}</p>
+                </div>
+                <div className="flex items-center gap-1 mt-1">
+                  <a 
+                    href="https://developers.facebook.com/apps/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center text-xs text-blue-600 hover:underline"
+                  >
+                    Facebook Developers Console <ExternalLink className="h-3 w-3 ml-1" />
+                  </a>
+                </div>
               </AlertDescription>
             </Alert>
           </div>
