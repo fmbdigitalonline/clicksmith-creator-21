@@ -8,13 +8,13 @@ import {
 import { Auth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { useSession, useSupabaseClient } from "@supabase/auth-helpers-react";
-import Account from "./components/Account";
-import Home from "./components/Home";
-import AppLayout from "./components/AppLayout";
-import AdWizard from "./components/AdWizard";
-import Integrations from "./components/Integrations";
-import FacebookCampaignOverview from "./components/integrations/FacebookCampaignOverview";
-import CampaignDetailsView from "./components/integrations/CampaignDetailsView";
+import Account from "@/components/Account";
+import Home from "@/components/Home";
+import AppLayout from "@/components/layout/AppLayout";
+import AdWizard from "@/components/AdWizard";
+import Integrations from "@/components/Integrations";
+import FacebookCampaignOverview from "@/components/integrations/FacebookCampaignOverview";
+import CampaignDetailsView from "@/components/integrations/CampaignDetailsView";
 
 function App() {
   const session = useSession();
