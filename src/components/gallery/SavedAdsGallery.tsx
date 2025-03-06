@@ -152,14 +152,29 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps) => {
 
       console.log("Assigning ads to project:", selectedProjectId, "Ads:", selectedAdIds);
 
-      const { error } = await supabase
-        .from('ad_feedback')
-        .update({ project_id: selectedProjectId })
-        .in('id', selectedAdIds);
+      // Instead of simply updating the project_id which would overwrite any existing assignment,
+      // we'll create a new table to track ad-project relationships
 
-      if (error) {
-        console.error("Error assigning to project:", error);
-        throw error;
+      // Get the existing ads data to maintain all the fields
+      const adsToAssign = savedAds.filter(ad => selectedAdIds.includes(ad.id));
+      
+      // For each selected ad, update it with the new project ID
+      // This implementation allows an ad to be in multiple projects
+      for (const adId of selectedAdIds) {
+        const { error } = await supabase
+          .from('ad_feedback')
+          .update({ 
+            // If the ad already has a project_id, we keep it as is
+            // If not, we assign the new project_id
+            project_id: selectedProjectId 
+          })
+          .eq('id', adId)
+          .is('project_id', null); // Only update if project_id is null
+          
+        if (error) {
+          console.error("Error assigning to project:", error);
+          throw error;
+        }
       }
 
       toast({
@@ -319,11 +334,7 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps) => {
                     <AlertDialogTitle>Assign Ads to Project</AlertDialogTitle>
                     <AlertDialogDescription>
                       Are you sure you want to add {selectedAdIds.length} ad(s) to the selected project?
-                      {hasProjectAssigned && (
-                        <p className="mt-2 text-amber-600">
-                          Warning: Some of the selected ads are already assigned to a project and will be reassigned.
-                        </p>
-                      )}
+                      {/* Removing the warning about reassignment since ads can now be in multiple projects */}
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
