@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useSession } from "@supabase/auth-helpers-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,11 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, AlertCircle, Plus, CheckCircle, Facebook, RefreshCw, Save, Copy } from "lucide-react";
+import { Loader2, AlertCircle, Plus, CheckCircle, Facebook, RefreshCw, Save, Copy, BarChart3 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { Badge } from "@/components/ui/badge";
 import FacebookCampaignForm from "./FacebookCampaignForm";
 import CampaignStatusCard from "./CampaignStatusCard";
+import { AutomaticModeMonitoring } from "./AutomaticModeMonitoring";
 
 // Update the Campaign interface to match the database schema and include new fields
 interface Campaign {
@@ -370,6 +370,18 @@ export default function FacebookCampaignOverview() {
                                 >
                                   View on Facebook
                                 </Button>
+                                {campaign.creation_mode === "automatic" && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                      // Navigate to monitoring interface
+                                      window.location.href = `/integrations/campaign/${campaign.id}/monitoring`;
+                                    }}
+                                  >
+                                    <BarChart3 className="h-3 w-3 mr-1" /> View Metrics
+                                  </Button>
+                                )}
                               </>
                             )}
                             {campaign.status === "error" && (
@@ -462,6 +474,10 @@ export default function FacebookCampaignOverview() {
             </div>
           </CardContent>
         </Card>
+      )}
+      
+      {campaigns.some(campaign => campaign.creation_mode === "automatic" && campaign.status === "completed") && (
+        <AutomaticModeMonitoring />
       )}
     </div>
   );
