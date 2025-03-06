@@ -146,7 +146,33 @@ const createClient = (supabaseUrl: string, supabaseKey: string) => {
             return { data: null, error: err };
           });
         }
-      })
+      }),
+      match: (query: Record<string, any>) => {
+        const queryParams = new URLSearchParams();
+        for (const key in query) {
+          queryParams.append(key, `eq.${query[key]}`);
+        }
+        const queryStr = queryParams.toString();
+        console.log(`Selecting from ${table} with query: ${queryStr}`);
+        return fetch(`${supabaseUrl}/rest/v1/${table}?${queryStr}`, {
+          headers: {
+            'apikey': supabaseKey,
+            'Authorization': `Bearer ${supabaseKey}`,
+          }
+        }).then(async (res) => {
+          if (!res.ok) {
+            const error = await res.json();
+            console.error(`Error selecting from ${table}:`, error);
+            return { data: null, error };
+          }
+          const data = await res.json();
+          console.log(`Successfully selected from ${table}, found ${data.length} records`);
+          return { data, error: null };
+        }).catch(err => {
+          console.error(`Exception in database query on ${table}:`, err);
+          return { data: null, error: err };
+        });
+      }
     }),
     auth: {
       getUser: async (token: string) => {
@@ -450,17 +476,16 @@ async function saveConnectionToDatabase(
         }) 
       : [];
     
-    // First check if a connection already exists for this user/platform
-    const { data: existingConnection, error: queryError } = await supabaseAdmin
+    // Check for existing connection using proper query syntax
+    const { data: existingConnections, error: queryError } = await supabaseAdmin
       .from('platform_connections')
       .select('*')
-      .eq('user_id', userId)
-      .eq('platform', platform);
+      .match({ user_id: userId, platform: platform });
     
     if (queryError) {
       console.error('Error checking for existing connection:', queryError);
     } else {
-      console.log(`Found ${existingConnection?.length || 0} existing connections for this user/platform`);
+      console.log(`Found ${existingConnections?.length || 0} existing connections for this user/platform`);
     }
     
     // Prepare metadata object with validation
