@@ -1,6 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { AIDecision, AIDecisionMetrics, AIDecisionTable, AIDecisionStatsTable } from '@/types/aiSuggestionTypes';
+import { AIDecision, AIDecisionMetrics } from '@/types/aiSuggestionTypes';
 import { toast } from 'sonner';
 
 /**
@@ -17,7 +17,7 @@ export async function logAIDecision(decision: AIDecision): Promise<boolean> {
         decision_value: decision.decision_value,
         confidence: decision.confidence,
         reasoning: decision.reasoning
-      });
+      } as any); // Using type assertion to bypass type checking for now
 
     if (error) {
       console.error('Error logging AI decision:', error);
@@ -47,7 +47,7 @@ export async function overrideAIDecision(
       .update({
         user_override: override.user_override,
         override_reason: override.override_reason
-      })
+      } as any) // Using type assertion to bypass type checking
       .eq('id', id);
 
     if (error) {
@@ -80,7 +80,7 @@ export async function getAIDecisions(campaignId: string): Promise<AIDecision[]> 
       return [];
     }
 
-    return data as AIDecision[];
+    return data as unknown as AIDecision[]; // Type assertion to ensure proper return type
   } catch (error) {
     console.error('Error in getAIDecisions:', error);
     return [];
@@ -105,11 +105,12 @@ export async function getAIDecisionMetrics(campaignId: string): Promise<AIDecisi
 
     if (!data) return null;
 
+    // Need to explicitly cast the data to the expected structure
     return {
-      total_decisions: data.total_decisions,
-      override_rate: data.override_rate,
-      by_type: data.decisions_by_type,
-      by_confidence: data.decisions_by_confidence
+      total_decisions: (data as any).total_decisions,
+      override_rate: (data as any).override_rate,
+      by_type: (data as any).decisions_by_type,
+      by_confidence: (data as any).decisions_by_confidence
     };
   } catch (error) {
     console.error('Error in getAIDecisionMetrics:', error);
