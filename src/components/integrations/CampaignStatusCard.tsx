@@ -1,23 +1,27 @@
+
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Loader2, AlertCircle, Clock, CheckCircle, ExternalLink } from "lucide-react";
+import { Loader2, AlertCircle, Clock, CheckCircle, ExternalLink, Play } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
 interface CampaignStatusCardProps {
   campaignId: string;
   refreshInterval?: number; // in milliseconds
+  onActivate?: () => void;
 }
 
 export default function CampaignStatusCard({ 
   campaignId, 
-  refreshInterval = 5000 
+  refreshInterval = 5000,
+  onActivate
 }: CampaignStatusCardProps) {
   const [campaign, setCampaign] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isActivating, setIsActivating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
@@ -39,7 +43,7 @@ export default function CampaignStatusCard({
         setCampaign(data);
         
         // If campaign is in a terminal state, clear the interval
-        if (data.status === "completed" || data.status === "error") {
+        if (data.status === "completed" || data.status === "error" || data.status === "active") {
           clearInterval(intervalId);
         }
       } catch (err) {
@@ -53,7 +57,7 @@ export default function CampaignStatusCard({
     fetchCampaign();
     
     // Set up interval for polling if campaign is not in terminal state
-    if (campaign?.status !== "completed" && campaign?.status !== "error") {
+    if (campaign?.status !== "completed" && campaign?.status !== "error" && campaign?.status !== "active") {
       intervalId = window.setInterval(fetchCampaign, refreshInterval);
     }
     
@@ -72,11 +76,71 @@ export default function CampaignStatusCard({
       case "adset_created":
         return { label: "Creating Ad Set", icon: <Loader2 className="h-3 w-3 mr-1 animate-spin" />, color: "bg-blue-100 text-blue-800" };
       case "completed":
-        return { label: "Completed", icon: <CheckCircle className="h-3 w-3 mr-1" />, color: "bg-green-100 text-green-800" };
+        return { label: "Completed (Paused)", icon: <CheckCircle className="h-3 w-3 mr-1" />, color: "bg-green-100 text-green-800" };
+      case "active":
+        return { label: "Active", icon: <CheckCircle className="h-3 w-3 mr-1" />, color: "bg-green-600 text-white" };
       case "error":
         return { label: "Error", icon: <AlertCircle className="h-3 w-3 mr-1" />, color: "bg-red-100 text-red-800" };
       default:
         return { label: status, icon: null, color: "bg-gray-100 text-gray-800" };
+    }
+  };
+
+  // Activate campaign function
+  const activateCampaign = async () => {
+    if (!campaign?.platform_campaign_id || !campaign?.platform_ad_set_id) {
+      toast({
+        title: "Error",
+        description: "Campaign or ad set ID is missing",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsActivating(true);
+
+    try {
+      const response = await supabase.functions.invoke('activate-facebook-campaign', {
+        body: {
+          campaignId: campaign.platform_campaign_id,
+          adSetId: campaign.platform_ad_set_id,
+          recordId: campaign.id
+        }
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message || "Failed to activate campaign");
+      }
+
+      // Refresh campaign data
+      const { data, error } = await supabase
+        .from("ad_campaigns")
+        .select("*")
+        .eq("id", campaignId)
+        .single();
+        
+      if (error) throw error;
+      setCampaign(data);
+
+      toast({
+        title: "Success",
+        description: "Campaign activated successfully",
+      });
+
+      // Call the onActivate callback if provided
+      if (onActivate) {
+        onActivate();
+      }
+
+    } catch (err) {
+      console.error("Error activating campaign:", err);
+      toast({
+        title: "Error",
+        description: err.message || "Failed to activate campaign",
+        variant: "destructive"
+      });
+    } finally {
+      setIsActivating(false);
     }
   };
 
@@ -157,7 +221,17 @@ export default function CampaignStatusCard({
             <CheckCircle className="h-4 w-4 text-green-600" />
             <AlertTitle>Campaign Created Successfully</AlertTitle>
             <AlertDescription className="text-sm">
-              Your campaign has been created and is currently in a paused state. You can activate it in Facebook Ads Manager.
+              Your campaign has been created and is currently in a paused state. You can activate it directly from this app or in Facebook Ads Manager.
+            </AlertDescription>
+          </Alert>
+        )}
+        
+        {campaign.status === "active" && (
+          <Alert variant="default" className="mb-4 bg-green-100 border-green-300">
+            <CheckCircle className="h-4 w-4 text-green-600" />
+            <AlertTitle>Campaign is Active</AlertTitle>
+            <AlertDescription className="text-sm">
+              Your campaign is now active and running on Facebook. You can view its performance in Facebook Ads Manager.
             </AlertDescription>
           </Alert>
         )}
@@ -210,8 +284,34 @@ export default function CampaignStatusCard({
         </div>
       </CardContent>
       
-      {campaign.status === "completed" && (
-        <CardFooter>
+      <CardFooter className="flex gap-2 flex-col sm:flex-row">
+        {campaign.status === "completed" && (
+          <>
+            <Button 
+              className="w-full" 
+              onClick={activateCampaign}
+              disabled={isActivating}
+            >
+              {isActivating ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Play className="h-4 w-4 mr-2" />
+              )}
+              Activate Campaign
+            </Button>
+            
+            <Button 
+              variant="outline" 
+              className="w-full" 
+              onClick={viewOnFacebook}
+            >
+              <ExternalLink className="h-4 w-4 mr-2" />
+              View in Facebook Ads Manager
+            </Button>
+          </>
+        )}
+        
+        {campaign.status === "active" && (
           <Button 
             variant="outline" 
             className="w-full" 
@@ -220,8 +320,8 @@ export default function CampaignStatusCard({
             <ExternalLink className="h-4 w-4 mr-2" />
             View in Facebook Ads Manager
           </Button>
-        </CardFooter>
-      )}
+        )}
+      </CardFooter>
     </Card>
   );
 }

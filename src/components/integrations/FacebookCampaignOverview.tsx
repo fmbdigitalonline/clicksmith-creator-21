@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useSession } from "@supabase/auth-helpers-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -5,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, AlertCircle, Plus, CheckCircle, Facebook, RefreshCw, Save, Copy, BarChart3 } from "lucide-react";
+import { Loader2, AlertCircle, Plus, CheckCircle, Facebook, RefreshCw, Save, Copy, BarChart3, Play } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { Badge } from "@/components/ui/badge";
 import FacebookCampaignForm from "./FacebookCampaignForm";
@@ -172,7 +173,9 @@ export default function FacebookCampaignOverview() {
       case "adset_created":
         return { label: "Ad Set Created", color: "bg-blue-100 text-blue-800" };
       case "completed":
-        return { label: "Active", color: "bg-green-100 text-green-800" };
+        return { label: "Paused", color: "bg-green-100 text-green-800" };
+      case "active":
+        return { label: "Active", color: "bg-green-600 text-white" };
       case "error":
         return { label: "Error", color: "bg-red-100 text-red-800" };
       default:
