@@ -1,6 +1,6 @@
 
 import { useEffect, useState } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { Navigate, useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -11,6 +11,7 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const location = useLocation();
 
   useEffect(() => {
     const checkSession = async () => {
@@ -33,6 +34,18 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
         // Only attempt to refresh if we have a valid session
         if (session) {
           try {
+            // Detect if we're in an OAuth flow by checking URL parameters
+            const searchParams = new URLSearchParams(location.search);
+            const isInOAuthFlow = searchParams.has('code') && searchParams.has('connection');
+            
+            // Skip token refresh during OAuth flow to prevent interruptions
+            if (isInOAuthFlow) {
+              console.log("Detected OAuth flow, skipping token refresh");
+              setIsAuthenticated(true);
+              setIsLoading(false);
+              return;
+            }
+            
             const { data: { user }, error: refreshError } = await supabase.auth.refreshSession();
             
             if (refreshError) {
@@ -104,6 +117,15 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log("Auth state changed:", event);
       
+      // Skip handling auth events during OAuth flow
+      const searchParams = new URLSearchParams(location.search);
+      const isInOAuthFlow = searchParams.has('code') && searchParams.has('connection');
+      
+      if (isInOAuthFlow) {
+        console.log("Skipping auth event handling during OAuth flow");
+        return;
+      }
+      
       const handleAuthEvent = (event: AuthEvent) => {
         switch (event) {
           case 'SIGNED_OUT':
@@ -130,7 +152,7 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     return () => {
       subscription.unsubscribe();
     };
-  }, [navigate, toast]);
+  }, [navigate, toast, location.search]);
 
   if (isLoading) {
     return (

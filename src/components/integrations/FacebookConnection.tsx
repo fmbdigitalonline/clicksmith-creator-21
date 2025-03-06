@@ -10,7 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
-// URL redirecting to Facebook OAuth with environment variables
+// URL redirecting to Facebook OAuth with environment variables and expanded permissions
 const generateFacebookAuthURL = () => {
   const facebookAppId = import.meta.env.VITE_FACEBOOK_APP_ID;
   
@@ -30,11 +30,12 @@ const generateFacebookAuthURL = () => {
     }
   }
   
-  const scopes = encodeURIComponent("ads_management,ads_read");
+  // Include enhanced permissions for Ads Manager access
+  const scopes = encodeURIComponent("ads_management,ads_read,business_management");
   
   console.log("Generating Facebook Auth URL with redirectUri:", redirectUri);
   
-  return `https://www.facebook.com/v18.0/dialog/oauth?client_id=${facebookAppId}&redirect_uri=${redirectUri}&scope=${scopes}&response_type=code`;
+  return `https://www.facebook.com/v18.0/dialog/oauth?client_id=${facebookAppId}&redirect_uri=${redirectUri}&scope=${scopes}&response_type=code&state=${Date.now()}`;
 };
 
 interface PlatformConnection {
@@ -126,31 +127,76 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
     }
 
     checkConnectionStatus();
+    
+    // Add session state change handler
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log("Auth state changed in Facebook connection:", event);
+      if (event === 'SIGNED_IN') {
+        checkConnectionStatus();
+      } else if (event === 'SIGNED_OUT') {
+        setIsConnected(false);
+        setConnection(null);
+      }
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
   }, [session, toast]);
+
+  // Handle OAuth callback in the URL
+  useEffect(() => {
+    const handleOAuthCallback = async () => {
+      const params = new URLSearchParams(window.location.search);
+      const error = params.get('error');
+      const errorReason = params.get('error_reason');
+      
+      if (error) {
+        const errorMsg = params.get('error_description') || `Authentication error: ${errorReason || error}`;
+        setErrorMessage(errorMsg);
+        toast({
+          title: "Connection Failed",
+          description: errorMsg,
+          variant: "destructive",
+        });
+      }
+    };
+    
+    handleOAuthCallback();
+  }, [toast]);
 
   // Handle connection click
   const handleConnect = () => {
     setErrorMessage(null);
+    setIsProcessing(true);
     
-    const authUrl = generateFacebookAuthURL();
-    if (!authUrl) {
-      setErrorMessage("Facebook App ID is missing in configuration.");
-      toast({
-        title: "Configuration Error",
-        description: "Facebook App ID is missing. Please contact the administrator.",
-        variant: "destructive",
+    try {
+      const authUrl = generateFacebookAuthURL();
+      if (!authUrl) {
+        setErrorMessage("Facebook App ID is missing in configuration.");
+        toast({
+          title: "Configuration Error",
+          description: "Facebook App ID is missing. Please check your environment variables.",
+          variant: "destructive",
+        });
+        setIsProcessing(false);
+        return;
+      }
+      
+      // Enhanced logging for debugging
+      console.log("Facebook connection details:", {
+        appId: import.meta.env.VITE_FACEBOOK_APP_ID ? "configured" : "missing",
+        redirectUri: import.meta.env.VITE_FACEBOOK_REDIRECT_URI,
+        authUrl: authUrl
       });
-      return;
+      
+      // Navigate user to Facebook auth flow
+      window.location.href = authUrl;
+    } catch (error) {
+      console.error("Error initiating Facebook connection:", error);
+      setErrorMessage("Failed to connect to Facebook. Please try again.");
+      setIsProcessing(false);
     }
-    
-    // Enhanced logging for debugging
-    console.log("Facebook connection details:", {
-      appId: import.meta.env.VITE_FACEBOOK_APP_ID ? "configured" : "missing",
-      redirectUri: import.meta.env.VITE_FACEBOOK_REDIRECT_URI,
-      authUrl: authUrl
-    });
-    
-    window.location.href = authUrl;
   };
 
   // Handle disconnection

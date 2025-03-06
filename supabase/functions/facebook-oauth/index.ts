@@ -2,15 +2,15 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { corsHeaders } from '../_shared/cors.ts'
 
-// Update to use both environment variable formats for compatibility
-const FACEBOOK_APP_ID = Deno.env.get('FACEBOOK_APP_ID') || import.meta.env?.VITE_FACEBOOK_APP_ID || '';
+// Update to support both environment variable formats
+const FACEBOOK_APP_ID = Deno.env.get('FACEBOOK_APP_ID') || Deno.env.get('VITE_FACEBOOK_APP_ID') || '';
 const FACEBOOK_APP_SECRET = Deno.env.get('FACEBOOK_APP_SECRET') || '';
-// Try different possible names for the redirect URI
-const REDIRECT_URI = Deno.env.get('FACEBOOK_REDIRECT_URI') || Deno.env.get('REDIRECT_URI') || '';
+// Use both possible redirect URI names
+const REDIRECT_URI = Deno.env.get('FACEBOOK_REDIRECT_URI') || Deno.env.get('VITE_FACEBOOK_REDIRECT_URI') || '';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 
-// Log environment variables (without sensitive data) for debugging
+// Log environment variables for debugging
 console.log('Environment variables check:', {
   facebookAppIdExists: !!FACEBOOK_APP_ID,
   facebookAppSecretExists: !!FACEBOOK_APP_SECRET,
@@ -20,7 +20,7 @@ console.log('Environment variables check:', {
   supabaseServiceRoleKeyExists: !!SUPABASE_SERVICE_ROLE_KEY
 });
 
-// Create Supabase client - Define this function first before using it
+// Create Supabase client for admin operations
 const createClient = (supabaseUrl: string, supabaseKey: string) => {
   return {
     from: (table: string) => ({
@@ -46,24 +46,29 @@ const createClient = (supabaseUrl: string, supabaseKey: string) => {
     }),
     auth: {
       getUser: async (token: string) => {
-        const res = await fetch(`${supabaseUrl}/auth/v1/user`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'apikey': supabaseKey,
+        try {
+          const res = await fetch(`${supabaseUrl}/auth/v1/user`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'apikey': supabaseKey,
+            }
+          });
+          if (!res.ok) {
+            const error = await res.json();
+            return { data: { user: null }, error };
           }
-        });
-        if (!res.ok) {
-          const error = await res.json();
+          const user = await res.json();
+          return { data: { user }, error: null };
+        } catch (error) {
+          console.error('Error in getUser:', error);
           return { data: { user: null }, error };
         }
-        const user = await res.json();
-        return { data: { user }, error: null };
       }
     }
   };
 };
 
-// Now initialize after the function is defined
+// Initialize Supabase admin client
 const supabaseAdmin = createClient(
   SUPABASE_URL,
   SUPABASE_SERVICE_ROLE_KEY,
@@ -72,7 +77,7 @@ const supabaseAdmin = createClient(
 async function exchangeCodeForToken(code: string) {
   console.log('Exchanging code for token');
   
-  // Create URL params
+  // Create URL params with required fields
   const params = new URLSearchParams({
     client_id: FACEBOOK_APP_ID,
     client_secret: FACEBOOK_APP_SECRET,
@@ -111,11 +116,12 @@ async function exchangeCodeForToken(code: string) {
 }
 
 async function getAdAccounts(accessToken: string) {
-  console.log('Getting ad accounts');
+  console.log('Getting ad accounts with expanded permissions');
   
   try {
+    // Request with expanded permissions to include business_management
     const response = await fetch(
-      `https://graph.facebook.com/v18.0/me/adaccounts?fields=id,name,account_id&access_token=${accessToken}`,
+      `https://graph.facebook.com/v18.0/me/adaccounts?fields=id,name,account_id,account_status,business&access_token=${accessToken}`,
       { method: 'GET' }
     );
 
@@ -132,6 +138,30 @@ async function getAdAccounts(accessToken: string) {
     return data;
   } catch (error) {
     console.error('Error in getAdAccounts:', error);
+    throw error;
+  }
+}
+
+async function getUserInfo(accessToken: string) {
+  console.log('Getting user information');
+  
+  try {
+    const response = await fetch(
+      `https://graph.facebook.com/v18.0/me?fields=id,name,email&access_token=${accessToken}`,
+      { method: 'GET' }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Error fetching user info:', errorText);
+      throw new Error(`Failed to fetch user info: ${errorText}`);
+    }
+
+    const data = await response.json();
+    console.log('User info retrieved successfully');
+    return data;
+  } catch (error) {
+    console.error('Error in getUserInfo:', error);
     throw error;
   }
 }
@@ -155,6 +185,9 @@ async function validateToken(accessToken: string) {
 
     const data = await response.json();
     console.log('Token validation result:', data.data?.is_valid === true ? 'valid' : 'invalid');
+    if (data.data?.is_valid) {
+      console.log('Token scopes:', data.data?.scopes);
+    }
     return data.data?.is_valid === true;
   } catch (error) {
     console.error('Error in validateToken:', error);
@@ -194,7 +227,7 @@ async function saveConnectionToDatabase(userId: string, platform: string, access
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests - Make sure this is properly implemented
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { 
       headers: corsHeaders, 
@@ -206,7 +239,7 @@ serve(async (req) => {
     console.log('Received request:', req.method, req.url);
     
     // Print all request headers for debugging
-    const requestHeaders = {};
+    const requestHeaders: Record<string, string> = {};
     req.headers.forEach((value, key) => {
       requestHeaders[key] = value;
     });
@@ -325,6 +358,10 @@ serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
+
+    // Get user information
+    const userInfo = await getUserInfo(tokenData.access_token);
+    console.log('Facebook user info:', userInfo);
 
     // Get ad accounts for the user
     const adAccountsData = await getAdAccounts(tokenData.access_token);
