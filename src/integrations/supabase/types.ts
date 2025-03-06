@@ -348,6 +348,57 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_campaign_decisions: {
+        Row: {
+          campaign_id: string
+          confidence: string | null
+          decision_type: string
+          decision_value: string
+          id: string
+          override_reason: string | null
+          reasoning: string | null
+          timestamp: string | null
+          user_override: string | null
+        }
+        Insert: {
+          campaign_id: string
+          confidence?: string | null
+          decision_type: string
+          decision_value: string
+          id?: string
+          override_reason?: string | null
+          reasoning?: string | null
+          timestamp?: string | null
+          user_override?: string | null
+        }
+        Update: {
+          campaign_id?: string
+          confidence?: string | null
+          decision_type?: string
+          decision_value?: string
+          id?: string
+          override_reason?: string | null
+          reasoning?: string | null
+          timestamp?: string | null
+          user_override?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_campaign_decisions_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "ad_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_campaign_decisions_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_suggestion_feedback: {
         Row: {
           action: string
@@ -1493,6 +1544,31 @@ export type Database = {
       }
     }
     Views: {
+      ai_decision_stats: {
+        Row: {
+          campaign_id: string | null
+          decisions_by_confidence: Json | null
+          decisions_by_type: Json | null
+          override_rate: number | null
+          total_decisions: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_campaign_decisions_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "ad_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_campaign_decisions_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campaign_templates: {
         Row: {
           campaign_data: Json | null
