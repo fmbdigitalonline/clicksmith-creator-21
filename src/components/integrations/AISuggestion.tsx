@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { SuggestionResponse, SuggestionType, useAICampaignAssistant } from "@/hooks/useAICampaignAssistant";
@@ -15,7 +16,7 @@ import {
 } from "@/components/ui/hover-card";
 import { supabase } from "@/integrations/supabase/client";
 import { useParams } from "react-router-dom";
-import { AISuggestionFeedback } from "@/types/aiSuggestionTypes";
+import { AISuggestionFeedback, AISuggestionFeedbackTable } from "@/types/aiSuggestionTypes";
 
 interface AISuggestionProps {
   type: SuggestionType;
@@ -99,14 +100,16 @@ export function AISuggestion({
         current_value: currentValue?.toString()
       };
       
-      // Use a more specific type assertion that includes the expected methods
-      const feedbackTable = supabase.from('ai_suggestion_feedback') as unknown as {
-        insert: (data: AISuggestionFeedback) => Promise<{ error: any; data: any; }>;
-      };
+      // Use proper typings when interacting with Supabase
+      const { error } = await supabase
+        .from('ai_suggestion_feedback')
+        .insert(feedbackData);
       
-      await feedbackTable.insert(feedbackData);
-      
-      console.log(`Suggestion ${action} logged successfully`);
+      if (error) {
+        console.error('Error logging suggestion interaction:', error);
+      } else {
+        console.log(`Suggestion ${action} logged successfully`);
+      }
     } catch (error) {
       console.error('Error logging suggestion interaction:', error);
     }
@@ -165,6 +168,8 @@ export function AISuggestion({
   if (!businessIdea && !targetAudience && type !== "performance") {
     return null;
   }
+
+  const buttonSizeClass = size === "sm" ? "h-7 px-2 text-xs" : "h-9 px-3";
 
   if (isLoading[type]) {
     return (

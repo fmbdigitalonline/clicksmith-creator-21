@@ -2,8 +2,10 @@
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useProjectTitle } from "@/hooks/useProjectTitle";
+import { RocketIcon, Settings, Sparkles, Lightbulb } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 interface CampaignModeSelectionProps {
   onModeSelect: (mode: "manual" | "semi-automatic" | "automatic") => void;
@@ -43,7 +45,8 @@ export default function CampaignModeSelection({
           <CardHeader className="pb-2">
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="manual" id="manual" className="mt-0" />
-              <Label htmlFor="manual" className="font-medium text-base cursor-pointer">
+              <Label htmlFor="manual" className="font-medium text-base cursor-pointer flex items-center">
+                <Settings className="h-4 w-4 mr-2" />
                 Manual Mode
               </Label>
             </div>
@@ -66,7 +69,8 @@ export default function CampaignModeSelection({
                 className="mt-0" 
                 disabled={!projectId}
               />
-              <Label htmlFor="semi-automatic" className="font-medium text-base cursor-pointer">
+              <Label htmlFor="semi-automatic" className="font-medium text-base cursor-pointer flex items-center">
+                <Sparkles className="h-4 w-4 mr-2" />
                 Semi-Automatic Mode
               </Label>
             </div>
@@ -87,26 +91,36 @@ export default function CampaignModeSelection({
           className={`cursor-pointer border-2 ${selectedMode === "automatic" ? "border-primary" : "border-transparent"} ${!projectId ? "opacity-50" : ""}`}
         >
           <CardHeader className="pb-2">
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem 
-                value="automatic" 
-                id="automatic" 
-                className="mt-0" 
-                disabled={!projectId}
-              />
-              <Label htmlFor="automatic" className="font-medium text-base cursor-pointer">
-                AI-Driven Mode
-              </Label>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem 
+                  value="automatic" 
+                  id="automatic" 
+                  className="mt-0" 
+                  disabled={!projectId}
+                />
+                <Label htmlFor="automatic" className="font-medium text-base cursor-pointer flex items-center">
+                  <RocketIcon className="h-4 w-4 mr-2" />
+                  AI-Driven Mode
+                </Label>
+              </div>
+              <Badge className="bg-purple-600 hover:bg-purple-700">New</Badge>
             </div>
           </CardHeader>
           <CardContent>
             <CardDescription>
-              Let our AI create your entire campaign based on your project data.
+              Let our AI create your entire campaign based on your project data with smart decision algorithms.
               {!projectId && (
                 <div className="mt-2 text-amber-600">
                   Requires a selected project for AI to analyze.
                 </div>
               )}
+              <div className="mt-2 flex items-start p-2 bg-purple-50 rounded border border-purple-100">
+                <Lightbulb className="h-4 w-4 text-purple-600 mt-0.5 mr-2 flex-shrink-0" />
+                <span className="text-xs text-purple-800">
+                  Our AI analyzes your business data and automatically applies industry best practices to create an optimized campaign.
+                </span>
+              </div>
             </CardDescription>
           </CardContent>
         </Card>
