@@ -2,12 +2,22 @@
 import { useState, useEffect } from "react";
 import { useSession } from "@supabase/auth-helpers-react";
 import { supabase } from "@/integrations/supabase/client";
-import { PlatformConnection } from "@/types/platformConnection";
+
+interface FacebookConnection {
+  id: string;
+  platform: string;
+  access_token: string;
+  account_id: string | null;
+  account_name: string | null;
+  token_expires_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
 
 export function useFacebookConnection() {
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [connection, setConnection] = useState<PlatformConnection | null>(null);
+  const [connection, setConnection] = useState<FacebookConnection | null>(null);
   const session = useSession();
 
   useEffect(() => {
@@ -42,7 +52,7 @@ export function useFacebookConnection() {
           }
           
           setIsConnected(true);
-          setConnection(data as PlatformConnection);
+          setConnection(data);
         }
       } catch (error) {
         console.error("Error checking Facebook connection status:", error);

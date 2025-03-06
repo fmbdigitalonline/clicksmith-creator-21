@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,7 +25,6 @@ import {
   SelectValue 
 } from "@/components/ui/select";
 import { PlatformConnection, AdAccount, FacebookPage } from "@/types/platformConnection";
-import { useFacebookConnectionMetadata } from "@/hooks/useFacebookConnectionMetadata";
 
 // URL redirecting to Facebook OAuth with environment variables and expanded permissions
 const generateFacebookAuthURL = () => {
@@ -71,9 +69,6 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
   const { toast } = useToast();
   const session = useSession();
-  
-  // Use our custom hook to convert metadata to strongly typed form
-  const { typedMetadata, prepareMetadataForSave } = useFacebookConnectionMetadata(connection?.metadata);
 
   // Enhanced connection validation
   const fetchConnectionStatus = async () => {
@@ -113,8 +108,8 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
       if (data) {
         setConnection(data as PlatformConnection);
         // Set the selected account ID if available in metadata
-        if (typedMetadata?.selected_account_id) {
-          setSelectedAccountId(typedMetadata.selected_account_id);
+        if (data.metadata?.selected_account_id) {
+          setSelectedAccountId(data.metadata.selected_account_id);
         } else if (data.account_id) {
           setSelectedAccountId(data.account_id);
         }
@@ -304,20 +299,11 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
     
     try {
       // Find the account details
-      const selectedAccount = typedMetadata?.ad_accounts?.find(account => account.id === accountId);
+      const selectedAccount = connection.metadata?.ad_accounts.find(account => account.id === accountId);
       
       if (!selectedAccount) {
         throw new Error("Selected account not found");
       }
-      
-      // Create a new metadata object with the selected account
-      const updatedMetadata = {
-        ...typedMetadata,
-        selected_account_id: accountId
-      };
-      
-      // Use the helper function to prepare metadata for database storage
-      const dbSafeMetadata = prepareMetadataForSave(updatedMetadata);
       
       // Update the platform_connection in the database
       const { error } = await supabase
@@ -325,19 +311,25 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
         .update({
           account_id: accountId,
           account_name: selectedAccount.name,
-          metadata: dbSafeMetadata
+          metadata: {
+            ...connection.metadata,
+            selected_account_id: accountId
+          }
         })
         .eq('platform', 'facebook');
       
       if (error) throw error;
       
-      // Update local state - Make sure to use the typed metadata, not the Json version
+      // Update local state
       setSelectedAccountId(accountId);
       setConnection({
         ...connection,
         account_id: accountId,
         account_name: selectedAccount.name,
-        metadata: updatedMetadata // Use the typed metadata for the local state
+        metadata: {
+          ...connection.metadata,
+          selected_account_id: accountId
+        }
       });
       
       toast({
@@ -450,7 +442,7 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
             </div>
             
             {/* Ad Account Selector */}
-            {typedMetadata?.ad_accounts && typedMetadata.ad_accounts.length > 0 && (
+            {connection.metadata?.ad_accounts && connection.metadata.ad_accounts.length > 0 && (
               <div className="pt-2">
                 <label className="text-sm font-medium mb-1 block">
                   Select Ad Account
@@ -464,7 +456,7 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
                       <SelectValue placeholder="Select ad account" />
                     </SelectTrigger>
                     <SelectContent>
-                      {typedMetadata.ad_accounts.map(account => {
+                      {connection.metadata.ad_accounts.map(account => {
                         const status = formatAccountStatus(account.account_status);
                         return (
                           <SelectItem key={account.id} value={account.id}>
@@ -494,17 +486,17 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {typedMetadata.ad_accounts.length} ad account{typedMetadata.ad_accounts.length !== 1 ? 's' : ''} available
+                  {connection.metadata.ad_accounts.length} ad account{connection.metadata.ad_accounts.length !== 1 ? 's' : ''} available
                 </p>
               </div>
             )}
             
             {/* Pages Information */}
-            {typedMetadata?.pages && typedMetadata.pages.length > 0 && (
+            {connection.metadata?.pages && connection.metadata.pages.length > 0 && (
               <div className="pt-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Connected Pages:</span>
-                  <span className="font-medium">{typedMetadata.pages.length}</span>
+                  <span className="font-medium">{connection.metadata.pages.length}</span>
                 </div>
               </div>
             )}
