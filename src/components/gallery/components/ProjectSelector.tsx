@@ -38,12 +38,13 @@ export function ProjectSelector({ onSelect, selectedProjectId }: ProjectSelector
     const fetchProjects = async () => {
       try {
         setLoading(true);
-        const { data: user } = await supabase.auth.getUser();
-        if (!user) return;
+        const { data: userData } = await supabase.auth.getUser();
+        if (!userData.user) return;
 
         const { data, error } = await supabase
           .from('projects')
           .select('id, title')
+          .eq('user_id', userData.user.id)
           .order('updated_at', { ascending: false });
 
         if (error) throw error;

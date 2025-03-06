@@ -104,7 +104,7 @@ export const SavedAdsGallery = () => {
 
   useEffect(() => {
     fetchSavedAds();
-  }, [toast]);
+  }, []);
 
   const handleAdSelect = (adId: string, isSelected: boolean) => {
     if (isSelected) {
@@ -123,6 +123,7 @@ export const SavedAdsGallery = () => {
   };
 
   const handleProjectSelect = (projectId: string) => {
+    console.log("Project selected:", projectId);
     setSelectedProjectId(projectId);
   };
 
@@ -138,18 +139,24 @@ export const SavedAdsGallery = () => {
         return;
       }
 
+      console.log("Assigning ads to project:", selectedProjectId, "Ads:", selectedAdIds);
+
       const { error } = await supabase
         .from('ad_feedback')
         .update({ project_id: selectedProjectId })
         .in('id', selectedAdIds);
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error assigning to project:", error);
+        throw error;
+      }
 
       toast({
         title: "Ads assigned",
         description: `${selectedAdIds.length} ad(s) assigned to project successfully.`,
       });
-      fetchSavedAds();
+      
+      await fetchSavedAds();
       setSelectedAdIds([]);
       setIsConfirmDialogOpen(false);
     } catch (error) {
@@ -265,6 +272,11 @@ export const SavedAdsGallery = () => {
                   variant="default" 
                   disabled={selectedAdIds.length === 0 || !selectedProjectId || isAssigning}
                   className="whitespace-nowrap"
+                  onClick={() => {
+                    if (selectedAdIds.length > 0 && selectedProjectId) {
+                      setIsConfirmDialogOpen(true);
+                    }
+                  }}
                 >
                   {isAssigning ? (
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
