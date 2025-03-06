@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/hover-card";
 import { supabase } from "@/integrations/supabase/client";
 import { useParams } from "react-router-dom";
+import { AISuggestionFeedback } from "@/types/aiSuggestionTypes";
 
 interface AISuggestionProps {
   type: SuggestionType;
@@ -88,8 +89,8 @@ export function AISuggestion({
       
       if (!user || !effectiveProjectId) return;
       
-      // Use type assertion to avoid TypeScript error until types are regenerated
-      await (supabase.from('ai_suggestion_feedback') as any).insert({
+      // Create feedback data with proper typing
+      const feedbackData: AISuggestionFeedback = {
         user_id: user.id,
         project_id: effectiveProjectId,
         suggestion_type: type,
@@ -97,7 +98,10 @@ export function AISuggestion({
         suggestion_content: suggestion?.suggestion,
         suggestion_confidence: suggestion?.confidence,
         current_value: currentValue?.toString()
-      });
+      };
+      
+      // Use type assertion for now since the table exists but isn't in the type definitions
+      await (supabase.from('ai_suggestion_feedback') as any).insert(feedbackData);
       
       console.log(`Suggestion ${action} logged successfully`);
     } catch (error) {
@@ -274,4 +278,3 @@ export function AISuggestion({
     </TooltipProvider>
   );
 }
-
