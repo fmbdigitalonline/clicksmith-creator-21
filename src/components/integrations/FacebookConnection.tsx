@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -73,7 +72,7 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
   const session = useSession();
   
   // Use our custom hook to convert metadata to strongly typed form
-  const typedMetadata = useFacebookConnectionMetadata(connection?.metadata);
+  const { typedMetadata, prepareMetadataForSave } = useFacebookConnectionMetadata(connection?.metadata);
 
   // Enhanced connection validation
   const fetchConnectionStatus = async () => {
@@ -316,13 +315,16 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
         selected_account_id: accountId
       };
       
+      // Use the helper function to prepare metadata for database storage
+      const dbSafeMetadata = prepareMetadataForSave(updatedMetadata);
+      
       // Update the platform_connection in the database
       const { error } = await supabase
         .from('platform_connections')
         .update({
           account_id: accountId,
           account_name: selectedAccount.name,
-          metadata: updatedMetadata
+          metadata: dbSafeMetadata
         })
         .eq('platform', 'facebook');
       
@@ -334,7 +336,7 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
         ...connection,
         account_id: accountId,
         account_name: selectedAccount.name,
-        metadata: updatedMetadata
+        metadata: dbSafeMetadata
       });
       
       toast({

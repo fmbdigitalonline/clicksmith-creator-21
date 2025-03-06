@@ -25,5 +25,11 @@ export function useFacebookConnectionMetadata(metadata: Json | null) {
     }
   }, [metadata]);
 
-  return typedMetadata;
+  // Helper function to prepare metadata for saving to database
+  const prepareMetadataForSave = (updatedMetadata: PlatformConnectionMetadata): Json => {
+    // Convert the typed metadata to a format compatible with Json type
+    return updatedMetadata as unknown as Json;
+  };
+
+  return { typedMetadata, prepareMetadataForSave };
 }
