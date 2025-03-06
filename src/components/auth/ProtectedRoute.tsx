@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Navigate, useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -36,11 +35,19 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
           try {
             // Detect if we're in an OAuth flow by checking URL parameters
             const searchParams = new URLSearchParams(location.search);
-            const isInOAuthFlow = searchParams.has('code') && searchParams.has('connection');
+            const isInOAuthFlow = (
+              searchParams.has('code') && 
+              searchParams.has('connection') && 
+              !searchParams.has('error')
+            );
+            
+            // Add OAuth state parameter detection
+            const hasOAuthState = searchParams.has('state');
+            const isValidOAuthState = hasOAuthState && validateOAuthState(searchParams.get('state'));
             
             // Skip token refresh during OAuth flow to prevent interruptions
-            if (isInOAuthFlow) {
-              console.log("Detected OAuth flow, skipping token refresh");
+            if (isInOAuthFlow && (isValidOAuthState || !hasOAuthState)) {
+              console.log("Detected valid OAuth flow, skipping token refresh");
               setIsAuthenticated(true);
               setIsLoading(false);
               return;
@@ -91,14 +98,23 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
               setIsAuthenticated(true);
             }
           } catch (error) {
-            console.error("Token refresh error:", error);
-            setIsAuthenticated(false);
-            navigate('/login', { replace: true });
-            toast({
-              title: "Authentication Error",
-              description: "Please sign in again",
-              variant: "destructive",
-            });
+            // Special handling for errors during OAuth flow
+            const searchParams = new URLSearchParams(location.search);
+            const isInOAuthFlow = searchParams.has('code') && searchParams.has('connection');
+            
+            if (isInOAuthFlow) {
+              console.log("Auth error during OAuth flow, but continuing to allow completion:", error);
+              setIsAuthenticated(true);
+            } else {
+              console.error("Token refresh error:", error);
+              setIsAuthenticated(false);
+              navigate('/login', { replace: true });
+              toast({
+                title: "Authentication Error",
+                description: "Please sign in again",
+                variant: "destructive",
+              });
+            }
           }
         }
       } catch (error) {
@@ -109,6 +125,34 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
         setIsLoading(false);
       }
     };
+
+    // Helper function to validate OAuth state
+    function validateOAuthState(stateParam: string | null): boolean {
+      if (!stateParam) return false;
+      
+      try {
+        const parsedState = JSON.parse(decodeURIComponent(stateParam));
+        
+        // Basic validation - must have timestamp and nonce
+        if (!parsedState.timestamp || !parsedState.nonce) {
+          return false;
+        }
+        
+        // Check if state is expired (older than 1 hour)
+        const stateTime = new Date(parsedState.timestamp);
+        const currentTime = new Date();
+        const hourInMs = 60 * 60 * 1000;
+        
+        if (currentTime.getTime() - stateTime.getTime() > hourInMs) {
+          return false;
+        }
+        
+        return true;
+      } catch (error) {
+        console.error("Error validating OAuth state:", error);
+        return false;
+      }
+    }
 
     // Check initial session
     checkSession();

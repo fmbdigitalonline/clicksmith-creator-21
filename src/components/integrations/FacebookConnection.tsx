@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -56,9 +55,21 @@ const generateFacebookAuthURL = () => {
   // Include enhanced permissions for Ads Manager access
   const scopes = encodeURIComponent("ads_management,ads_read,business_management,pages_read_engagement,pages_show_list");
   
+  // Generate a secure state parameter with timestamp and random value for CSRF protection
+  const stateValue = JSON.stringify({
+    timestamp: Date.now(),
+    nonce: Math.random().toString(36).substring(2, 15),
+    origin: window.location.origin
+  });
+  
+  // Store state in sessionStorage for verification when returning from OAuth
+  sessionStorage.setItem('facebookOAuthState', stateValue);
+  
+  const encodedState = encodeURIComponent(stateValue);
+  
   console.log("Generating Facebook Auth URL with redirectUri:", redirectUri);
   
-  return `https://www.facebook.com/v18.0/dialog/oauth?client_id=${facebookAppId}&redirect_uri=${redirectUri}&scope=${scopes}&response_type=code&state=${Date.now()}`;
+  return `https://www.facebook.com/v18.0/dialog/oauth?client_id=${facebookAppId}&redirect_uri=${redirectUri}&scope=${scopes}&response_type=code&state=${encodedState}`;
 };
 
 interface FacebookConnectionProps {
@@ -175,28 +186,74 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
     };
   }, [session, toast]);
 
-  // Handle OAuth callback in the URL
+  // Handle OAuth callback in the URL - improved with state validation
   useEffect(() => {
     const handleOAuthCallback = async () => {
       const params = new URLSearchParams(window.location.search);
       const error = params.get('error');
-      const errorReason = params.get('error_reason');
+      const state = params.get('state');
       
       if (error) {
-        const errorMsg = params.get('error_description') || `Authentication error: ${errorReason || error}`;
+        const errorMsg = params.get('error_description') || `Authentication error: ${params.get('error_reason') || error}`;
         setErrorMessage(errorMsg);
         toast({
           title: "Connection Failed",
           description: errorMsg,
           variant: "destructive",
         });
+        return;
+      }
+      
+      // Validate state parameter if present (CSRF protection)
+      if (state) {
+        try {
+          const storedState = sessionStorage.getItem('facebookOAuthState');
+          if (!storedState) {
+            console.warn("No stored OAuth state found for validation");
+          } else {
+            // Parse and validate state
+            const parsedState = JSON.parse(decodeURIComponent(state));
+            const parsedStoredState = JSON.parse(storedState);
+            
+            // Check if state is valid (matches stored state)
+            if (parsedState.nonce !== parsedStoredState.nonce) {
+              setErrorMessage("Invalid OAuth state - possible CSRF attack");
+              toast({
+                title: "Security Warning",
+                description: "Authentication state mismatch detected. Please try again.",
+                variant: "destructive",
+              });
+              return;
+            }
+            
+            // Check if state is expired (older than 1 hour)
+            const stateTime = new Date(parsedState.timestamp);
+            const currentTime = new Date();
+            const hourInMs = 60 * 60 * 1000;
+            
+            if (currentTime.getTime() - stateTime.getTime() > hourInMs) {
+              setErrorMessage("OAuth state expired - please try again");
+              toast({
+                title: "Authentication Expired",
+                description: "Your authentication request has expired. Please try again.",
+                variant: "destructive",
+              });
+              return;
+            }
+            
+            // Clear the stored state after validation
+            sessionStorage.removeItem('facebookOAuthState');
+          }
+        } catch (e) {
+          console.error("Error validating OAuth state:", e);
+        }
       }
     };
     
     handleOAuthCallback();
   }, [toast]);
 
-  // Handle connection click
+  // Handle connection click with improved state management
   const handleConnect = () => {
     setErrorMessage(null);
     setIsProcessing(true);

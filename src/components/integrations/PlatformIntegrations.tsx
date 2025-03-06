@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,7 +28,7 @@ export default function PlatformIntegrations() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Process OAuth callback if present in URL
+  // Process OAuth callback if present in URL - improved with transaction handling and state validation
   useEffect(() => {
     const processOAuthCallback = async () => {
       const searchParams = new URLSearchParams(location.search);
@@ -38,6 +37,7 @@ export default function PlatformIntegrations() {
       const error = searchParams.get('error');
       const errorReason = searchParams.get('error_reason');
       const errorDescription = searchParams.get('error_description');
+      const state = searchParams.get('state');
       
       if (!connectionType) return;
       
@@ -46,7 +46,8 @@ export default function PlatformIntegrations() {
         code: code ? `present (${code.length} chars)` : 'missing',
         error: error || 'none',
         errorReason: errorReason || 'none',
-        errorDescription: errorDescription || 'none'
+        errorDescription: errorDescription || 'none',
+        statePresent: state ? 'yes' : 'no'
       });
       
       if (error) {
@@ -74,6 +75,70 @@ export default function PlatformIntegrations() {
         return;
       }
       
+      // Validate state parameter for security
+      if (state) {
+        try {
+          const storedState = sessionStorage.getItem(`${connectionType}OAuthState`);
+          if (!storedState) {
+            console.warn(`No stored OAuth state found for ${connectionType}`);
+          } else {
+            // Parse and validate state
+            let parsedState;
+            let parsedStoredState;
+            
+            try {
+              parsedState = JSON.parse(decodeURIComponent(state));
+              parsedStoredState = JSON.parse(storedState);
+            } catch (e) {
+              console.error("Error parsing state:", e);
+              throw new Error("Invalid state format");
+            }
+            
+            // Check if state is valid (matches stored state)
+            if (parsedState.nonce !== parsedStoredState.nonce) {
+              throw new Error("State mismatch - possible CSRF attack");
+            }
+            
+            // Check if state is expired (older than 1 hour)
+            const stateTime = new Date(parsedState.timestamp);
+            const currentTime = new Date();
+            const hourInMs = 60 * 60 * 1000;
+            
+            if (currentTime.getTime() - stateTime.getTime() > hourInMs) {
+              throw new Error("OAuth state expired");
+            }
+            
+            // Verify origin matches the current origin
+            if (parsedState.origin && parsedState.origin !== window.location.origin) {
+              throw new Error("Origin mismatch in state");
+            }
+            
+            // Clear the stored state after validation
+            sessionStorage.removeItem(`${connectionType}OAuthState`);
+          }
+        } catch (e) {
+          console.error("Error validating OAuth state:", e);
+          
+          // Clean URL and navigate away to avoid infinite loops
+          navigate('/integrations', { 
+            replace: true,
+            state: { 
+              error: "authentication_error", 
+              errorDescription: e instanceof Error ? e.message : "Invalid authentication state" 
+            }
+          });
+          
+          setOauthError("Security validation failed: " + (e instanceof Error ? e.message : "Unknown error"));
+          
+          toast({
+            title: "Security Warning",
+            description: "Authentication validation failed. Please try again.",
+            variant: "destructive",
+          });
+          return;
+        }
+      }
+      
       if (connectionType === 'facebook' && code) {
         setIsProcessingOAuth(true);
         setOauthError(null);
@@ -92,64 +157,119 @@ export default function PlatformIntegrations() {
           const codeToProcess = code;
           navigate('/integrations', { replace: true });
           
-          // Call the edge function with the code and authorization token
-          const response = await supabase.functions.invoke('facebook-oauth', {
-            body: { 
-              code: codeToProcess,
-              origin: window.location.origin
-            },
-            headers: {
-              Authorization: `Bearer ${session.access_token}`,
-            },
-          });
-
-          console.log("OAuth function response:", response);
+          // Add a transaction tracking variable for rollback capability
+          let transactionStage = 'init';
           
-          if (response.error) {
-            throw new Error(response.error.message || response.error);
-          }
-
-          // Validate response structure
-          if (!isValidFacebookOAuthResponse(response.data)) {
-            throw new Error("Invalid response format from server");
-          }
-
-          const oauthResponse = response.data as FacebookOAuthResponse;
-          
-          // Extra validation check with zod
           try {
-            FacebookOAuthResponseSchema.parse(oauthResponse);
-          } catch (error) {
-            console.error("Schema validation failed for OAuth response:", error);
-            throw new Error("Server response failed schema validation");
-          }
-          
-          if (oauthResponse.success) {
-            // Validate metadata before proceeding
-            if (oauthResponse.adAccounts) {
-              console.log(`Validating ${oauthResponse.adAccounts.length} ad accounts`);
-              // Log any validation issues but don't fail
+            // Call the edge function with the code and authorization token
+            transactionStage = 'api_call';
+            
+            // Improve resilience with retry logic
+            const maxRetries = 2;
+            let retryCount = 0;
+            let response;
+            
+            while (retryCount <= maxRetries) {
               try {
-                validatePlatformConnectionMetadata({
-                  ad_accounts: oauthResponse.adAccounts,
-                  pages: oauthResponse.pages || []
+                response = await supabase.functions.invoke('facebook-oauth', {
+                  body: { 
+                    code: codeToProcess,
+                    origin: window.location.origin,
+                    state: state // Pass state for additional verification on server
+                  },
+                  headers: {
+                    Authorization: `Bearer ${session.access_token}`,
+                  },
                 });
-              } catch (error) {
-                console.warn("Metadata validation issue:", error);
+                
+                break; // Break out of retry loop if successful
+              } catch (retryError) {
+                if (retryCount === maxRetries) {
+                  throw retryError; // Rethrow if we've exhausted retries
+                }
+                
+                console.log(`API call attempt ${retryCount + 1} failed, retrying...`);
+                retryCount++;
+                // Exponential backoff
+                await new Promise(r => setTimeout(r, 1000 * Math.pow(2, retryCount)));
+              }
+            }
+
+            console.log("OAuth function response:", response);
+            
+            if (response.error) {
+              throw new Error(response.error.message || response.error);
+            }
+
+            // Validate response structure
+            transactionStage = 'validation';
+            if (!isValidFacebookOAuthResponse(response.data)) {
+              throw new Error("Invalid response format from server");
+            }
+
+            const oauthResponse = response.data as FacebookOAuthResponse;
+            
+            // Extra validation check with zod
+            try {
+              FacebookOAuthResponseSchema.parse(oauthResponse);
+            } catch (error) {
+              console.error("Schema validation failed for OAuth response:", error);
+              throw new Error("Server response failed schema validation");
+            }
+            
+            if (oauthResponse.success) {
+              transactionStage = 'success';
+              
+              // Validate metadata before proceeding
+              if (oauthResponse.adAccounts) {
+                console.log(`Validating ${oauthResponse.adAccounts.length} ad accounts`);
+                // Log any validation issues but don't fail
+                try {
+                  validatePlatformConnectionMetadata({
+                    ad_accounts: oauthResponse.adAccounts,
+                    pages: oauthResponse.pages || []
+                  });
+                } catch (error) {
+                  console.warn("Metadata validation issue:", error);
+                }
+              }
+              
+              toast({
+                title: "Success!",
+                description: oauthResponse.message || "Your Facebook Ads account has been connected",
+              });
+              
+              // Force reload connections
+              await checkConnections();
+              setActiveTab("campaigns");
+            } else {
+              const errorMessage = oauthResponse.error || oauthResponse.message || "Unknown error occurred connecting to Facebook";
+              throw new Error(errorMessage);
+            }
+          } catch (error) {
+            console.error(`Error in transaction stage: ${transactionStage}`, error);
+            
+            // If we reached the validation or success stage, attempt rollback
+            if (transactionStage === 'validation' || transactionStage === 'success') {
+              try {
+                console.log("Attempting rollback of partially completed connection");
+                // Attempt to delete the platform connection if it was created
+                const { error: deleteError } = await supabase
+                  .from('platform_connections')
+                  .delete()
+                  .eq('platform', 'facebook');
+                
+                if (deleteError) {
+                  console.error("Error rolling back connection:", deleteError);
+                } else {
+                  console.log("Successfully rolled back connection");
+                }
+              } catch (rollbackError) {
+                console.error("Error during rollback:", rollbackError);
               }
             }
             
-            toast({
-              title: "Success!",
-              description: oauthResponse.message || "Your Facebook Ads account has been connected",
-            });
-            
-            // Force reload connections
-            await checkConnections();
-            setActiveTab("campaigns");
-          } else {
-            const errorMessage = oauthResponse.error || oauthResponse.message || "Unknown error occurred connecting to Facebook";
-            throw new Error(errorMessage);
+            throw error;
           }
         } catch (error) {
           console.error("Error processing OAuth callback:", error);

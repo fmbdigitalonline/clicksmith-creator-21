@@ -177,4 +177,3 @@ export function validatePlatformConnectionMetadata(metadata: any): PlatformConne
     };
   }
 }
-

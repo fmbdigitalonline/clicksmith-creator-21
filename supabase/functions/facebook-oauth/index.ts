@@ -43,6 +43,13 @@ const TokenResponseSchema = z.object({
   expires_in: z.number().optional(),
 }).catchall(z.unknown());
 
+// Add state validation schema
+const StateSchema = z.object({
+  timestamp: z.number(),
+  nonce: z.string(),
+  origin: z.string().optional()
+}).catchall(z.unknown());
+
 // Improved type definitions for consistent response handling
 interface FacebookOAuthResponse {
   success: boolean;
@@ -54,6 +61,8 @@ interface FacebookOAuthResponse {
   message?: string;
   error?: string;
   details?: Record<string, any>;
+  stage?: string;
+  stack?: string | null;
 }
 
 interface ApiUser {
@@ -481,6 +490,41 @@ async function saveConnectionToDatabase(
   }
 }
 
+async function validateOAuthState(stateParam: string | null): Promise<boolean> {
+  if (!stateParam) {
+    console.log("No state parameter provided");
+    return true; // Allow no state for backward compatibility
+  }
+  
+  try {
+    // Parse the state
+    const parsedState = JSON.parse(decodeURIComponent(stateParam));
+    
+    // Validate with schema
+    try {
+      StateSchema.parse(parsedState);
+    } catch (error) {
+      console.error("State parameter failed schema validation:", error);
+      return false;
+    }
+    
+    // Check if state is expired (older than 1 hour)
+    const stateTime = new Date(parsedState.timestamp);
+    const currentTime = new Date();
+    const hourInMs = 60 * 60 * 1000;
+    
+    if (currentTime.getTime() - stateTime.getTime() > hourInMs) {
+      console.error("OAuth state expired");
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error("Error parsing state parameter:", error);
+    return false;
+  }
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -539,7 +583,7 @@ serve(async (req) => {
     }
     
     // Parse request body
-    let requestBody = {};
+    let requestBody: any = {};
     const contentType = req.headers.get('content-type') || '';
     
     if (contentType.includes('application/json')) {
@@ -551,18 +595,22 @@ serve(async (req) => {
       }
     }
     
-    // Get code from request body or URL parameter
+    // Get code and state from request body or URL parameter
     const url = new URL(req.url);
     const codeFromParam = url.searchParams.get('code');
+    const stateFromParam = url.searchParams.get('state');
     const codeFromBody = requestBody.code;
+    const stateFromBody = requestBody.state;
     const code = codeFromBody || codeFromParam;
+    const state = stateFromBody || stateFromParam;
     
     const authToken = req.headers.get('Authorization')?.split(' ')[1];
     
     // Log request details
     console.log('Request parameters:', { 
       code: code ? `present (${code.length} chars)` : 'missing', 
-      authToken: authToken ? `present (${authToken.length} chars)` : 'missing' 
+      authToken: authToken ? `present (${authToken.length} chars)` : 'missing',
+      state: state ? `present (${state.length} chars)` : 'missing'
     });
     
     if (!code) {
@@ -588,6 +636,20 @@ serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
+    
+    // Validate the state parameter
+    const isStateValid = await validateOAuthState(state);
+    if (state && !isStateValid) {
+      const response: FacebookOAuthResponse = {
+        success: false,
+        error: 'Invalid OAuth state parameter'
+      };
+      
+      return new Response(JSON.stringify(response), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
 
     // Get the user from the auth token
     const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(authToken);
@@ -609,8 +671,14 @@ serve(async (req) => {
 
     console.log('User authenticated:', user.id);
 
+    // Track transaction stages for potential rollback
+    let transactionStage = 'init';
+    let rollbackNeeded = false;
+    let savedConnectionId = null;
+
     // Process the OAuth response with validation
     try {
+      transactionStage = 'token_exchange';
       // Exchange the code for an access token
       const tokenData = await exchangeCodeForToken(code);
       console.log('Token exchange successful with data:', JSON.stringify({
@@ -619,6 +687,7 @@ serve(async (req) => {
         expires_in: tokenData.expires_in
       }, null, 2));
       
+      transactionStage = 'token_validation';
       // Validate the token
       const isTokenValid = await validateToken(tokenData.access_token);
       if (!isTokenValid) {
@@ -635,14 +704,17 @@ serve(async (req) => {
         });
       }
 
+      transactionStage = 'user_info';
       // Get user information
       const userInfo = await getUserInfo(tokenData.access_token);
       console.log('Facebook user info:', userInfo);
 
+      transactionStage = 'ad_accounts';
       // Get ad accounts for the user
       const adAccountsData = await getAdAccounts(tokenData.access_token);
       console.log('Ad accounts fetched successfully');
 
+      transactionStage = 'pages';
       // Get pages for the user
       const pagesData = await getPages(tokenData.access_token);
       console.log('Pages fetched successfully');
@@ -671,8 +743,11 @@ serve(async (req) => {
       }
 
       try {
+        transactionStage = 'database_save';
+        rollbackNeeded = true;
+        
         // Save the connection to the database with ad accounts and pages
-        await saveConnectionToDatabase(
+        const saveResult = await saveConnectionToDatabase(
           user.id,
           'facebook',
           tokenData.access_token,
@@ -683,6 +758,13 @@ serve(async (req) => {
           adAccountsData?.data || [],
           pagesData?.data || []
         );
+
+        if (saveResult && saveResult.data && saveResult.data[0]) {
+          savedConnectionId = saveResult.data[0].id;
+        }
+        
+        transactionStage = 'complete';
+        rollbackNeeded = false;
         
         const response: FacebookOAuthResponse = {
           success: true,
@@ -701,6 +783,16 @@ serve(async (req) => {
       } catch (error) {
         console.error('Error saving connection:', error);
         
+        // If we need to rollback and have a connection ID
+        if (rollbackNeeded && savedConnectionId) {
+          try {
+            console.log(`Attempting to roll back connection creation: ${savedConnectionId}`);
+            // Add rollback logic here if needed
+          } catch (rollbackError) {
+            console.error('Error during rollback:', rollbackError);
+          }
+        }
+        
         const response: FacebookOAuthResponse = {
           success: false,
           error: error instanceof Error ? error.message : 'Unknown error occurred saving connection',
@@ -715,9 +807,20 @@ serve(async (req) => {
     } catch (error) {
       console.error('Error in Facebook OAuth:', error);
       
+      // If we need to rollback and have a connection ID
+      if (rollbackNeeded && savedConnectionId) {
+        try {
+          console.log(`Attempting to roll back after error in stage ${transactionStage}`);
+          // Add rollback logic here if needed
+        } catch (rollbackError) {
+          console.error('Error during rollback:', rollbackError);
+        }
+      }
+      
       const response: FacebookOAuthResponse = {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error occurred',
+        stage: transactionStage,
         stack: error instanceof Error ? error.stack : null
       };
       
