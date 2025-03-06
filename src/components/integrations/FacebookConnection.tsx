@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,6 +24,7 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
+import { PlatformConnection, AdAccount, FacebookPage } from "@/types/platformConnection";
 
 // URL redirecting to Facebook OAuth with environment variables and expanded permissions
 const generateFacebookAuthURL = () => {
@@ -53,44 +53,6 @@ const generateFacebookAuthURL = () => {
   
   return `https://www.facebook.com/v18.0/dialog/oauth?client_id=${facebookAppId}&redirect_uri=${redirectUri}&scope=${scopes}&response_type=code&state=${Date.now()}`;
 };
-
-interface AdAccount {
-  id: string;
-  name: string;
-  account_id: string;
-  account_status: number;
-  currency?: string;
-  timezone_name?: string;
-  capabilities?: string[];
-}
-
-interface FacebookPage {
-  id: string;
-  name: string;
-  access_token?: string;
-  category?: string;
-  followers_count?: number;
-  fan_count?: number;
-}
-
-interface PlatformConnection {
-  id: string;
-  platform: string;
-  account_id: string | null;
-  account_name: string | null;
-  access_token: string;
-  refresh_token: string | null;
-  token_expires_at: string | null;
-  created_at: string;
-  updated_at: string;
-  user_id: string;
-  metadata?: {
-    ad_accounts?: AdAccount[];
-    pages?: FacebookPage[];
-    selected_account_id?: string;
-    last_fetched?: string;
-  };
-}
 
 interface FacebookConnectionProps {
   onConnectionChange?: () => void;
