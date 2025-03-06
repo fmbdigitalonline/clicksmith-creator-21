@@ -41,16 +41,10 @@ const generateFacebookAuthURL = () => {
     return "";
   }
   
-  // Use the redirect URI from env var, or fallback to current origin + path
-  let redirectUri = import.meta.env.VITE_FACEBOOK_REDIRECT_URI;
-  if (!redirectUri) {
-    redirectUri = encodeURIComponent(window.location.origin + "/integrations?connection=facebook");
-  } else {
-    // If it's not already encoded, encode it
-    if (!redirectUri.includes('%')) {
-      redirectUri = encodeURIComponent(redirectUri);
-    }
-  }
+  // Get the current origin, handling both preview and production URLs
+  const currentOrigin = window.location.origin;
+  const redirectUri = `${currentOrigin}/integrations?connection=facebook`;
+  const encodedRedirectUri = encodeURIComponent(redirectUri);
   
   // Include enhanced permissions for Ads Manager access
   const scopes = encodeURIComponent("ads_management,ads_read,business_management,pages_read_engagement,pages_show_list");
@@ -59,7 +53,7 @@ const generateFacebookAuthURL = () => {
   const stateValue = JSON.stringify({
     timestamp: Date.now(),
     nonce: Math.random().toString(36).substring(2, 15),
-    origin: window.location.origin
+    origin: currentOrigin
   });
   
   // Store state in sessionStorage for verification when returning from OAuth
@@ -67,9 +61,13 @@ const generateFacebookAuthURL = () => {
   
   const encodedState = encodeURIComponent(stateValue);
   
-  console.log("Generating Facebook Auth URL with redirectUri:", redirectUri);
+  console.log("Generating Facebook Auth URL with:", {
+    currentOrigin,
+    redirectUri,
+    state: stateValue
+  });
   
-  return `https://www.facebook.com/v18.0/dialog/oauth?client_id=${facebookAppId}&redirect_uri=${redirectUri}&scope=${scopes}&response_type=code&state=${encodedState}`;
+  return `https://www.facebook.com/v18.0/dialog/oauth?client_id=${facebookAppId}&redirect_uri=${encodedRedirectUri}&scope=${scopes}&response_type=code&state=${encodedState}`;
 };
 
 interface FacebookConnectionProps {

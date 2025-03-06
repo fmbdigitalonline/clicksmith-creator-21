@@ -5,7 +5,7 @@ import { corsHeaders } from '../_shared/cors.ts'
 const FACEBOOK_APP_ID = Deno.env.get('FACEBOOK_APP_ID') || Deno.env.get('VITE_FACEBOOK_APP_ID') || '';
 const FACEBOOK_APP_SECRET = Deno.env.get('FACEBOOK_APP_SECRET') || '';
 // Use both possible redirect URI names
-const REDIRECT_URI = Deno.env.get('FACEBOOK_REDIRECT_URI') || Deno.env.get('VITE_FACEBOOK_REDIRECT_URI') || '';
+let REDIRECT_URI = Deno.env.get('FACEBOOK_REDIRECT_URI') || Deno.env.get('VITE_FACEBOOK_REDIRECT_URI') || '';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 
@@ -599,8 +599,8 @@ serve(async (req) => {
     const url = new URL(req.url);
     const codeFromParam = url.searchParams.get('code');
     const stateFromParam = url.searchParams.get('state');
-    const codeFromBody = requestBody.code;
-    const stateFromBody = requestBody.state;
+    const codeFromBody = requestBody?.code;
+    const stateFromBody = requestBody?.state;
     const code = codeFromBody || codeFromParam;
     const state = stateFromBody || stateFromParam;
     
