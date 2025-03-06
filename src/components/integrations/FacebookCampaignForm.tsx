@@ -34,6 +34,7 @@ export default function FacebookCampaignForm({
   const [selectedAdIds, setSelectedAdIds] = useState<string[]>([]);
   const [createdCampaignId, setCreatedCampaignId] = useState<string>("");
   const [formSubmitFn, setFormSubmitFn] = useState<(() => void) | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false); // Add this to prevent multiple submissions
   
   // Fetch project data for targeting suggestions and validation
   const projectData = useProjectCampaignData(selectedProjectId || initialProjectId);
@@ -55,11 +56,21 @@ export default function FacebookCampaignForm({
   };
 
   const handleContinue = () => {
+    // Prevent multiple clicks by checking if already processing
+    if (isSubmitting) return;
+    
     // Only allow non-manual modes if a project is selected
     if ((selectedMode === "semi-automatic" || selectedMode === "automatic") && !selectedProjectId) {
       return;
     }
-    setStep("form");
+    
+    setIsSubmitting(true);
+    
+    // Add a small delay to prevent double triggers
+    setTimeout(() => {
+      setStep("form");
+      setIsSubmitting(false);
+    }, 100);
   };
 
   const handleBack = () => {
@@ -83,6 +94,7 @@ export default function FacebookCampaignForm({
       setSelectedAdIds([]);
       setCreatedCampaignId("");
       setFormSubmitFn(null);
+      setIsSubmitting(false);
     }, 300); // Small delay to avoid seeing the reset during close animation
     onOpenChange(false);
   };
@@ -116,13 +128,24 @@ export default function FacebookCampaignForm({
 
   // Add a new function to handle form submission directly
   const handleFormSubmit = () => {
+    // Prevent multiple submissions
+    if (isSubmitting) return;
+    
     console.log("Submitting campaign with selected ads:", selectedAdIds);
+    setIsSubmitting(true);
     
     if (formSubmitFn) {
       // Call the form's submit function directly
       formSubmitFn();
+      
+      // Reset the isSubmitting flag after a reasonable timeout
+      // in case the submission callback doesn't fire
+      setTimeout(() => {
+        setIsSubmitting(false);
+      }, 5000);
     } else {
       console.error("Form submit function not available");
+      setIsSubmitting(false);
     }
   };
 
@@ -171,9 +194,9 @@ export default function FacebookCampaignForm({
             <div className="flex justify-end mt-6">
               <Button 
                 onClick={handleContinue}
-                disabled={(selectedMode !== "manual") && !selectedProjectId && !initialProjectId}
+                disabled={(selectedMode !== "manual") && !selectedProjectId && !initialProjectId || isSubmitting}
               >
-                Continue
+                {isSubmitting ? "Processing..." : "Continue"}
               </Button>
             </div>
           </>
@@ -243,10 +266,10 @@ export default function FacebookCampaignForm({
                     </Button>
                     <Button 
                       onClick={handleFormSubmit}
-                      disabled={selectedAdIds.length === 0 || !formSubmitFn}
+                      disabled={selectedAdIds.length === 0 || !formSubmitFn || isSubmitting}
                       variant="facebook"
                     >
-                      Create Campaign with {selectedAdIds.length} ad{selectedAdIds.length !== 1 ? 's' : ''}
+                      {isSubmitting ? "Creating..." : `Create Campaign with ${selectedAdIds.length} ad${selectedAdIds.length !== 1 ? 's' : ''}`}
                     </Button>
                   </div>
                 </div>

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -120,13 +121,23 @@ export default function CreateCampaignForm({
   // Expose the submit function to parent component
   useEffect(() => {
     if (onFormSubmitReady) {
-      onFormSubmitReady(() => form.handleSubmit(handleFormSubmit)());
+      // We need to make sure form submission is only triggered once
+      const wrappedSubmitFn = () => {
+        if (!isSubmitting) {
+          setIsSubmitting(true);
+          form.handleSubmit(handleFormSubmit)();
+        }
+      };
+      
+      onFormSubmitReady(wrappedSubmitFn);
     }
-  }, [form, onFormSubmitReady]);
+  }, [form, onFormSubmitReady, isSubmitting]);
   
   const handleFormSubmit = async (values: z.infer<typeof campaignFormSchema>) => {
     try {
-      setIsSubmitting(true);
+      if (isSubmitting) return; // Prevent duplicate submissions
+      
+      console.log("Form submitted with values:", values);
 
       // Extract targeting data for Facebook API
       const targetingData = projectData.targetAudience ? {
@@ -141,8 +152,6 @@ export default function CreateCampaignForm({
         targeting_data: targetingData,
         smart_targeting: creationMode !== "manual"
       };
-      
-      console.log("Form submitted with values:", campaignData);
       
       // Create the campaign record in the database
       const { data: campaignRecord, error: dbError } = await supabase
