@@ -88,7 +88,8 @@ export function AISuggestion({
       
       if (!user || !effectiveProjectId) return;
       
-      await supabase.from('ai_suggestion_feedback').insert({
+      // Use type assertion to avoid TypeScript error until types are regenerated
+      await (supabase.from('ai_suggestion_feedback') as any).insert({
         user_id: user.id,
         project_id: effectiveProjectId,
         suggestion_type: type,
@@ -273,3 +274,4 @@ export function AISuggestion({
     </TooltipProvider>
   );
 }
+
