@@ -34,7 +34,8 @@ export default function FacebookCampaignForm({
   const [selectedAdIds, setSelectedAdIds] = useState<string[]>([]);
   const [createdCampaignId, setCreatedCampaignId] = useState<string>("");
   const [formSubmitFn, setFormSubmitFn] = useState<(() => void) | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false); // Add this to prevent multiple submissions
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formIsValid, setFormIsValid] = useState(false);
   
   // Fetch project data for targeting suggestions and validation
   const projectData = useProjectCampaignData(selectedProjectId || initialProjectId);
@@ -95,6 +96,7 @@ export default function FacebookCampaignForm({
       setCreatedCampaignId("");
       setFormSubmitFn(null);
       setIsSubmitting(false);
+      setFormIsValid(false);
     }, 300); // Small delay to avoid seeing the reset during close animation
     onOpenChange(false);
   };
@@ -107,6 +109,7 @@ export default function FacebookCampaignForm({
     console.log("Campaign created with ID:", campaignId);
     setCreatedCampaignId(campaignId);
     setStep("status");
+    setIsSubmitting(false);
     
     // Call onSuccess if provided
     if (onSuccess) {
@@ -121,9 +124,19 @@ export default function FacebookCampaignForm({
     }
   };
 
+  // Handle form validation status
+  const handleFormValidation = (isValid: boolean) => {
+    setFormIsValid(isValid);
+  };
+
   // Set the form submit function from the child component
   const handleFormSubmitReady = (submitFn: () => void) => {
     setFormSubmitFn(submitFn);
+  };
+
+  // Add a new function to handle navigation to ads tab
+  const handleContinueToAds = () => {
+    setFormTab("ads");
   };
 
   // Add a new function to handle form submission directly
@@ -237,9 +250,10 @@ export default function FacebookCampaignForm({
                   onCancel={handleClose}
                   onBack={handleBack}
                   selectedAdIds={selectedAdIds}
-                  onContinue={() => setFormTab("ads")}
+                  onContinue={handleContinueToAds}
                   projectDataCompleteness={projectData.dataCompleteness}
                   onFormSubmitReady={handleFormSubmitReady}
+                  onFormValidation={handleFormValidation}
                 />
               </TabsContent>
               
@@ -266,7 +280,7 @@ export default function FacebookCampaignForm({
                     </Button>
                     <Button 
                       onClick={handleFormSubmit}
-                      disabled={selectedAdIds.length === 0 || !formSubmitFn || isSubmitting}
+                      disabled={selectedAdIds.length === 0 || !formSubmitFn || isSubmitting || !formIsValid}
                       variant="facebook"
                     >
                       {isSubmitting ? "Creating..." : `Create Campaign with ${selectedAdIds.length} ad${selectedAdIds.length !== 1 ? 's' : ''}`}

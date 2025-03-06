@@ -66,7 +66,8 @@ interface CreateCampaignFormProps {
   selectedAdIds?: string[];
   onContinue?: () => void;
   projectDataCompleteness?: number;
-  onFormSubmitReady?: (submitFn: () => void) => void; // New prop to expose the submit function
+  onFormSubmitReady?: (submitFn: () => void) => void;
+  onFormValidation?: (isValid: boolean) => void; // New prop for form validation status
 }
 
 export default function CreateCampaignForm({ 
@@ -78,7 +79,8 @@ export default function CreateCampaignForm({
   selectedAdIds = [],
   onContinue,
   projectDataCompleteness = 100,
-  onFormSubmitReady
+  onFormSubmitReady,
+  onFormValidation
 }: CreateCampaignFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPerformancePrediction, setShowPerformancePrediction] = useState(false);
@@ -117,6 +119,14 @@ export default function CreateCampaignForm({
       });
     }
   }, [projectData.loading, projectData.businessIdea]);
+
+  // Report form validation status
+  useEffect(() => {
+    if (onFormValidation) {
+      const isValid = form.formState.isValid;
+      onFormValidation(isValid);
+    }
+  }, [form.formState.isValid, onFormValidation]);
 
   // Expose the submit function to parent component
   useEffect(() => {
@@ -237,7 +247,6 @@ export default function CreateCampaignForm({
         
         {/* Show data completeness message */}
         {renderDataCompletenessMessage()}
-        
         
         <FormField
           control={form.control}
