@@ -10,7 +10,7 @@ export async function logAIDecision(decision: AIDecision): Promise<boolean> {
   try {
     // Insert the decision into the ai_campaign_decisions table
     const { error } = await supabase
-      .from<AIDecisionTable>('ai_campaign_decisions')
+      .from('ai_campaign_decisions')
       .insert({
         campaign_id: decision.campaign_id,
         decision_type: decision.decision_type,
@@ -43,7 +43,7 @@ export async function overrideAIDecision(
 ): Promise<boolean> {
   try {
     const { error } = await supabase
-      .from<AIDecisionTable>('ai_campaign_decisions')
+      .from('ai_campaign_decisions')
       .update({
         user_override: override.user_override,
         override_reason: override.override_reason
@@ -70,7 +70,7 @@ export async function overrideAIDecision(
 export async function getAIDecisions(campaignId: string): Promise<AIDecision[]> {
   try {
     const { data, error } = await supabase
-      .from<AIDecisionTable>('ai_campaign_decisions')
+      .from('ai_campaign_decisions')
       .select('*')
       .eq('campaign_id', campaignId)
       .order('timestamp', { ascending: false });
@@ -93,7 +93,7 @@ export async function getAIDecisions(campaignId: string): Promise<AIDecision[]> 
 export async function getAIDecisionMetrics(campaignId: string): Promise<AIDecisionMetrics | null> {
   try {
     const { data, error } = await supabase
-      .from<AIDecisionStatsTable>('ai_decision_stats')
+      .from('ai_decision_stats')
       .select('*')
       .eq('campaign_id', campaignId)
       .single();
