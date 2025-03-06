@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -70,6 +71,14 @@ interface ExtendedPlatformConnection {
   updated_at: string;
   user_id: string;
   // Store extended data in this field
+  metadata?: {
+    adAccounts?: AdAccount[];
+    pages?: FacebookPage[];
+    selectedAdAccountId?: string;
+    selectedPageId?: string;
+    pageAccessToken?: string;
+  };
+  // For backward compatibility
   extendedData?: {
     adAccounts?: AdAccount[];
     pages?: FacebookPage[];
@@ -133,34 +142,27 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
       
       console.log("Facebook connection data:", data);
       if (data) {
-        // Extract metadata from the database response (which might be stored as JSON)
-        const rawMetadata = (data as any).metadata || {};
-        const extendedData = {
-          adAccounts: rawMetadata.adAccounts || [],
-          pages: rawMetadata.pages || [],
-          selectedAdAccountId: rawMetadata.selectedAdAccountId || (rawMetadata.adAccounts?.length > 0 ? rawMetadata.adAccounts[0].id : null),
-          selectedPageId: rawMetadata.selectedPageId || (rawMetadata.pages?.length > 0 ? rawMetadata.pages[0].id : null),
-          pageAccessToken: rawMetadata.pageAccessToken || null
-        };
+        // Get metadata from the response
+        const metadata = (data as any).metadata || {};
         
-        // Create the extended connection object
+        // Create the extended connection object with metadata
         const extendedConnection: ExtendedPlatformConnection = {
           ...data,
-          extendedData
+          metadata
         };
         
         setConnection(extendedConnection);
         
         // Extract ad accounts and pages from metadata
-        const adAccounts = extendedData.adAccounts || [];
-        const pages = extendedData.pages || [];
+        const adAccounts = metadata.adAccounts || [];
+        const pages = metadata.pages || [];
         
         setAdAccounts(adAccounts);
         setPages(pages);
         
         // Set selected account and page
-        setSelectedAdAccount(extendedData.selectedAdAccountId || (adAccounts.length > 0 ? adAccounts[0].id : null));
-        setSelectedPage(extendedData.selectedPageId || (pages.length > 0 ? pages[0].id : null));
+        setSelectedAdAccount(metadata.selectedAdAccountId || (adAccounts.length > 0 ? adAccounts[0].id : null));
+        setSelectedPage(metadata.selectedPageId || (pages.length > 0 ? pages[0].id : null));
         
         return true;
       }
@@ -341,13 +343,13 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
       setSelectedAdAccount(accountId);
       
       // Update local state
-      if (connection.extendedData) {
+      if (connection.metadata) {
         setConnection({
           ...connection,
           account_id: accountId,
           account_name: selectedAccount.name,
-          extendedData: {
-            ...connection.extendedData,
+          metadata: {
+            ...connection.metadata,
             selectedAdAccountId: accountId
           }
         });
@@ -408,11 +410,11 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
       setSelectedPage(pageId);
       
       // Update local state
-      if (connection.extendedData) {
+      if (connection.metadata) {
         setConnection({
           ...connection,
-          extendedData: {
-            ...connection.extendedData,
+          metadata: {
+            ...connection.metadata,
             selectedPageId: pageId,
             pageAccessToken: selectedPageData.access_token
           }
