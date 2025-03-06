@@ -1,4 +1,3 @@
-
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { corsHeaders } from '../_shared/cors.ts'
 
@@ -102,22 +101,60 @@ const createClient = (supabaseUrl: string, supabaseKey: string) => {
           }
         }
         
+        // Prepare Prefer header for proper conflict resolution
+        let preferHeader = 'return=representation';
+        if (options?.onConflict) {
+          preferHeader += ',resolution=merge-duplicates';
+          if (options.onConflict.includes(',')) {
+            preferHeader += `,merge-keys=${options.onConflict}`;
+          }
+        }
+
         return fetch(`${supabaseUrl}/rest/v1/${table}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'apikey': supabaseKey,
             'Authorization': `Bearer ${supabaseKey}`,
-            'Prefer': options?.onConflict ? `resolution=merge-duplicates,merge-keys=user_id,platform` : ''
+            'Prefer': preferHeader
           },
           body: JSON.stringify(dataToSave),
         }).then(async (res) => {
+          console.log(`Upsert response status: ${res.status}, Content-Type: ${res.headers.get('content-type')}`);
+          
           if (!res.ok) {
-            const error = await res.json();
-            console.error(`Error upserting data into ${table}:`, error);
-            return { data: null, error };
+            let errorData;
+            try {
+              const contentType = res.headers.get('content-type');
+              if (contentType && contentType.includes('application/json')) {
+                errorData = await res.json();
+              } else {
+                errorData = { message: await res.text() };
+              }
+            } catch (jsonError) {
+              console.error(`Error parsing error response: ${jsonError}`);
+              errorData = { message: 'Failed to parse error response' };
+            }
+            
+            console.error(`Error upserting data into ${table}:`, errorData);
+            return { data: null, error: errorData };
           }
-          const data = await res.json();
+          
+          let data;
+          try {
+            const contentType = res.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+              data = await res.json();
+            } else {
+              const text = await res.text();
+              console.log(`Non-JSON response (${contentType}):`, text);
+              data = { success: true };
+            }
+          } catch (jsonError) {
+            console.error(`Error parsing success response: ${jsonError}`);
+            return { data: { success: true }, error: null };
+          }
+          
           console.log(`Successfully upserted data into ${table}`);
           return { data, error: null };
         }).catch(err => {
@@ -135,11 +172,24 @@ const createClient = (supabaseUrl: string, supabaseKey: string) => {
             }
           }).then(async (res) => {
             if (!res.ok) {
-              const error = await res.json();
-              console.error(`Error selecting from ${table}:`, error);
-              return { data: null, error };
+              let errorData;
+              try {
+                errorData = await res.json();
+              } catch (jsonError) {
+                errorData = { message: await res.text() };
+              }
+              console.error(`Error selecting from ${table}:`, errorData);
+              return { data: null, error: errorData };
             }
-            const data = await res.json();
+            
+            let data;
+            try {
+              data = await res.json();
+            } catch (jsonError) {
+              console.error(`Error parsing select response: ${jsonError}`);
+              return { data: [], error: jsonError };
+            }
+            
             console.log(`Successfully selected from ${table}, found ${data.length} records`);
             return { data, error: null };
           }).catch(err => {
@@ -168,14 +218,44 @@ const createClient = (supabaseUrl: string, supabaseKey: string) => {
           headers: {
             'apikey': supabaseKey,
             'Authorization': `Bearer ${supabaseKey}`,
+            'Content-Type': 'application/json'
           }
         }).then(async (res) => {
+          console.log(`Query response status: ${res.status}, Content-Type: ${res.headers.get('content-type')}`);
+          
           if (!res.ok) {
-            const error = await res.json();
-            console.error(`Error querying ${table}:`, error);
-            return { data: null, error };
+            let errorData;
+            try {
+              const contentType = res.headers.get('content-type');
+              if (contentType && contentType.includes('application/json')) {
+                errorData = await res.json();
+              } else {
+                errorData = { message: await res.text() };
+              }
+            } catch (jsonError) {
+              console.error(`Error parsing error response: ${jsonError}`);
+              errorData = { message: 'Failed to parse error response' };
+            }
+            
+            console.error(`Error querying ${table}:`, errorData);
+            return { data: null, error: errorData };
           }
-          const data = await res.json();
+          
+          let data;
+          try {
+            const contentType = res.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+              data = await res.json();
+            } else {
+              const text = await res.text();
+              console.log(`Non-JSON response (${contentType}):`, text);
+              data = [];
+            }
+          } catch (jsonError) {
+            console.error(`Error parsing query response: ${jsonError}`);
+            return { data: [], error: jsonError };
+          }
+          
           console.log(`Query successful, found ${data.length} records in ${table}`);
           return { data, error: null };
         }).catch(err => {
@@ -195,11 +275,24 @@ const createClient = (supabaseUrl: string, supabaseKey: string) => {
             }
           });
           if (!res.ok) {
-            const error = await res.json();
-            console.error('Error getting user from auth token:', error);
-            return { data: { user: null }, error };
+            let errorData;
+            try {
+              errorData = await res.json();
+            } catch (jsonError) {
+              errorData = { message: await res.text() };
+            }
+            console.error('Error getting user from auth token:', errorData);
+            return { data: { user: null }, error: errorData };
           }
-          const user = await res.json();
+          
+          let user;
+          try {
+            user = await res.json();
+          } catch (jsonError) {
+            console.error(`Error parsing user response: ${jsonError}`);
+            return { data: { user: null }, error: jsonError };
+          }
+          
           console.log('Successfully retrieved user from auth token, user ID:', user.id);
           return { data: { user }, error: null };
         } catch (error) {
@@ -239,13 +332,26 @@ async function exchangeCodeForToken(code: string, redirectUri: string) {
   try {
     const tokenResponse = await fetch(
       `https://graph.facebook.com/v18.0/oauth/access_token?${params.toString()}`,
-      { method: 'GET' }
+      { 
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
+      }
     );
 
     console.log('Token response status:', tokenResponse.status);
     
     if (!tokenResponse.ok) {
-      const errorText = await tokenResponse.text();
+      let errorText;
+      try {
+        const errorData = await tokenResponse.json();
+        errorText = JSON.stringify(errorData);
+      } catch (jsonError) {
+        errorText = await tokenResponse.text();
+      }
+      
       console.error('Error exchanging code for token:', errorText);
       
       // Parse error response to check for specific error types
@@ -262,7 +368,14 @@ async function exchangeCodeForToken(code: string, redirectUri: string) {
       throw new Error(`Failed to exchange code for token: ${errorText}`);
     }
 
-    const tokenData = await tokenResponse.json();
+    let tokenData;
+    try {
+      tokenData = await tokenResponse.json();
+    } catch (jsonError) {
+      console.error('Error parsing token response:', jsonError);
+      const text = await tokenResponse.text();
+      throw new Error(`Invalid JSON in token response: ${text}`);
+    }
     
     // Validate token response
     try {
@@ -288,18 +401,37 @@ async function getAdAccounts(accessToken: string) {
     // Add fields for more comprehensive ad account data
     const response = await fetch(
       `https://graph.facebook.com/v18.0/me/adaccounts?fields=id,name,account_id,account_status,currency,business,timezone_name,funding_source_details,capabilities,owner,amount_spent,min_daily_budget&limit=100&access_token=${accessToken}`,
-      { method: 'GET' }
+      { 
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json'
+        }
+      }
     );
 
     console.log('Ad accounts response status:', response.status);
     
     if (!response.ok) {
-      const errorText = await response.text();
+      let errorText;
+      try {
+        const errorData = await response.json();
+        errorText = JSON.stringify(errorData);
+      } catch (jsonError) {
+        errorText = await response.text();
+      }
+      
       console.error('Error fetching ad accounts:', errorText);
       throw new Error(`Failed to fetch ad accounts: ${errorText}`);
     }
 
-    const data = await response.json();
+    let data;
+    try {
+      data = await response.json();
+    } catch (jsonError) {
+      console.error('Error parsing ad accounts response:', jsonError);
+      const text = await response.text();
+      throw new Error(`Invalid JSON in ad accounts response: ${text}`);
+    }
     
     // Validate ad accounts
     if (data.data && Array.isArray(data.data)) {
@@ -338,16 +470,35 @@ async function getPages(accessToken: string) {
   try {
     const response = await fetch(
       `https://graph.facebook.com/v18.0/me/accounts?fields=id,name,access_token,category,followers_count,fan_count&limit=100&access_token=${accessToken}`,
-      { method: 'GET' }
+      { 
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json'
+        }
+      }
     );
 
     if (!response.ok) {
-      const errorText = await response.text();
+      let errorText;
+      try {
+        const errorData = await response.json();
+        errorText = JSON.stringify(errorData);
+      } catch (jsonError) {
+        errorText = await response.text();
+      }
+      
       console.error('Error fetching pages:', errorText);
       throw new Error(`Failed to fetch pages: ${errorText}`);
     }
 
-    const data = await response.json();
+    let data;
+    try {
+      data = await response.json();
+    } catch (jsonError) {
+      console.error('Error parsing pages response:', jsonError);
+      const text = await response.text();
+      throw new Error(`Invalid JSON in pages response: ${text}`);
+    }
     
     // Validate pages
     if (data.data && Array.isArray(data.data)) {
@@ -386,16 +537,36 @@ async function getUserInfo(accessToken: string) {
   try {
     const response = await fetch(
       `https://graph.facebook.com/v18.0/me?fields=id,name,email&access_token=${accessToken}`,
-      { method: 'GET' }
+      { 
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json'
+        }
+      }
     );
 
     if (!response.ok) {
-      const errorText = await response.text();
+      let errorText;
+      try {
+        const errorData = await response.json();
+        errorText = JSON.stringify(errorData);
+      } catch (jsonError) {
+        errorText = await response.text();
+      }
+      
       console.error('Error fetching user info:', errorText);
       throw new Error(`Failed to fetch user info: ${errorText}`);
     }
 
-    const data = await response.json();
+    let data;
+    try {
+      data = await response.json();
+    } catch (jsonError) {
+      console.error('Error parsing user info response:', jsonError);
+      const text = await response.text();
+      throw new Error(`Invalid JSON in user info response: ${text}`);
+    }
+    
     console.log('User info retrieved successfully:', JSON.stringify(data, null, 2));
     return data;
   } catch (error) {
@@ -410,18 +581,37 @@ async function validateToken(accessToken: string) {
   try {
     const response = await fetch(
       `https://graph.facebook.com/debug_token?input_token=${accessToken}&access_token=${accessToken}`,
-      { method: 'GET' }
+      { 
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json'
+        }
+      }
     );
 
     console.log('Token validation response status:', response.status);
     
     if (!response.ok) {
-      const errorText = await response.text();
+      let errorText;
+      try {
+        const errorData = await response.json();
+        errorText = JSON.stringify(errorData);
+      } catch (jsonError) {
+        errorText = await response.text();
+      }
+      
       console.error('Error validating token:', errorText);
       return false;
     }
 
-    const data = await response.json();
+    let data;
+    try {
+      data = await response.json();
+    } catch (jsonError) {
+      console.error('Error parsing token validation response:', jsonError);
+      return false;
+    }
+    
     console.log('Token validation result:', data.data?.is_valid === true ? 'valid' : 'invalid');
     if (data.data?.is_valid) {
       console.log('Token scopes:', data.data?.scopes);
@@ -511,25 +701,36 @@ async function saveConnectionToDatabase(
     
     console.log('Prepared validated metadata structure:', JSON.stringify(metadata, null, 2));
     
+    // Prepare the record to be inserted or updated
+    const connectionRecord = {
+      user_id: userId,
+      platform: platform,
+      access_token: accessToken,
+      refresh_token: refreshToken,
+      token_expires_at: expiresAt,
+      account_id: accountId,
+      account_name: accountName,
+      metadata: metadata
+    };
+    
+    // Fix potential circular reference issues by serializing and re-parsing
+    const safeConnectionRecord = JSON.parse(JSON.stringify(connectionRecord));
+    
     // Store connection with ad accounts and pages as metadata
+    console.log('Attempting to save connection:', {
+      ...safeConnectionRecord,
+      access_token: `${accessToken.substring(0, 5)}...`,
+    });
+    
     const { data, error } = await supabaseAdmin
       .from('platform_connections')
-      .upsert({
-        user_id: userId,
-        platform: platform,
-        access_token: accessToken,
-        refresh_token: refreshToken,
-        token_expires_at: expiresAt,
-        account_id: accountId,
-        account_name: accountName,
-        metadata: metadata
-      }, {
-        onConflict: 'user_id, platform'
+      .upsert(safeConnectionRecord, {
+        onConflict: 'user_id,platform'
       });
 
     if (error) {
       console.error('Error saving connection to database:', error);
-      throw new Error(`Failed to save connection: ${error.message}`);
+      throw new Error(`Failed to save connection: ${error.message || JSON.stringify(error)}`);
     }
 
     console.log('Successfully saved connection to database with ad accounts and pages');
@@ -735,192 +936,3 @@ serve(async (req) => {
     const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(authToken);
     
     if (userError || !user) {
-      console.error('Invalid user token:', userError);
-      
-      const response: FacebookOAuthResponse = {
-        success: false,
-        error: 'Invalid user token',
-        details: userError
-      };
-      
-      return new Response(JSON.stringify(response), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
-
-    console.log('User authenticated:', user.id);
-
-    // Track transaction stages for potential rollback
-    let transactionStage = 'init';
-    let rollbackNeeded = false;
-    let savedConnectionId = null;
-
-    // Process the OAuth response with validation
-    try {
-      transactionStage = 'token_exchange';
-      // Exchange the code for an access token - now passing the explicit redirect URI
-      const tokenData = await exchangeCodeForToken(code, REDIRECT_URI);
-      console.log('Token exchange successful with data:', JSON.stringify({
-        access_token_length: tokenData.access_token?.length,
-        token_type: tokenData.token_type,
-        expires_in: tokenData.expires_in
-      }, null, 2));
-      
-      transactionStage = 'token_validation';
-      // Validate the token
-      const isTokenValid = await validateToken(tokenData.access_token);
-      if (!isTokenValid) {
-        console.error('Invalid token received from Facebook');
-        
-        const response: FacebookOAuthResponse = {
-          success: false,
-          error: 'Invalid token received from Facebook'
-        };
-        
-        return new Response(JSON.stringify(response), {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
-
-      transactionStage = 'user_info';
-      // Get user information
-      const userInfo = await getUserInfo(tokenData.access_token);
-      console.log('Facebook user info:', userInfo);
-
-      transactionStage = 'ad_accounts';
-      // Get ad accounts for the user
-      const adAccountsData = await getAdAccounts(tokenData.access_token);
-      console.log('Ad accounts fetched successfully');
-
-      transactionStage = 'pages';
-      // Get pages for the user
-      const pagesData = await getPages(tokenData.access_token);
-      console.log('Pages fetched successfully');
-
-      // Use the first ad account if available
-      let accountId = null;
-      let accountName = null;
-      
-      if (adAccountsData && adAccountsData.data && adAccountsData.data.length > 0) {
-        accountId = adAccountsData.data[0].id;
-        accountName = adAccountsData.data[0].name;
-        console.log(`Selected account: ${accountName} (${accountId})`);
-      } else {
-        console.log('No ad accounts found');
-      }
-
-      // Calculate token expiration (if provided)
-      const expiresAt = tokenData.expires_in 
-        ? new Date(Date.now() + tokenData.expires_in * 1000) 
-        : null;
-      
-      if (expiresAt) {
-        console.log(`Token expires at: ${expiresAt.toISOString()}`);
-      } else {
-        console.log('No token expiration provided');
-      }
-
-      try {
-        transactionStage = 'database_save';
-        rollbackNeeded = true;
-        
-        // Save the connection to the database with ad accounts and pages
-        const saveResult = await saveConnectionToDatabase(
-          user.id,
-          'facebook',
-          tokenData.access_token,
-          tokenData.refresh_token || null,
-          expiresAt,
-          accountId,
-          accountName,
-          adAccountsData?.data || [],
-          pagesData?.data || []
-        );
-
-        if (saveResult && saveResult.data && saveResult.data[0]) {
-          savedConnectionId = saveResult.data[0].id;
-        }
-        
-        transactionStage = 'complete';
-        rollbackNeeded = false;
-        
-        const response: FacebookOAuthResponse = {
-          success: true,
-          platform: 'facebook',
-          accountId,
-          accountName,
-          adAccounts: adAccountsData?.data || [],
-          pages: pagesData?.data || [],
-          message: 'Successfully connected to Facebook Ads'
-        };
-        
-        return new Response(JSON.stringify(response), {
-          status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      } catch (error) {
-        console.error('Error saving connection:', error);
-        
-        // If we need to rollback and have a connection ID
-        if (rollbackNeeded && savedConnectionId) {
-          try {
-            console.log(`Attempting to roll back connection creation: ${savedConnectionId}`);
-            // Add rollback logic here if needed
-          } catch (rollbackError) {
-            console.error('Error during rollback:', rollbackError);
-          }
-        }
-        
-        const response: FacebookOAuthResponse = {
-          success: false,
-          error: error instanceof Error ? error.message : 'Unknown error occurred saving connection',
-          details: { stage: 'database_save' }
-        };
-        
-        return new Response(JSON.stringify(response), {
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
-    } catch (error) {
-      console.error('Error in Facebook OAuth:', error);
-      
-      // If we need to rollback and have a connection ID
-      if (rollbackNeeded && savedConnectionId) {
-        try {
-          console.log(`Attempting to roll back after error in stage ${transactionStage}`);
-          // Add rollback logic here if needed
-        } catch (rollbackError) {
-          console.error('Error during rollback:', rollbackError);
-        }
-      }
-      
-      const response: FacebookOAuthResponse = {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error occurred',
-        stage: transactionStage,
-        stack: error instanceof Error ? error.stack : null
-      };
-      
-      return new Response(JSON.stringify(response), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
-  } catch (error) {
-    console.error('Error in Facebook OAuth:', error);
-    
-    const response: FacebookOAuthResponse = {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error occurred',
-      stack: error instanceof Error ? error.stack : null
-    };
-    
-    return new Response(JSON.stringify(response), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
-  }
-});
