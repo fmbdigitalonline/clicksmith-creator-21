@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import CreateCampaignForm from "@/components/integrations/CreateCampaignForm";
 import CampaignModeSelection from "@/components/integrations/CampaignModeSelection";
@@ -7,13 +6,12 @@ import { Button } from "@/components/ui/button";
 import { ProjectSelector } from "@/components/gallery/components/ProjectSelector";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AdSelectionGallery from "@/components/integrations/AdSelectionGallery";
-import { AlertCircle, Info, CheckCircle, Loader2 } from "lucide-react";
+import { AlertCircle, Info, CheckCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { extractTargetingData } from "@/utils/campaignDataUtils";
 import { useProjectCampaignData } from "@/hooks/useProjectCampaignData";
 import DataCompletionWarning from "@/components/projects/DataCompletionWarning";
 import CampaignStatusCard from "@/components/integrations/CampaignStatusCard";
-import { useToast } from "@/hooks/use-toast";
 
 interface FacebookCampaignFormProps {
   open: boolean;
@@ -34,10 +32,6 @@ export default function FacebookCampaignForm({
   const [formTab, setFormTab] = useState<"details" | "ads">("details");
   const [selectedAdIds, setSelectedAdIds] = useState<string[]>([]);
   const [createdCampaignId, setCreatedCampaignId] = useState<string>("");
-  const [formSubmitFn, setFormSubmitFn] = useState<(() => Promise<void>) | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formIsValid, setFormIsValid] = useState(false);
-  const { toast } = useToast();
   
   // Fetch project data for targeting suggestions and validation
   const projectData = useProjectCampaignData(selectedProjectId || initialProjectId);
@@ -45,28 +39,6 @@ export default function FacebookCampaignForm({
   // Extract targeting data if available
   const targetingData = projectData.targetAudience ? 
     extractTargetingData(projectData.targetAudience, projectData.audienceAnalysis) : null;
-
-  // Reset form state when dialog is opened/closed
-  useEffect(() => {
-    if (!open) {
-      // Small delay to avoid seeing the reset during close animation
-      const timer = setTimeout(() => {
-        setStep("mode-selection");
-        if (!initialProjectId) {
-          setSelectedProjectId("");
-        }
-        setSelectedMode("manual");
-        setFormTab("details");
-        setSelectedAdIds([]);
-        setCreatedCampaignId("");
-        setFormSubmitFn(null);
-        setIsSubmitting(false);
-        setFormIsValid(false);
-      }, 300);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [open, initialProjectId]);
 
   const handleModeSelect = (mode: "manual" | "semi-automatic" | "automatic") => {
     setSelectedMode(mode);
@@ -81,35 +53,16 @@ export default function FacebookCampaignForm({
   };
 
   const handleContinue = () => {
-    // Prevent multiple clicks by checking if already processing
-    if (isSubmitting) {
-      console.log("Already submitting, ignoring click");
-      return;
-    }
-    
     // Only allow non-manual modes if a project is selected
     if ((selectedMode === "semi-automatic" || selectedMode === "automatic") && !selectedProjectId) {
-      toast({
-        title: "Please select a project",
-        description: "A project is required for semi-automatic or automatic modes",
-        variant: "destructive"
-      });
       return;
     }
-    
-    setIsSubmitting(true);
-    
-    // Add a small delay to prevent double triggers
-    setTimeout(() => {
-      setStep("form");
-      setIsSubmitting(false);
-    }, 300);
+    setStep("form");
   };
 
   const handleBack = () => {
     if (step === "form") {
       setStep("mode-selection");
-      setFormTab("details"); // Reset to details tab when going back
     } else if (step === "status") {
       setStep("form");
       setCreatedCampaignId("");
@@ -117,6 +70,17 @@ export default function FacebookCampaignForm({
   };
 
   const handleClose = () => {
+    // Reset state when dialog is closed
+    setTimeout(() => {
+      setStep("mode-selection");
+      if (!initialProjectId) {
+        setSelectedProjectId("");
+      }
+      setSelectedMode("manual");
+      setFormTab("details");
+      setSelectedAdIds([]);
+      setCreatedCampaignId("");
+    }, 300); // Small delay to avoid seeing the reset during close animation
     onOpenChange(false);
   };
 
@@ -128,7 +92,6 @@ export default function FacebookCampaignForm({
     console.log("Campaign created with ID:", campaignId);
     setCreatedCampaignId(campaignId);
     setStep("status");
-    setIsSubmitting(false);
     
     // Call onSuccess if provided
     if (onSuccess) {
@@ -143,73 +106,18 @@ export default function FacebookCampaignForm({
     }
   };
 
-  // Handle form validation status
-  const handleFormValidation = (isValid: boolean) => {
-    setFormIsValid(isValid);
-  };
-
-  // Set the form submit function from the child component
-  const handleFormSubmitReady = (submitFn: () => Promise<void>) => {
-    setFormSubmitFn(submitFn);
-  };
-
-  // Handle navigation to ads tab
-  const handleContinueToAds = () => {
-    if (!formIsValid) {
-      toast({
-        title: "Please complete all required fields",
-        description: "Some required form fields are missing or invalid",
-        variant: "destructive"
-      });
-      return;
-    }
-    setFormTab("ads");
-  };
-
-  // Handle form submission directly
-  const handleFormSubmit = async () => {
-    // Prevent multiple submissions
-    if (isSubmitting) {
-      console.log("Already submitting, ignoring form submission");
-      return;
-    }
-    
-    if (selectedAdIds.length === 0) {
-      toast({
-        title: "Please select at least one ad",
-        description: "You need to select at least one ad for your campaign",
-        variant: "destructive"
-      });
-      return;
-    }
-    
+  // Add a new function to handle form submission directly
+  const handleFormSubmit = () => {
     console.log("Submitting campaign with selected ads:", selectedAdIds);
-    setIsSubmitting(true);
     
-    if (formSubmitFn) {
-      try {
-        // Call the form's submit function directly with await
-        await formSubmitFn();
-        
-        // If we reach this point, the submission was successful
-        console.log("Form submission completed successfully");
-      } catch (error) {
-        console.error("Error submitting form:", error);
-        setIsSubmitting(false);
-        toast({
-          title: "Error",
-          description: "An error occurred while submitting the form. Please try again.",
-          variant: "destructive"
-        });
-      }
+    // Find the form element and submit it
+    const form = document.querySelector('form');
+    if (form) {
+      // Create and dispatch a submit event that will bubble up and can be cancelled
+      const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
+      form.dispatchEvent(submitEvent);
     } else {
-      console.error("Form submit function not available");
-      toast({
-        title: "Error",
-        description: "Unable to submit form. Please try again.",
-        variant: "destructive"
-      });
-      setIsSubmitting(false);
+      console.error("Form element not found");
     }
   };
 
@@ -258,14 +166,9 @@ export default function FacebookCampaignForm({
             <div className="flex justify-end mt-6">
               <Button 
                 onClick={handleContinue}
-                disabled={(selectedMode !== "manual") && !selectedProjectId && !initialProjectId || isSubmitting}
+                disabled={(selectedMode !== "manual") && !selectedProjectId && !initialProjectId}
               >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Processing...
-                  </>
-                ) : "Continue"}
+                Continue
               </Button>
             </div>
           </>
@@ -285,7 +188,7 @@ export default function FacebookCampaignForm({
             <Tabs value={formTab} onValueChange={(value) => setFormTab(value as "details" | "ads")}>
               <TabsList className="grid w-full grid-cols-2 mb-6">
                 <TabsTrigger value="details">Campaign Details</TabsTrigger>
-                <TabsTrigger value="ads" disabled={!formIsValid}>Creative Selection</TabsTrigger>
+                <TabsTrigger value="ads">Creative Selection</TabsTrigger>
               </TabsList>
               
               <TabsContent value="details">
@@ -306,10 +209,8 @@ export default function FacebookCampaignForm({
                   onCancel={handleClose}
                   onBack={handleBack}
                   selectedAdIds={selectedAdIds}
-                  onContinue={handleContinueToAds}
+                  onContinue={() => setFormTab("ads")}
                   projectDataCompleteness={projectData.dataCompleteness}
-                  onFormSubmitReady={handleFormSubmitReady}
-                  onFormValidation={handleFormValidation}
                 />
               </TabsContent>
               
@@ -336,15 +237,10 @@ export default function FacebookCampaignForm({
                     </Button>
                     <Button 
                       onClick={handleFormSubmit}
-                      disabled={selectedAdIds.length === 0 || !formSubmitFn || isSubmitting || !formIsValid}
+                      disabled={selectedAdIds.length === 0}
                       variant="facebook"
                     >
-                      {isSubmitting ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Creating...
-                        </>
-                      ) : `Create Campaign with ${selectedAdIds.length} ad${selectedAdIds.length !== 1 ? 's' : ''}`}
+                      Create Campaign with {selectedAdIds.length} ad{selectedAdIds.length !== 1 ? 's' : ''}
                     </Button>
                   </div>
                 </div>

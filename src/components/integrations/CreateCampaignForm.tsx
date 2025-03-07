@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -30,9 +31,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 
-// Define a more robust validation schema
 const campaignFormSchema = z.object({
   name: z.string().min(2, {
     message: "Campaign name must be at least 2 characters.",
@@ -65,9 +65,7 @@ interface CreateCampaignFormProps {
   onBack?: () => void;
   selectedAdIds?: string[];
   onContinue?: () => void;
-  projectDataCompleteness?: number;
-  onFormSubmitReady?: (submitFn: () => Promise<void>) => void;
-  onFormValidation?: (isValid: boolean) => void;
+  projectDataCompleteness?: number; // Added prop for data completeness
 }
 
 export default function CreateCampaignForm({ 
@@ -78,13 +76,10 @@ export default function CreateCampaignForm({
   onBack,
   selectedAdIds = [],
   onContinue,
-  projectDataCompleteness = 100,
-  onFormSubmitReady,
-  onFormValidation
+  projectDataCompleteness = 100
 }: CreateCampaignFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPerformancePrediction, setShowPerformancePrediction] = useState(false);
-  const [formWasSubmitted, setFormWasSubmitted] = useState(false);
   const projectData = useProjectCampaignData(projectId);
   const { toast } = useToast();
   
@@ -108,68 +103,22 @@ export default function CreateCampaignForm({
   const form = useForm<z.infer<typeof campaignFormSchema>>({
     resolver: zodResolver(campaignFormSchema),
     defaultValues: getDefaultValues(),
-    mode: "onChange", // Enable real-time validation
   });
   
   // Update form values when project data loads
   useEffect(() => {
-    if (!projectData.loading && projectData.businessIdea && !formWasSubmitted) {
+    if (!projectData.loading && projectData.businessIdea) {
       const defaults = getDefaultValues();
       
       Object.entries(defaults).forEach(([field, value]) => {
         form.setValue(field as any, value);
       });
     }
-  }, [projectData.loading, projectData.businessIdea, formWasSubmitted]);
-
-  // Report form validation status
-  useEffect(() => {
-    if (onFormValidation) {
-      const isValid = form.formState.isValid;
-      onFormValidation(isValid);
-    }
-  }, [form.formState.isValid, onFormValidation]);
-
-  // Expose the submit function to parent component
-  useEffect(() => {
-    if (onFormSubmitReady) {
-      // Create a wrapped async function that ensures submission is only triggered once
-      const wrappedSubmitFn = async () => {
-        if (!isSubmitting) {
-          console.log("Wrapped submit function called");
-          setIsSubmitting(true);
-          
-          // Make sure all fields are validated before submission
-          const isValid = await form.trigger();
-          if (isValid) {
-            console.log("Form is valid, submitting");
-            await handleFormSubmit(form.getValues());
-            return; // Successfully completed
-          } else {
-            console.log("Form is invalid, cannot submit");
-            setIsSubmitting(false);
-            toast({
-              title: "Please complete all required fields",
-              description: "Some fields are missing or invalid",
-              variant: "destructive"
-            });
-            throw new Error("Form validation failed");
-          }
-        } else {
-          console.log("Already submitting, ignoring duplicate submit");
-          throw new Error("Submission already in progress");
-        }
-      };
-      
-      onFormSubmitReady(wrappedSubmitFn);
-    }
-  }, [form, onFormSubmitReady, isSubmitting, toast]);
+  }, [projectData.loading, projectData.businessIdea]);
   
   const handleFormSubmit = async (values: z.infer<typeof campaignFormSchema>) => {
     try {
-      setFormWasSubmitted(true);
-      
-      console.log("Form submitted with values:", values);
+      setIsSubmitting(true);
 
       // Extract targeting data for Facebook API
       const targetingData = projectData.targetAudience ? {
@@ -184,6 +133,8 @@ export default function CreateCampaignForm({
         targeting_data: targetingData,
         smart_targeting: creationMode !== "manual"
       };
+      
+      console.log("Form submitted with values:", campaignData);
       
       // Create the campaign record in the database
       const { data: campaignRecord, error: dbError } = await supabase
@@ -218,7 +169,6 @@ export default function CreateCampaignForm({
         description: "There was an error creating your campaign. Please try again.",
         variant: "destructive"
       });
-      throw error; // Re-throw to signal failure to the parent component
     } finally {
       setIsSubmitting(false);
     }
@@ -255,46 +205,9 @@ export default function CreateCampaignForm({
     form.setValue(field, suggestion, { shouldValidate: true });
   };
 
-  const handleContinueClick = () => {
-    const isFormValid = form.formState.isValid;
-    
-    if (!isFormValid) {
-      // Trigger validation on all fields
-      form.trigger().then(isValid => {
-        if (!isValid) {
-          toast({
-            title: "Please complete all required fields",
-            description: "Some fields are missing or invalid",
-            variant: "destructive"
-          });
-        } else if (onContinue) {
-          onContinue();
-        }
-      });
-    } else if (onContinue) {
-      onContinue();
-    }
-  };
-
-  const handleFormOnSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    // Prevent direct submission when using the Continue button
-    if (onContinue) return;
-    
-    if (!isSubmitting) {
-      setIsSubmitting(true);
-      try {
-        await form.handleSubmit(handleFormSubmit)(e);
-      } catch (error) {
-        console.error("Error during form submission:", error);
-        setIsSubmitting(false);
-      }
-    }
-  };
-
   return (
     <Form {...form}>
-      <form onSubmit={handleFormOnSubmit} className="space-y-6">
+      <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
         {/* Smart data integration notification */}
         {projectData.businessIdea && creationMode !== "manual" && (
           <div className="p-4 bg-blue-50 border border-blue-100 rounded-md mb-6">
@@ -307,6 +220,7 @@ export default function CreateCampaignForm({
         
         {/* Show data completeness message */}
         {renderDataCompletenessMessage()}
+        
         
         <FormField
           control={form.control}
@@ -342,7 +256,6 @@ export default function CreateCampaignForm({
                 <Select
                   onValueChange={field.onChange}
                   defaultValue={field.value}
-                  value={field.value}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select campaign objective" />
@@ -503,20 +416,15 @@ export default function CreateCampaignForm({
             {onContinue ? (
               <Button 
                 type="button" 
-                onClick={handleContinueClick}
-                disabled={isSubmitting}
+                onClick={onContinue}
+                disabled={!form.formState.isValid}
               >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Processing...
-                  </>
-                ) : "Continue to Ad Selection"}
+                Continue to Ad Selection
               </Button>
             ) : (
               <Button 
                 type="submit" 
-                disabled={isSubmitting || !form.formState.isValid}
+                disabled={isSubmitting}
               >
                 {isSubmitting ? (
                   <>
