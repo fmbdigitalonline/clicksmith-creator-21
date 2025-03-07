@@ -7,12 +7,13 @@ import { Button } from "@/components/ui/button";
 import { ProjectSelector } from "@/components/gallery/components/ProjectSelector";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AdSelectionGallery from "@/components/integrations/AdSelectionGallery";
-import { AlertCircle, Info, CheckCircle } from "lucide-react";
+import { AlertCircle, Info, CheckCircle, Loader2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { extractTargetingData } from "@/utils/campaignDataUtils";
 import { useProjectCampaignData } from "@/hooks/useProjectCampaignData";
 import DataCompletionWarning from "@/components/projects/DataCompletionWarning";
 import CampaignStatusCard from "@/components/integrations/CampaignStatusCard";
+import { useToast } from "@/hooks/use-toast";
 
 interface FacebookCampaignFormProps {
   open: boolean;
@@ -36,6 +37,7 @@ export default function FacebookCampaignForm({
   const [formSubmitFn, setFormSubmitFn] = useState<(() => void) | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formIsValid, setFormIsValid] = useState(false);
+  const { toast } = useToast();
   
   // Fetch project data for targeting suggestions and validation
   const projectData = useProjectCampaignData(selectedProjectId || initialProjectId);
@@ -58,10 +60,18 @@ export default function FacebookCampaignForm({
 
   const handleContinue = () => {
     // Prevent multiple clicks by checking if already processing
-    if (isSubmitting) return;
+    if (isSubmitting) {
+      console.log("Already submitting, ignoring click");
+      return;
+    }
     
     // Only allow non-manual modes if a project is selected
     if ((selectedMode === "semi-automatic" || selectedMode === "automatic") && !selectedProjectId) {
+      toast({
+        title: "Please select a project",
+        description: "A project is required for semi-automatic or automatic modes",
+        variant: "destructive"
+      });
       return;
     }
     
@@ -71,12 +81,13 @@ export default function FacebookCampaignForm({
     setTimeout(() => {
       setStep("form");
       setIsSubmitting(false);
-    }, 100);
+    }, 300);
   };
 
   const handleBack = () => {
     if (step === "form") {
       setStep("mode-selection");
+      setFormTab("details"); // Reset to details tab when going back
     } else if (step === "status") {
       setStep("form");
       setCreatedCampaignId("");
@@ -134,15 +145,35 @@ export default function FacebookCampaignForm({
     setFormSubmitFn(submitFn);
   };
 
-  // Add a new function to handle navigation to ads tab
+  // Handle navigation to ads tab
   const handleContinueToAds = () => {
+    if (!formIsValid) {
+      toast({
+        title: "Please complete all required fields",
+        description: "Some required form fields are missing or invalid",
+        variant: "destructive"
+      });
+      return;
+    }
     setFormTab("ads");
   };
 
-  // Add a new function to handle form submission directly
+  // Handle form submission directly
   const handleFormSubmit = () => {
     // Prevent multiple submissions
-    if (isSubmitting) return;
+    if (isSubmitting) {
+      console.log("Already submitting, ignoring form submission");
+      return;
+    }
+    
+    if (selectedAdIds.length === 0) {
+      toast({
+        title: "Please select at least one ad",
+        description: "You need to select at least one ad for your campaign",
+        variant: "destructive"
+      });
+      return;
+    }
     
     console.log("Submitting campaign with selected ads:", selectedAdIds);
     setIsSubmitting(true);
@@ -154,10 +185,22 @@ export default function FacebookCampaignForm({
       // Reset the isSubmitting flag after a reasonable timeout
       // in case the submission callback doesn't fire
       setTimeout(() => {
-        setIsSubmitting(false);
-      }, 5000);
+        if (isSubmitting) {
+          setIsSubmitting(false);
+          toast({
+            title: "Submission timeout",
+            description: "The request is taking longer than expected. Please try again.",
+            variant: "destructive"
+          });
+        }
+      }, 10000);
     } else {
       console.error("Form submit function not available");
+      toast({
+        title: "Error",
+        description: "Unable to submit form. Please try again.",
+        variant: "destructive"
+      });
       setIsSubmitting(false);
     }
   };
@@ -209,7 +252,12 @@ export default function FacebookCampaignForm({
                 onClick={handleContinue}
                 disabled={(selectedMode !== "manual") && !selectedProjectId && !initialProjectId || isSubmitting}
               >
-                {isSubmitting ? "Processing..." : "Continue"}
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Processing...
+                  </>
+                ) : "Continue"}
               </Button>
             </div>
           </>
@@ -283,7 +331,12 @@ export default function FacebookCampaignForm({
                       disabled={selectedAdIds.length === 0 || !formSubmitFn || isSubmitting || !formIsValid}
                       variant="facebook"
                     >
-                      {isSubmitting ? "Creating..." : `Create Campaign with ${selectedAdIds.length} ad${selectedAdIds.length !== 1 ? 's' : ''}`}
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Creating...
+                        </>
+                      ) : `Create Campaign with ${selectedAdIds.length} ad${selectedAdIds.length !== 1 ? 's' : ''}`}
                     </Button>
                   </div>
                 </div>

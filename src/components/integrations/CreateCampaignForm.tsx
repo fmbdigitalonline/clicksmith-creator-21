@@ -31,7 +31,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 const campaignFormSchema = z.object({
   name: z.string().min(2, {
@@ -67,7 +67,7 @@ interface CreateCampaignFormProps {
   onContinue?: () => void;
   projectDataCompleteness?: number;
   onFormSubmitReady?: (submitFn: () => void) => void;
-  onFormValidation?: (isValid: boolean) => void; // New prop for form validation status
+  onFormValidation?: (isValid: boolean) => void;
 }
 
 export default function CreateCampaignForm({ 
@@ -107,6 +107,7 @@ export default function CreateCampaignForm({
   const form = useForm<z.infer<typeof campaignFormSchema>>({
     resolver: zodResolver(campaignFormSchema),
     defaultValues: getDefaultValues(),
+    mode: "onChange", // Enable real-time validation
   });
   
   // Update form values when project data loads
@@ -232,9 +233,38 @@ export default function CreateCampaignForm({
     form.setValue(field, suggestion, { shouldValidate: true });
   };
 
+  const handleContinueClick = () => {
+    const isFormValid = form.formState.isValid;
+    
+    if (!isFormValid) {
+      // Trigger validation on all fields
+      form.trigger();
+      
+      toast({
+        title: "Please complete all required fields",
+        description: "Some fields are missing or invalid",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    if (onContinue) {
+      onContinue();
+    }
+  };
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
+      <form onSubmit={(e) => {
+        e.preventDefault();
+        // Prevent submission when using the Continue button
+        if (onContinue) return;
+        
+        if (!isSubmitting) {
+          setIsSubmitting(true);
+          form.handleSubmit(handleFormSubmit)();
+        }
+      }} className="space-y-6">
         {/* Smart data integration notification */}
         {projectData.businessIdea && creationMode !== "manual" && (
           <div className="p-4 bg-blue-50 border border-blue-100 rounded-md mb-6">
@@ -442,15 +472,20 @@ export default function CreateCampaignForm({
             {onContinue ? (
               <Button 
                 type="button" 
-                onClick={onContinue}
-                disabled={!form.formState.isValid}
+                onClick={handleContinueClick}
+                disabled={isSubmitting}
               >
-                Continue to Ad Selection
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Processing...
+                  </>
+                ) : "Continue to Ad Selection"}
               </Button>
             ) : (
               <Button 
                 type="submit" 
-                disabled={isSubmitting}
+                disabled={isSubmitting || !form.formState.isValid}
               >
                 {isSubmitting ? (
                   <>
