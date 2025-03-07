@@ -33,6 +33,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
+// Define a more robust validation schema
 const campaignFormSchema = z.object({
   name: z.string().min(2, {
     message: "Campaign name must be at least 2 characters.",
@@ -84,6 +85,7 @@ export default function CreateCampaignForm({
 }: CreateCampaignFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPerformancePrediction, setShowPerformancePrediction] = useState(false);
+  const [formWasSubmitted, setFormWasSubmitted] = useState(false);
   const projectData = useProjectCampaignData(projectId);
   const { toast } = useToast();
   
@@ -112,14 +114,14 @@ export default function CreateCampaignForm({
   
   // Update form values when project data loads
   useEffect(() => {
-    if (!projectData.loading && projectData.businessIdea) {
+    if (!projectData.loading && projectData.businessIdea && !formWasSubmitted) {
       const defaults = getDefaultValues();
       
       Object.entries(defaults).forEach(([field, value]) => {
         form.setValue(field as any, value);
       });
     }
-  }, [projectData.loading, projectData.businessIdea]);
+  }, [projectData.loading, projectData.businessIdea, formWasSubmitted]);
 
   // Report form validation status
   useEffect(() => {
@@ -132,11 +134,29 @@ export default function CreateCampaignForm({
   // Expose the submit function to parent component
   useEffect(() => {
     if (onFormSubmitReady) {
-      // We need to make sure form submission is only triggered once
+      // Create a wrapped function that ensures submission is only triggered once
       const wrappedSubmitFn = () => {
         if (!isSubmitting) {
+          console.log("Wrapped submit function called");
           setIsSubmitting(true);
-          form.handleSubmit(handleFormSubmit)();
+          
+          // Make sure all fields are validated before submission
+          form.trigger().then(isValid => {
+            if (isValid) {
+              console.log("Form is valid, submitting");
+              handleFormSubmit(form.getValues());
+            } else {
+              console.log("Form is invalid, cannot submit");
+              setIsSubmitting(false);
+              toast({
+                title: "Please complete all required fields",
+                description: "Some fields are missing or invalid",
+                variant: "destructive"
+              });
+            }
+          });
+        } else {
+          console.log("Already submitting, ignoring duplicate submit");
         }
       };
       
@@ -146,7 +166,7 @@ export default function CreateCampaignForm({
   
   const handleFormSubmit = async (values: z.infer<typeof campaignFormSchema>) => {
     try {
-      if (isSubmitting) return; // Prevent duplicate submissions
+      setFormWasSubmitted(true);
       
       console.log("Form submitted with values:", values);
 
@@ -238,33 +258,36 @@ export default function CreateCampaignForm({
     
     if (!isFormValid) {
       // Trigger validation on all fields
-      form.trigger();
-      
-      toast({
-        title: "Please complete all required fields",
-        description: "Some fields are missing or invalid",
-        variant: "destructive"
+      form.trigger().then(isValid => {
+        if (!isValid) {
+          toast({
+            title: "Please complete all required fields",
+            description: "Some fields are missing or invalid",
+            variant: "destructive"
+          });
+        } else if (onContinue) {
+          onContinue();
+        }
       });
-      return;
-    }
-    
-    if (onContinue) {
+    } else if (onContinue) {
       onContinue();
+    }
+  };
+
+  const handleFormOnSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Prevent direct submission when using the Continue button
+    if (onContinue) return;
+    
+    if (!isSubmitting) {
+      setIsSubmitting(true);
+      form.handleSubmit(handleFormSubmit)();
     }
   };
 
   return (
     <Form {...form}>
-      <form onSubmit={(e) => {
-        e.preventDefault();
-        // Prevent submission when using the Continue button
-        if (onContinue) return;
-        
-        if (!isSubmitting) {
-          setIsSubmitting(true);
-          form.handleSubmit(handleFormSubmit)();
-        }
-      }} className="space-y-6">
+      <form onSubmit={handleFormOnSubmit} className="space-y-6">
         {/* Smart data integration notification */}
         {projectData.businessIdea && creationMode !== "manual" && (
           <div className="p-4 bg-blue-50 border border-blue-100 rounded-md mb-6">
@@ -312,6 +335,7 @@ export default function CreateCampaignForm({
                 <Select
                   onValueChange={field.onChange}
                   defaultValue={field.value}
+                  value={field.value}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select campaign objective" />

@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import CreateCampaignForm from "@/components/integrations/CreateCampaignForm";
 import CampaignModeSelection from "@/components/integrations/CampaignModeSelection";
@@ -45,6 +45,28 @@ export default function FacebookCampaignForm({
   // Extract targeting data if available
   const targetingData = projectData.targetAudience ? 
     extractTargetingData(projectData.targetAudience, projectData.audienceAnalysis) : null;
+
+  // Reset form state when dialog is opened/closed
+  useEffect(() => {
+    if (!open) {
+      // Small delay to avoid seeing the reset during close animation
+      const timer = setTimeout(() => {
+        setStep("mode-selection");
+        if (!initialProjectId) {
+          setSelectedProjectId("");
+        }
+        setSelectedMode("manual");
+        setFormTab("details");
+        setSelectedAdIds([]);
+        setCreatedCampaignId("");
+        setFormSubmitFn(null);
+        setIsSubmitting(false);
+        setFormIsValid(false);
+      }, 300);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [open, initialProjectId]);
 
   const handleModeSelect = (mode: "manual" | "semi-automatic" | "automatic") => {
     setSelectedMode(mode);
@@ -95,20 +117,6 @@ export default function FacebookCampaignForm({
   };
 
   const handleClose = () => {
-    // Reset state when dialog is closed
-    setTimeout(() => {
-      setStep("mode-selection");
-      if (!initialProjectId) {
-        setSelectedProjectId("");
-      }
-      setSelectedMode("manual");
-      setFormTab("details");
-      setSelectedAdIds([]);
-      setCreatedCampaignId("");
-      setFormSubmitFn(null);
-      setIsSubmitting(false);
-      setFormIsValid(false);
-    }, 300); // Small delay to avoid seeing the reset during close animation
     onOpenChange(false);
   };
 
@@ -179,21 +187,31 @@ export default function FacebookCampaignForm({
     setIsSubmitting(true);
     
     if (formSubmitFn) {
-      // Call the form's submit function directly
-      formSubmitFn();
-      
-      // Reset the isSubmitting flag after a reasonable timeout
-      // in case the submission callback doesn't fire
-      setTimeout(() => {
-        if (isSubmitting) {
-          setIsSubmitting(false);
-          toast({
-            title: "Submission timeout",
-            description: "The request is taking longer than expected. Please try again.",
-            variant: "destructive"
-          });
-        }
-      }, 10000);
+      try {
+        // Call the form's submit function directly
+        formSubmitFn();
+        
+        // Reset the isSubmitting flag after a reasonable timeout
+        // in case the submission callback doesn't fire
+        setTimeout(() => {
+          if (isSubmitting) {
+            setIsSubmitting(false);
+            toast({
+              title: "Submission timeout",
+              description: "The request is taking longer than expected. Please try again.",
+              variant: "destructive"
+            });
+          }
+        }, 15000);
+      } catch (error) {
+        console.error("Error submitting form:", error);
+        setIsSubmitting(false);
+        toast({
+          title: "Error",
+          description: "An error occurred while submitting the form. Please try again.",
+          variant: "destructive"
+        });
+      }
     } else {
       console.error("Form submit function not available");
       toast({
@@ -277,7 +295,7 @@ export default function FacebookCampaignForm({
             <Tabs value={formTab} onValueChange={(value) => setFormTab(value as "details" | "ads")}>
               <TabsList className="grid w-full grid-cols-2 mb-6">
                 <TabsTrigger value="details">Campaign Details</TabsTrigger>
-                <TabsTrigger value="ads">Creative Selection</TabsTrigger>
+                <TabsTrigger value="ads" disabled={!formIsValid}>Creative Selection</TabsTrigger>
               </TabsList>
               
               <TabsContent value="details">
