@@ -10,16 +10,7 @@ verify_jwt = false
 [functions.facebook-oauth]
 verify_jwt = false
 
-[functions.create-facebook-campaign]
-verify_jwt = false
-
-[functions.delete-facebook-campaign]
-verify_jwt = false
-
-[functions.deactivate-facebook-campaign]
-verify_jwt = false
-
-[functions.activate-facebook-campaign]
+[functions.facebook-campaign-manager]
 verify_jwt = false
 
 [functions.generate-video-ad]

@@ -1,3 +1,0 @@
-
-# This configuration allows us to deploy to Deno without revealing environment secrets
-project_id = "xorlfvflpihtafugltni"
