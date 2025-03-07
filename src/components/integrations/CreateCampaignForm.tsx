@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -67,7 +66,7 @@ interface CreateCampaignFormProps {
   selectedAdIds?: string[];
   onContinue?: () => void;
   projectDataCompleteness?: number;
-  onFormSubmitReady?: (submitFn: () => void) => void;
+  onFormSubmitReady?: (submitFn: () => Promise<void>) => void;
   onFormValidation?: (isValid: boolean) => void;
 }
 
@@ -134,35 +133,37 @@ export default function CreateCampaignForm({
   // Expose the submit function to parent component
   useEffect(() => {
     if (onFormSubmitReady) {
-      // Create a wrapped function that ensures submission is only triggered once
-      const wrappedSubmitFn = () => {
+      // Create a wrapped async function that ensures submission is only triggered once
+      const wrappedSubmitFn = async () => {
         if (!isSubmitting) {
           console.log("Wrapped submit function called");
           setIsSubmitting(true);
           
           // Make sure all fields are validated before submission
-          form.trigger().then(isValid => {
-            if (isValid) {
-              console.log("Form is valid, submitting");
-              handleFormSubmit(form.getValues());
-            } else {
-              console.log("Form is invalid, cannot submit");
-              setIsSubmitting(false);
-              toast({
-                title: "Please complete all required fields",
-                description: "Some fields are missing or invalid",
-                variant: "destructive"
-              });
-            }
-          });
+          const isValid = await form.trigger();
+          if (isValid) {
+            console.log("Form is valid, submitting");
+            await handleFormSubmit(form.getValues());
+            return; // Successfully completed
+          } else {
+            console.log("Form is invalid, cannot submit");
+            setIsSubmitting(false);
+            toast({
+              title: "Please complete all required fields",
+              description: "Some fields are missing or invalid",
+              variant: "destructive"
+            });
+            throw new Error("Form validation failed");
+          }
         } else {
           console.log("Already submitting, ignoring duplicate submit");
+          throw new Error("Submission already in progress");
         }
       };
       
       onFormSubmitReady(wrappedSubmitFn);
     }
-  }, [form, onFormSubmitReady, isSubmitting]);
+  }, [form, onFormSubmitReady, isSubmitting, toast]);
   
   const handleFormSubmit = async (values: z.infer<typeof campaignFormSchema>) => {
     try {
@@ -217,6 +218,7 @@ export default function CreateCampaignForm({
         description: "There was an error creating your campaign. Please try again.",
         variant: "destructive"
       });
+      throw error; // Re-throw to signal failure to the parent component
     } finally {
       setIsSubmitting(false);
     }
@@ -274,14 +276,19 @@ export default function CreateCampaignForm({
     }
   };
 
-  const handleFormOnSubmit = (e: React.FormEvent) => {
+  const handleFormOnSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     // Prevent direct submission when using the Continue button
     if (onContinue) return;
     
     if (!isSubmitting) {
       setIsSubmitting(true);
-      form.handleSubmit(handleFormSubmit)();
+      try {
+        await form.handleSubmit(handleFormSubmit)(e);
+      } catch (error) {
+        console.error("Error during form submission:", error);
+        setIsSubmitting(false);
+      }
     }
   };
 

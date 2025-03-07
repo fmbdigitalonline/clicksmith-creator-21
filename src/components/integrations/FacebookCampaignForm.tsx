@@ -34,7 +34,7 @@ export default function FacebookCampaignForm({
   const [formTab, setFormTab] = useState<"details" | "ads">("details");
   const [selectedAdIds, setSelectedAdIds] = useState<string[]>([]);
   const [createdCampaignId, setCreatedCampaignId] = useState<string>("");
-  const [formSubmitFn, setFormSubmitFn] = useState<(() => void) | null>(null);
+  const [formSubmitFn, setFormSubmitFn] = useState<(() => Promise<void>) | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formIsValid, setFormIsValid] = useState(false);
   const { toast } = useToast();
@@ -149,7 +149,7 @@ export default function FacebookCampaignForm({
   };
 
   // Set the form submit function from the child component
-  const handleFormSubmitReady = (submitFn: () => void) => {
+  const handleFormSubmitReady = (submitFn: () => Promise<void>) => {
     setFormSubmitFn(submitFn);
   };
 
@@ -167,7 +167,7 @@ export default function FacebookCampaignForm({
   };
 
   // Handle form submission directly
-  const handleFormSubmit = () => {
+  const handleFormSubmit = async () => {
     // Prevent multiple submissions
     if (isSubmitting) {
       console.log("Already submitting, ignoring form submission");
@@ -188,21 +188,11 @@ export default function FacebookCampaignForm({
     
     if (formSubmitFn) {
       try {
-        // Call the form's submit function directly
-        formSubmitFn();
+        // Call the form's submit function directly with await
+        await formSubmitFn();
         
-        // Reset the isSubmitting flag after a reasonable timeout
-        // in case the submission callback doesn't fire
-        setTimeout(() => {
-          if (isSubmitting) {
-            setIsSubmitting(false);
-            toast({
-              title: "Submission timeout",
-              description: "The request is taking longer than expected. Please try again.",
-              variant: "destructive"
-            });
-          }
-        }, 15000);
+        // If we reach this point, the submission was successful
+        console.log("Form submission completed successfully");
       } catch (error) {
         console.error("Error submitting form:", error);
         setIsSubmitting(false);
