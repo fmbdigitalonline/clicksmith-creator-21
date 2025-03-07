@@ -6,12 +6,25 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, AlertCircle, Plus, CheckCircle, Facebook, RefreshCw, Save, Copy, BarChart3, Play } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
+import { 
+  Loader2, AlertCircle, Plus, CheckCircle, Facebook, RefreshCw, 
+  Save, Copy, BarChart3, Play, Trash2, PauseCircle, AlertTriangle 
+} from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import FacebookCampaignForm from "./FacebookCampaignForm";
 import CampaignStatusCard from "./CampaignStatusCard";
 import { AutomaticModeMonitoring } from "./AutomaticModeMonitoring";
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 // Update the Campaign interface to match the database schema and include new fields
 interface Campaign {
@@ -51,6 +64,16 @@ export default function FacebookCampaignOverview() {
   const [budget, setBudget] = useState("5");
   const [error, setError] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  
+  // State for campaign actions
+  const [campaignToDelete, setCampaignToDelete] = useState<Campaign | null>(null);
+  const [campaignToDeactivate, setCampaignToDeactivate] = useState<Campaign | null>(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deactivateConfirmOpen, setDeactivateConfirmOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState<Record<string, boolean>>({});
+  const [isDeactivating, setIsDeactivating] = useState<Record<string, boolean>>({});
+  const [isSavingTemplate, setIsSavingTemplate] = useState<Record<string, boolean>>({});
+  
   const session = useSession();
   const { toast } = useToast();
 
@@ -176,6 +199,8 @@ export default function FacebookCampaignOverview() {
         return { label: "Paused", color: "bg-green-100 text-green-800" };
       case "active":
         return { label: "Active", color: "bg-green-600 text-white" };
+      case "paused":
+        return { label: "Paused", color: "bg-yellow-500 text-white" };
       case "error":
         return { label: "Error", color: "bg-red-100 text-red-800" };
       default:
@@ -204,6 +229,8 @@ export default function FacebookCampaignOverview() {
 
   const saveAsTemplate = async (campaign: Campaign) => {
     try {
+      setIsSavingTemplate(prev => ({ ...prev, [campaign.id]: true }));
+      
       // Create a copy of the campaign as a template
       const { data, error } = await supabase
         .from("ad_campaigns")
@@ -237,7 +264,104 @@ export default function FacebookCampaignOverview() {
         description: "Failed to save campaign as template",
         variant: "destructive",
       });
+    } finally {
+      setIsSavingTemplate(prev => ({ ...prev, [campaign.id]: false }));
     }
+  };
+  
+  const deactivateCampaign = async (campaign: Campaign) => {
+    if (!campaign.platform_campaign_id || !campaign.platform_ad_set_id) {
+      toast({
+        title: "Error",
+        description: "Campaign or ad set ID is missing",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      setIsDeactivating(prev => ({ ...prev, [campaign.id]: true }));
+      
+      const response = await supabase.functions.invoke('deactivate-facebook-campaign', {
+        body: {
+          campaignId: campaign.platform_campaign_id,
+          adSetId: campaign.platform_ad_set_id,
+          recordId: campaign.id
+        }
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message || "Failed to deactivate campaign");
+      }
+      
+      // Update the campaign in the local state
+      setCampaigns(prev => prev.map(c => 
+        c.id === campaign.id ? { ...c, status: 'paused' } : c
+      ));
+
+      toast({
+        title: "Success",
+        description: "Campaign paused successfully",
+      });
+    } catch (error) {
+      console.error("Error deactivating campaign:", error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to pause campaign",
+        variant: "destructive"
+      });
+    } finally {
+      setIsDeactivating(prev => ({ ...prev, [campaign.id]: false }));
+      setCampaignToDeactivate(null);
+      setDeactivateConfirmOpen(false);
+    }
+  };
+  
+  const deleteCampaign = async (campaign: Campaign) => {
+    try {
+      setIsDeleting(prev => ({ ...prev, [campaign.id]: true }));
+      
+      const response = await supabase.functions.invoke('delete-facebook-campaign', {
+        body: {
+          campaignId: campaign.platform_campaign_id,
+          recordId: campaign.id
+        }
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message || "Failed to delete campaign");
+      }
+      
+      // Remove the campaign from the local state
+      setCampaigns(prev => prev.filter(c => c.id !== campaign.id));
+
+      toast({
+        title: "Success",
+        description: "Campaign deleted successfully",
+      });
+    } catch (error) {
+      console.error("Error deleting campaign:", error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to delete campaign",
+        variant: "destructive"
+      });
+    } finally {
+      setIsDeleting(prev => ({ ...prev, [campaign.id]: false }));
+      setCampaignToDelete(null);
+      setDeleteConfirmOpen(false);
+    }
+  };
+
+  // Confirmation dialog handlers
+  const handleDeleteConfirm = (campaign: Campaign) => {
+    setCampaignToDelete(campaign);
+    setDeleteConfirmOpen(true);
+  };
+  
+  const handleDeactivateConfirm = (campaign: Campaign) => {
+    setCampaignToDeactivate(campaign);
+    setDeactivateConfirmOpen(true);
   };
 
   if (isLoading) {
@@ -348,14 +472,50 @@ export default function FacebookCampaignOverview() {
                             )}
                           </div>
                           <div className="flex gap-2">
-                            {campaign.status === "completed" && (
+                            {campaign.status === "active" && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleDeactivateConfirm(campaign)}
+                                disabled={isDeactivating[campaign.id]}
+                              >
+                                {isDeactivating[campaign.id] ? (
+                                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                ) : (
+                                  <PauseCircle className="h-3 w-3 mr-1" />
+                                )}
+                                Pause Campaign
+                              </Button>
+                            )}
+                            
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleDeleteConfirm(campaign)}
+                              disabled={isDeleting[campaign.id]}
+                              className="bg-red-50 hover:bg-red-100 text-red-600 hover:text-red-700 border-red-200"
+                            >
+                              {isDeleting[campaign.id] ? (
+                                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                              ) : (
+                                <Trash2 className="h-3 w-3 mr-1" />
+                              )}
+                              Delete
+                            </Button>
+
+                            {(campaign.status === "completed" || campaign.status === "paused") && (
                               <>
                                 <Button 
                                   variant="outline" 
                                   size="sm"
                                   onClick={() => saveAsTemplate(campaign)}
+                                  disabled={isSavingTemplate[campaign.id]}
                                 >
-                                  <Save className="h-3 w-3 mr-1" />
+                                  {isSavingTemplate[campaign.id] ? (
+                                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                  ) : (
+                                    <Save className="h-3 w-3 mr-1" />
+                                  )}
                                   Save as Template
                                 </Button>
                                 <Button 
@@ -482,6 +642,64 @@ export default function FacebookCampaignOverview() {
       {campaigns.some(campaign => campaign.creation_mode === "automatic" && campaign.status === "completed") && (
         <AutomaticModeMonitoring />
       )}
+      
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Campaign</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this campaign? This action cannot be undone.
+              {campaignToDelete?.status === "active" && (
+                <Alert className="mt-4 bg-yellow-50 border-yellow-200">
+                  <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                  <AlertTitle className="text-yellow-800 text-sm font-medium">Warning</AlertTitle>
+                  <AlertDescription className="text-yellow-700 text-sm">
+                    This campaign is currently active. Deleting it will stop all ads from running.
+                  </AlertDescription>
+                </Alert>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => campaignToDelete && deleteCampaign(campaignToDelete)}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              {isDeleting[campaignToDelete?.id || ''] ? (
+                <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Deleting...</>
+              ) : (
+                <>Delete</>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      
+      {/* Deactivate Confirmation Dialog */}
+      <AlertDialog open={deactivateConfirmOpen} onOpenChange={setDeactivateConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Pause Campaign</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to pause this campaign? Your ads will stop running until you reactivate the campaign.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => campaignToDeactivate && deactivateCampaign(campaignToDeactivate)}
+            >
+              {isDeactivating[campaignToDeactivate?.id || ''] ? (
+                <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Pausing...</>
+              ) : (
+                <>Pause Campaign</>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
