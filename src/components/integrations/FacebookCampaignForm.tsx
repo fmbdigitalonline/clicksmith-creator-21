@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import CreateCampaignForm from "@/components/integrations/CreateCampaignForm";
@@ -12,6 +13,7 @@ import { extractTargetingData } from "@/utils/campaignDataUtils";
 import { useProjectCampaignData } from "@/hooks/useProjectCampaignData";
 import DataCompletionWarning from "@/components/projects/DataCompletionWarning";
 import CampaignStatusCard from "@/components/integrations/CampaignStatusCard";
+import { useToast } from "@/hooks/use-toast";
 
 interface FacebookCampaignFormProps {
   open: boolean;
@@ -32,6 +34,8 @@ export default function FacebookCampaignForm({
   const [formTab, setFormTab] = useState<"details" | "ads">("details");
   const [selectedAdIds, setSelectedAdIds] = useState<string[]>([]);
   const [createdCampaignId, setCreatedCampaignId] = useState<string>("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
   
   // Fetch project data for targeting suggestions and validation
   const projectData = useProjectCampaignData(selectedProjectId || initialProjectId);
@@ -80,6 +84,7 @@ export default function FacebookCampaignForm({
       setFormTab("details");
       setSelectedAdIds([]);
       setCreatedCampaignId("");
+      setIsSubmitting(false);
     }, 300); // Small delay to avoid seeing the reset during close animation
     onOpenChange(false);
   };
@@ -92,6 +97,7 @@ export default function FacebookCampaignForm({
     console.log("Campaign created with ID:", campaignId);
     setCreatedCampaignId(campaignId);
     setStep("status");
+    setIsSubmitting(false);
     
     // Call onSuccess if provided
     if (onSuccess) {
@@ -106,19 +112,34 @@ export default function FacebookCampaignForm({
     }
   };
 
-  // Add a new function to handle form submission directly
-  const handleFormSubmit = () => {
-    console.log("Submitting campaign with selected ads:", selectedAdIds);
-    
-    // Find the form element and submit it
-    const form = document.querySelector('form');
-    if (form) {
-      // Create and dispatch a submit event that will bubble up and can be cancelled
-      const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
-      form.dispatchEvent(submitEvent);
-    } else {
-      console.error("Form element not found");
+  // Function to handle form submission directly
+  const handleFormSubmit = async () => {
+    if (isSubmitting) {
+      console.log("Already submitting, ignoring duplicate submission");
+      return;
     }
+    
+    if (selectedAdIds.length === 0) {
+      toast({
+        title: "No ads selected",
+        description: "Please select at least one ad for your campaign",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setIsSubmitting(true);
+    console.log("Submitting campaign with selected ads:", selectedAdIds);
+  };
+
+  // Validate if user can proceed to ad selection
+  const canContinueToAds = () => {
+    return formTab === "details" && selectedProjectId;
+  };
+
+  // Validate if form is ready for submission
+  const canSubmitCampaign = () => {
+    return selectedAdIds.length > 0 && !isSubmitting;
   };
 
   return (
@@ -209,7 +230,17 @@ export default function FacebookCampaignForm({
                   onCancel={handleClose}
                   onBack={handleBack}
                   selectedAdIds={selectedAdIds}
-                  onContinue={() => setFormTab("ads")}
+                  onContinue={() => {
+                    if (canContinueToAds()) {
+                      setFormTab("ads");
+                    } else {
+                      toast({
+                        title: "Please complete all required fields",
+                        description: "Make sure you've filled in all the campaign details before continuing.",
+                        variant: "destructive"
+                      });
+                    }
+                  }}
                   projectDataCompleteness={projectData.dataCompleteness}
                 />
               </TabsContent>
@@ -237,10 +268,10 @@ export default function FacebookCampaignForm({
                     </Button>
                     <Button 
                       onClick={handleFormSubmit}
-                      disabled={selectedAdIds.length === 0}
+                      disabled={!canSubmitCampaign()}
                       variant="facebook"
                     >
-                      Create Campaign with {selectedAdIds.length} ad{selectedAdIds.length !== 1 ? 's' : ''}
+                      {isSubmitting ? "Creating Campaign..." : `Create Campaign with ${selectedAdIds.length} ad${selectedAdIds.length !== 1 ? 's' : ''}`}
                     </Button>
                   </div>
                 </div>

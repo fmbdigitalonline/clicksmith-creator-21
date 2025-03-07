@@ -65,7 +65,7 @@ interface CreateCampaignFormProps {
   onBack?: () => void;
   selectedAdIds?: string[];
   onContinue?: () => void;
-  projectDataCompleteness?: number; // Added prop for data completeness
+  projectDataCompleteness?: number;
 }
 
 export default function CreateCampaignForm({ 
@@ -117,6 +117,20 @@ export default function CreateCampaignForm({
   }, [projectData.loading, projectData.businessIdea]);
   
   const handleFormSubmit = async (values: z.infer<typeof campaignFormSchema>) => {
+    if (isSubmitting) {
+      console.log("Already submitting, ignoring duplicate submission");
+      return;
+    }
+    
+    if (selectedAdIds.length === 0 && !onContinue) {
+      toast({
+        title: "No ads selected",
+        description: "Please select at least one ad for your campaign",
+        variant: "destructive"
+      });
+      return;
+    }
+
     try {
       setIsSubmitting(true);
 
@@ -164,13 +178,33 @@ export default function CreateCampaignForm({
       }
     } catch (error) {
       console.error("Form submission error:", error);
+      setIsSubmitting(false);
       toast({
         title: "Error creating campaign",
         description: "There was an error creating your campaign. Please try again.",
         variant: "destructive"
       });
-    } finally {
-      setIsSubmitting(false);
+    }
+  };
+
+  // Expose the submission function directly
+  const submitForm = async () => {
+    console.log("submitForm called, checking form validity");
+    const isValid = await form.trigger();
+    
+    if (isValid) {
+      console.log("Form is valid, submitting values");
+      const values = form.getValues();
+      await handleFormSubmit(values);
+      return true;
+    } else {
+      console.log("Form validation failed:", form.formState.errors);
+      toast({
+        title: "Validation Error",
+        description: "Please complete all required fields correctly",
+        variant: "destructive"
+      });
+      return false;
     }
   };
 
@@ -204,6 +238,20 @@ export default function CreateCampaignForm({
   const handleApplySuggestion = (field: keyof z.infer<typeof campaignFormSchema>, suggestion: string) => {
     form.setValue(field, suggestion, { shouldValidate: true });
   };
+
+  // Make the submitForm function available to the parent component
+  useEffect(() => {
+    if (window) {
+      (window as any).submitCampaignForm = submitForm;
+    }
+    
+    return () => {
+      // Clean up when component unmounts
+      if (window && (window as any).submitCampaignForm) {
+        delete (window as any).submitCampaignForm;
+      }
+    };
+  }, [selectedAdIds]);
 
   return (
     <Form {...form}>
@@ -416,8 +464,20 @@ export default function CreateCampaignForm({
             {onContinue ? (
               <Button 
                 type="button" 
-                onClick={onContinue}
-                disabled={!form.formState.isValid}
+                onClick={() => {
+                  form.trigger().then(isValid => {
+                    if (isValid) {
+                      onContinue();
+                    } else {
+                      toast({
+                        title: "Please complete all required fields",
+                        description: "Make sure you've filled in all the required campaign details.",
+                        variant: "destructive"
+                      });
+                    }
+                  });
+                }}
+                disabled={isSubmitting}
               >
                 Continue to Ad Selection
               </Button>
