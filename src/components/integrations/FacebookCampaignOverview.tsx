@@ -230,12 +230,23 @@ export default function FacebookCampaignOverview() {
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await fetchCampaigns();
-    setIsRefreshing(false);
+    try {
+      await fetchCampaigns();
+    } catch (error) {
+      console.error("Error refreshing campaigns:", error);
+      toast({
+        title: "Error",
+        description: "Failed to refresh campaigns",
+        variant: "destructive",
+      });
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   const saveAsTemplate = async (campaign: Campaign) => {
     try {
+      setIsProcessing(true);
       // Create a copy of the campaign as a template
       const { data, error } = await supabase
         .from("ad_campaigns")
@@ -269,6 +280,8 @@ export default function FacebookCampaignOverview() {
         description: "Failed to save campaign as template",
         variant: "destructive",
       });
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -292,8 +305,9 @@ export default function FacebookCampaignOverview() {
       });
       
       // Refresh the campaigns list
-      fetchCampaigns();
+      await fetchCampaigns();
       setIsDeleteDialogOpen(false);
+      setCampaignToDelete(null);
     } catch (error) {
       console.error("Error deleting campaign:", error);
       toast({
@@ -303,7 +317,6 @@ export default function FacebookCampaignOverview() {
       });
     } finally {
       setIsProcessing(false);
-      setCampaignToDelete(null);
     }
   };
 
@@ -336,7 +349,7 @@ export default function FacebookCampaignOverview() {
       });
       
       // Refresh the campaigns list
-      fetchCampaigns();
+      await fetchCampaigns();
     } catch (error) {
       console.error("Error duplicating campaign:", error);
       toast({
@@ -375,19 +388,37 @@ export default function FacebookCampaignOverview() {
             </CardDescription>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="icon" onClick={handleRefresh} disabled={isRefreshing}>
+            <Button variant="outline" size="icon" onClick={handleRefresh} disabled={isRefreshing || isProcessing}>
               <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
             </Button>
             <FacebookCampaignForm
               open={showDialog}
-              onOpenChange={setShowDialog}
+              onOpenChange={(open) => {
+                // Only reset edit state when closing the dialog
+                if (!open) {
+                  setIsEditing(false);
+                  setCampaignToEdit(null);
+                }
+                setShowDialog(open);
+              }}
               projectId={selectedProject}
-              onSuccess={fetchCampaigns}
+              campaignToEdit={campaignToEdit}
+              isEditing={isEditing}
+              onSuccess={() => {
+                // Reset state and refresh campaigns
+                setIsEditing(false);
+                setCampaignToEdit(null);
+                fetchCampaigns();
+              }}
             />
-            <Button onClick={() => {
-              setCampaignToEdit(null);
-              setShowDialog(true);
-            }}>
+            <Button 
+              onClick={() => {
+                setCampaignToEdit(null);
+                setIsEditing(false);
+                setShowDialog(true);
+              }}
+              disabled={isProcessing}
+            >
               <Plus className="mr-2 h-4 w-4" /> Create Campaign
             </Button>
           </div>
@@ -400,7 +431,10 @@ export default function FacebookCampaignOverview() {
               <p className="text-muted-foreground mt-2 mb-4">
                 Create your first Facebook ad campaign to start reaching customers.
               </p>
-              <Button onClick={() => setShowDialog(true)}>
+              <Button 
+                onClick={() => setShowDialog(true)}
+                disabled={isProcessing}
+              >
                 <Plus className="mr-2 h-4 w-4" /> Create Campaign
               </Button>
             </div>
@@ -470,25 +504,33 @@ export default function FacebookCampaignOverview() {
                             {/* Add dropdown menu for actions */}
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="sm">
+                                <Button variant="ghost" size="sm" disabled={isProcessing}>
                                   <MoreVertical className="h-4 w-4" />
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => handleEditCampaign(campaign)}>
+                                <DropdownMenuItem onClick={() => handleEditCampaign(campaign)} disabled={isProcessing}>
                                   <Edit className="h-4 w-4 mr-2" />
                                   Edit
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleDuplicateCampaign(campaign)}>
+                                <DropdownMenuItem 
+                                  onClick={() => {
+                                    if (!isProcessing) handleDuplicateCampaign(campaign);
+                                  }}
+                                  disabled={isProcessing}
+                                >
                                   <Copy className="h-4 w-4 mr-2" />
                                   Duplicate
                                 </DropdownMenuItem>
                                 <DropdownMenuItem 
                                   onClick={() => {
-                                    setCampaignToDelete(campaign);
-                                    setIsDeleteDialogOpen(true);
+                                    if (!isProcessing) {
+                                      setCampaignToDelete(campaign);
+                                      setIsDeleteDialogOpen(true);
+                                    }
                                   }}
                                   className="text-red-600"
+                                  disabled={isProcessing}
                                 >
                                   <Trash className="h-4 w-4 mr-2" />
                                   Delete
@@ -502,6 +544,7 @@ export default function FacebookCampaignOverview() {
                                   variant="outline" 
                                   size="sm"
                                   onClick={() => saveAsTemplate(campaign)}
+                                  disabled={isProcessing}
                                 >
                                   <Save className="h-3 w-3 mr-1" />
                                   Save as Template
@@ -518,6 +561,7 @@ export default function FacebookCampaignOverview() {
                                       );
                                     }
                                   }}
+                                  disabled={isProcessing}
                                 >
                                   View on Facebook
                                 </Button>
@@ -529,6 +573,7 @@ export default function FacebookCampaignOverview() {
                                       // Navigate to monitoring interface
                                       window.location.href = `/integrations/campaign/${campaign.id}/monitoring`;
                                     }}
+                                    disabled={isProcessing}
                                   >
                                     <BarChart3 className="h-3 w-3 mr-1" /> View Metrics
                                   </Button>
@@ -549,6 +594,7 @@ export default function FacebookCampaignOverview() {
                                     });
                                   }
                                 }}
+                                disabled={isProcessing}
                               >
                                 View Error
                               </Button>
@@ -614,6 +660,7 @@ export default function FacebookCampaignOverview() {
                               setShowDialog(true);
                               // TODO: Pass template to campaign form
                             }}
+                            disabled={isProcessing}
                           >
                             <Copy className="h-3 w-3 mr-1" />
                             Use Template
@@ -623,9 +670,12 @@ export default function FacebookCampaignOverview() {
                             size="sm"
                             className="text-red-600"
                             onClick={() => {
-                              setCampaignToDelete(template);
-                              setIsDeleteDialogOpen(true);
+                              if (!isProcessing) {
+                                setCampaignToDelete(template);
+                                setIsDeleteDialogOpen(true);
+                              }
                             }}
+                            disabled={isProcessing}
                           >
                             <Trash className="h-3 w-3 mr-1" />
                             Delete
@@ -646,7 +696,15 @@ export default function FacebookCampaignOverview() {
       )}
 
       {/* Delete confirmation dialog */}
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+      <AlertDialog 
+        open={isDeleteDialogOpen} 
+        onOpenChange={(open) => {
+          if (!isProcessing) {
+            setIsDeleteDialogOpen(open);
+            if (!open) setCampaignToDelete(null);
+          }
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
