@@ -6,12 +6,37 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, AlertCircle, Plus, CheckCircle, Facebook, RefreshCw, Save, Copy, BarChart3, Play } from "lucide-react";
+import { 
+  Loader2, 
+  AlertCircle, 
+  Plus, 
+  CheckCircle, 
+  Facebook, 
+  RefreshCw, 
+  Save, 
+  Copy, 
+  BarChart3, 
+  Play, 
+  Trash, 
+  Edit, 
+  MoreVertical
+} from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { Badge } from "@/components/ui/badge";
 import FacebookCampaignForm from "./FacebookCampaignForm";
 import CampaignStatusCard from "./CampaignStatusCard";
 import { AutomaticModeMonitoring } from "./AutomaticModeMonitoring";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 // Update the Campaign interface to match the database schema and include new fields
 interface Campaign {
@@ -51,6 +76,13 @@ export default function FacebookCampaignOverview() {
   const [budget, setBudget] = useState("5");
   const [error, setError] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [campaignToDelete, setCampaignToDelete] = useState<Campaign | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [campaignToEdit, setCampaignToEdit] = useState<Campaign | null>(null);
+  const [isDuplicating, setIsDuplicating] = useState(false);
+  const [campaignToDuplicate, setCampaignToDuplicate] = useState<Campaign | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
   const session = useSession();
   const { toast } = useToast();
 
@@ -240,6 +272,90 @@ export default function FacebookCampaignOverview() {
     }
   };
 
+  // New function to handle campaign deletion
+  const handleDeleteCampaign = async () => {
+    if (!campaignToDelete) return;
+    
+    setIsProcessing(true);
+    try {
+      // Delete the campaign from the database
+      const { error } = await supabase
+        .from("ad_campaigns")
+        .delete()
+        .eq("id", campaignToDelete.id);
+
+      if (error) throw error;
+      
+      toast({
+        title: "Success",
+        description: "Campaign deleted successfully",
+      });
+      
+      // Refresh the campaigns list
+      fetchCampaigns();
+      setIsDeleteDialogOpen(false);
+    } catch (error) {
+      console.error("Error deleting campaign:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete campaign",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+      setCampaignToDelete(null);
+    }
+  };
+
+  // Function to handle campaign duplication
+  const handleDuplicateCampaign = async (campaign: Campaign) => {
+    setIsProcessing(true);
+    try {
+      // Create a copy of the campaign
+      const { data, error } = await supabase
+        .from("ad_campaigns")
+        .insert({
+          name: `Copy of ${campaign.name}`,
+          platform: "facebook" as const,
+          status: "draft",
+          project_id: campaign.project_id,
+          campaign_data: campaign.campaign_data,
+          image_url: campaign.image_url,
+          creation_mode: campaign.creation_mode,
+          template_id: campaign.template_id,
+          template_name: campaign.template_name
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      
+      toast({
+        title: "Success",
+        description: "Campaign duplicated successfully",
+      });
+      
+      // Refresh the campaigns list
+      fetchCampaigns();
+    } catch (error) {
+      console.error("Error duplicating campaign:", error);
+      toast({
+        title: "Error",
+        description: "Failed to duplicate campaign",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // Function to handle campaign edit
+  const handleEditCampaign = (campaign: Campaign) => {
+    setCampaignToEdit(campaign);
+    setIsEditing(true);
+    setShowDialog(true);
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center p-8">
@@ -268,7 +384,10 @@ export default function FacebookCampaignOverview() {
               projectId={selectedProject}
               onSuccess={fetchCampaigns}
             />
-            <Button onClick={() => setShowDialog(true)}>
+            <Button onClick={() => {
+              setCampaignToEdit(null);
+              setShowDialog(true);
+            }}>
               <Plus className="mr-2 h-4 w-4" /> Create Campaign
             </Button>
           </div>
@@ -348,6 +467,35 @@ export default function FacebookCampaignOverview() {
                             )}
                           </div>
                           <div className="flex gap-2">
+                            {/* Add dropdown menu for actions */}
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="sm">
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => handleEditCampaign(campaign)}>
+                                  <Edit className="h-4 w-4 mr-2" />
+                                  Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleDuplicateCampaign(campaign)}>
+                                  <Copy className="h-4 w-4 mr-2" />
+                                  Duplicate
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                  onClick={() => {
+                                    setCampaignToDelete(campaign);
+                                    setIsDeleteDialogOpen(true);
+                                  }}
+                                  className="text-red-600"
+                                >
+                                  <Trash className="h-4 w-4 mr-2" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+
                             {campaign.status === "completed" && (
                               <>
                                 <Button 
@@ -458,17 +606,31 @@ export default function FacebookCampaignOverview() {
                           <Facebook className="h-4 w-4 mr-1" />
                           Facebook Template
                         </div>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => {
-                            setShowDialog(true);
-                            // TODO: Pass template to campaign form
-                          }}
-                        >
-                          <Copy className="h-3 w-3 mr-1" />
-                          Use Template
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => {
+                              setShowDialog(true);
+                              // TODO: Pass template to campaign form
+                            }}
+                          >
+                            <Copy className="h-3 w-3 mr-1" />
+                            Use Template
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            className="text-red-600"
+                            onClick={() => {
+                              setCampaignToDelete(template);
+                              setIsDeleteDialogOpen(true);
+                            }}
+                          >
+                            <Trash className="h-3 w-3 mr-1" />
+                            Delete
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -482,6 +644,40 @@ export default function FacebookCampaignOverview() {
       {campaigns.some(campaign => campaign.creation_mode === "automatic" && campaign.status === "completed") && (
         <AutomaticModeMonitoring />
       )}
+
+      {/* Delete confirmation dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {campaignToDelete?.is_template 
+                ? "This template will be permanently deleted." 
+                : "This campaign will be permanently deleted. This action cannot be undone."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isProcessing}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={(e) => {
+                e.preventDefault();
+                handleDeleteCampaign();
+              }}
+              disabled={isProcessing}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isProcessing ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
