@@ -137,14 +137,6 @@ function dispatch(action: Action) {
   })
 }
 
-interface Toast {
-  id: string;
-  title?: React.ReactNode;
-  description?: React.ReactNode;
-  action?: ToastActionElement;
-  variant?: "default" | "destructive" | "warning";
-}
-
 interface ToastOptions {
   title?: React.ReactNode;
   description?: React.ReactNode;
@@ -163,7 +155,7 @@ export function toast({
   const update = (props: ToastOptions) =>
     dispatch({
       type: "UPDATE_TOAST",
-      toast: { ...props, id },
+      toast: { ...props, id } as Partial<ToasterToast>,
     })
   const dismiss = () => dispatch({ type: "DISMISS_TOAST", toastId: id })
 
@@ -179,7 +171,7 @@ export function toast({
       onOpenChange: (open) => {
         if (!open) dismiss()
       },
-    },
+    } as ToasterToast,
   })
 
   return {
