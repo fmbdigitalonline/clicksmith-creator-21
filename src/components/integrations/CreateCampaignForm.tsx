@@ -65,7 +65,7 @@ interface CreateCampaignFormProps {
   selectedAdIds?: string[];
   onContinue?: () => void;
   projectDataCompleteness?: number;
-  formRef?: React.RefObject<{ submitForm: () => Promise<boolean> }>;
+  formRef?: React.MutableRefObject<{ submitForm: () => Promise<boolean> } | null>;
 }
 
 export default function CreateCampaignForm({ 

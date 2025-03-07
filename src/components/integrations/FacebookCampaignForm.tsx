@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import CreateCampaignForm from "@/components/integrations/CreateCampaignForm";
@@ -36,7 +35,7 @@ export default function FacebookCampaignForm({
   const [createdCampaignId, setCreatedCampaignId] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
-  const campaignFormRef = useRef<{ submitForm: () => Promise<boolean> }>(null);
+  const campaignFormRef = useRef<{ submitForm: () => Promise<boolean> } | null>(null);
   
   // Fetch project data for targeting suggestions and validation
   const projectData = useProjectCampaignData(selectedProjectId || initialProjectId);
@@ -136,9 +135,15 @@ export default function FacebookCampaignForm({
       // Use the ref to call the submitForm method directly
       if (campaignFormRef.current && typeof campaignFormRef.current.submitForm === 'function') {
         const result = await campaignFormRef.current.submitForm();
+        console.log("Form submission result:", result);
         if (!result) {
           // If the form submission fails, reset the submitting state
           setIsSubmitting(false);
+          toast({
+            title: "Form validation failed",
+            description: "Please check all form fields and try again",
+            variant: "destructive"
+          });
         }
       } else {
         console.error("Campaign form ref or submitForm method not found");
