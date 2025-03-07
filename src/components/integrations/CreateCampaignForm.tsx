@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -31,7 +30,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 const campaignFormSchema = z.object({
   name: z.string().min(2, {
@@ -66,6 +65,7 @@ interface CreateCampaignFormProps {
   selectedAdIds?: string[];
   onContinue?: () => void;
   projectDataCompleteness?: number;
+  formRef?: React.RefObject<{ submitForm: () => Promise<boolean> }>;
 }
 
 export default function CreateCampaignForm({ 
@@ -76,7 +76,8 @@ export default function CreateCampaignForm({
   onBack,
   selectedAdIds = [],
   onContinue,
-  projectDataCompleteness = 100
+  projectDataCompleteness = 100,
+  formRef
 }: CreateCampaignFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPerformancePrediction, setShowPerformancePrediction] = useState(false);
@@ -87,7 +88,7 @@ export default function CreateCampaignForm({
   const getDefaultValues = () => {
     const dates = generateDefaultDates();
     const defaultTargetAudience = projectData.targetAudience?.description || 
-                                  "People interested in our products and services";
+                                "People interested in our products and services";
     
     return {
       name: generateCampaignName(projectData.businessIdea),
@@ -119,7 +120,7 @@ export default function CreateCampaignForm({
   const handleFormSubmit = async (values: z.infer<typeof campaignFormSchema>) => {
     if (isSubmitting) {
       console.log("Already submitting, ignoring duplicate submission");
-      return;
+      return false;
     }
     
     if (selectedAdIds.length === 0) {
@@ -187,6 +188,8 @@ export default function CreateCampaignForm({
         variant: "destructive"
       });
       return false;
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -222,6 +225,15 @@ export default function CreateCampaignForm({
     }
   };
 
+  // Expose the submitForm method via ref
+  useEffect(() => {
+    if (formRef && 'current' in formRef) {
+      formRef.current = {
+        submitForm
+      };
+    }
+  }, [formRef, selectedAdIds]);
+
   // Show appropriate messaging based on data completeness
   const renderDataCompletenessMessage = () => {
     if (!projectDataCompleteness || projectDataCompleteness === 100) return null;
@@ -252,20 +264,6 @@ export default function CreateCampaignForm({
   const handleApplySuggestion = (field: keyof z.infer<typeof campaignFormSchema>, suggestion: string) => {
     form.setValue(field, suggestion, { shouldValidate: true });
   };
-
-  // Make the submitForm function available to the parent component
-  useEffect(() => {
-    if (window) {
-      (window as any).submitCampaignForm = submitForm;
-    }
-    
-    return () => {
-      // Clean up when component unmounts
-      if (window && (window as any).submitCampaignForm) {
-        delete (window as any).submitCampaignForm;
-      }
-    };
-  }, [selectedAdIds]);
 
   return (
     <Form {...form}>
