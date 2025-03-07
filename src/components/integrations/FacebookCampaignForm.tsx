@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import CreateCampaignForm from "@/components/integrations/CreateCampaignForm";
@@ -20,20 +19,15 @@ interface FacebookCampaignFormProps {
   onOpenChange: (open: boolean) => void;
   projectId?: string;
   onSuccess?: () => void;
-  // Add the missing props
-  campaignToEdit?: any; // Using 'any' for now, ideally should use a proper type
-  isEditing?: boolean;
 }
 
 export default function FacebookCampaignForm({ 
   open, 
   onOpenChange, 
   projectId: initialProjectId,
-  onSuccess,
-  campaignToEdit,
-  isEditing = false
+  onSuccess
 }: FacebookCampaignFormProps) {
-  const [step, setStep] = useState<"mode-selection" | "form" | "status">(isEditing ? "form" : "mode-selection");
+  const [step, setStep] = useState<"mode-selection" | "form" | "status">("mode-selection");
   const [selectedMode, setSelectedMode] = useState<"manual" | "semi-automatic" | "automatic">("manual");
   const [selectedProjectId, setSelectedProjectId] = useState<string>(initialProjectId || "");
   const [formTab, setFormTab] = useState<"details" | "ads">("details");
@@ -49,27 +43,6 @@ export default function FacebookCampaignForm({
   // Extract targeting data if available
   const targetingData = projectData.targetAudience ? 
     extractTargetingData(projectData.targetAudience, projectData.audienceAnalysis) : null;
-
-  // Initialize state from campaignToEdit when in editing mode
-  useEffect(() => {
-    if (isEditing && campaignToEdit) {
-      // Set the project ID if available in the campaign
-      if (campaignToEdit.project_id) {
-        setSelectedProjectId(campaignToEdit.project_id);
-      }
-      
-      // Set the creation mode if available
-      if (campaignToEdit.creation_mode) {
-        setSelectedMode(campaignToEdit.creation_mode as "manual" | "semi-automatic" | "automatic");
-      }
-      
-      // If campaign has ads, initialize selectedAdIds
-      if (campaignToEdit.campaign_data?.ads) {
-        const adIds = campaignToEdit.campaign_data.ads.map((ad: any) => ad.id).filter(Boolean);
-        setSelectedAdIds(adIds);
-      }
-    }
-  }, [isEditing, campaignToEdit]);
 
   const handleModeSelect = (mode: "manual" | "semi-automatic" | "automatic") => {
     setSelectedMode(mode);
@@ -103,7 +76,7 @@ export default function FacebookCampaignForm({
   const handleClose = () => {
     // Reset state when dialog is closed
     setTimeout(() => {
-      setStep(isEditing ? "form" : "mode-selection");
+      setStep("mode-selection");
       if (!initialProjectId) {
         setSelectedProjectId("");
       }
@@ -206,9 +179,9 @@ export default function FacebookCampaignForm({
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{isEditing ? "Edit Facebook Campaign" : "Create Facebook Campaign"}</DialogTitle>
+          <DialogTitle>Create Facebook Campaign</DialogTitle>
           <DialogDescription>
-            {isEditing ? "Update your Facebook ad campaign" : "Create a new Facebook ad campaign for your project"}
+            Create a new Facebook ad campaign for your project
           </DialogDescription>
         </DialogHeader>
         
@@ -290,8 +263,6 @@ export default function FacebookCampaignForm({
                   onCancel={handleClose}
                   onBack={handleBack}
                   selectedAdIds={selectedAdIds}
-                  campaignToEdit={campaignToEdit}
-                  isEditing={isEditing}
                   onContinue={() => {
                     if (canContinueToAds()) {
                       setFormTab("ads");
@@ -334,10 +305,7 @@ export default function FacebookCampaignForm({
                       disabled={!canSubmitCampaign()}
                       variant="facebook"
                     >
-                      {isSubmitting ? "Creating Campaign..." : isEditing 
-                        ? `Update Campaign with ${selectedAdIds.length} ad${selectedAdIds.length !== 1 ? 's' : ''}`
-                        : `Create Campaign with ${selectedAdIds.length} ad${selectedAdIds.length !== 1 ? 's' : ''}`
-                      }
+                      {isSubmitting ? "Creating Campaign..." : `Create Campaign with ${selectedAdIds.length} ad${selectedAdIds.length !== 1 ? 's' : ''}`}
                     </Button>
                   </div>
                 </div>

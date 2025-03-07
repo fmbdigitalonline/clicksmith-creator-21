@@ -1,49 +1,17 @@
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useSession } from "@supabase/auth-helpers-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
-import { 
-  Loader2, 
-  AlertCircle, 
-  Plus, 
-  CheckCircle, 
-  Facebook, 
-  RefreshCw, 
-  Save, 
-  Copy, 
-  BarChart3, 
-  Play, 
-  Trash, 
-  Edit, 
-  MoreVertical
-} from "lucide-react";
+import { Loader2, AlertCircle, Plus, CheckCircle, Facebook, RefreshCw, Save, Copy, BarChart3, Play } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { Badge } from "@/components/ui/badge";
 import FacebookCampaignForm from "./FacebookCampaignForm";
 import CampaignStatusCard from "./CampaignStatusCard";
 import { AutomaticModeMonitoring } from "./AutomaticModeMonitoring";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { 
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-
-// Campaign action states - separate processing states for different operations
-interface CampaignActionStates {
-  deleting: Record<string, boolean>;
-  saving: Record<string, boolean>;
-  duplicating: Record<string, boolean>;
-}
 
 // Update the Campaign interface to match the database schema and include new fields
 interface Campaign {
@@ -76,47 +44,15 @@ export default function FacebookCampaignOverview() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [templates, setTemplates] = useState<Campaign[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
   const [showDialog, setShowDialog] = useState(false);
   const [projects, setProjects] = useState<any[]>([]);
   const [selectedProject, setSelectedProject] = useState("");
-  const [campaignToDelete, setCampaignToDelete] = useState<Campaign | null>(null);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [campaignToEdit, setCampaignToEdit] = useState<Campaign | null>(null);
-  
-  // Replace global isProcessing with granular action states
-  const [actionStates, setActionStates] = useState<CampaignActionStates>({
-    deleting: {},
-    saving: {},
-    duplicating: {}
-  });
-  
+  const [budget, setBudget] = useState("5");
+  const [error, setError] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const session = useSession();
   const { toast } = useToast();
-
-  // Helper functions to update action states
-  const setActionState = useCallback((actionType: keyof CampaignActionStates, campaignId: string, isActive: boolean) => {
-    setActionStates(prev => ({
-      ...prev,
-      [actionType]: {
-        ...prev[actionType],
-        [campaignId]: isActive
-      }
-    }));
-  }, []);
-
-  // Check if a specific action is in progress
-  const isActionInProgress = useCallback((actionType: keyof CampaignActionStates, campaignId: string) => {
-    return actionStates[actionType][campaignId] === true;
-  }, [actionStates]);
-
-  // Check if any action is in progress
-  const isAnyActionInProgress = useCallback(() => {
-    return Object.values(actionStates).some(stateMap => 
-      Object.values(stateMap).some(isActive => isActive)
-    );
-  }, [actionStates]);
 
   useEffect(() => {
     if (session) {
@@ -165,7 +101,6 @@ export default function FacebookCampaignOverview() {
       });
     } finally {
       setIsLoading(false);
-      setIsRefreshing(false);
     }
   };
 
@@ -262,35 +197,20 @@ export default function FacebookCampaignOverview() {
   };
 
   const handleRefresh = async () => {
-    if (isRefreshing) return;
-    
     setIsRefreshing(true);
-    try {
-      await fetchCampaigns();
-    } catch (error) {
-      console.error("Error refreshing campaigns:", error);
-      toast({
-        title: "Error",
-        description: "Failed to refresh campaigns",
-        variant: "destructive",
-      });
-    } finally {
-      setIsRefreshing(false);
-    }
+    await fetchCampaigns();
+    setIsRefreshing(false);
   };
 
   const saveAsTemplate = async (campaign: Campaign) => {
-    // Using individual action state instead of global isProcessing
-    if (isActionInProgress('saving', campaign.id)) return;
-    
-    setActionState('saving', campaign.id, true);
     try {
       // Create a copy of the campaign as a template
       const { data, error } = await supabase
         .from("ad_campaigns")
         .insert({
+          // Fix: Explicitly specify all required fields with correct types
           name: `Template: ${campaign.name}`,
-          platform: "facebook" as const,
+          platform: "facebook" as const, // Fix: Use literal type to match expected "facebook" | "google" | "linkedin" | "tiktok"
           status: "template",
           is_template: true,
           template_name: campaign.name,
@@ -308,11 +228,8 @@ export default function FacebookCampaignOverview() {
         description: "Campaign saved as template",
       });
       
-      // Optimistic UI update - add the new template to state
-      if (data) {
-        const newTemplate = mapCampaignData(data);
-        setTemplates(prev => [newTemplate, ...prev]);
-      }
+      // Refresh the list of templates
+      fetchCampaigns();
     } catch (error) {
       console.error("Error saving template:", error);
       toast({
@@ -320,110 +237,7 @@ export default function FacebookCampaignOverview() {
         description: "Failed to save campaign as template",
         variant: "destructive",
       });
-    } finally {
-      setActionState('saving', campaign.id, false);
     }
-  };
-
-  // Improved delete function with better state management
-  const handleDeleteCampaign = async () => {
-    if (!campaignToDelete) return;
-    
-    const campaignId = campaignToDelete.id;
-    const isTemplate = campaignToDelete.is_template;
-    
-    // Set the specific campaign's delete state to true
-    setActionState('deleting', campaignId, true);
-    
-    try {
-      // Delete the campaign from the database
-      const { error } = await supabase
-        .from("ad_campaigns")
-        .delete()
-        .eq("id", campaignId);
-
-      if (error) throw error;
-      
-      // Optimistic UI update - remove the deleted item from state
-      if (isTemplate) {
-        setTemplates(prev => prev.filter(t => t.id !== campaignId));
-      } else {
-        setCampaigns(prev => prev.filter(c => c.id !== campaignId));
-      }
-      
-      toast({
-        title: "Success",
-        description: "Campaign deleted successfully",
-      });
-      
-      // Reset states in the correct order
-      setCampaignToDelete(null);
-      setIsDeleteDialogOpen(false);
-    } catch (error) {
-      console.error("Error deleting campaign:", error);
-      toast({
-        title: "Error",
-        description: "Failed to delete campaign",
-        variant: "destructive",
-      });
-    } finally {
-      // Always clean up the deleting state, even if there's an error
-      setActionState('deleting', campaignId, false);
-    }
-  };
-
-  // Function to handle campaign duplication with isolated state
-  const handleDuplicateCampaign = async (campaign: Campaign) => {
-    if (isActionInProgress('duplicating', campaign.id)) return;
-    
-    setActionState('duplicating', campaign.id, true);
-    try {
-      // Create a copy of the campaign
-      const { data, error } = await supabase
-        .from("ad_campaigns")
-        .insert({
-          name: `Copy of ${campaign.name}`,
-          platform: "facebook" as const,
-          status: "draft",
-          project_id: campaign.project_id,
-          campaign_data: campaign.campaign_data,
-          image_url: campaign.image_url,
-          creation_mode: campaign.creation_mode,
-          template_id: campaign.template_id,
-          template_name: campaign.template_name
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-      
-      // Optimistic UI update - add the new campaign to the list
-      if (data) {
-        const newCampaign = mapCampaignData(data);
-        setCampaigns(prev => [newCampaign, ...prev]);
-      }
-      
-      toast({
-        title: "Success",
-        description: "Campaign duplicated successfully",
-      });
-    } catch (error) {
-      console.error("Error duplicating campaign:", error);
-      toast({
-        title: "Error",
-        description: "Failed to duplicate campaign",
-        variant: "destructive",
-      });
-    } finally {
-      setActionState('duplicating', campaign.id, false);
-    }
-  };
-
-  // Function to handle campaign edit
-  const handleEditCampaign = (campaign: Campaign) => {
-    setCampaignToEdit(campaign);
-    setIsEditing(true);
-    setShowDialog(true);
   };
 
   if (isLoading) {
@@ -445,42 +259,16 @@ export default function FacebookCampaignOverview() {
             </CardDescription>
           </div>
           <div className="flex gap-2">
-            <Button 
-              variant="outline" 
-              size="icon" 
-              onClick={handleRefresh} 
-              disabled={isRefreshing || isAnyActionInProgress()}
-            >
+            <Button variant="outline" size="icon" onClick={handleRefresh} disabled={isRefreshing}>
               <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
             </Button>
             <FacebookCampaignForm
               open={showDialog}
-              onOpenChange={(open) => {
-                // Only reset edit state when closing the dialog
-                if (!open) {
-                  setIsEditing(false);
-                  setCampaignToEdit(null);
-                }
-                setShowDialog(open);
-              }}
+              onOpenChange={setShowDialog}
               projectId={selectedProject}
-              campaignToEdit={campaignToEdit}
-              isEditing={isEditing}
-              onSuccess={() => {
-                // Reset state and refresh campaigns
-                setIsEditing(false);
-                setCampaignToEdit(null);
-                fetchCampaigns();
-              }}
+              onSuccess={fetchCampaigns}
             />
-            <Button 
-              onClick={() => {
-                setCampaignToEdit(null);
-                setIsEditing(false);
-                setShowDialog(true);
-              }}
-              disabled={isAnyActionInProgress()}
-            >
+            <Button onClick={() => setShowDialog(true)}>
               <Plus className="mr-2 h-4 w-4" /> Create Campaign
             </Button>
           </div>
@@ -493,10 +281,7 @@ export default function FacebookCampaignOverview() {
               <p className="text-muted-foreground mt-2 mb-4">
                 Create your first Facebook ad campaign to start reaching customers.
               </p>
-              <Button 
-                onClick={() => setShowDialog(true)}
-                disabled={isAnyActionInProgress()}
-              >
+              <Button onClick={() => setShowDialog(true)}>
                 <Plus className="mr-2 h-4 w-4" /> Create Campaign
               </Button>
             </div>
@@ -514,12 +299,6 @@ export default function FacebookCampaignOverview() {
                 
                 const status = formatStatus(campaign.status);
                 const creationMode = formatCreationMode(campaign.creation_mode || "manual");
-                
-                // Check if this specific campaign has operations in progress
-                const isSaving = isActionInProgress('saving', campaign.id);
-                const isDeleting = isActionInProgress('deleting', campaign.id);
-                const isDuplicating = isActionInProgress('duplicating', campaign.id);
-                const isCampaignProcessing = isSaving || isDeleting || isDuplicating;
                 
                 return (
                   <Card key={campaign.id} className="overflow-hidden">
@@ -569,48 +348,14 @@ export default function FacebookCampaignOverview() {
                             )}
                           </div>
                           <div className="flex gap-2">
-                            {/* Add dropdown menu for actions */}
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="sm" disabled={isCampaignProcessing}>
-                                  <MoreVertical className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => handleEditCampaign(campaign)} disabled={isCampaignProcessing}>
-                                  <Edit className="h-4 w-4 mr-2" />
-                                  Edit
-                                </DropdownMenuItem>
-                                <DropdownMenuItem 
-                                  onClick={() => handleDuplicateCampaign(campaign)}
-                                  disabled={isCampaignProcessing}
-                                >
-                                  <Copy className="h-4 w-4 mr-2" />
-                                  {isDuplicating ? "Duplicating..." : "Duplicate"}
-                                </DropdownMenuItem>
-                                <DropdownMenuItem 
-                                  onClick={() => {
-                                    setCampaignToDelete(campaign);
-                                    setIsDeleteDialogOpen(true);
-                                  }}
-                                  className="text-red-600"
-                                  disabled={isCampaignProcessing}
-                                >
-                                  <Trash className="h-4 w-4 mr-2" />
-                                  Delete
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-
                             {campaign.status === "completed" && (
                               <>
                                 <Button 
                                   variant="outline" 
                                   size="sm"
                                   onClick={() => saveAsTemplate(campaign)}
-                                  disabled={isCampaignProcessing}
                                 >
-                                  {isSaving ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Save className="h-3 w-3 mr-1" />}
+                                  <Save className="h-3 w-3 mr-1" />
                                   Save as Template
                                 </Button>
                                 <Button 
@@ -625,7 +370,6 @@ export default function FacebookCampaignOverview() {
                                       );
                                     }
                                   }}
-                                  disabled={isCampaignProcessing}
                                 >
                                   View on Facebook
                                 </Button>
@@ -637,7 +381,6 @@ export default function FacebookCampaignOverview() {
                                       // Navigate to monitoring interface
                                       window.location.href = `/integrations/campaign/${campaign.id}/monitoring`;
                                     }}
-                                    disabled={isCampaignProcessing}
                                   >
                                     <BarChart3 className="h-3 w-3 mr-1" /> View Metrics
                                   </Button>
@@ -658,7 +401,6 @@ export default function FacebookCampaignOverview() {
                                     });
                                   }
                                 }}
-                                disabled={isCampaignProcessing}
                               >
                                 View Error
                               </Button>
@@ -686,76 +428,52 @@ export default function FacebookCampaignOverview() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {templates.map((template) => {
-                const isTemplateProcessing = isActionInProgress('deleting', template.id);
-                
-                return (
-                  <Card key={template.id} className="overflow-hidden">
-                    <div className="flex flex-col sm:flex-row">
-                      {template.image_url && (
-                        <div className="w-full sm:w-1/4 max-h-32 overflow-hidden">
-                          <img 
-                            src={template.image_url} 
-                            alt={template.name}
-                            className="w-full h-full object-cover"
-                          />
+              {templates.map((template) => (
+                <Card key={template.id} className="overflow-hidden">
+                  <div className="flex flex-col sm:flex-row">
+                    {template.image_url && (
+                      <div className="w-full sm:w-1/4 max-h-32 overflow-hidden">
+                        <img 
+                          src={template.image_url} 
+                          alt={template.name}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    )}
+                    <div className={`flex-1 p-4 ${template.image_url ? '' : 'w-full'}`}>
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h3 className="font-medium text-lg">{template.name}</h3>
+                          <p className="text-sm text-muted-foreground">
+                            Created {new Date(template.created_at).toLocaleDateString()}
+                          </p>
                         </div>
-                      )}
-                      <div className={`flex-1 p-4 ${template.image_url ? '' : 'w-full'}`}>
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <h3 className="font-medium text-lg">{template.name}</h3>
-                            <p className="text-sm text-muted-foreground">
-                              Created {new Date(template.created_at).toLocaleDateString()}
-                            </p>
-                          </div>
-                          <Badge className="bg-blue-100 text-blue-800">
-                            Template
-                          </Badge>
+                        <Badge className="bg-blue-100 text-blue-800">
+                          Template
+                        </Badge>
+                      </div>
+                      
+                      <div className="mt-4 flex justify-between items-center">
+                        <div className="flex items-center text-sm text-muted-foreground">
+                          <Facebook className="h-4 w-4 mr-1" />
+                          Facebook Template
                         </div>
-                        
-                        <div className="mt-4 flex justify-between items-center">
-                          <div className="flex items-center text-sm text-muted-foreground">
-                            <Facebook className="h-4 w-4 mr-1" />
-                            Facebook Template
-                          </div>
-                          <div className="flex gap-2">
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => {
-                                setShowDialog(true);
-                                // TODO: Pass template to campaign form
-                              }}
-                              disabled={isTemplateProcessing}
-                            >
-                              <Copy className="h-3 w-3 mr-1" />
-                              Use Template
-                            </Button>
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              className="text-red-600"
-                              onClick={() => {
-                                setCampaignToDelete(template);
-                                setIsDeleteDialogOpen(true);
-                              }}
-                              disabled={isTemplateProcessing}
-                            >
-                              {isTemplateProcessing ? (
-                                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                              ) : (
-                                <Trash className="h-3 w-3 mr-1" />
-                              )}
-                              Delete
-                            </Button>
-                          </div>
-                        </div>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => {
+                            setShowDialog(true);
+                            // TODO: Pass template to campaign form
+                          }}
+                        >
+                          <Copy className="h-3 w-3 mr-1" />
+                          Use Template
+                        </Button>
                       </div>
                     </div>
-                  </Card>
-                );
-              })}
+                  </div>
+                </Card>
+              ))}
             </div>
           </CardContent>
         </Card>
@@ -764,53 +482,6 @@ export default function FacebookCampaignOverview() {
       {campaigns.some(campaign => campaign.creation_mode === "automatic" && campaign.status === "completed") && (
         <AutomaticModeMonitoring />
       )}
-
-      {/* Delete confirmation dialog */}
-      <AlertDialog 
-        open={isDeleteDialogOpen} 
-        onOpenChange={(open) => {
-          // Only allow closing if not currently processing
-          if (!campaignToDelete || !isActionInProgress('deleting', campaignToDelete.id)) {
-            setIsDeleteDialogOpen(open);
-            if (!open) setCampaignToDelete(null);
-          }
-        }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              {campaignToDelete?.is_template 
-                ? "This template will be permanently deleted." 
-                : "This campaign will be permanently deleted. This action cannot be undone."}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel 
-              disabled={campaignToDelete && isActionInProgress('deleting', campaignToDelete.id)}
-            >
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={(e) => {
-                e.preventDefault();
-                handleDeleteCampaign();
-              }}
-              disabled={!campaignToDelete || isActionInProgress('deleting', campaignToDelete.id)}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              {campaignToDelete && isActionInProgress('deleting', campaignToDelete.id) ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Deleting...
-                </>
-              ) : (
-                "Delete"
-              )}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }

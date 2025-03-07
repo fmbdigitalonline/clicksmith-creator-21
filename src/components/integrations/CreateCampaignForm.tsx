@@ -66,9 +66,6 @@ interface CreateCampaignFormProps {
   onContinue?: () => void;
   projectDataCompleteness?: number;
   formRef?: React.MutableRefObject<{ submitForm: () => Promise<boolean> } | null>;
-  // Add the new props for campaign editing
-  campaignToEdit?: any; // Using 'any' for now, should use a proper type in a real application
-  isEditing?: boolean;
 }
 
 export default function CreateCampaignForm({ 
@@ -80,36 +77,19 @@ export default function CreateCampaignForm({
   selectedAdIds = [],
   onContinue,
   projectDataCompleteness = 100,
-  formRef,
-  campaignToEdit,
-  isEditing = false
+  formRef
 }: CreateCampaignFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPerformancePrediction, setShowPerformancePrediction] = useState(false);
   const projectData = useProjectCampaignData(projectId);
   const { toast } = useToast();
   
-  // Generate default values based on project data or use values from campaignToEdit if in edit mode
+  // Generate default values based on project data
   const getDefaultValues = () => {
     const dates = generateDefaultDates();
     const defaultTargetAudience = projectData.targetAudience?.description || 
-                              "People interested in our products and services";
+                                "People interested in our products and services";
     
-    // If editing, use values from the campaign
-    if (isEditing && campaignToEdit?.campaign_data) {
-      const campaignData = campaignToEdit.campaign_data;
-      return {
-        name: campaignToEdit.name || "",
-        objective: campaignData.objective || "REACH",
-        targetAudience: campaignData.targetAudience || defaultTargetAudience,
-        budget: campaignData.budget || suggestDailyBudget().toString(),
-        startDate: campaignData.startDate || dates.startDate,
-        endDate: campaignData.endDate || dates.endDate,
-        creativeBrief: campaignData.creativeBrief || generateCampaignDescription(projectData.businessIdea),
-      };
-    }
-    
-    // Otherwise use default values
     return {
       name: generateCampaignName(projectData.businessIdea),
       objective: "REACH",
@@ -126,16 +106,16 @@ export default function CreateCampaignForm({
     defaultValues: getDefaultValues(),
   });
   
-  // Update form values when project data loads or when changing between create/edit modes
+  // Update form values when project data loads
   useEffect(() => {
-    if (!projectData.loading && (projectData.businessIdea || (isEditing && campaignToEdit))) {
+    if (!projectData.loading && projectData.businessIdea) {
       const defaults = getDefaultValues();
       
       Object.entries(defaults).forEach(([field, value]) => {
         form.setValue(field as any, value);
       });
     }
-  }, [projectData.loading, projectData.businessIdea, isEditing, campaignToEdit]);
+  }, [projectData.loading, projectData.businessIdea]);
   
   const handleFormSubmit = async (values: z.infer<typeof campaignFormSchema>) => {
     if (isSubmitting) {
@@ -171,60 +151,31 @@ export default function CreateCampaignForm({
       
       console.log("Form submitted with values:", campaignData);
       
-      if (isEditing && campaignToEdit) {
-        // Update the existing campaign
-        const { data: updatedCampaign, error: updateError } = await supabase
-          .from("ad_campaigns")
-          .update({
-            name: values.name,
-            campaign_data: campaignData,
-            updated_at: new Date().toISOString()
-          })
-          .eq("id", campaignToEdit.id)
-          .select()
-          .single();
-          
-        if (updateError) {
-          throw updateError;
-        }
-        
-        toast({
-          title: "Campaign updated",
-          description: "Your campaign has been updated successfully.",
-        });
-        
-        // Call onSuccess with the campaign ID
-        if (onSuccess && updatedCampaign) {
-          onSuccess(updatedCampaign.id);
-        }
-      } else {
-        // Create a new campaign record
-        const { data: campaignRecord, error: dbError } = await supabase
-          .from("ad_campaigns")
-          .insert({
-            name: values.name,
-            status: "completed", // Set initial status to completed so the button shows
-            campaign_data: campaignData,
-            project_id: projectId,
-            platform: "facebook", // Add the required platform field
-            creation_mode: creationMode
-          })
-          .select()
-          .single();
-        
-        if (dbError) {
-          throw dbError;
-        }
-        
-        toast({
-          title: "Campaign created",
-          description: "Your campaign has been created successfully.",
-        });
-        
-        // Call onSuccess with the campaign ID
-        if (onSuccess && campaignRecord) {
-          onSuccess(campaignRecord.id);
-        }
+      // Create the campaign record in the database
+      const { data: campaignRecord, error: dbError } = await supabase
+        .from("ad_campaigns")
+        .insert({
+          name: values.name,
+          status: "completed", // Set initial status to completed so the button shows
+          campaign_data: campaignData,
+          project_id: projectId,
+          platform: "facebook" // Add the required platform field
+        })
+        .select()
+        .single();
+      
+      if (dbError) {
+        throw dbError;
+      }
+      
+      toast({
+        title: "Campaign created",
+        description: "Your campaign has been created successfully.",
+      });
+      
+      // Call onSuccess with the campaign ID
+      if (onSuccess && campaignRecord) {
+        onSuccess(campaignRecord.id);
       }
       
       return true;
@@ -232,8 +183,8 @@ export default function CreateCampaignForm({
       console.error("Form submission error:", error);
       setIsSubmitting(false);
       toast({
-        title: isEditing ? "Error updating campaign" : "Error creating campaign",
-        description: error instanceof Error ? error.message : "There was an error. Please try again.",
+        title: "Error creating campaign",
+        description: error instanceof Error ? error.message : "There was an error creating your campaign. Please try again.",
         variant: "destructive"
       });
       return false;
@@ -550,10 +501,10 @@ export default function CreateCampaignForm({
                 {isSubmitting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    {isEditing ? "Updating..." : "Creating..."}
+                    Creating...
                   </>
                 ) : (
-                  isEditing ? "Update Campaign" : "Create Campaign"
+                  "Create Campaign"
                 )}
               </Button>
             )}
