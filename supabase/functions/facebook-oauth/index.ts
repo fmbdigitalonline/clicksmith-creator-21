@@ -21,6 +21,36 @@ serve(async (req) => {
     const facebookAppSecret = Deno.env.get("FACEBOOK_APP_SECRET") || "";
     const redirectUri = Deno.env.get("FACEBOOK_REDIRECT_URI") || "";
 
+    // Log configuration for debugging
+    console.log("facebook-oauth function started with configuration:", {
+      facebookAppIdExists: !!facebookAppId,
+      facebookAppIdLength: facebookAppId.length,
+      facebookAppSecretExists: !!facebookAppSecret,
+      facebookAppSecretLength: facebookAppSecret.length,
+      redirectUriExists: !!redirectUri,
+      redirectUriValue: redirectUri,
+      supabaseUrlExists: !!supabaseUrl,
+      supabaseServiceRoleKeyExists: !!supabaseServiceKey
+    });
+
+    if (!facebookAppId || !facebookAppSecret || !redirectUri) {
+      console.error("Missing required environment variables:", {
+        facebookAppId: !!facebookAppId,
+        facebookAppSecret: !!facebookAppSecret,
+        redirectUri: !!redirectUri
+      });
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: "Missing required environment variables for Facebook OAuth"
+        }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 500,
+        }
+      );
+    }
+
     // Initialize Supabase client with the service role key
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -55,7 +85,8 @@ serve(async (req) => {
       facebookAuthUrl.searchParams.append("client_id", facebookAppId);
       facebookAuthUrl.searchParams.append("redirect_uri", redirectUri);
       facebookAuthUrl.searchParams.append("state", oauthState);
-      facebookAuthUrl.searchParams.append("scope", "ads_management,ads_read,business_management");
+      // Include all required permissions for Facebook Ads management
+      facebookAuthUrl.searchParams.append("scope", "ads_management,ads_read,business_management,pages_show_list,pages_read_engagement");
       facebookAuthUrl.searchParams.append("response_type", "code");
 
       console.log("Redirecting to Facebook OAuth:", facebookAuthUrl.toString());
@@ -95,8 +126,23 @@ serve(async (req) => {
     }
 
     const accessToken = tokenData.access_token;
+    const expiresIn = tokenData.expires_in || 0;
+    
+    if (!accessToken) {
+      console.error("No access token returned");
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: "No access token returned from Facebook",
+        }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 400,
+        }
+      );
+    }
 
-    // Get Facebook user details and accounts
+    // Get Facebook user details
     console.log("Getting Facebook user data...");
     const meResponse = await fetch(`https://graph.facebook.com/v19.0/me?access_token=${accessToken}`);
     const meData = await meResponse.json();
@@ -115,10 +161,10 @@ serve(async (req) => {
       );
     }
 
-    // Get Facebook ad accounts
+    // Get Facebook ad accounts with detailed information
     console.log("Getting Facebook ad accounts...");
     const adAccountsResponse = await fetch(
-      `https://graph.facebook.com/v19.0/me/adaccounts?fields=name,account_id,account_status&access_token=${accessToken}`
+      `https://graph.facebook.com/v19.0/me/adaccounts?fields=name,account_id,account_status,currency,timezone_name,capabilities&access_token=${accessToken}`
     );
     const adAccountsData = await adAccountsResponse.json();
 
@@ -134,6 +180,18 @@ serve(async (req) => {
           status: 400,
         }
       );
+    }
+
+    // Get Facebook pages
+    console.log("Getting Facebook pages...");
+    const pagesResponse = await fetch(
+      `https://graph.facebook.com/v19.0/me/accounts?fields=name,access_token,category,fan_count,followers_count&access_token=${accessToken}`
+    );
+    const pagesData = await pagesResponse.json();
+    
+    // We don't fail the entire flow if pages fetch fails
+    if (!pagesResponse.ok || pagesData.error) {
+      console.warn("Facebook pages error (continuing anyway):", pagesData);
     }
 
     // Get the user ID from the authorization header
@@ -165,6 +223,9 @@ serve(async (req) => {
       );
     }
 
+    // Calculate token expiration
+    const expiresAt = new Date(Date.now() + (expiresIn * 1000)).toISOString();
+
     // Store the connection data in the database
     console.log("Storing connection data...");
     const { data: connectionData, error: connectionError } = await supabase
@@ -174,11 +235,13 @@ serve(async (req) => {
           user_id: user.id,
           platform: "facebook",
           access_token: accessToken,
+          token_expires_at: expiresAt,
           metadata: {
             facebook_user_id: meData.id,
             ad_accounts: adAccountsData.data,
+            pages: pagesData.error ? [] : pagesData.data,
+            last_fetched: new Date().toISOString()
           },
-          expires_at: new Date(Date.now() + (tokenData.expires_in * 1000)).toISOString(),
         },
         {
           onConflict: "user_id,platform",

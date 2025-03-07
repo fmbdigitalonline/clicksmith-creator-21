@@ -12,3 +12,10 @@ verify_jwt = false
 
 [functions.create-facebook-campaign]
 verify_jwt = false
+
+[functions.delete-facebook-campaign]
+verify_jwt = false
+
+[functions.deactivate-facebook-campaign]
+verify_jwt = false
+
