@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import CreateCampaignForm from "@/components/integrations/CreateCampaignForm";
 import CampaignModeSelection from "@/components/integrations/CampaignModeSelection";
@@ -128,8 +128,35 @@ export default function FacebookCampaignForm({
       return;
     }
     
-    setIsSubmitting(true);
-    console.log("Submitting campaign with selected ads:", selectedAdIds);
+    try {
+      setIsSubmitting(true);
+      console.log("Submitting campaign with selected ads:", selectedAdIds);
+      
+      // Get the submitCampaignForm function from window (set by CreateCampaignForm)
+      if (typeof (window as any).submitCampaignForm === 'function') {
+        const result = await (window as any).submitCampaignForm();
+        if (!result) {
+          // If the form submission fails, reset the submitting state
+          setIsSubmitting(false);
+        }
+      } else {
+        console.error("submitCampaignForm function not found");
+        setIsSubmitting(false);
+        toast({
+          title: "Error",
+          description: "Failed to submit campaign. Please try again.",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error("Error submitting form:", error);
+      setIsSubmitting(false);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to create campaign",
+        variant: "destructive"
+      });
+    }
   };
 
   // Validate if user can proceed to ad selection

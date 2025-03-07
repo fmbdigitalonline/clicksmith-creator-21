@@ -122,13 +122,13 @@ export default function CreateCampaignForm({
       return;
     }
     
-    if (selectedAdIds.length === 0 && !onContinue) {
+    if (selectedAdIds.length === 0) {
       toast({
         title: "No ads selected",
         description: "Please select at least one ad for your campaign",
         variant: "destructive"
       });
-      return;
+      return false;
     }
 
     try {
@@ -176,34 +176,48 @@ export default function CreateCampaignForm({
       if (onSuccess && campaignRecord) {
         onSuccess(campaignRecord.id);
       }
+      
+      return true;
     } catch (error) {
       console.error("Form submission error:", error);
       setIsSubmitting(false);
       toast({
         title: "Error creating campaign",
-        description: "There was an error creating your campaign. Please try again.",
+        description: error instanceof Error ? error.message : "There was an error creating your campaign. Please try again.",
         variant: "destructive"
       });
+      return false;
     }
   };
 
   // Expose the submission function directly
   const submitForm = async () => {
     console.log("submitForm called, checking form validity");
-    const isValid = await form.trigger();
-    
-    if (isValid) {
-      console.log("Form is valid, submitting values");
-      const values = form.getValues();
-      await handleFormSubmit(values);
-      return true;
-    } else {
-      console.log("Form validation failed:", form.formState.errors);
+    try {
+      const isValid = await form.trigger();
+      
+      if (isValid) {
+        console.log("Form is valid, submitting values");
+        const values = form.getValues();
+        const result = await handleFormSubmit(values);
+        return result;
+      } else {
+        console.log("Form validation failed:", form.formState.errors);
+        toast({
+          title: "Validation Error",
+          description: "Please complete all required fields correctly",
+          variant: "destructive"
+        });
+        return false;
+      }
+    } catch (error) {
+      console.error("Error in submitForm:", error);
       toast({
-        title: "Validation Error",
-        description: "Please complete all required fields correctly",
+        title: "Error",
+        description: error instanceof Error ? error.message : "An unexpected error occurred",
         variant: "destructive"
       });
+      setIsSubmitting(false);
       return false;
     }
   };
