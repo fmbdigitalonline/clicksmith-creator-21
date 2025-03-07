@@ -19,3 +19,23 @@ verify_jwt = false
 [functions.deactivate-facebook-campaign]
 verify_jwt = false
 
+[functions.activate-facebook-campaign]
+verify_jwt = false
+
+[functions.generate-video-ad]
+verify_jwt = false
+
+[functions.ai-campaign-assistant]
+verify_jwt = false
+
+[functions.create-portal-session]
+verify_jwt = false
+
+[functions.webhook]
+verify_jwt = false
+
+[functions.generate-ad-content]
+verify_jwt = false
+
+[functions.generate-content]
+verify_jwt = false

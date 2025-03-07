@@ -1,15 +1,11 @@
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { corsHeaders } from "../_shared/cors.ts";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const DEEPSEEK_API_KEY = Deno.env.get('DEEPSEEK_API_KEY');
-
-interface ContentRequest {
-  projectId: string;
-  productType: string;
-  businessDescription: string;
-  targetAudience?: string;
-}
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -17,7 +13,17 @@ serve(async (req) => {
   }
 
   try {
-    const { projectId, productType, businessDescription, targetAudience } = await req.json() as ContentRequest;
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
+    const { projectId, productType, businessDescription, targetAudience } = await req.json();
+
+    const DEEPSEEK_API_KEY = Deno.env.get('DEEPSEEK_API_KEY');
+    if (!DEEPSEEK_API_KEY) {
+      throw new Error('DEEPSEEK_API_KEY is not configured');
+    }
 
     const prompt = `Write a compelling headline and subtitle combination for a landing page that promotes ${productType}. The content should follow the AIDA formula (Attention, Interest, Desire, Action) to guide the reader through the customer journey.
 
@@ -59,9 +65,8 @@ Guidelines:
       .from('generated_content')
       .insert({
         project_id: projectId,
-        headline: data.choices[0].message.content.headline,
-        subtitle: data.choices[0].message.content.subtitle,
-        content: data.choices[0].message,
+        content: data.choices[0].message.content,
+        prompt: prompt
       })
       .select()
       .single();
@@ -81,6 +86,7 @@ Guidelines:
       },
     );
   } catch (error) {
+    console.error('Error in generate-content function:', error);
     return new Response(
       JSON.stringify({
         error: error.message,
