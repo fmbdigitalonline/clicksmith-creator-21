@@ -7,13 +7,15 @@ import FacebookConnection from "./FacebookConnection";
 import FacebookCampaignOverview from "./FacebookCampaignOverview";
 import EnvConfigCheck from "./EnvConfigCheck";
 import { AutomaticModeMonitoring } from "./AutomaticModeMonitoring";
-import { Facebook, AlertCircle } from "lucide-react";
+import { Facebook, AlertCircle, CheckCircle2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
 
 export default function PlatformIntegrations() {
   const [activeTab, setActiveTab] = useState<string>("facebook");
+  const [isCheckingConfig, setIsCheckingConfig] = useState(false);
   const location = useLocation();
   const { toast } = useToast();
 
@@ -28,6 +30,7 @@ export default function PlatformIntegrations() {
 
   // Function to check Facebook campaign manager configuration
   const checkCampaignManagerConfig = async () => {
+    setIsCheckingConfig(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       
@@ -70,6 +73,8 @@ export default function PlatformIntegrations() {
         description: "Failed to connect to the campaign manager.",
         variant: "destructive",
       });
+    } finally {
+      setIsCheckingConfig(false);
     }
   };
 
@@ -93,6 +98,16 @@ export default function PlatformIntegrations() {
         </CardHeader>
         <CardContent>
           <EnvConfigCheck />
+          <div className="mt-4 flex justify-end">
+            <Button 
+              onClick={checkCampaignManagerConfig} 
+              disabled={isCheckingConfig}
+              size="sm"
+              variant="outline"
+            >
+              {isCheckingConfig ? "Checking..." : "Check Campaign Manager"}
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
