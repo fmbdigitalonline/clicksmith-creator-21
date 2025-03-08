@@ -7,10 +7,15 @@ import FacebookConnection from "./FacebookConnection";
 import FacebookCampaignOverview from "./FacebookCampaignOverview";
 import EnvConfigCheck from "./EnvConfigCheck";
 import { AutomaticModeMonitoring } from "./AutomaticModeMonitoring";
+import { Facebook, AlertCircle } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function PlatformIntegrations() {
   const [activeTab, setActiveTab] = useState<string>("facebook");
   const location = useLocation();
+  const { toast } = useToast();
 
   // Check if we're on a nested route
   const isMonitoringRoute = location.pathname.includes('/campaign/') && location.pathname.includes('/monitoring');
@@ -20,6 +25,54 @@ export default function PlatformIntegrations() {
   const campaignId = isCampaignRoute ? 
     location.pathname.split('/campaign/')[1]?.split('/')[0] : 
     undefined;
+
+  // Function to check Facebook campaign manager configuration
+  const checkCampaignManagerConfig = async () => {
+    try {
+      const response = await fetch('/api/facebook-campaign-manager', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ operation: 'verify_connection' })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        toast({
+          title: "Campaign Manager",
+          description: "Campaign manager is properly configured.",
+        });
+      } else {
+        toast({
+          title: "Configuration Issue",
+          description: result.message || "There was an issue with the campaign manager configuration.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error checking campaign manager:", error);
+      toast({
+        title: "Error",
+        description: "Failed to connect to the campaign manager.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Function to handle campaign connection refresh
+  const handleConnectionChange = () => {
+    // Refresh the campaign overview
+    toast({
+      title: "Connection Updated",
+      description: "Facebook connection has been updated.",
+    });
+  };
 
   return (
     <div className="container pb-10">
@@ -48,7 +101,16 @@ export default function PlatformIntegrations() {
               
               <TabsContent value="facebook">
                 <div className="space-y-6">
-                  <FacebookConnection />
+                  <Alert className="mb-4">
+                    <Facebook className="h-4 w-4" />
+                    <AlertTitle>Facebook Integration Status</AlertTitle>
+                    <AlertDescription>
+                      Connect your Facebook Ads account to create and manage campaigns. 
+                      Make sure your Facebook App settings include the redirect URI and required permissions.
+                    </AlertDescription>
+                  </Alert>
+                  
+                  <FacebookConnection onConnectionChange={handleConnectionChange} />
                   <FacebookCampaignOverview />
                 </div>
               </TabsContent>

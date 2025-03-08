@@ -155,6 +155,87 @@ serve(async (req) => {
         );
       }
       
+      case 'get_campaign_details': {
+        // Get campaign details logic
+        if (!recordId) {
+          return new Response(
+            JSON.stringify({ error: 'Missing recordId parameter' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+          );
+        }
+        
+        // Fetch campaign details from database
+        const { data, error } = await supabaseClient
+          .from('ad_campaigns')
+          .select('*')
+          .eq('id', recordId)
+          .maybeSingle();
+        
+        if (error) {
+          console.error('Error getting campaign details:', error);
+          throw error;
+        }
+        
+        return new Response(
+          JSON.stringify({ success: true, campaign: data }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      case 'verify_connection': {
+        // Verify that user has an active Facebook connection
+        const { userId } = await req.json();
+        
+        if (!userId) {
+          return new Response(
+            JSON.stringify({ error: 'Missing userId parameter' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+          );
+        }
+        
+        const { data, error } = await supabaseClient
+          .from('platform_connections')
+          .select('*')
+          .eq('platform', 'facebook')
+          .eq('user_id', userId)
+          .maybeSingle();
+        
+        if (error) {
+          console.error('Error verifying connection:', error);
+          throw error;
+        }
+        
+        // Check if token is expired
+        let isValid = false;
+        let message = 'No Facebook connection found';
+        
+        if (data) {
+          if (data.token_expires_at) {
+            const expiryDate = new Date(data.token_expires_at);
+            if (expiryDate > new Date()) {
+              isValid = true;
+              message = 'Connection valid';
+            } else {
+              message = 'Connection token expired';
+            }
+          } else {
+            // If no expiry date, assume it's valid
+            isValid = true;
+            message = 'Connection valid (no expiry date)';
+          }
+        }
+        
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            isValid,
+            message,
+            connection: data
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
       default:
         return new Response(
           JSON.stringify({ error: `Unknown operation: ${operation}` }),
