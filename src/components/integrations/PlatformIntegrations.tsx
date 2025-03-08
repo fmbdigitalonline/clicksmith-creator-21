@@ -1,105 +1,101 @@
 
-import { useState } from "react";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Routes, Route, useLocation, Link } from "react-router-dom";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { useState, useEffect } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import FacebookConnection from "./FacebookConnection";
-import FacebookCampaignOverview from "./FacebookCampaignOverview";
 import EnvConfigCheck from "./EnvConfigCheck";
-import { AutomaticModeMonitoring } from "./AutomaticModeMonitoring";
+import { useSearchParams } from "react-router-dom";
+import FacebookAppVerification from "./FacebookAppVerification";
+import FacebookPermissionsGuide from "./FacebookPermissionsGuide";
 
 export default function PlatformIntegrations() {
-  const [activeTab, setActiveTab] = useState<string>("facebook");
-  const location = useLocation();
+  const [activeTab, setActiveTab] = useState("facebook");
+  const [searchParams] = useSearchParams();
+  const connectionParam = searchParams.get('connection');
 
-  // Check if we're on a nested route
-  const isMonitoringRoute = location.pathname.includes('/campaign/') && location.pathname.includes('/monitoring');
-  const isCampaignRoute = location.pathname.includes('/campaign/');
-  
-  // Extract campaign ID if available
-  const campaignId = isCampaignRoute ? 
-    location.pathname.split('/campaign/')[1]?.split('/')[0] : 
-    undefined;
+  useEffect(() => {
+    // Set the active tab based on the URL parameter if it exists
+    if (connectionParam) {
+      setActiveTab(connectionParam);
+    }
+  }, [connectionParam]);
+
+  // Get environment variables for Facebook verification
+  const facebookAppId = import.meta.env.VITE_FACEBOOK_APP_ID;
+  const redirectUri = `${window.location.origin}/integrations?connection=facebook`;
 
   return (
-    <div className="container pb-10">
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>Ad Platform Integrations</CardTitle>
-          <CardDescription>
-            Connect your ad accounts and manage campaigns across platforms
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <EnvConfigCheck />
-        </CardContent>
-      </Card>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Platform Integrations</h1>
+        <p className="text-muted-foreground">
+          Connect your ad accounts to create and manage campaigns directly from this dashboard.
+        </p>
+      </div>
 
-      <Routes>
-        <Route 
-          path="/" 
-          element={
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="mb-6">
-                <TabsTrigger value="facebook">Facebook</TabsTrigger>
-                <TabsTrigger value="google" disabled>Google Ads</TabsTrigger>
-                <TabsTrigger value="tiktok" disabled>TikTok</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="facebook">
-                <div className="space-y-6">
-                  <FacebookConnection />
-                  <FacebookCampaignOverview />
-                </div>
-              </TabsContent>
-              
-              <TabsContent value="google">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Google Ads Integration</CardTitle>
-                    <CardDescription>Connect your Google Ads account</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-center py-10 text-muted-foreground">
-                      Google Ads integration coming soon
-                    </p>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-              
-              <TabsContent value="tiktok">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>TikTok Ads Integration</CardTitle>
-                    <CardDescription>Connect your TikTok Ads account</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-center py-10 text-muted-foreground">
-                      TikTok Ads integration coming soon
-                    </p>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            </Tabs>
-          } 
-        />
-        
-        {/* Campaign monitoring route */}
-        <Route 
-          path="/campaign/:campaignId/monitoring" 
-          element={
+      <EnvConfigCheck />
+
+      <Tabs defaultValue={activeTab} value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="facebook">Facebook Ads</TabsTrigger>
+          <TabsTrigger value="google" disabled>Google Ads (Coming Soon)</TabsTrigger>
+          <TabsTrigger value="tiktok" disabled>TikTok Ads (Coming Soon)</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="facebook" className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <h2 className="text-xl font-bold">Campaign Monitoring</h2>
-                <Link to="/integrations" className="text-sm text-blue-600 hover:underline">
-                  Back to Campaigns
-                </Link>
-              </div>
-              <AutomaticModeMonitoring campaignId={campaignId} />
+              <FacebookConnection onConnectionChange={() => {}} />
+              <FacebookPermissionsGuide />
             </div>
-          } 
-        />
-      </Routes>
+            <div className="space-y-4">
+              <FacebookAppVerification appId={facebookAppId} redirectUri={redirectUri} />
+              <Card>
+                <CardHeader>
+                  <CardTitle>Environment Configuration</CardTitle>
+                  <CardDescription>Current environment variables for Facebook integration</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-sm font-medium">App ID:</span>
+                      <span className="text-sm text-muted-foreground">{facebookAppId || "Not configured"}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm font-medium">Redirect URI:</span>
+                      <span className="text-sm text-muted-foreground text-right break-all">{redirectUri}</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="google">
+          <Card>
+            <CardHeader>
+              <CardTitle>Google Ads Integration</CardTitle>
+              <CardDescription>Coming soon</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p>Google Ads integration will be available in a future update.</p>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="tiktok">
+          <Card>
+            <CardHeader>
+              <CardTitle>TikTok Ads Integration</CardTitle>
+              <CardDescription>Coming soon</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p>TikTok Ads integration will be available in a future update.</p>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
