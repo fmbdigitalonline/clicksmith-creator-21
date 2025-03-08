@@ -145,9 +145,9 @@ export default function PlatformIntegrations() {
                     <CardDescription>Connect your Google Ads account</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-center py-10 text-muted-foreground">
+                    <div className="text-center py-10 text-muted-foreground">
                       Google Ads integration coming soon
-                    </p>
+                    </div>
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -159,9 +159,9 @@ export default function PlatformIntegrations() {
                     <CardDescription>Connect your TikTok Ads account</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-center py-10 text-muted-foreground">
+                    <div className="text-center py-10 text-muted-foreground">
                       TikTok Ads integration coming soon
-                    </p>
+                    </div>
                   </CardContent>
                 </Card>
               </TabsContent>
