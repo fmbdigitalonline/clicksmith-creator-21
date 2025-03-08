@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Routes, Route, useLocation, Link } from "react-router-dom";
@@ -7,15 +6,17 @@ import FacebookConnection from "./FacebookConnection";
 import FacebookCampaignOverview from "./FacebookCampaignOverview";
 import EnvConfigCheck from "./EnvConfigCheck";
 import { AutomaticModeMonitoring } from "./AutomaticModeMonitoring";
-import { Facebook, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Facebook, AlertCircle, CheckCircle2, Plus } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import FacebookCampaignForm from "./FacebookCampaignForm";
 
 export default function PlatformIntegrations() {
   const [activeTab, setActiveTab] = useState<string>("facebook");
   const [isCheckingConfig, setIsCheckingConfig] = useState(false);
+  const [isCampaignFormOpen, setIsCampaignFormOpen] = useState(false);
   const location = useLocation();
   const { toast } = useToast();
 
@@ -87,6 +88,14 @@ export default function PlatformIntegrations() {
     });
   };
 
+  const handleCampaignCreated = () => {
+    setIsCampaignFormOpen(false);
+    toast({
+      title: "Campaign Created",
+      description: "Your Facebook campaign has been created successfully.",
+    });
+  };
+
   return (
     <div className="container pb-10">
       <Card className="mb-6">
@@ -134,7 +143,24 @@ export default function PlatformIntegrations() {
                   </Alert>
                   
                   <FacebookConnection onConnectionChange={handleConnectionChange} />
+                  
+                  <div className="flex justify-end mb-4">
+                    <Button 
+                      onClick={() => setIsCampaignFormOpen(true)}
+                      variant="default"
+                    >
+                      <Plus className="mr-2 h-4 w-4" /> Create Campaign
+                    </Button>
+                  </div>
+                  
                   <FacebookCampaignOverview />
+                  
+                  {/* Campaign Form Dialog */}
+                  <FacebookCampaignForm 
+                    open={isCampaignFormOpen} 
+                    onOpenChange={setIsCampaignFormOpen}
+                    onSuccess={handleCampaignCreated}
+                  />
                 </div>
               </TabsContent>
               
