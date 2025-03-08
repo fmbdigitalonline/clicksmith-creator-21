@@ -21,7 +21,7 @@ serve(async (req) => {
     );
 
     // Get request body and operation type
-    const { operation, campaignId, recordId, campaignData } = await req.json();
+    const { operation, campaignId, recordId, campaignData, adSetId } = await req.json();
     
     console.log(`Processing Facebook campaign operation: ${operation}`, { campaignId, recordId });
 

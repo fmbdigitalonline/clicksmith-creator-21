@@ -282,8 +282,10 @@ export default function FacebookCampaignOverview() {
     try {
       setIsDeactivating(prev => ({ ...prev, [campaign.id]: true }));
       
-      const response = await supabase.functions.invoke('deactivate-facebook-campaign', {
+      // Use the consolidated facebook-campaign-manager function
+      const response = await supabase.functions.invoke('facebook-campaign-manager', {
         body: {
+          operation: 'deactivate',
           campaignId: campaign.platform_campaign_id,
           adSetId: campaign.platform_ad_set_id,
           recordId: campaign.id
@@ -321,8 +323,10 @@ export default function FacebookCampaignOverview() {
     try {
       setIsDeleting(prev => ({ ...prev, [campaign.id]: true }));
       
-      const response = await supabase.functions.invoke('delete-facebook-campaign', {
+      // Use the consolidated facebook-campaign-manager function
+      const response = await supabase.functions.invoke('facebook-campaign-manager', {
         body: {
+          operation: 'delete',
           campaignId: campaign.platform_campaign_id,
           recordId: campaign.id
         }
