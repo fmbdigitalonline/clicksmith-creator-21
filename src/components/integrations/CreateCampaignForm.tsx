@@ -151,22 +151,44 @@ export default function CreateCampaignForm({
       
       console.log("Form submitted with values:", campaignData);
       
-      // Create the campaign record in the database
-      const { data: campaignRecord, error: dbError } = await supabase
-        .from("ad_campaigns")
-        .insert({
-          name: values.name,
-          status: "completed", // Set initial status to completed so the button shows
-          campaign_data: campaignData,
-          project_id: projectId,
-          platform: "facebook" // Add the required platform field
-        })
-        .select()
-        .single();
+      // Create the campaign record in the database using the campaign manager
+      const response = await supabase.functions.invoke('facebook-campaign-manager', {
+        body: {
+          operation: 'create',
+          campaignData: { 
+            name: values.name,
+            objective: values.objective,
+            status: "PAUSED" 
+          },
+          adSetData: {
+            name: `${values.name} - Ad Set`,
+            daily_budget: parseInt(values.budget),
+            targeting: targetingData
+          },
+          adCreativeData: {
+            name: `${values.name} - Creative`,
+            object_story_spec: {
+              page_id: '{{page_id}}', // Will be replaced by the function
+              link_data: {
+                message: values.creativeBrief,
+                link: "https://your-landing-page.com",
+                name: values.name,
+                call_to_action: { type: "LEARN_MORE" }
+              }
+            }
+          },
+          projectId,
+          campaignMode: creationMode,
+          // Include other relevant data from form values
+          selectedAdIds
+        }
+      });
       
-      if (dbError) {
-        throw dbError;
+      if (response.error) {
+        throw new Error(response.error.message || "Error creating campaign");
       }
+      
+      const campaignRecord = response.data;
       
       toast({
         title: "Campaign created",
@@ -175,7 +197,7 @@ export default function CreateCampaignForm({
       
       // Call onSuccess with the campaign ID
       if (onSuccess && campaignRecord) {
-        onSuccess(campaignRecord.id);
+        onSuccess(campaignRecord.campaignRecordId);
       }
       
       return true;

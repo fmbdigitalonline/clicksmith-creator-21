@@ -108,9 +108,10 @@ export default function CampaignStatusCard({
     setIsActivating(true);
 
     try {
-      // Call the activate-facebook-campaign endpoint
-      const response = await supabase.functions.invoke('activate-facebook-campaign', {
+      // Call the facebook-campaign-manager endpoint with activate operation
+      const response = await supabase.functions.invoke('facebook-campaign-manager', {
         body: {
+          operation: 'activate',
           campaignId: campaign.platform_campaign_id,
           adSetId: campaign.platform_ad_set_id,
           recordId: campaign.id
@@ -167,9 +168,10 @@ export default function CampaignStatusCard({
     setIsDeactivating(true);
 
     try {
-      // Call the deactivate-facebook-campaign endpoint
-      const response = await supabase.functions.invoke('deactivate-facebook-campaign', {
+      // Call the facebook-campaign-manager endpoint with deactivate operation
+      const response = await supabase.functions.invoke('facebook-campaign-manager', {
         body: {
+          operation: 'deactivate',
           campaignId: campaign.platform_campaign_id,
           adSetId: campaign.platform_ad_set_id,
           recordId: campaign.id

@@ -29,24 +29,32 @@ export default function PlatformIntegrations() {
   // Function to check Facebook campaign manager configuration
   const checkCampaignManagerConfig = async () => {
     try {
-      const response = await fetch('/api/facebook-campaign-manager', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ operation: 'verify_connection' })
-      });
+      const { data: { user } } = await supabase.auth.getUser();
       
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      if (!user) {
+        throw new Error("User not authenticated");
       }
       
-      const result = await response.json();
+      const response = await supabase.functions.invoke('facebook-campaign-manager', {
+        body: { 
+          operation: 'verify_connection',
+          userId: user.id
+        }
+      });
+      
+      if (response.error) {
+        throw new Error(`HTTP error! status: ${response.error.message}`);
+      }
+      
+      const result = response.data;
       
       if (result.success) {
         toast({
           title: "Campaign Manager",
-          description: "Campaign manager is properly configured.",
+          description: result.isValid 
+            ? "Campaign manager is properly configured and connected."
+            : result.message || "Campaign manager configured but Facebook connection is missing.",
+          variant: result.isValid ? "default" : "destructive",
         });
       } else {
         toast({
