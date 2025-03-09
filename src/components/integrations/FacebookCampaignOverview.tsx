@@ -14,12 +14,14 @@ interface Campaign {
   id: string;
   name: string;
   status: string;
-  objective: string;
-  fb_campaign_id: string;
+  platform_campaign_id?: string; // Changed from fb_campaign_id to match database
   created_at: string;
+  // Add additional fields from the database
+  campaign_data?: Record<string, any>;
   spent?: number;
   impressions?: number;
   clicks?: number;
+  // Remove objective as it's not in the database response
 }
 
 interface FacebookCampaignOverviewProps {
@@ -134,7 +136,10 @@ export default function FacebookCampaignOverview({ onCreateCampaign }: FacebookC
                           {campaign.status || 'Unknown'}
                         </span>
                       </p>
-                      <p className="text-sm text-muted-foreground">Objective: {campaign.objective || 'Not specified'}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {/* Display objective from campaign_data if available */}
+                        Objective: {campaign.campaign_data?.campaign?.objective || 'Not specified'}
+                      </p>
                     </div>
                     <Button variant="outline" size="sm" onClick={() => handleViewMonitoring(campaign.id)}>
                       Monitor
