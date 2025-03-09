@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -19,7 +20,8 @@ import {
   generateCampaignName, 
   generateCampaignDescription, 
   suggestDailyBudget,
-  generateDefaultDates
+  generateDefaultDates,
+  extractTargetingData
 } from "@/utils/campaignDataUtils";
 import { AISuggestion } from "./AISuggestion";
 import { 
@@ -106,7 +108,7 @@ export default function CreateCampaignForm({
   const form = useForm<z.infer<typeof campaignFormSchema>>({
     resolver: zodResolver(campaignFormSchema),
     defaultValues: getDefaultValues(),
-    mode: "onChange", // Add this to enable validation as fields change
+    mode: "onChange",
   });
   
   // Clear validation errors when projectId changes
@@ -121,7 +123,7 @@ export default function CreateCampaignForm({
       
       Object.entries(defaults).forEach(([field, value]) => {
         form.setValue(field as any, value, { 
-          shouldValidate: true, // Validate immediately on value change
+          shouldValidate: true,
           shouldDirty: true 
         });
       });
@@ -169,21 +171,21 @@ export default function CreateCampaignForm({
       setIsSubmitting(true);
       setValidationErrors([]);
 
-      // Extract targeting data for Facebook API
-      const targetingData = projectData.targetAudience ? {
-        targeting: projectData.targetAudience,
-        analysis: projectData.audienceAnalysis
-      } : undefined;
+      // Extract and properly format targeting data from project data
+      let targetingData = null;
+      if (projectData.targetAudience) {
+        targetingData = extractTargetingData(projectData.targetAudience, projectData.audienceAnalysis);
+      }
 
-      // Include selected ad IDs and extracted targeting
+      // Include selected ad IDs and properly formatted targeting data
       const campaignData = {
         ...values,
         selected_ad_ids: selectedAdIds,
-        targeting_data: targetingData,
+        targeting_data: targetingData || undefined,
         smart_targeting: creationMode !== "manual"
       };
       
-      console.log("Form submitted with values:", campaignData);
+      console.log("Submitting campaign with data:", campaignData);
       
       // Create the campaign record in the database using the campaign manager
       const response = await supabase.functions.invoke('facebook-campaign-manager', {
@@ -213,12 +215,12 @@ export default function CreateCampaignForm({
           },
           projectId,
           campaignMode: creationMode,
-          // Include other relevant data from form values
           selectedAdIds
         }
       });
       
       if (response.error) {
+        console.error("Edge function error:", response.error);
         throw new Error(response.error.message || "Error creating campaign");
       }
       
@@ -341,7 +343,7 @@ export default function CreateCampaignForm({
 
   const handleApplySuggestion = (field: keyof z.infer<typeof campaignFormSchema>, suggestion: string) => {
     form.setValue(field, suggestion, { 
-      shouldValidate: true, // Validate immediately on suggestion apply
+      shouldValidate: true,
       shouldDirty: true 
     });
   };

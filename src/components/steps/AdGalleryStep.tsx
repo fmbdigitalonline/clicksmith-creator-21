@@ -1,3 +1,4 @@
+
 import { BusinessIdea, TargetAudience, AdHook } from "@/types/adWizard";
 import { TabsContent } from "@/components/ui/tabs";
 import LoadingState from "./complete/LoadingState";
@@ -168,12 +169,16 @@ const AdGalleryStep = ({
       }
 
       const selectedAds = adVariants.filter(ad => selectedAdIds.includes(ad.id));
+      const savedAds = [];
       
       for (const ad of selectedAds) {
         const imageUrl = ad.imageUrl || ad.image?.url;
-        if (!imageUrl) continue;
+        if (!imageUrl) {
+          console.warn("Ad missing image URL:", ad);
+          continue;
+        }
 
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('ad_feedback')
           .insert({
             user_id: (await supabase.auth.getUser()).data.user?.id,
@@ -192,6 +197,8 @@ const AdGalleryStep = ({
           console.error("Error saving ad to project:", error);
           throw error;
         }
+        
+        savedAds.push(data);
       }
 
       toast({

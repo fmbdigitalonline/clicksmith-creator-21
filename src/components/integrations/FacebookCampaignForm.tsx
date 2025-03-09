@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import CreateCampaignForm from "@/components/integrations/CreateCampaignForm";
@@ -181,8 +182,8 @@ export default function FacebookCampaignForm({
           // If the form submission fails, reset the submitting state
           setIsSubmitting(false);
           toast({
-            title: "Form validation failed",
-            description: "Please check all form fields and try again",
+            title: "Campaign creation failed",
+            description: "There was an error creating your campaign. Please check your form values and try again.",
             variant: "destructive"
           });
         }
