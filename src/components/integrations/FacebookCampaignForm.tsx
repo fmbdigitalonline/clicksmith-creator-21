@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import CreateCampaignForm from "@/components/integrations/CreateCampaignForm";
@@ -40,6 +41,13 @@ export default function FacebookCampaignForm({
   // Fetch project data for targeting suggestions and validation
   const projectData = useProjectCampaignData(selectedProjectId || initialProjectId);
   
+  // This useEffect ensures the project ID is properly set from props
+  useEffect(() => {
+    if (initialProjectId && !selectedProjectId) {
+      setSelectedProjectId(initialProjectId);
+    }
+  }, [initialProjectId]);
+  
   // Extract targeting data if available
   const targetingData = projectData.targetAudience ? 
     extractTargetingData(projectData.targetAudience, projectData.audienceAnalysis) : null;
@@ -49,6 +57,7 @@ export default function FacebookCampaignForm({
   };
 
   const handleProjectSelect = (projectId: string) => {
+    console.log("Project selected:", projectId);
     setSelectedProjectId(projectId);
     // If they select a project and were in a disabled mode, switch to semi-automatic
     if (selectedMode !== "manual" && !selectedProjectId) {
@@ -59,6 +68,11 @@ export default function FacebookCampaignForm({
   const handleContinue = () => {
     // Only allow non-manual modes if a project is selected
     if ((selectedMode === "semi-automatic" || selectedMode === "automatic") && !selectedProjectId) {
+      toast({
+        title: "Project Required",
+        description: "Please select a project before continuing with this mode",
+        variant: "destructive"
+      });
       return;
     }
     setStep("form");
@@ -187,20 +201,18 @@ export default function FacebookCampaignForm({
         
         {step === "mode-selection" && (
           <>
-            {!initialProjectId && (
-              <div className="mb-6">
-                <h3 className="text-lg font-medium mb-2">Select Project</h3>
-                <ProjectSelector 
-                  onSelect={handleProjectSelect}
-                  selectedProjectId={selectedProjectId}
-                />
-                {selectedProjectId && (
-                  <p className="text-sm text-muted-foreground mt-2">
-                    Using project data to help create your campaign
-                  </p>
-                )}
-              </div>
-            )}
+            <div className="mb-6">
+              <h3 className="text-lg font-medium mb-2">Select Project</h3>
+              <ProjectSelector 
+                onSelect={handleProjectSelect}
+                selectedProjectId={selectedProjectId}
+              />
+              {selectedProjectId && (
+                <p className="text-sm text-muted-foreground mt-2">
+                  Project selected: Using project data to help create your campaign
+                </p>
+              )}
+            </div>
             
             {/* Show data validation warning if project is selected */}
             {(selectedProjectId || initialProjectId) && !projectData.loading && (
@@ -220,7 +232,7 @@ export default function FacebookCampaignForm({
             <div className="flex justify-end mt-6">
               <Button 
                 onClick={handleContinue}
-                disabled={(selectedMode !== "manual") && !selectedProjectId && !initialProjectId}
+                disabled={(selectedMode !== "manual") && !selectedProjectId}
               >
                 Continue
               </Button>
@@ -257,7 +269,7 @@ export default function FacebookCampaignForm({
                 )}
                 
                 <CreateCampaignForm 
-                  projectId={selectedProjectId || initialProjectId || ""} 
+                  projectId={selectedProjectId || initialProjectId} 
                   creationMode={selectedMode}
                   onSuccess={handleCampaignCreated}
                   onCancel={handleClose}
