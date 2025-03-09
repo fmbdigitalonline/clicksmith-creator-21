@@ -100,17 +100,6 @@ export default function FacebookCampaignForm({
       return false;
     }
     
-    // For all modes, a project is required to continue to form step
-    if (!selectedProjectId) {
-      setProjectError("Please select a project to continue");
-      toast({
-        title: "Project Required",
-        description: "You must select a project before continuing",
-        variant: "destructive",
-      });
-      return false;
-    }
-    
     return true;
   };
 
@@ -266,12 +255,12 @@ export default function FacebookCampaignForm({
         {step === "mode-selection" && (
           <>
             <div className="mb-6 relative z-10">
-              <h3 className="text-lg font-medium mb-2">Select Project <span className="text-red-500">*</span></h3>
+              <h3 className="text-lg font-medium mb-2">Select Project</h3>
               <ProjectSelector 
                 onSelect={handleProjectSelect}
                 selectedProjectId={selectedProjectId}
-                required={true}
-                errorMessage={projectError || "A project is required to create a campaign"}
+                required={selectedMode !== "manual"}
+                errorMessage={projectError || "A project is required for this campaign mode"}
               />
               
               {selectedProjectId && !projectError && (
@@ -300,7 +289,7 @@ export default function FacebookCampaignForm({
             <div className="flex justify-end mt-6">
               <Button 
                 onClick={handleContinue}
-                disabled={!selectedProjectId}
+                disabled={(selectedMode !== "manual") && !selectedProjectId}
               >
                 Continue
               </Button>
@@ -313,7 +302,7 @@ export default function FacebookCampaignForm({
             {/* Show project selector at the top if not already selected */}
             {!selectedProjectId && (
               <div className="mb-6">
-                <h3 className="text-lg font-medium mb-2">Select Project <span className="text-red-500">*</span></h3>
+                <h3 className="text-lg font-medium mb-2">Select Project</h3>
                 <ProjectSelector 
                   onSelect={handleProjectSelect}
                   selectedProjectId={selectedProjectId}
