@@ -41,6 +41,11 @@ export default function FacebookCampaignForm({
   // Fetch project data for targeting suggestions and validation
   const projectData = useProjectCampaignData(selectedProjectId);
 
+  // Log any changes to selectedProjectId
+  useEffect(() => {
+    console.log("Selected project ID changed in FacebookCampaignForm:", selectedProjectId);
+  }, [selectedProjectId]);
+
   // This useEffect ensures the project ID is properly set from props or changed state
   useEffect(() => {
     console.log("Initial project ID:", initialProjectId);
@@ -62,12 +67,17 @@ export default function FacebookCampaignForm({
 
   const handleProjectSelect = (projectId: string) => {
     console.log("Project selected in Facebook form:", projectId);
+    
+    // Make sure we properly update the state
+    setSelectedProjectId(projectId);
+    
     // Show feedback to user
     toast({
       title: "Project Selected",
-      description: `Project has been selected successfully (ID: ${projectId})`,
+      description: `Project has been selected successfully`,
+      variant: "default",
     });
-    setSelectedProjectId(projectId);
+    
     // If they select a project and were in a disabled mode, switch to semi-automatic
     if (selectedMode !== "manual" && !selectedProjectId) {
       setSelectedMode("semi-automatic");
@@ -222,7 +232,7 @@ export default function FacebookCampaignForm({
         
         {step === "mode-selection" && (
           <>
-            <div className="mb-6">
+            <div className="mb-6 relative z-10">
               <h3 className="text-lg font-medium mb-2">Select Project</h3>
               <ProjectSelector 
                 onSelect={handleProjectSelect}

@@ -36,6 +36,11 @@ export function ProjectSelector({ onSelect, selectedProjectId }: ProjectSelector
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
+  // Log when component mounts with props
+  useEffect(() => {
+    console.log("ProjectSelector mounted with selectedProjectId:", selectedProjectId);
+  }, []);
+
   useEffect(() => {
     const fetchProjects = async () => {
       try {
@@ -90,17 +95,19 @@ export function ProjectSelector({ onSelect, selectedProjectId }: ProjectSelector
     ? projects.find(project => project?.id === selectedProjectId) 
     : undefined;
 
+  console.log("Current selected project:", selectedProject);
+
   // This function explicitly handles selection with console logs for debugging
-  const handleSelectProject = (value: string) => {
-    console.log("handleSelectProject called with:", value);
-    // More verbose logging to track the selection flow
-    console.log(`Selected project ID: ${value}, previous selection: ${selectedProjectId}`);
+  const handleSelectProject = (projectId: string) => {
+    console.log("handleSelectProject called with:", projectId);
     
-    // Enforce selection by immediately calling onSelect
-    onSelect(value);
+    // Call onSelect with the selected project ID
+    onSelect(projectId);
     
-    // Close the popover after selection
-    setOpen(false);
+    // Close the popover after a short delay to ensure the selection is visible
+    setTimeout(() => {
+      setOpen(false);
+    }, 100);
   };
 
   return (
@@ -112,22 +119,22 @@ export function ProjectSelector({ onSelect, selectedProjectId }: ProjectSelector
           aria-expanded={open}
           className="w-full justify-between"
           disabled={loading}
-          onClick={() => setOpen(true)} // Explicitly handle click to open
         >
           {selectedProject ? selectedProject.title : loading ? "Loading projects..." : "Select project..."}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent 
-        className="w-[300px] p-0 bg-white border border-gray-200 shadow-lg rounded-md z-50"
+        className="w-[300px] p-0 bg-white border border-gray-200 shadow-lg rounded-md"
         align="start"
         sideOffset={5}
+        style={{ zIndex: 9999 }} // Ensure high z-index
       >
         <Command className="rounded-md border-0">
           <CommandInput placeholder="Search projects..." className="h-9" />
-          <CommandList>
+          <CommandList className="max-h-[300px] overflow-auto">
             <CommandEmpty className="py-3 text-center text-sm">No projects found.</CommandEmpty>
-            <CommandGroup className="max-h-[200px] overflow-auto">
+            <CommandGroup>
               {projects.length === 0 && loading ? (
                 <CommandItem disabled className="py-3 text-center">
                   Loading projects...
@@ -141,8 +148,18 @@ export function ProjectSelector({ onSelect, selectedProjectId }: ProjectSelector
                   <CommandItem
                     key={project.id}
                     value={project.id}
-                    onSelect={handleSelectProject}
                     className="flex items-center py-2 cursor-pointer hover:bg-gray-100"
+                    onSelect={() => {
+                      // Use mousedown instead of click to prevent race conditions
+                      console.log("Command item selected:", project.id, project.title);
+                      handleSelectProject(project.id);
+                    }}
+                    onClick={(e) => {
+                      // Prevent default to avoid conflicts with onSelect
+                      e.preventDefault();
+                      console.log("Command item clicked:", project.id, project.title);
+                      handleSelectProject(project.id);
+                    }}
                   >
                     <Check
                       className={cn(
