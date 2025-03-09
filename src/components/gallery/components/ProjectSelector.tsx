@@ -90,37 +90,11 @@ export function ProjectSelector({ onSelect, selectedProjectId }: ProjectSelector
     ? projects.find(project => project?.id === selectedProjectId) 
     : undefined;
 
-  // Safe rendering of the projects list
-  const renderProjectItems = () => {
-    // Always return something renderable
-    if (!projects || projects.length === 0) {
-      return (
-        <CommandItem disabled className="py-3 text-center">
-          {loading ? "Loading projects..." : "No projects available"}
-        </CommandItem>
-      );
-    }
-
-    return projects.map((project) => (
-      <CommandItem
-        key={project.id}
-        value={project.id}
-        onSelect={(currentValue) => {
-          console.log("Selected project:", currentValue);
-          onSelect(currentValue);
-          setOpen(false);
-        }}
-        className="flex items-center py-2"
-      >
-        <Check
-          className={cn(
-            "mr-2 h-4 w-4",
-            selectedProjectId === project.id ? "opacity-100" : "opacity-0"
-          )}
-        />
-        {project.title}
-      </CommandItem>
-    ));
+  // Handler for selecting a project
+  const handleSelect = (projectId: string) => {
+    console.log("Project selected in dropdown:", projectId);
+    onSelect(projectId);
+    setOpen(false);
   };
 
   return (
@@ -147,7 +121,32 @@ export function ProjectSelector({ onSelect, selectedProjectId }: ProjectSelector
           <CommandList>
             <CommandEmpty className="py-3 text-center text-sm">No projects found.</CommandEmpty>
             <CommandGroup className="max-h-[200px] overflow-auto">
-              {renderProjectItems()}
+              {projects.length === 0 && loading ? (
+                <CommandItem disabled className="py-3 text-center">
+                  Loading projects...
+                </CommandItem>
+              ) : projects.length === 0 ? (
+                <CommandItem disabled className="py-3 text-center">
+                  No projects available
+                </CommandItem>
+              ) : (
+                projects.map((project) => (
+                  <CommandItem
+                    key={project.id}
+                    value={project.id}
+                    onSelect={() => handleSelect(project.id)}
+                    className="flex items-center py-2"
+                  >
+                    <Check
+                      className={cn(
+                        "mr-2 h-4 w-4",
+                        selectedProjectId === project.id ? "opacity-100" : "opacity-0"
+                      )}
+                    />
+                    {project.title}
+                  </CommandItem>
+                ))
+              )}
             </CommandGroup>
           </CommandList>
         </Command>
