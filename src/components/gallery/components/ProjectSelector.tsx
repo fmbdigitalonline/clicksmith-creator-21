@@ -1,6 +1,6 @@
 
-import { useState, useEffect } from "react";
-import { Check, ChevronsUpDown, AlertCircle } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Check, ChevronsUpDown, AlertCircle, Folder, Search, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,6 +19,7 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useProjectTitle } from "@/hooks/useProjectTitle";
 
 interface Project {
   id: string;
@@ -43,16 +44,14 @@ export function ProjectSelector({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
+  const { title: selectedProjectTitle } = useProjectTitle(selectedProjectId || null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
-  // Log when component mounts with props
-  useEffect(() => {
-    console.log("ProjectSelector mounted with selectedProjectId:", selectedProjectId);
-  }, [selectedProjectId]);
-
+  // Fetch projects when component mounts
   useEffect(() => {
     const fetchProjects = async () => {
       try {
-        console.log("Fetching projects...");
         setLoading(true);
         setError(null);
         
@@ -64,7 +63,6 @@ export function ProjectSelector({
           return;
         }
 
-        console.log("User found, fetching projects for user:", userData.user.id);
         const { data, error } = await supabase
           .from('projects')
           .select('id, title')
@@ -72,13 +70,10 @@ export function ProjectSelector({
           .order('updated_at', { ascending: false });
 
         if (error) {
-          console.error("Supabase error:", error);
           throw error;
         }
         
-        // Ensure data is an array before setting it
         const projectsArray = Array.isArray(data) ? data : [];
-        console.log("Projects fetched successfully:", projectsArray);
         setProjects(projectsArray);
       } catch (error) {
         console.error('Error fetching projects:', error);
@@ -88,7 +83,6 @@ export function ProjectSelector({
           description: "Failed to load projects. Please try again.",
           variant: "destructive",
         });
-        // Ensure we set an empty array on error
         setProjects([]);
       } finally {
         setLoading(false);
@@ -98,96 +92,143 @@ export function ProjectSelector({
     fetchProjects();
   }, [toast]);
 
-  // Find the selected project safely
-  const selectedProject = selectedProjectId 
-    ? projects.find(project => project?.id === selectedProjectId) 
-    : undefined;
+  // Focus the search input when popover opens
+  useEffect(() => {
+    if (open && inputRef.current) {
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
+    }
+  }, [open]);
 
-  console.log("Current selected project:", selectedProject);
-
-  // Simplified selection handler that prevents event bubbling and directly calls onSelect
+  // Handle selection
   const handleSelectProject = (currentValue: string) => {
-    console.log("handleSelectProject called with:", currentValue);
+    // Find the selected project
+    const project = projects.find(p => p.id === currentValue);
+    if (project) {
+      onSelect(currentValue);
+      
+      // Show success toast
+      toast({
+        title: "Project Selected",
+        description: `"${project.title}" has been selected`,
+        variant: "default",
+      });
+    }
     
-    // Call onSelect with the selected project ID
-    onSelect(currentValue);
-    
-    // Close the popover immediately
+    // Close the popover
     setOpen(false);
   };
 
-  // Determine if there's an error condition based on required and errorMessage props
+  // Determine if there's an error condition
   const hasError = required && !selectedProjectId && errorMessage;
+
+  // Determine what text to show on the button
+  const getButtonText = () => {
+    if (selectedProjectId && selectedProjectTitle) {
+      return selectedProjectTitle;
+    }
+    
+    if (loading) {
+      return "Loading projects...";
+    }
+    
+    return required 
+      ? "Select a project (required)" 
+      : "Select project...";
+  };
 
   return (
     <div className="space-y-2">
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button
+            ref={triggerRef}
             variant={hasError ? "destructive" : "outline"}
             role="combobox"
             aria-expanded={open}
+            aria-label="Select project"
             className={cn(
-              "w-full justify-between", 
-              hasError && "border-red-500 text-red-600"
+              "w-full justify-between relative transition-all",
+              hasError ? "border-red-500 text-red-600" : 
+              selectedProjectId ? "border-green-500 bg-green-50/50 text-green-800" : 
+              "hover:bg-slate-100"
             )}
             disabled={loading}
           >
-            {selectedProject ? selectedProject.title : loading ? "Loading projects..." : required ? "Select a project (required)" : "Select project..."}
-            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            <div className="flex items-center overflow-hidden mr-2">
+              <Folder className={cn(
+                "mr-2 h-4 w-4 shrink-0", 
+                selectedProjectId ? "text-green-600" : "text-slate-500"
+              )} />
+              <span className="truncate">{getButtonText()}</span>
+            </div>
+            {loading ? (
+              <Loader2 className="h-4 w-4 animate-spin opacity-70" />
+            ) : (
+              <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
+            )}
           </Button>
         </PopoverTrigger>
         <PopoverContent 
-          className="w-[300px] p-0 bg-white border border-gray-200 shadow-lg rounded-md"
+          className="w-[300px] p-0 bg-white border border-slate-200 shadow-lg rounded-md"
           align="start"
           sideOffset={5}
-          style={{ zIndex: 99999 }} 
         >
           <Command className="rounded-md border-0">
-            <CommandInput 
-              placeholder="Search projects..." 
-              className="h-9"
-              onKeyDown={(e) => {
-                // Prevent popover from closing on Enter key
-                if (e.key === 'Enter') {
-                  e.stopPropagation();
-                }
-              }}
-            />
-            <CommandList className="max-h-[300px] overflow-auto">
-              <CommandEmpty className="py-3 text-center text-sm">No projects found.</CommandEmpty>
-              <CommandGroup>
-                {projects.length === 0 && loading ? (
-                  <CommandItem disabled className="py-3 text-center">
-                    Loading projects...
-                  </CommandItem>
-                ) : projects.length === 0 ? (
-                  <CommandItem disabled className="py-3 text-center">
-                    No projects available
-                  </CommandItem>
-                ) : (
-                  projects.map((project) => (
-                    <CommandItem
-                      key={project.id}
-                      value={project.id}
-                      className="flex items-center py-2 cursor-pointer hover:bg-gray-100"
-                      onSelect={handleSelectProject}
-                      onClick={(e) => {
-                        // Prevent any parent handlers from being triggered
-                        e.stopPropagation();
-                      }}
-                    >
-                      <Check
-                        className={cn(
-                          "mr-2 h-4 w-4",
-                          selectedProjectId === project.id ? "opacity-100" : "opacity-0"
-                        )}
-                      />
-                      <span>{project.title}</span>
-                    </CommandItem>
-                  ))
-                )}
-              </CommandGroup>
+            <div className="flex items-center px-3 border-b">
+              <Search className="h-4 w-4 shrink-0 text-slate-500 mr-2" />
+              <CommandInput 
+                ref={inputRef}
+                placeholder="Search projects..." 
+                className="h-9 border-0 focus:ring-0"
+              />
+            </div>
+            <CommandList className="max-h-[300px] overflow-auto py-2">
+              <CommandEmpty className="py-3 text-center text-sm text-slate-500">
+                No projects found.
+              </CommandEmpty>
+              {loading ? (
+                <div className="py-6 text-center">
+                  <Loader2 className="h-6 w-6 animate-spin text-slate-400 mx-auto mb-2" />
+                  <p className="text-sm text-slate-500">Loading projects...</p>
+                </div>
+              ) : (
+                <CommandGroup>
+                  {projects.length === 0 ? (
+                    <div className="py-6 text-center px-4">
+                      <p className="text-sm text-slate-500 mb-2">No projects available</p>
+                      <p className="text-xs text-slate-400">Create a project first</p>
+                    </div>
+                  ) : (
+                    projects.map((project) => (
+                      <CommandItem
+                        key={project.id}
+                        value={project.id}
+                        className="flex items-center py-2 px-2 cursor-pointer data-[selected=true]:bg-slate-100 rounded-sm mx-1"
+                        onSelect={handleSelectProject}
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                        }}
+                      >
+                        <div className="flex items-center flex-1 gap-2">
+                          <Folder className={cn(
+                            "h-4 w-4", 
+                            selectedProjectId === project.id ? "text-green-600" : "text-slate-400"
+                          )} />
+                          <span className="truncate">{project.title}</span>
+                        </div>
+                        <Check
+                          className={cn(
+                            "ml-auto h-4 w-4 text-green-600",
+                            selectedProjectId === project.id ? "opacity-100" : "opacity-0"
+                          )}
+                        />
+                      </CommandItem>
+                    ))
+                  )}
+                </CommandGroup>
+              )}
             </CommandList>
           </Command>
         </PopoverContent>

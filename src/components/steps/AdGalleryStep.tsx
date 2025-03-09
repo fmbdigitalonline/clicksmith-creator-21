@@ -14,7 +14,7 @@ import { ProjectSelector } from "../gallery/components/ProjectSelector";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CheckSquare, Loader2, SquareCheckIcon } from "lucide-react";
+import { CheckSquare, Loader2, SquareCheckIcon, Save } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface AdGalleryStepProps {
@@ -153,14 +153,6 @@ const AdGalleryStep = ({
   const handleProjectSelect = (projectId: string) => {
     console.log("Project selected in AdGalleryStep:", projectId);
     setSelectedProjectId(projectId);
-    
-    if (projectId) {
-      toast({
-        title: "Project Selected",
-        description: "Project has been selected successfully",
-        variant: "default",
-      });
-    }
   };
 
   const handleAssignToProject = async () => {
@@ -253,7 +245,7 @@ const AdGalleryStep = ({
       />
 
       {/* Project Assignment Controls */}
-      <div className="bg-gray-50 p-4 rounded-lg shadow-sm">
+      <div className="bg-slate-50 p-4 rounded-lg shadow-sm border border-slate-200">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2">
             <Button
@@ -275,17 +267,19 @@ const AdGalleryStep = ({
               )}
             </Button>
             {selectedAdIds.length > 0 && (
-              <Badge variant="secondary">
+              <Badge variant="secondary" className="bg-slate-200 text-slate-800">
                 {selectedAdIds.length} selected
               </Badge>
             )}
           </div>
           
           <div className="flex items-center gap-3 flex-wrap sm:flex-nowrap">
-            <div className="w-full sm:w-64 relative" style={{ zIndex: 60 }}>
+            <div className="w-full sm:w-64">
               <ProjectSelector
                 selectedProjectId={selectedProjectId}
                 onSelect={handleProjectSelect}
+                required={selectedAdIds.length > 0}
+                errorMessage="Please select a project to save ads"
               />
             </div>
             
@@ -294,21 +288,22 @@ const AdGalleryStep = ({
                 <Button 
                   variant="default" 
                   disabled={selectedAdIds.length === 0 || !selectedProjectId || isAssigning}
-                  className="whitespace-nowrap"
-                  onClick={(e) => {
+                  className="whitespace-nowrap bg-green-600 hover:bg-green-700 text-white"
+                  onClick={() => {
                     if (selectedAdIds.length > 0 && selectedProjectId) {
-                      e.stopPropagation();
                       setIsConfirmDialogOpen(true);
                     }
                   }}
                 >
                   {isAssigning ? (
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : null}
+                  ) : (
+                    <Save className="h-4 w-4 mr-2" />
+                  )}
                   Save to Project
                 </Button>
               </AlertDialogTrigger>
-              <AlertDialogContent className="z-[99999]">
+              <AlertDialogContent>
                 <AlertDialogHeader>
                   <AlertDialogTitle>Save Ads to Project</AlertDialogTitle>
                   <AlertDialogDescription>
@@ -316,11 +311,8 @@ const AdGalleryStep = ({
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel onClick={(e) => e.stopPropagation()}>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={(e) => {
-                    e.stopPropagation();
-                    handleAssignToProject();
-                  }}>Continue</AlertDialogAction>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleAssignToProject}>Continue</AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>

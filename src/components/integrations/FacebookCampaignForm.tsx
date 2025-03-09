@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ProjectSelector } from "@/components/gallery/components/ProjectSelector";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AdSelectionGallery from "@/components/integrations/AdSelectionGallery";
-import { AlertCircle, Info, CheckCircle } from "lucide-react";
+import { AlertCircle, Info, CheckCircle, LayoutDashboard } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { extractTargetingData } from "@/utils/campaignDataUtils";
 import { useProjectCampaignData } from "@/hooks/useProjectCampaignData";
@@ -77,13 +77,6 @@ export default function FacebookCampaignForm({
     
     // Clear project error when a project is selected
     setProjectError(null);
-    
-    // Show feedback to user
-    toast({
-      title: "Project Selected",
-      description: `Project has been selected successfully`,
-      variant: "default",
-    });
     
     // If they select a project and were in a disabled mode, switch to semi-automatic
     if (selectedMode !== "manual" && !selectedProjectId) {
@@ -254,8 +247,11 @@ export default function FacebookCampaignForm({
         {/* Mode selection step */}
         {step === "mode-selection" && (
           <>
-            <div className="mb-6 relative" style={{ zIndex: 90 }}>
-              <h3 className="text-lg font-medium mb-2">Select Project</h3>
+            <div className="mb-6 bg-white p-4 rounded-lg border border-slate-200">
+              <h3 className="text-lg font-medium mb-3 flex items-center text-slate-800">
+                <LayoutDashboard className="h-5 w-5 mr-2 text-slate-500" />
+                Select Project
+              </h3>
               <ProjectSelector 
                 onSelect={handleProjectSelect}
                 selectedProjectId={selectedProjectId}
@@ -392,8 +388,8 @@ export default function FacebookCampaignForm({
                   <div className="space-y-6">
                     <Alert className="bg-blue-50 border-blue-200">
                       <AlertCircle className="h-4 w-4 text-blue-600" />
-                      <AlertTitle className="text-blue-800">Creative Selection</AlertTitle>
-                      <AlertDescription className="text-blue-700">
+                      <AlertTitle>Creative Selection</AlertTitle>
+                      <AlertDescription>
                         Choose the ads you want to include in your campaign. You can select up to 5 creatives to test in your campaign.
                       </AlertDescription>
                     </Alert>
