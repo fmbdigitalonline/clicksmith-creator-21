@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -104,6 +105,7 @@ export default function CreateCampaignForm({
   const form = useForm<z.infer<typeof campaignFormSchema>>({
     resolver: zodResolver(campaignFormSchema),
     defaultValues: getDefaultValues(),
+    mode: "onChange", // Add this to enable validation as fields change
   });
   
   // Update form values when project data loads
@@ -112,10 +114,24 @@ export default function CreateCampaignForm({
       const defaults = getDefaultValues();
       
       Object.entries(defaults).forEach(([field, value]) => {
-        form.setValue(field as any, value);
+        form.setValue(field as any, value, { 
+          shouldValidate: true, // Validate immediately on value change
+          shouldDirty: true 
+        });
       });
     }
   }, [projectData.loading, projectData.businessIdea]);
+  
+  // Add a useEffect to log form state for debugging
+  useEffect(() => {
+    const subscription = form.watch(() => {
+      console.log("Form values:", form.getValues());
+      console.log("Form errors:", form.formState.errors);
+      console.log("Form is valid:", form.formState.isValid);
+    });
+    
+    return () => subscription.unsubscribe();
+  }, [form]);
   
   const handleFormSubmit = async (values: z.infer<typeof campaignFormSchema>) => {
     if (isSubmitting) {
@@ -219,7 +235,10 @@ export default function CreateCampaignForm({
   const submitForm = async () => {
     console.log("submitForm called, checking form validity");
     try {
+      // Run validation on all fields and get current values
       const isValid = await form.trigger();
+      console.log("Form validation result:", isValid);
+      console.log("Current errors:", form.formState.errors);
       
       if (isValid) {
         console.log("Form is valid, submitting values");
@@ -227,10 +246,13 @@ export default function CreateCampaignForm({
         const result = await handleFormSubmit(values);
         return result;
       } else {
-        console.log("Form validation failed:", form.formState.errors);
+        // Provide more detailed error feedback
+        const errorFields = Object.keys(form.formState.errors);
+        console.log("Validation failed for fields:", errorFields);
+        
         toast({
           title: "Validation Error",
-          description: "Please complete all required fields correctly",
+          description: `Please complete the following fields: ${errorFields.join(", ")}`,
           variant: "destructive"
         });
         return false;
@@ -284,7 +306,10 @@ export default function CreateCampaignForm({
   };
 
   const handleApplySuggestion = (field: keyof z.infer<typeof campaignFormSchema>, suggestion: string) => {
-    form.setValue(field, suggestion, { shouldValidate: true });
+    form.setValue(field, suggestion, { 
+      shouldValidate: true, // Validate immediately on suggestion apply
+      shouldDirty: true 
+    });
   };
 
   return (
@@ -336,7 +361,10 @@ export default function CreateCampaignForm({
               </div>
               <FormControl>
                 <Select
-                  onValueChange={field.onChange}
+                  onValueChange={(value) => {
+                    field.onChange(value);
+                    form.trigger("objective"); // Validate after selection
+                  }}
                   defaultValue={field.value}
                 >
                   <SelectTrigger>
@@ -499,13 +527,17 @@ export default function CreateCampaignForm({
               <Button 
                 type="button" 
                 onClick={() => {
+                  console.log("Continue button clicked, validating form...");
+                  // Validate all fields and then continue if valid
                   form.trigger().then(isValid => {
+                    console.log("Form validation on continue:", isValid);
                     if (isValid) {
                       onContinue();
                     } else {
+                      const errorFields = Object.keys(form.formState.errors);
                       toast({
                         title: "Please complete all required fields",
-                        description: "Make sure you've filled in all the required campaign details.",
+                        description: `Missing or invalid fields: ${errorFields.join(", ")}`,
                         variant: "destructive"
                       });
                     }
