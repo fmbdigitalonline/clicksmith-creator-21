@@ -131,7 +131,8 @@ export function ProjectSelector({
             aria-expanded={open}
             className={cn(
               "w-full justify-between", 
-              hasError && "border-red-500 text-red-600"
+              hasError && "border-red-500 text-red-600",
+              required && "border-red-200"
             )}
             disabled={loading}
           >
@@ -143,7 +144,6 @@ export function ProjectSelector({
           className="w-[300px] p-0 bg-white border border-gray-200 shadow-lg rounded-md"
           align="start"
           sideOffset={5}
-          style={{ zIndex: 9999 }} // Ensure high z-index
         >
           <Command className="rounded-md border-0">
             <CommandInput placeholder="Search projects..." className="h-9" />
@@ -165,14 +165,6 @@ export function ProjectSelector({
                       value={project.id}
                       className="flex items-center py-2 cursor-pointer hover:bg-gray-100"
                       onSelect={() => {
-                        // Use mousedown instead of click to prevent race conditions
-                        console.log("Command item selected:", project.id, project.title);
-                        handleSelectProject(project.id);
-                      }}
-                      onClick={(e) => {
-                        // Prevent default to avoid conflicts with onSelect
-                        e.preventDefault();
-                        console.log("Command item clicked:", project.id, project.title);
                         handleSelectProject(project.id);
                       }}
                     >

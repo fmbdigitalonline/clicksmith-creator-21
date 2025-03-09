@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Routes, Route, useLocation, Link } from "react-router-dom";
@@ -6,7 +7,7 @@ import FacebookConnection from "./FacebookConnection";
 import FacebookCampaignOverview from "./FacebookCampaignOverview";
 import EnvConfigCheck from "./EnvConfigCheck";
 import { AutomaticModeMonitoring } from "./AutomaticModeMonitoring";
-import { Facebook, AlertCircle, CheckCircle2, Plus } from "lucide-react";
+import { Facebook, AlertCircle, CheckCircle2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -144,16 +145,7 @@ export default function PlatformIntegrations() {
                   
                   <FacebookConnection onConnectionChange={handleConnectionChange} />
                   
-                  <div className="flex justify-end mb-4">
-                    <Button 
-                      onClick={() => setIsCampaignFormOpen(true)}
-                      variant="default"
-                    >
-                      <Plus className="mr-2 h-4 w-4" /> Create Campaign
-                    </Button>
-                  </div>
-                  
-                  <FacebookCampaignOverview />
+                  <FacebookCampaignOverview onCreateCampaign={() => setIsCampaignFormOpen(true)} />
                   
                   {/* Campaign Form Dialog */}
                   <FacebookCampaignForm 
