@@ -47,7 +47,7 @@ export function ProjectSelector({
   // Log when component mounts with props
   useEffect(() => {
     console.log("ProjectSelector mounted with selectedProjectId:", selectedProjectId);
-  }, []);
+  }, [selectedProjectId]);
 
   useEffect(() => {
     const fetchProjects = async () => {
@@ -164,17 +164,7 @@ export function ProjectSelector({
                       key={project.id}
                       value={project.id}
                       className="flex items-center py-2 cursor-pointer hover:bg-gray-100"
-                      onSelect={() => {
-                        // Use mousedown instead of click to prevent race conditions
-                        console.log("Command item selected:", project.id, project.title);
-                        handleSelectProject(project.id);
-                      }}
-                      onClick={(e) => {
-                        // Prevent default to avoid conflicts with onSelect
-                        e.preventDefault();
-                        console.log("Command item clicked:", project.id, project.title);
-                        handleSelectProject(project.id);
-                      }}
+                      onSelect={() => handleSelectProject(project.id)}
                     >
                       <Check
                         className={cn(

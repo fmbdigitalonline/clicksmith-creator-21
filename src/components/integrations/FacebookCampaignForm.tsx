@@ -51,12 +51,13 @@ export default function FacebookCampaignForm({
     }
   }, [selectedProjectId]);
 
-  // This useEffect ensures the project ID is properly set from props or changed state
+  // This useEffect ensures the project ID is properly set from props, but allows it to be changed
   useEffect(() => {
     console.log("Initial project ID:", initialProjectId);
     console.log("Selected project ID state:", selectedProjectId);
     
-    if (initialProjectId && (!selectedProjectId || initialProjectId !== selectedProjectId)) {
+    // Only set the initial project ID once when the component mounts, or when it changes from undefined to a value
+    if (initialProjectId && !selectedProjectId) {
       console.log("Setting selected project ID from props:", initialProjectId);
       setSelectedProjectId(initialProjectId);
       setProjectError(null);
