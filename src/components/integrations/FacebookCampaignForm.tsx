@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import CreateCampaignForm from "@/components/integrations/CreateCampaignForm";
@@ -36,6 +35,7 @@ export default function FacebookCampaignForm({
   const [createdCampaignId, setCreatedCampaignId] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [projectError, setProjectError] = useState<string | null>(null);
+  const [initialProjectSet, setInitialProjectSet] = useState<boolean>(false);
   const { toast } = useToast();
   const campaignFormRef = useRef<{ submitForm: () => Promise<boolean> } | null>(null);
   
@@ -51,18 +51,15 @@ export default function FacebookCampaignForm({
     }
   }, [selectedProjectId]);
 
-  // This useEffect ensures the project ID is properly set from props, but allows it to be changed
+  // This useEffect ensures the project ID is properly set from props once, but allows it to be changed by user
   useEffect(() => {
-    console.log("Initial project ID:", initialProjectId);
-    console.log("Selected project ID state:", selectedProjectId);
-    
-    // Only set the initial project ID once when the component mounts, or when it changes from undefined to a value
-    if (initialProjectId && !selectedProjectId) {
-      console.log("Setting selected project ID from props:", initialProjectId);
+    if (initialProjectId && !selectedProjectId && !initialProjectSet) {
+      console.log("Setting initial project ID:", initialProjectId);
       setSelectedProjectId(initialProjectId);
+      setInitialProjectSet(true);
       setProjectError(null);
     }
-  }, [initialProjectId, selectedProjectId]);
+  }, [initialProjectId, selectedProjectId, initialProjectSet]);
   
   // Extract targeting data if available
   const targetingData = projectData.targetAudience ? 
@@ -135,6 +132,7 @@ export default function FacebookCampaignForm({
       setCreatedCampaignId("");
       setIsSubmitting(false);
       setProjectError(null);
+      setInitialProjectSet(false);
     }, 300); // Small delay to avoid seeing the reset during close animation
     onOpenChange(false);
   };

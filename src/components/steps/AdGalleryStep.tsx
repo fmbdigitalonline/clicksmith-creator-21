@@ -1,3 +1,4 @@
+
 import { BusinessIdea, TargetAudience, AdHook } from "@/types/adWizard";
 import { TabsContent } from "@/components/ui/tabs";
 import LoadingState from "./complete/LoadingState";
@@ -151,6 +152,7 @@ const AdGalleryStep = ({
   };
 
   const handleProjectSelect = (projectId: string) => {
+    console.log("Project selected in AdGalleryStep:", projectId);
     setSelectedProjectId(projectId);
   };
 
