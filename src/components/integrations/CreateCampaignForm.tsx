@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -14,7 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertCircle } from "lucide-react";
 import { useProjectCampaignData } from "@/hooks/useProjectCampaignData";
 import { 
   generateCampaignName, 
@@ -30,6 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -82,6 +82,7 @@ export default function CreateCampaignForm({
 }: CreateCampaignFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPerformancePrediction, setShowPerformancePrediction] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const projectData = useProjectCampaignData(projectId);
   const { toast } = useToast();
   
@@ -107,6 +108,11 @@ export default function CreateCampaignForm({
     defaultValues: getDefaultValues(),
     mode: "onChange", // Add this to enable validation as fields change
   });
+  
+  // Clear validation errors when projectId changes
+  useEffect(() => {
+    setValidationErrors([]);
+  }, [projectId]);
   
   // Update form values when project data loads
   useEffect(() => {
@@ -139,6 +145,17 @@ export default function CreateCampaignForm({
       return false;
     }
     
+    // Check if project is selected
+    if (!projectId) {
+      setValidationErrors(["Please select a project before submitting"]);
+      toast({
+        title: "Project Required",
+        description: "You must select a project before creating a campaign",
+        variant: "destructive"
+      });
+      return false;
+    }
+    
     if (selectedAdIds.length === 0) {
       toast({
         title: "No ads selected",
@@ -150,6 +167,7 @@ export default function CreateCampaignForm({
 
     try {
       setIsSubmitting(true);
+      setValidationErrors([]);
 
       // Extract targeting data for Facebook API
       const targetingData = projectData.targetAudience ? {
@@ -235,6 +253,17 @@ export default function CreateCampaignForm({
   const submitForm = async () => {
     console.log("submitForm called, checking form validity");
     try {
+      // Check if project is selected
+      if (!projectId) {
+        setValidationErrors(["Please select a project before submitting"]);
+        toast({
+          title: "Project Required",
+          description: "You must select a project before creating a campaign",
+          variant: "destructive"
+        });
+        return false;
+      }
+      
       // Run validation on all fields and get current values
       const isValid = await form.trigger();
       console.log("Form validation result:", isValid);
@@ -249,6 +278,11 @@ export default function CreateCampaignForm({
         // Provide more detailed error feedback
         const errorFields = Object.keys(form.formState.errors);
         console.log("Validation failed for fields:", errorFields);
+        
+        setValidationErrors(errorFields.map(field => {
+          const error = form.formState.errors[field as keyof typeof form.formState.errors];
+          return error?.message?.toString() || `${field} is invalid`;
+        }));
         
         toast({
           title: "Validation Error",
@@ -276,7 +310,7 @@ export default function CreateCampaignForm({
         submitForm
       };
     }
-  }, [formRef, selectedAdIds]);
+  }, [formRef, selectedAdIds, projectId]);
 
   // Show appropriate messaging based on data completeness
   const renderDataCompletenessMessage = () => {
@@ -315,6 +349,31 @@ export default function CreateCampaignForm({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
+        {/* Project Required Warning */}
+        {!projectId && (
+          <Alert variant="destructive" className="mb-6">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Please select a project before creating a campaign. This is required to proceed.
+            </AlertDescription>
+          </Alert>
+        )}
+        
+        {/* Validation errors display */}
+        {validationErrors.length > 0 && (
+          <Alert variant="destructive" className="mb-6">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              <div className="font-semibold">Please fix the following errors:</div>
+              <ul className="list-disc pl-4 mt-1 text-sm">
+                {validationErrors.map((error, index) => (
+                  <li key={index}>{error}</li>
+                ))}
+              </ul>
+            </AlertDescription>
+          </Alert>
+        )}
+        
         {/* Smart data integration notification */}
         {projectData.businessIdea && creationMode !== "manual" && (
           <div className="p-4 bg-blue-50 border border-blue-100 rounded-md mb-6">
@@ -328,7 +387,7 @@ export default function CreateCampaignForm({
         {/* Show data completeness message */}
         {renderDataCompletenessMessage()}
         
-        
+        {/* Form fields */}
         <FormField
           control={form.control}
           name="name"
@@ -528,6 +587,20 @@ export default function CreateCampaignForm({
                 type="button" 
                 onClick={() => {
                   console.log("Continue button clicked, validating form...");
+                  // Check if project is selected
+                  if (!projectId) {
+                    setValidationErrors(["Please select a project before continuing"]);
+                    toast({
+                      title: "Project Required",
+                      description: "You must select a project before proceeding",
+                      variant: "destructive"
+                    });
+                    return;
+                  }
+                  
+                  // Clear previous validation errors
+                  setValidationErrors([]);
+                  
                   // Validate all fields and then continue if valid
                   form.trigger().then(isValid => {
                     console.log("Form validation on continue:", isValid);
@@ -535,6 +608,11 @@ export default function CreateCampaignForm({
                       onContinue();
                     } else {
                       const errorFields = Object.keys(form.formState.errors);
+                      setValidationErrors(errorFields.map(field => {
+                        const error = form.formState.errors[field as keyof typeof form.formState.errors];
+                        return error?.message?.toString() || `${field} is invalid`;
+                      }));
+                      
                       toast({
                         title: "Please complete all required fields",
                         description: `Missing or invalid fields: ${errorFields.join(", ")}`,
@@ -543,14 +621,14 @@ export default function CreateCampaignForm({
                     }
                   });
                 }}
-                disabled={isSubmitting}
+                disabled={isSubmitting || !projectId}
               >
                 Continue to Ad Selection
               </Button>
             ) : (
               <Button 
                 type="submit" 
-                disabled={isSubmitting}
+                disabled={isSubmitting || !projectId}
               >
                 {isSubmitting ? (
                   <>

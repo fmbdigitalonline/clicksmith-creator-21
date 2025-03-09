@@ -35,6 +35,7 @@ export default function FacebookCampaignForm({
   const [selectedAdIds, setSelectedAdIds] = useState<string[]>([]);
   const [createdCampaignId, setCreatedCampaignId] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [projectError, setProjectError] = useState<string | null>(null);
   const { toast } = useToast();
   const campaignFormRef = useRef<{ submitForm: () => Promise<boolean> } | null>(null);
   
@@ -44,6 +45,10 @@ export default function FacebookCampaignForm({
   // Log any changes to selectedProjectId
   useEffect(() => {
     console.log("Selected project ID changed in FacebookCampaignForm:", selectedProjectId);
+    // Clear project error when a project is selected
+    if (selectedProjectId) {
+      setProjectError(null);
+    }
   }, [selectedProjectId]);
 
   // This useEffect ensures the project ID is properly set from props or changed state
@@ -54,6 +59,7 @@ export default function FacebookCampaignForm({
     if (initialProjectId && (!selectedProjectId || initialProjectId !== selectedProjectId)) {
       console.log("Setting selected project ID from props:", initialProjectId);
       setSelectedProjectId(initialProjectId);
+      setProjectError(null);
     }
   }, [initialProjectId, selectedProjectId]);
   
@@ -71,6 +77,9 @@ export default function FacebookCampaignForm({
     // Make sure we properly update the state
     setSelectedProjectId(projectId);
     
+    // Clear project error when a project is selected
+    setProjectError(null);
+    
     // Show feedback to user
     toast({
       title: "Project Selected",
@@ -84,16 +93,22 @@ export default function FacebookCampaignForm({
     }
   };
 
-  const handleContinue = () => {
-    // Only allow non-manual modes if a project is selected
+  const validateProjectSelection = (): boolean => {
+    // For non-manual modes, a project is required
     if ((selectedMode === "semi-automatic" || selectedMode === "automatic") && !selectedProjectId) {
-      toast({
-        title: "Project Required",
-        description: "Please select a project before continuing with this mode",
-        variant: "destructive"
-      });
+      setProjectError("A project is required for semi-automatic or automatic mode");
+      return false;
+    }
+    
+    return true;
+  };
+
+  const handleContinue = () => {
+    // Check project selection
+    if (!validateProjectSelection()) {
       return;
     }
+    
     setStep("form");
   };
 
@@ -118,6 +133,7 @@ export default function FacebookCampaignForm({
       setSelectedAdIds([]);
       setCreatedCampaignId("");
       setIsSubmitting(false);
+      setProjectError(null);
     }, 300); // Small delay to avoid seeing the reset during close animation
     onOpenChange(false);
   };
@@ -200,7 +216,12 @@ export default function FacebookCampaignForm({
 
   // Validate if user can proceed to ad selection
   const canContinueToAds = () => {
-    return formTab === "details" && !!selectedProjectId;
+    // Make sure we have a project selected before continuing
+    if (!selectedProjectId) {
+      setProjectError("Please select a project before continuing");
+      return false;
+    }
+    return formTab === "details";
   };
 
   // Validate if form is ready for submission
@@ -217,7 +238,8 @@ export default function FacebookCampaignForm({
     initialProjectId,
     formTab,
     selectedAdIds,
-    projectDataLoaded: !!projectData
+    projectDataLoaded: !!projectData,
+    projectError
   });
 
   return (
@@ -237,9 +259,11 @@ export default function FacebookCampaignForm({
               <ProjectSelector 
                 onSelect={handleProjectSelect}
                 selectedProjectId={selectedProjectId}
+                required={selectedMode !== "manual"}
+                errorMessage={projectError || "A project is required for this campaign mode"}
               />
               
-              {selectedProjectId && (
+              {selectedProjectId && !projectError && (
                 <div className="flex items-center mt-2 text-sm text-green-600">
                   <CheckCircle className="h-4 w-4 mr-1" />
                   <p>Project successfully selected</p>
@@ -275,6 +299,19 @@ export default function FacebookCampaignForm({
         
         {step === "form" && (
           <div className="space-y-6">
+            {/* Show project selector at the top if not already selected */}
+            {!selectedProjectId && (
+              <div className="mb-6">
+                <h3 className="text-lg font-medium mb-2">Select Project</h3>
+                <ProjectSelector 
+                  onSelect={handleProjectSelect}
+                  selectedProjectId={selectedProjectId}
+                  required={true}
+                  errorMessage="A project is required to create a campaign"
+                />
+              </div>
+            )}
+            
             {/* Show compact validation warning before tabs in form mode */}
             {(selectedProjectId) && !projectData.loading && !projectData.validation.isComplete && (
               <DataCompletionWarning 
@@ -287,11 +324,21 @@ export default function FacebookCampaignForm({
             <Tabs value={formTab} onValueChange={(value) => setFormTab(value as "details" | "ads")}>
               <TabsList className="grid w-full grid-cols-2 mb-6">
                 <TabsTrigger value="details">Campaign Details</TabsTrigger>
-                <TabsTrigger value="ads">Creative Selection</TabsTrigger>
+                <TabsTrigger value="ads" disabled={!selectedProjectId}>Creative Selection</TabsTrigger>
               </TabsList>
               
               <TabsContent value="details">
-                {targetingData && selectedMode !== "manual" && (
+                {!selectedProjectId && (
+                  <Alert variant="destructive" className="mb-6">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Project Required</AlertTitle>
+                    <AlertDescription>
+                      Please select a project before continuing with campaign creation.
+                    </AlertDescription>
+                  </Alert>
+                )}
+                
+                {targetingData && selectedMode !== "manual" && selectedProjectId && (
                   <Alert className="mb-6 bg-blue-50 border-blue-200">
                     <Info className="h-4 w-4 text-blue-600" />
                     <AlertTitle className="text-blue-800">Smart Targeting Active</AlertTitle>
@@ -312,11 +359,20 @@ export default function FacebookCampaignForm({
                     if (canContinueToAds()) {
                       setFormTab("ads");
                     } else {
-                      toast({
-                        title: "Please complete all required fields",
-                        description: "Make sure you've filled in all the campaign details before continuing.",
-                        variant: "destructive"
-                      });
+                      if (!selectedProjectId) {
+                        setProjectError("Please select a project before continuing");
+                        toast({
+                          title: "Project Required",
+                          description: "You must select a project before proceeding to ad selection.",
+                          variant: "destructive"
+                        });
+                      } else {
+                        toast({
+                          title: "Please complete all required fields",
+                          description: "Make sure you've filled in all the campaign details before continuing.",
+                          variant: "destructive"
+                        });
+                      }
                     }
                   }}
                   projectDataCompleteness={projectData.dataCompleteness}
@@ -325,35 +381,45 @@ export default function FacebookCampaignForm({
               </TabsContent>
               
               <TabsContent value="ads">
-                <div className="space-y-6">
-                  <Alert className="bg-blue-50 border-blue-200">
-                    <AlertCircle className="h-4 w-4 text-blue-600" />
-                    <AlertTitle className="text-blue-800">Creative Selection</AlertTitle>
-                    <AlertDescription className="text-blue-700">
-                      Choose the ads you want to include in your campaign. You can select up to 5 creatives to test in your campaign.
+                {!selectedProjectId ? (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Project Required</AlertTitle>
+                    <AlertDescription>
+                      Please go back and select a project before selecting ads.
                     </AlertDescription>
                   </Alert>
-                  
-                  <AdSelectionGallery
-                    projectId={selectedProjectId}
-                    onAdsSelected={handleAdsSelected}
-                    selectedAdIds={selectedAdIds}
-                    maxSelection={5}
-                  />
-                  
-                  <div className="flex items-center justify-between pt-4 border-t">
-                    <Button variant="outline" onClick={() => setFormTab("details")}>
-                      Back to Campaign Details
-                    </Button>
-                    <Button 
-                      onClick={handleFormSubmit}
-                      disabled={!canSubmitCampaign()}
-                      variant="facebook"
-                    >
-                      {isSubmitting ? "Creating Campaign..." : `Create Campaign with ${selectedAdIds.length} ad${selectedAdIds.length !== 1 ? 's' : ''}`}
-                    </Button>
+                ) : (
+                  <div className="space-y-6">
+                    <Alert className="bg-blue-50 border-blue-200">
+                      <AlertCircle className="h-4 w-4 text-blue-600" />
+                      <AlertTitle className="text-blue-800">Creative Selection</AlertTitle>
+                      <AlertDescription className="text-blue-700">
+                        Choose the ads you want to include in your campaign. You can select up to 5 creatives to test in your campaign.
+                      </AlertDescription>
+                    </Alert>
+                    
+                    <AdSelectionGallery
+                      projectId={selectedProjectId}
+                      onAdsSelected={handleAdsSelected}
+                      selectedAdIds={selectedAdIds}
+                      maxSelection={5}
+                    />
+                    
+                    <div className="flex items-center justify-between pt-4 border-t">
+                      <Button variant="outline" onClick={() => setFormTab("details")}>
+                        Back to Campaign Details
+                      </Button>
+                      <Button 
+                        onClick={handleFormSubmit}
+                        disabled={!canSubmitCampaign()}
+                        variant="facebook"
+                      >
+                        {isSubmitting ? "Creating Campaign..." : `Create Campaign with ${selectedAdIds.length} ad${selectedAdIds.length !== 1 ? 's' : ''}`}
+                      </Button>
+                    </div>
                   </div>
-                </div>
+                )}
               </TabsContent>
             </Tabs>
           </div>
