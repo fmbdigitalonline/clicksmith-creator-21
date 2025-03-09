@@ -1,4 +1,3 @@
-
 import { BusinessIdea, TargetAudience, AdHook } from "@/types/adWizard";
 import { TabsContent } from "@/components/ui/tabs";
 import LoadingState from "./complete/LoadingState";
@@ -283,7 +282,7 @@ const AdGalleryStep = ({
           </div>
           
           <div className="flex items-center gap-3 flex-wrap sm:flex-nowrap">
-            <div className="w-full sm:w-64 relative z-50">
+            <div className="w-full sm:w-64 relative" style={{ zIndex: 60 }}>
               <ProjectSelector
                 selectedProjectId={selectedProjectId}
                 onSelect={handleProjectSelect}

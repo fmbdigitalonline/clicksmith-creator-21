@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import CreateCampaignForm from "@/components/integrations/CreateCampaignForm";
@@ -255,7 +254,7 @@ export default function FacebookCampaignForm({
         {/* Mode selection step */}
         {step === "mode-selection" && (
           <>
-            <div className="mb-6 relative z-10">
+            <div className="mb-6 relative" style={{ zIndex: 90 }}>
               <h3 className="text-lg font-medium mb-2">Select Project</h3>
               <ProjectSelector 
                 onSelect={handleProjectSelect}
@@ -272,7 +271,6 @@ export default function FacebookCampaignForm({
               )}
             </div>
             
-            {/* Show data validation warning if project is selected */}
             {(selectedProjectId) && !projectData.loading && (
               <DataCompletionWarning 
                 validation={projectData.validation}
@@ -303,7 +301,7 @@ export default function FacebookCampaignForm({
           <div className="space-y-6">
             {/* Show project selector at the top if not already selected */}
             {!selectedProjectId && (
-              <div className="mb-6">
+              <div className="mb-6 relative" style={{ zIndex: 90 }}>
                 <h3 className="text-lg font-medium mb-2">Select Project</h3>
                 <ProjectSelector 
                   onSelect={handleProjectSelect}
@@ -314,7 +312,6 @@ export default function FacebookCampaignForm({
               </div>
             )}
             
-            {/* Show compact validation warning before tabs in form mode */}
             {(selectedProjectId) && !projectData.loading && !projectData.validation.isComplete && (
               <DataCompletionWarning 
                 validation={projectData.validation}
@@ -323,7 +320,7 @@ export default function FacebookCampaignForm({
               />
             )}
             
-            <Tabs value={formTab} onValueChange={(value) => setFormTab(value as "details" | "ads")} className="z-10">
+            <Tabs value={formTab} onValueChange={(value) => setFormTab(value as "details" | "ads")} className="relative z-10">
               <TabsList className="grid w-full grid-cols-2 mb-6">
                 <TabsTrigger value="details">Campaign Details</TabsTrigger>
                 <TabsTrigger value="ads" disabled={!selectedProjectId}>Creative Selection</TabsTrigger>

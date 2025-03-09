@@ -136,6 +136,14 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps) => {
   const handleProjectSelect = (projectId: string) => {
     console.log("Project selected:", projectId);
     setSelectedProjectId(projectId);
+    
+    if (projectId) {
+      toast({
+        title: "Project Selected",
+        description: "Project has been selected successfully",
+        variant: "default",
+      });
+    }
   };
 
   const handleAssignToProject = async () => {
@@ -304,7 +312,7 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps) => {
             </div>
             
             <div className="flex items-center gap-3 flex-wrap sm:flex-nowrap">
-              <div className="w-full sm:w-64">
+              <div className="w-full sm:w-64 relative" style={{ zIndex: 60 }}>
                 <ProjectSelector
                   selectedProjectId={selectedProjectId}
                   onSelect={handleProjectSelect}

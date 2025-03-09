@@ -105,23 +105,15 @@ export function ProjectSelector({
 
   console.log("Current selected project:", selectedProject);
 
-  // Handle selection with improved event handling
-  const handleSelectProject = (projectId: string, e?: React.MouseEvent) => {
-    // Prevent event bubbling if event exists
-    if (e) {
-      e.stopPropagation();
-      e.preventDefault();
-    }
-    
-    console.log("handleSelectProject called with:", projectId);
+  // Simplified selection handler that prevents event bubbling and directly calls onSelect
+  const handleSelectProject = (currentValue: string) => {
+    console.log("handleSelectProject called with:", currentValue);
     
     // Call onSelect with the selected project ID
-    onSelect(projectId);
+    onSelect(currentValue);
     
-    // Close the popover after a longer delay to ensure the selection is processed
-    setTimeout(() => {
-      setOpen(false);
-    }, 300);
+    // Close the popover immediately
+    setOpen(false);
   };
 
   // Determine if there's an error condition based on required and errorMessage props
@@ -149,7 +141,7 @@ export function ProjectSelector({
           className="w-[300px] p-0 bg-white border border-gray-200 shadow-lg rounded-md"
           align="start"
           sideOffset={5}
-          style={{ zIndex: 99999 }} // Significantly increased z-index to ensure it appears above other elements
+          style={{ zIndex: 99999 }} 
         >
           <Command className="rounded-md border-0">
             <CommandInput 
@@ -179,8 +171,11 @@ export function ProjectSelector({
                       key={project.id}
                       value={project.id}
                       className="flex items-center py-2 cursor-pointer hover:bg-gray-100"
-                      onSelect={() => {}}
-                      onClick={(e) => handleSelectProject(project.id, e)}
+                      onSelect={handleSelectProject}
+                      onClick={(e) => {
+                        // Prevent any parent handlers from being triggered
+                        e.stopPropagation();
+                      }}
                     >
                       <Check
                         className={cn(
