@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import CreateCampaignForm from "@/components/integrations/CreateCampaignForm";
@@ -251,6 +252,7 @@ export default function FacebookCampaignForm({
           </DialogDescription>
         </DialogHeader>
         
+        {/* Mode selection step */}
         {step === "mode-selection" && (
           <>
             <div className="mb-6 relative z-10">
@@ -296,6 +298,7 @@ export default function FacebookCampaignForm({
           </>
         )}
         
+        {/* Form step */}
         {step === "form" && (
           <div className="space-y-6">
             {/* Show project selector at the top if not already selected */}
@@ -320,7 +323,7 @@ export default function FacebookCampaignForm({
               />
             )}
             
-            <Tabs value={formTab} onValueChange={(value) => setFormTab(value as "details" | "ads")}>
+            <Tabs value={formTab} onValueChange={(value) => setFormTab(value as "details" | "ads")} className="z-10">
               <TabsList className="grid w-full grid-cols-2 mb-6">
                 <TabsTrigger value="details">Campaign Details</TabsTrigger>
                 <TabsTrigger value="ads" disabled={!selectedProjectId}>Creative Selection</TabsTrigger>
@@ -424,6 +427,7 @@ export default function FacebookCampaignForm({
           </div>
         )}
         
+        {/* Status step */}
         {step === "status" && createdCampaignId && (
           <div className="space-y-6">
             <Alert className="bg-green-50 border-green-200 mb-6">

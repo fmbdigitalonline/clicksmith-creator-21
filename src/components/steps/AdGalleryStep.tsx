@@ -154,6 +154,14 @@ const AdGalleryStep = ({
   const handleProjectSelect = (projectId: string) => {
     console.log("Project selected in AdGalleryStep:", projectId);
     setSelectedProjectId(projectId);
+    
+    if (projectId) {
+      toast({
+        title: "Project Selected",
+        description: "Project has been selected successfully",
+        variant: "default",
+      });
+    }
   };
 
   const handleAssignToProject = async () => {
@@ -275,7 +283,7 @@ const AdGalleryStep = ({
           </div>
           
           <div className="flex items-center gap-3 flex-wrap sm:flex-nowrap">
-            <div className="w-full sm:w-64">
+            <div className="w-full sm:w-64 relative z-50">
               <ProjectSelector
                 selectedProjectId={selectedProjectId}
                 onSelect={handleProjectSelect}
@@ -288,8 +296,9 @@ const AdGalleryStep = ({
                   variant="default" 
                   disabled={selectedAdIds.length === 0 || !selectedProjectId || isAssigning}
                   className="whitespace-nowrap"
-                  onClick={() => {
+                  onClick={(e) => {
                     if (selectedAdIds.length > 0 && selectedProjectId) {
+                      e.stopPropagation();
                       setIsConfirmDialogOpen(true);
                     }
                   }}
@@ -300,7 +309,7 @@ const AdGalleryStep = ({
                   Save to Project
                 </Button>
               </AlertDialogTrigger>
-              <AlertDialogContent>
+              <AlertDialogContent className="z-[99999]">
                 <AlertDialogHeader>
                   <AlertDialogTitle>Save Ads to Project</AlertDialogTitle>
                   <AlertDialogDescription>
@@ -308,8 +317,11 @@ const AdGalleryStep = ({
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleAssignToProject}>Continue</AlertDialogAction>
+                  <AlertDialogCancel onClick={(e) => e.stopPropagation()}>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={(e) => {
+                    e.stopPropagation();
+                    handleAssignToProject();
+                  }}>Continue</AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>

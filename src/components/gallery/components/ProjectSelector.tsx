@@ -105,17 +105,23 @@ export function ProjectSelector({
 
   console.log("Current selected project:", selectedProject);
 
-  // This function explicitly handles selection with console logs for debugging
-  const handleSelectProject = (projectId: string) => {
+  // Handle selection with improved event handling
+  const handleSelectProject = (projectId: string, e?: React.MouseEvent) => {
+    // Prevent event bubbling if event exists
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+    
     console.log("handleSelectProject called with:", projectId);
     
     // Call onSelect with the selected project ID
     onSelect(projectId);
     
-    // Close the popover after a short delay to ensure the selection is visible
+    // Close the popover after a longer delay to ensure the selection is processed
     setTimeout(() => {
       setOpen(false);
-    }, 100);
+    }, 300);
   };
 
   // Determine if there's an error condition based on required and errorMessage props
@@ -143,10 +149,19 @@ export function ProjectSelector({
           className="w-[300px] p-0 bg-white border border-gray-200 shadow-lg rounded-md"
           align="start"
           sideOffset={5}
-          style={{ zIndex: 9999 }} // Ensure high z-index
+          style={{ zIndex: 99999 }} // Significantly increased z-index to ensure it appears above other elements
         >
           <Command className="rounded-md border-0">
-            <CommandInput placeholder="Search projects..." className="h-9" />
+            <CommandInput 
+              placeholder="Search projects..." 
+              className="h-9"
+              onKeyDown={(e) => {
+                // Prevent popover from closing on Enter key
+                if (e.key === 'Enter') {
+                  e.stopPropagation();
+                }
+              }}
+            />
             <CommandList className="max-h-[300px] overflow-auto">
               <CommandEmpty className="py-3 text-center text-sm">No projects found.</CommandEmpty>
               <CommandGroup>
@@ -164,7 +179,8 @@ export function ProjectSelector({
                       key={project.id}
                       value={project.id}
                       className="flex items-center py-2 cursor-pointer hover:bg-gray-100"
-                      onSelect={() => handleSelectProject(project.id)}
+                      onSelect={() => {}}
+                      onClick={(e) => handleSelectProject(project.id, e)}
                     >
                       <Check
                         className={cn(
