@@ -1,515 +1,266 @@
 
-import { useState, useEffect, useRef } from "react";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from "react";
 import { useForm } from "react-hook-form";
-import { z } from "zod";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 import { Button } from "@/components/ui/button";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, AlertCircle } from "lucide-react";
-import { useProjectCampaignData } from "@/hooks/useProjectCampaignData";
-import { 
-  generateCampaignName, 
-  generateCampaignDescription, 
-  suggestDailyBudget,
-  generateDefaultDates,
-  extractTargetingData
-} from "@/utils/campaignDataUtils";
-import { AISuggestion } from "./AISuggestion";
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Loader2, DollarSign, BrainCircuit, User, Target, Calendar } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/components/ui/use-toast";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DatePicker } from "@/components/ui/date-picker";
+import { extractTargetingData } from "@/utils/campaignDataUtils";
 
+// Define the schema for campaign creation
 const campaignFormSchema = z.object({
-  name: z.string().min(2, {
-    message: "Campaign name must be at least 2 characters.",
-  }),
-  objective: z.string().min(2, {
-    message: "Objective must be at least 2 characters.",
-  }),
-  targetAudience: z.string().min(10, {
-    message: "Target audience description must be at least 10 characters.",
-  }),
-  budget: z.string().regex(/^\d+$/, {
-    message: "Budget must be a number.",
-  }),
-  startDate: z.string().min(1, {
-    message: "Start date is required.",
-  }),
-  endDate: z.string().min(1, {
-    message: "End date is required.",
-  }),
-  creativeBrief: z.string().min(20, {
-    message: "Creative brief must be at least 20 characters.",
-  }),
+  name: z.string().min(3, "Campaign name must be at least 3 characters"),
+  objective: z.enum(["AWARENESS", "TRAFFIC", "ENGAGEMENT", "CONVERSIONS"]),
+  budget: z.preprocess(
+    (val) => (val === "" ? undefined : Number(val)),
+    z.number().min(5, "Minimum budget is $5").max(1000, "Maximum budget is $1000")
+  ),
+  end_date: z.date().optional(),
+  start_date: z.date().default(() => new Date()),
+  targeting: z.object({
+    age_min: z.number().min(13).max(65).default(18),
+    age_max: z.number().min(13).max(65).default(65),
+    gender: z.enum(["ALL", "MALE", "FEMALE"]).default("ALL"),
+    interests: z.array(z.string()).optional(),
+    locations: z.array(z.string()).optional(),
+  }).optional(),
+  additional_notes: z.string().optional(),
 });
+
+type CampaignFormValues = z.infer<typeof campaignFormSchema>;
 
 interface CreateCampaignFormProps {
   projectId?: string;
   creationMode: "manual" | "semi-automatic" | "automatic";
-  onSuccess?: (campaignId: string) => void;
-  onCancel?: () => void;
-  onBack?: () => void;
-  selectedAdIds?: string[];
-  onContinue?: () => void;
+  selectedAdIds: string[];
+  onSuccess: (campaignId: string) => void;
+  onCancel: () => void;
+  onContinue: () => void;
+  onBack: () => void;
   projectDataCompleteness?: number;
+  targetingData?: any;
   formRef?: React.MutableRefObject<{ submitForm: () => Promise<boolean> } | null>;
 }
 
-export default function CreateCampaignForm({ 
-  projectId, 
-  creationMode, 
-  onSuccess, 
-  onCancel,
-  onBack,
-  selectedAdIds = [],
-  onContinue,
-  projectDataCompleteness = 100,
-  formRef
-}: CreateCampaignFormProps) {
+const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, CreateCampaignFormProps>((
+  { 
+    projectId,
+    creationMode,
+    selectedAdIds,
+    onSuccess,
+    onCancel,
+    onContinue,
+    onBack,
+    projectDataCompleteness = 0,
+    targetingData,
+    formRef
+  }, 
+  ref
+) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showPerformancePrediction, setShowPerformancePrediction] = useState(false);
-  const [validationErrors, setValidationErrors] = useState<string[]>([]);
-  const projectData = useProjectCampaignData(projectId);
   const { toast } = useToast();
   
-  // Generate default values based on project data
-  const getDefaultValues = () => {
-    const dates = generateDefaultDates();
-    const defaultTargetAudience = projectData.targetAudience?.description || 
-                                "People interested in our products and services";
-    
-    return {
-      name: generateCampaignName(projectData.businessIdea),
-      objective: "REACH",
-      targetAudience: defaultTargetAudience,
-      budget: suggestDailyBudget().toString(),
-      startDate: dates.startDate,
-      endDate: dates.endDate,
-      creativeBrief: generateCampaignDescription(projectData.businessIdea),
-    };
-  };
-
-  const form = useForm<z.infer<typeof campaignFormSchema>>({
+  // Initialize form with default values
+  const form = useForm<CampaignFormValues>({
     resolver: zodResolver(campaignFormSchema),
-    defaultValues: getDefaultValues(),
-    mode: "onChange",
+    defaultValues: {
+      name: "",
+      objective: "AWARENESS",
+      budget: 50,
+      start_date: new Date(),
+      end_date: undefined,
+      targeting: {
+        age_min: 18,
+        age_max: 65,
+        gender: "ALL",
+        interests: [],
+        locations: [],
+      },
+      additional_notes: "",
+    },
   });
-  
-  // Clear validation errors when projectId changes
+
+  // Expose submitForm function to parent through ref
+  useImperativeHandle(ref, () => ({
+    submitForm: handleSubmit,
+  }));
+
+  // Update targeting when project data changes or creation mode changes
   useEffect(() => {
-    setValidationErrors([]);
-  }, [projectId]);
-  
-  // Update form values when project data loads
-  useEffect(() => {
-    if (!projectData.loading && projectData.businessIdea) {
-      const defaults = getDefaultValues();
+    if (targetingData && (creationMode === "semi-automatic" || creationMode === "automatic")) {
+      console.log("Setting form targeting data from project:", targetingData);
       
-      Object.entries(defaults).forEach(([field, value]) => {
-        form.setValue(field as any, value, { 
-          shouldValidate: true,
-          shouldDirty: true 
-        });
+      form.setValue("targeting", {
+        age_min: targetingData.age_min || 18,
+        age_max: targetingData.age_max || 65,
+        gender: targetingData.gender || "ALL",
+        interests: targetingData.interests || [],
+        locations: targetingData.locations || [],
       });
     }
-  }, [projectData.loading, projectData.businessIdea]);
-  
-  // Add a useEffect to log form state for debugging
-  useEffect(() => {
-    const subscription = form.watch(() => {
-      console.log("Form values:", form.getValues());
-      console.log("Form errors:", form.formState.errors);
-      console.log("Form is valid:", form.formState.isValid);
-    });
-    
-    return () => subscription.unsubscribe();
-  }, [form]);
-  
-  const handleFormSubmit = async (values: z.infer<typeof campaignFormSchema>) => {
-    if (isSubmitting) {
-      console.log("Already submitting, ignoring duplicate submission");
-      return false;
-    }
-    
-    // Check if project is selected
-    if (!projectId) {
-      setValidationErrors(["Please select a project before submitting"]);
-      toast({
-        title: "Project Required",
-        description: "You must select a project before creating a campaign",
-        variant: "destructive"
-      });
-      return false;
-    }
+  }, [targetingData, creationMode, form]);
+
+  const handleFormSubmit = async (values: CampaignFormValues) => {
+    console.log("Form values to submit:", values);
     
     if (selectedAdIds.length === 0) {
+      console.log("No ads selected, redirecting to ad selection tab");
+      onContinue();
+      return;
+    }
+    
+    if (!projectId) {
       toast({
-        title: "No ads selected",
-        description: "Please select at least one ad for your campaign",
-        variant: "destructive"
+        title: "Project required",
+        description: "Please select a project for this campaign",
+        variant: "destructive",
       });
-      return false;
+      return;
     }
 
+    setIsSubmitting(true);
+    
     try {
-      setIsSubmitting(true);
-      setValidationErrors([]);
-
-      // Extract and properly format targeting data from project data
-      let targetingData = null;
-      if (projectData.targetAudience) {
-        targetingData = extractTargetingData(projectData.targetAudience, projectData.audienceAnalysis);
-      }
-
-      // Include selected ad IDs and properly formatted targeting data
+      // Prepare campaign data with selected ads
       const campaignData = {
         ...values,
-        selected_ad_ids: selectedAdIds,
-        targeting_data: targetingData || undefined,
-        smart_targeting: creationMode !== "manual"
+        project_id: projectId,
+        ads: selectedAdIds,
+        creation_mode: creationMode,
+        type: "facebook",
+        status: "draft",
       };
       
-      console.log("Submitting campaign with data:", campaignData);
-      
-      // Create the campaign record in the database using the campaign manager
-      const response = await supabase.functions.invoke('facebook-campaign-manager', {
+      console.log("Submitting campaign data:", campaignData);
+
+      // Call the edge function to create the campaign
+      const { data, error } = await supabase.functions.invoke('facebook-campaign-manager', {
         body: {
-          operation: 'create',
-          campaignData: { 
-            name: values.name,
-            objective: values.objective,
-            status: "PAUSED" 
-          },
-          adSetData: {
-            name: `${values.name} - Ad Set`,
-            daily_budget: parseInt(values.budget),
-            targeting: targetingData
-          },
-          adCreativeData: {
-            name: `${values.name} - Creative`,
-            object_story_spec: {
-              page_id: '{{page_id}}', // Will be replaced by the function
-              link_data: {
-                message: values.creativeBrief,
-                link: "https://your-landing-page.com",
-                name: values.name,
-                call_to_action: { type: "LEARN_MORE" }
-              }
-            }
-          },
-          projectId,
-          campaignMode: creationMode,
-          selectedAdIds
-        }
+          action: 'create_campaign',
+          campaign_data: campaignData
+        },
       });
-      
-      if (response.error) {
-        console.error("Edge function error:", response.error);
-        throw new Error(response.error.message || "Error creating campaign");
+
+      if (error) {
+        console.error("Function error:", error);
+        toast({
+          title: "Campaign Creation Failed",
+          description: error.message || "There was an error creating your campaign",
+          variant: "destructive",
+        });
+        return false;
       }
-      
-      const campaignRecord = response.data;
-      
+
+      if (!data || !data.campaign_id) {
+        throw new Error("Invalid response from campaign manager function");
+      }
+
+      console.log("Campaign created successfully:", data);
       toast({
-        title: "Campaign created",
-        description: "Your campaign has been created successfully.",
+        title: "Campaign Created",
+        description: "Your campaign has been created successfully",
       });
-      
-      // Call onSuccess with the campaign ID
-      if (onSuccess && campaignRecord) {
-        onSuccess(campaignRecord.campaignRecordId);
-      }
-      
+
+      // Call the onSuccess callback with the campaign ID
+      onSuccess(data.campaign_id);
       return true;
     } catch (error) {
-      console.error("Form submission error:", error);
-      setIsSubmitting(false);
+      console.error("Error creating campaign:", error);
       toast({
-        title: "Error creating campaign",
-        description: error instanceof Error ? error.message : "There was an error creating your campaign. Please try again.",
-        variant: "destructive"
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to create campaign",
+        variant: "destructive",
       });
       return false;
     } finally {
       setIsSubmitting(false);
     }
   };
-
-  // Expose the submission function directly
-  const submitForm = async () => {
+  
+  // Handle submission specifically for the parent component to call
+  const handleSubmit = async (): Promise<boolean> => {
     console.log("submitForm called, checking form validity");
-    try {
-      // Check if project is selected
-      if (!projectId) {
-        setValidationErrors(["Please select a project before submitting"]);
-        toast({
-          title: "Project Required",
-          description: "You must select a project before creating a campaign",
-          variant: "destructive"
-        });
-        return false;
-      }
-      
-      // Run validation on all fields and get current values
-      const isValid = await form.trigger();
-      console.log("Form validation result:", isValid);
-      console.log("Current errors:", form.formState.errors);
-      
-      if (isValid) {
-        console.log("Form is valid, submitting values");
-        const values = form.getValues();
-        const result = await handleFormSubmit(values);
-        return result;
-      } else {
-        // Provide more detailed error feedback
-        const errorFields = Object.keys(form.formState.errors);
-        console.log("Validation failed for fields:", errorFields);
-        
-        setValidationErrors(errorFields.map(field => {
-          const error = form.formState.errors[field as keyof typeof form.formState.errors];
-          return error?.message?.toString() || `${field} is invalid`;
-        }));
-        
-        toast({
-          title: "Validation Error",
-          description: `Please complete the following fields: ${errorFields.join(", ")}`,
-          variant: "destructive"
-        });
-        return false;
-      }
-    } catch (error) {
-      console.error("Error in submitForm:", error);
+    
+    // Validate form
+    const isValid = await form.trigger();
+    console.log("Form validation result:", isValid);
+    console.log("Current errors:", form.formState.errors);
+    
+    if (!isValid) {
       toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "An unexpected error occurred",
-        variant: "destructive"
+        title: "Validation Error",
+        description: "Please fix the form errors before submitting",
+        variant: "destructive",
       });
-      setIsSubmitting(false);
       return false;
     }
-  };
-
-  // Expose the submitForm method via ref
-  useEffect(() => {
-    if (formRef && 'current' in formRef) {
-      formRef.current = {
-        submitForm
-      };
-    }
-  }, [formRef, selectedAdIds, projectId]);
-
-  // Show appropriate messaging based on data completeness
-  const renderDataCompletenessMessage = () => {
-    if (!projectDataCompleteness || projectDataCompleteness === 100) return null;
     
-    if (projectDataCompleteness < 50) {
-      return (
-        <div className="p-4 bg-amber-50 border border-amber-200 rounded-md mb-6">
-          <h3 className="text-amber-800 font-medium">Limited Data Available</h3>
-          <p className="text-amber-700 text-sm">
-            Your campaign might have limited effectiveness due to incomplete project data. Consider adding more information to your project.
-          </p>
-        </div>
-      );
-    } else if (projectDataCompleteness < 80) {
-      return (
-        <div className="p-4 bg-blue-50 border border-blue-100 rounded-md mb-6">
-          <h3 className="text-blue-800 font-medium">Additional Data May Help</h3>
-          <p className="text-blue-700 text-sm">
-            Your campaign could be more effective with additional project data, but the essentials are present.
-          </p>
-        </div>
-      );
+    console.log("Form is valid, submitting values");
+    try {
+      const values = form.getValues();
+      return await handleFormSubmit(values);
+    } catch (error) {
+      console.error("Form submission error:", error);
+      toast({
+        title: "Submission Error",
+        description: error instanceof Error ? error.message : "An unknown error occurred",
+        variant: "destructive",
+      });
+      return false;
     }
-  
-    return null;
-  };
-
-  const handleApplySuggestion = (field: keyof z.infer<typeof campaignFormSchema>, suggestion: string) => {
-    form.setValue(field, suggestion, { 
-      shouldValidate: true,
-      shouldDirty: true 
-    });
   };
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
-        {/* Project Required Warning */}
-        {!projectId && (
-          <Alert variant="destructive" className="mb-6">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              Please select a project before creating a campaign. This is required to proceed.
-            </AlertDescription>
-          </Alert>
-        )}
-        
-        {/* Validation errors display */}
-        {validationErrors.length > 0 && (
-          <Alert variant="destructive" className="mb-6">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              <div className="font-semibold">Please fix the following errors:</div>
-              <ul className="list-disc pl-4 mt-1 text-sm">
-                {validationErrors.map((error, index) => (
-                  <li key={index}>{error}</li>
-                ))}
-              </ul>
-            </AlertDescription>
-          </Alert>
-        )}
-        
-        {/* Smart data integration notification */}
-        {projectData.businessIdea && creationMode !== "manual" && (
-          <div className="p-4 bg-blue-50 border border-blue-100 rounded-md mb-6">
-            <h3 className="text-blue-800 font-medium">Smart Data Integration Active</h3>
-            <p className="text-blue-700 text-sm">
-              Campaign details have been pre-filled based on your project data.
-            </p>
-          </div>
-        )}
-        
-        {/* Show data completeness message */}
-        {renderDataCompletenessMessage()}
-        
-        {/* Form fields */}
-        <FormField
-          control={form.control}
-          name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Campaign Name</FormLabel>
-              <FormControl>
-                <Input placeholder="My Awesome Campaign" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        <FormField
-          control={form.control}
-          name="objective"
-          render={({ field }) => (
-            <FormItem>
-              <div className="flex justify-between items-center">
-                <FormLabel>Objective</FormLabel>
-                <AISuggestion 
-                  type="objective"
-                  size="sm"
-                  businessIdea={projectData.businessIdea}
-                  targetAudience={projectData.targetAudience}
-                  onSuggestionSelected={(suggestion) => handleApplySuggestion("objective", suggestion)}
-                  disabled={projectData.loading}
-                />
-              </div>
-              <FormControl>
+        {/* Basic Campaign Information */}
+        <div className="space-y-4">
+          <FormField
+            control={form.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Campaign Name</FormLabel>
+                <FormControl>
+                  <Input placeholder="Campaign Name" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="objective"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Campaign Objective</FormLabel>
                 <Select
-                  onValueChange={(value) => {
-                    field.onChange(value);
-                    form.trigger("objective"); // Validate after selection
-                  }}
+                  onValueChange={field.onChange}
                   defaultValue={field.value}
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select campaign objective" />
-                  </SelectTrigger>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select an objective" />
+                    </SelectTrigger>
+                  </FormControl>
                   <SelectContent>
-                    <SelectItem value="REACH">Reach</SelectItem>
-                    <SelectItem value="TRAFFIC">Traffic</SelectItem>
+                    <SelectItem value="AWARENESS">Brand Awareness</SelectItem>
+                    <SelectItem value="TRAFFIC">Website Traffic</SelectItem>
                     <SelectItem value="ENGAGEMENT">Engagement</SelectItem>
-                    <SelectItem value="LEADS">Lead Generation</SelectItem>
                     <SelectItem value="CONVERSIONS">Conversions</SelectItem>
-                    <SelectItem value="SALES">Sales</SelectItem>
                   </SelectContent>
                 </Select>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="targetAudience"
-          render={({ field }) => (
-            <FormItem>
-              <div className="flex justify-between items-center">
-                <FormLabel>Target Audience</FormLabel>
-                <AISuggestion 
-                  type="targeting"
-                  size="sm"
-                  businessIdea={projectData.businessIdea}
-                  targetAudience={projectData.targetAudience}
-                  audienceAnalysis={projectData.audienceAnalysis}
-                  onSuggestionSelected={(suggestion) => handleApplySuggestion("targetAudience", suggestion)}
-                  disabled={projectData.loading}
-                />
-              </div>
-              <FormControl>
-                <Textarea
-                  placeholder="Describe your ideal customer"
-                  className="resize-none"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="budget"
-          render={({ field }) => (
-            <FormItem>
-              <div className="flex justify-between items-center">
-                <FormLabel>Budget</FormLabel>
-                <AISuggestion 
-                  type="budget"
-                  size="sm"
-                  businessIdea={projectData.businessIdea}
-                  targetAudience={projectData.targetAudience}
-                  currentValue={field.value}
-                  onSuggestionSelected={(suggestion) => handleApplySuggestion("budget", suggestion)}
-                  disabled={projectData.loading}
-                />
-              </div>
-              <FormControl>
-                <Input placeholder="1000" type="number" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <div className="flex space-x-2">
-          <FormField
-            control={form.control}
-            name="startDate"
-            render={({ field }) => (
-              <FormItem className="w-1/2">
-                <FormLabel>Start Date</FormLabel>
-                <FormControl>
-                  <Input type="date" {...field} />
-                </FormControl>
+                <FormDescription>
+                  What do you want to achieve with this campaign?
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -517,144 +268,218 @@ export default function CreateCampaignForm({
 
           <FormField
             control={form.control}
-            name="endDate"
+            name="budget"
             render={({ field }) => (
-              <FormItem className="w-1/2">
-                <FormLabel>End Date</FormLabel>
+              <FormItem>
+                <FormLabel>Daily Budget (USD)</FormLabel>
                 <FormControl>
-                  <Input type="date" {...field} />
+                  <div className="relative">
+                    <DollarSign className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input type="number" min="5" max="1000" placeholder="50" className="pl-8" {...field} />
+                  </div>
                 </FormControl>
+                <FormDescription>
+                  How much do you want to spend per day? (Min: $5, Max: $1000)
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}
           />
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="start_date"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <FormLabel>Start Date</FormLabel>
+                  <DatePicker
+                    date={field.value}
+                    setDate={field.onChange}
+                    className="w-full"
+                  />
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="end_date"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <FormLabel>End Date (Optional)</FormLabel>
+                  <DatePicker
+                    date={field.value}
+                    setDate={field.onChange}
+                    className="w-full"
+                  />
+                  <FormDescription>
+                    Leave empty for continuous campaign
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
         </div>
 
-        <FormField
-          control={form.control}
-          name="creativeBrief"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Creative Brief</FormLabel>
-              <FormControl>
-                <Textarea
-                  placeholder="Describe the creative direction for your campaign"
-                  className="resize-none"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        {/* Performance prediction section */}
-        <div className="pt-2">
-          <Button 
-            type="button" 
-            variant="outline" 
-            onClick={() => setShowPerformancePrediction(!showPerformancePrediction)}
-            className="w-full justify-start text-sm"
-          >
-            {showPerformancePrediction ? "Hide" : "Show"} Performance Prediction
-          </Button>
-          
-          {showPerformancePrediction && (
-            <div className="mt-4">
-              <AISuggestion 
-                type="performance"
-                businessIdea={projectData.businessIdea}
-                targetAudience={projectData.targetAudience}
-                audienceAnalysis={projectData.audienceAnalysis}
-                disabled={projectData.loading}
+        {/* Targeting Options (only displayed in manual mode) */}
+        {creationMode === "manual" && (
+          <div className="space-y-4 border p-4 rounded-md bg-slate-50">
+            <h3 className="text-lg font-medium flex items-center">
+              <Target className="h-5 w-5 mr-2 text-slate-500" />
+              Targeting Options
+            </h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <FormField
+                control={form.control}
+                name="targeting.age_min"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Minimum Age</FormLabel>
+                    <FormControl>
+                      <Input type="number" min="13" max="65" {...field} 
+                        onChange={e => field.onChange(parseInt(e.target.value))} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="targeting.age_max"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Maximum Age</FormLabel>
+                    <FormControl>
+                      <Input type="number" min="13" max="65" {...field}
+                        onChange={e => field.onChange(parseInt(e.target.value))} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="targeting.gender"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Gender</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select gender" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="ALL">All Genders</SelectItem>
+                        <SelectItem value="MALE">Male</SelectItem>
+                        <SelectItem value="FEMALE">Female</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
             </div>
-          )}
-        </div>
-        
-        <div className="flex justify-between">
-          {onBack && (
-            <Button type="button" variant="outline" onClick={onBack}>
-              Back
-            </Button>
-          )}
-          <div className="flex gap-2">
-            {onCancel && (
-              <Button type="button" variant="outline" onClick={onCancel}>
-                Cancel
-              </Button>
-            )}
-            {onContinue ? (
-              <Button 
-                type="button" 
-                onClick={() => {
-                  console.log("Continue button clicked, validating form...");
-                  // Check if project is selected
-                  if (!projectId) {
-                    setValidationErrors(["Please select a project before continuing"]);
-                    toast({
-                      title: "Project Required",
-                      description: "You must select a project before proceeding",
-                      variant: "destructive"
-                    });
-                    return;
-                  }
-                  
-                  // Clear previous validation errors
-                  setValidationErrors([]);
-                  
-                  // Validate all fields and then continue if valid
-                  form.trigger().then(isValid => {
-                    console.log("Form validation on continue:", isValid);
-                    if (isValid) {
-                      onContinue();
-                    } else {
-                      const errorFields = Object.keys(form.formState.errors);
-                      setValidationErrors(errorFields.map(field => {
-                        const error = form.formState.errors[field as keyof typeof form.formState.errors];
-                        return error?.message?.toString() || `${field} is invalid`;
-                      }));
-                      
-                      toast({
-                        title: "Please complete all required fields",
-                        description: `Missing or invalid fields: ${errorFields.join(", ")}`,
-                        variant: "destructive"
-                      });
-                    }
-                  });
-                }}
-                disabled={isSubmitting || !projectId}
-              >
-                Continue to Ad Selection
-              </Button>
-            ) : (
-              <Button 
-                type="submit" 
-                disabled={isSubmitting || !projectId}
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Creating...
-                  </>
-                ) : (
-                  "Create Campaign"
-                )}
-              </Button>
-            )}
-          </div>
-        </div>
-        
-        {/* Display selected ads count */}
-        {selectedAdIds.length > 0 && !onContinue && (
-          <div className="p-4 bg-green-50 border border-green-100 rounded-md">
-            <h3 className="text-green-800 font-medium">Selected Ads</h3>
-            <p className="text-green-700 text-sm">
-              {selectedAdIds.length} ad{selectedAdIds.length !== 1 ? 's' : ''} selected for this campaign
-            </p>
           </div>
         )}
+
+        {/* AI Targeting Info */}
+        {creationMode !== "manual" && (
+          <div className="border p-4 rounded-md bg-blue-50">
+            <h3 className="text-lg font-medium flex items-center text-blue-800">
+              <BrainCircuit className="h-5 w-5 mr-2 text-blue-600" />
+              AI-Powered Targeting
+            </h3>
+            <p className="text-sm text-blue-700 mt-2">
+              {creationMode === "automatic" 
+                ? "Full automatic targeting is enabled based on your project data. Our AI will optimize your audience for maximum results."
+                : "Semi-automatic targeting is enabled. We've pre-filled targeting options based on your project data."}
+            </p>
+            
+            {targetingData && (
+              <div className="mt-4 p-3 bg-white rounded border border-blue-200">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2">
+                  <div className="text-sm">
+                    <span className="font-medium text-slate-700">Age Range:</span>{" "}
+                    <span className="text-slate-800">{targetingData.age_min}-{targetingData.age_max}</span>
+                  </div>
+                  <div className="text-sm">
+                    <span className="font-medium text-slate-700">Gender:</span>{" "}
+                    <span className="text-slate-800">{targetingData.gender === "ALL" ? "All Genders" : targetingData.gender === "MALE" ? "Male" : "Female"}</span>
+                  </div>
+                  <div className="text-sm col-span-1 sm:col-span-2 mt-1">
+                    <span className="font-medium text-slate-700">Interests:</span>{" "}
+                    <span className="text-slate-800">{targetingData.interests?.slice(0, 3).join(", ")}{targetingData.interests?.length > 3 ? ` and ${targetingData.interests.length - 3} more...` : ""}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {!targetingData && (
+              <div className="mt-4 p-3 bg-white rounded border border-yellow-200 text-yellow-800">
+                <div className="flex items-center">
+                  <span>No targeting data available from your project. Consider providing more details in your project or switch to manual targeting.</span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Additional Notes */}
+        <FormField
+          control={form.control}
+          name="additional_notes"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Additional Notes</FormLabel>
+              <FormControl>
+                <Textarea 
+                  placeholder="Any additional information about this campaign..." 
+                  className="min-h-[80px]"
+                  {...field} 
+                />
+              </FormControl>
+              <FormDescription>
+                Optional notes for internal reference
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {/* Button row */}
+        <div className="flex justify-between pt-4 border-t">
+          <div className="flex gap-2">
+            <Button type="button" onClick={onBack} variant="outline">
+              Back
+            </Button>
+            <Button type="button" onClick={onCancel} variant="ghost">
+              Cancel
+            </Button>
+          </div>
+          
+          <Button 
+            type="button" 
+            onClick={onContinue}
+            disabled={isSubmitting}
+          >
+            Continue to Ad Selection
+          </Button>
+        </div>
       </form>
     </Form>
   );
-}
+});
+
+CreateCampaignForm.displayName = "CreateCampaignForm";
+
+export default CreateCampaignForm;

@@ -176,8 +176,13 @@ export default function FacebookCampaignForm({
       
       // Use the ref to call the submitForm method directly
       if (campaignFormRef.current && typeof campaignFormRef.current.submitForm === 'function') {
+        // Debug the targeting data and selected ads before submission
+        console.log("Targeting data before submission:", targetingData);
+        console.log("Selected ads before submission:", selectedAdIds);
+        
         const result = await campaignFormRef.current.submitForm();
         console.log("Form submission result:", result);
+        
         if (!result) {
           // If the form submission fails, reset the submitting state
           setIsSubmitting(false);
@@ -191,8 +196,8 @@ export default function FacebookCampaignForm({
         console.error("Campaign form ref or submitForm method not found");
         setIsSubmitting(false);
         toast({
-          title: "Error",
-          description: "Failed to submit campaign. Please try again.",
+          title: "Internal Error",
+          description: "Could not access the campaign form. Please try again or refresh the page.",
           variant: "destructive"
         });
       }
@@ -201,7 +206,7 @@ export default function FacebookCampaignForm({
       setIsSubmitting(false);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to create campaign",
+        description: error instanceof Error ? error.message : "Failed to create campaign. Please check the console for details.",
         variant: "destructive"
       });
     }
@@ -372,6 +377,7 @@ export default function FacebookCampaignForm({
                     }
                   }}
                   projectDataCompleteness={projectData.dataCompleteness}
+                  targetingData={targetingData}  // Pass targeting data explicitly
                   formRef={campaignFormRef}
                 />
               </TabsContent>

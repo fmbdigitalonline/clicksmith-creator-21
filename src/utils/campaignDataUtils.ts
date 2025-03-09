@@ -1,131 +1,128 @@
 
-import { BusinessIdea, TargetAudience, AudienceAnalysis } from "@/types/adWizard";
+import { TargetAudience } from "@/types/adWizard";
 
 /**
- * Generate a campaign name from business idea
+ * Extracts targeting data from target audience and audience analysis
+ * 
+ * @param targetAudience The target audience information
+ * @param audienceAnalysis Additional analysis data
+ * @returns Formatted targeting data for campaign creation
  */
-export function generateCampaignName(businessIdea?: BusinessIdea): string {
-  if (!businessIdea?.description) return "New Facebook Campaign";
+export const extractTargetingData = (targetAudience: TargetAudience, audienceAnalysis?: any) => {
+  console.log("Extracting targeting data from:", { targetAudience, audienceAnalysis });
   
-  // Extract key terms from business description
-  const description = businessIdea.description;
-  const words = description.split(' ');
-  const keyTerms = words
-    .filter(word => word.length > 3)
-    .filter(word => !['with', 'that', 'this', 'from', 'your'].includes(word.toLowerCase()))
-    .slice(0, 2);
+  // Default age range for targeting
+  let ageMin = 18;
+  let ageMax = 65;
   
-  // If we couldn't extract meaningful terms, use a generic name
-  if (keyTerms.length === 0) return "Facebook Campaign";
-  
-  // Format the campaign name
-  const keyPhrase = keyTerms.map(term => term.charAt(0).toUpperCase() + term.slice(1).toLowerCase()).join(' ');
-  return `${keyPhrase} Campaign`;
-}
-
-/**
- * Generate campaign description from value proposition
- */
-export function generateCampaignDescription(businessIdea?: BusinessIdea): string {
-  if (!businessIdea?.valueProposition) return "Facebook ad campaign targeting our ideal customers.";
-  return businessIdea.valueProposition;
-}
-
-/**
- * Extract demographic data for targeting
- */
-export function extractTargetingData(targetAudience?: TargetAudience, audienceAnalysis?: AudienceAnalysis) {
-  if (!targetAudience) {
-    return {
-      age_min: 18,
-      age_max: 65,
-      genders: [1, 2], // Both
-      interests: [],
-      demographics: []
-    };
-  }
-  
-  // Parse demographics data
-  const demographics = targetAudience.demographics || "";
-  
-  // Try to extract age range using regex
-  const ageRangeRegex = /(\d+)[\s-]*to[\s-]*(\d+)/i;
-  const ageMatch = demographics.match(ageRangeRegex);
-  
-  const age_min = ageMatch ? parseInt(ageMatch[1]) : 25;
-  const age_max = ageMatch ? parseInt(ageMatch[2]) : 55;
-  
-  // Try to extract gender
-  const genderRegex = /\b(males?|females?|men|women|man|woman)\b/gi;
-  const genderMatches = [...demographics.matchAll(genderRegex)];
-  
-  let genders = [1, 2]; // Default: both genders
-  
-  if (genderMatches.length > 0) {
-    const foundGenders = genderMatches.map(m => m[0].toLowerCase());
-    if (foundGenders.some(g => ['male', 'males', 'men', 'man'].includes(g)) && 
-        !foundGenders.some(g => ['female', 'females', 'women', 'woman'].includes(g))) {
-      genders = [1]; // Male only
-    } else if (!foundGenders.some(g => ['male', 'males', 'men', 'man'].includes(g)) && 
-               foundGenders.some(g => ['female', 'females', 'women', 'woman'].includes(g))) {
-      genders = [2]; // Female only
+  // Try to extract age range from demographics
+  if (targetAudience.demographics) {
+    const ageMatch = targetAudience.demographics.match(/(\d+)-(\d+)/);
+    if (ageMatch && ageMatch.length >= 3) {
+      ageMin = parseInt(ageMatch[1]);
+      ageMax = parseInt(ageMatch[2]);
+      
+      // Ensure values are within Facebook's allowed range (13-65)
+      ageMin = Math.max(13, Math.min(65, ageMin));
+      ageMax = Math.max(13, Math.min(65, ageMax));
     }
   }
   
-  // Extract interests from pain points and analysis
-  const interests = [];
+  // Generate interests from audience data
+  let interests: string[] = [];
+  let gender: "ALL" | "MALE" | "FEMALE" = "ALL";
   
-  if (targetAudience.painPoints && targetAudience.painPoints.length > 0) {
-    // Extract keywords from pain points
-    const keywords = targetAudience.painPoints.join(' ')
-      .split(' ')
-      .filter(word => word.length > 5)
-      .filter(word => !['because', 'should', 'would', 'could', 'their', 'about'].includes(word.toLowerCase()))
-      .slice(0, 5);
-    
-    interests.push(...keywords);
+  // Extract gender if predominantly one type is mentioned
+  if (targetAudience.demographics) {
+    if (targetAudience.demographics.toLowerCase().includes("female") && 
+        !targetAudience.demographics.toLowerCase().includes("male")) {
+      gender = "FEMALE";
+    } else if (targetAudience.demographics.toLowerCase().includes("male") && 
+              !targetAudience.demographics.toLowerCase().includes("female")) {
+      gender = "MALE";
+    }
   }
   
-  if (audienceAnalysis?.marketDesire) {
-    // Extract key terms from market desire
-    const marketDesireTerms = audienceAnalysis.marketDesire
-      .split(' ')
-      .filter(word => word.length > 6)
-      .slice(0, 3);
+  // Generate interests from audience description and pain points
+  const generateInterests = () => {
+    const interestSources = [
+      targetAudience.description,
+      targetAudience.painPoints?.join(" "),
+      audienceAnalysis?.marketDesire,
+      audienceAnalysis?.expandedDefinition
+    ].filter(Boolean).join(" ");
     
-    interests.push(...marketDesireTerms);
+    // Extract potential interests
+    const potentialInterests = new Set<string>();
+    
+    // Common interest categories
+    const interestCategories = [
+      "technology", "business", "finance", "investing", "education", 
+      "parenting", "health", "fitness", "wellness", "beauty", 
+      "fashion", "travel", "food", "cooking", "home", "real estate", 
+      "gardening", "pets", "sports", "outdoors", "music", "art", 
+      "books", "writing", "photography", "digital marketing", 
+      "entrepreneurship", "career development", "personal growth"
+    ];
+    
+    // Check for presence of interest categories
+    interestCategories.forEach(category => {
+      if (interestSources.toLowerCase().includes(category)) {
+        potentialInterests.add(category.charAt(0).toUpperCase() + category.slice(1));
+      }
+    });
+    
+    // Convert to array and return up to 10 interests
+    return Array.from(potentialInterests).slice(0, 10);
+  };
+  
+  interests = generateInterests();
+  
+  // Create and return targeting object
+  return {
+    age_min: ageMin,
+    age_max: ageMax,
+    gender,
+    interests,
+    locations: [], // We don't extract locations currently
+  };
+};
+
+/**
+ * Call Facebook Campaign Manager edge function
+ * 
+ * @param action The action to perform
+ * @param data The data for the action
+ * @returns The response from the edge function
+ */
+export const callFacebookCampaignManager = async (action: string, data: any) => {
+  try {
+    const { supabase } = await import('@/integrations/supabase/client');
+    
+    console.log(`Calling Facebook Campaign Manager with action: ${action}`, data);
+    
+    const response = await supabase.functions.invoke('facebook-campaign-manager', {
+      body: {
+        action,
+        ...data
+      },
+    });
+    
+    console.log(`Response from Facebook Campaign Manager:`, response);
+    
+    if (response.error) {
+      throw new Error(`Edge function error: ${response.error.message}`);
+    }
+    
+    return {
+      data: response.data,
+      error: null
+    };
+  } catch (error) {
+    console.error("Error calling Facebook Campaign Manager:", error);
+    return {
+      data: null,
+      error: error instanceof Error ? error : new Error('Unknown error occurred')
+    };
   }
-  
-  // Remove duplicates and limit to 10 interests
-  const uniqueInterests = [...new Set(interests)].slice(0, 10);
-  
-  return {
-    age_min,
-    age_max,
-    genders,
-    interests: uniqueInterests,
-    demographics: []
-  };
-}
-
-/**
- * Calculate a suitable daily budget based on project data
- */
-export function suggestDailyBudget(): number {
-  // Default modest budget
-  return 20;
-}
-
-/**
- * Generate smart default dates for the campaign
- */
-export function generateDefaultDates() {
-  const startDate = new Date();
-  const endDate = new Date();
-  endDate.setDate(endDate.getDate() + 14); // Two weeks by default
-  
-  return {
-    startDate: startDate.toISOString().split('T')[0],
-    endDate: endDate.toISOString().split('T')[0]
-  };
-}
+};
