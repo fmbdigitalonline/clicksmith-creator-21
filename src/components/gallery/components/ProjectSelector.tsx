@@ -90,10 +90,16 @@ export function ProjectSelector({ onSelect, selectedProjectId }: ProjectSelector
     ? projects.find(project => project?.id === selectedProjectId) 
     : undefined;
 
-  // Handler for selecting a project
-  const handleSelect = (projectId: string) => {
-    console.log("Project selected in dropdown:", projectId);
-    onSelect(projectId);
+  // This function explicitly handles selection with console logs for debugging
+  const handleSelectProject = (value: string) => {
+    console.log("handleSelectProject called with:", value);
+    // More verbose logging to track the selection flow
+    console.log(`Selected project ID: ${value}, previous selection: ${selectedProjectId}`);
+    
+    // Enforce selection by immediately calling onSelect
+    onSelect(value);
+    
+    // Close the popover after selection
     setOpen(false);
   };
 
@@ -106,6 +112,7 @@ export function ProjectSelector({ onSelect, selectedProjectId }: ProjectSelector
           aria-expanded={open}
           className="w-full justify-between"
           disabled={loading}
+          onClick={() => setOpen(true)} // Explicitly handle click to open
         >
           {selectedProject ? selectedProject.title : loading ? "Loading projects..." : "Select project..."}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -134,8 +141,8 @@ export function ProjectSelector({ onSelect, selectedProjectId }: ProjectSelector
                   <CommandItem
                     key={project.id}
                     value={project.id}
-                    onSelect={() => handleSelect(project.id)}
-                    className="flex items-center py-2"
+                    onSelect={handleSelectProject}
+                    className="flex items-center py-2 cursor-pointer hover:bg-gray-100"
                   >
                     <Check
                       className={cn(
@@ -143,7 +150,7 @@ export function ProjectSelector({ onSelect, selectedProjectId }: ProjectSelector
                         selectedProjectId === project.id ? "opacity-100" : "opacity-0"
                       )}
                     />
-                    {project.title}
+                    <span>{project.title}</span>
                   </CommandItem>
                 ))
               )}

@@ -39,14 +39,18 @@ export default function FacebookCampaignForm({
   const campaignFormRef = useRef<{ submitForm: () => Promise<boolean> } | null>(null);
   
   // Fetch project data for targeting suggestions and validation
-  const projectData = useProjectCampaignData(selectedProjectId || initialProjectId);
-  
-  // This useEffect ensures the project ID is properly set from props
+  const projectData = useProjectCampaignData(selectedProjectId);
+
+  // This useEffect ensures the project ID is properly set from props or changed state
   useEffect(() => {
-    if (initialProjectId && !selectedProjectId) {
+    console.log("Initial project ID:", initialProjectId);
+    console.log("Selected project ID state:", selectedProjectId);
+    
+    if (initialProjectId && (!selectedProjectId || initialProjectId !== selectedProjectId)) {
+      console.log("Setting selected project ID from props:", initialProjectId);
       setSelectedProjectId(initialProjectId);
     }
-  }, [initialProjectId]);
+  }, [initialProjectId, selectedProjectId]);
   
   // Extract targeting data if available
   const targetingData = projectData.targetAudience ? 
@@ -57,7 +61,12 @@ export default function FacebookCampaignForm({
   };
 
   const handleProjectSelect = (projectId: string) => {
-    console.log("Project selected:", projectId);
+    console.log("Project selected in Facebook form:", projectId);
+    // Show feedback to user
+    toast({
+      title: "Project Selected",
+      description: `Project has been selected successfully (ID: ${projectId})`,
+    });
     setSelectedProjectId(projectId);
     // If they select a project and were in a disabled mode, switch to semi-automatic
     if (selectedMode !== "manual" && !selectedProjectId) {
@@ -181,13 +190,25 @@ export default function FacebookCampaignForm({
 
   // Validate if user can proceed to ad selection
   const canContinueToAds = () => {
-    return formTab === "details" && selectedProjectId;
+    return formTab === "details" && !!selectedProjectId;
   };
 
   // Validate if form is ready for submission
   const canSubmitCampaign = () => {
     return selectedAdIds.length > 0 && !isSubmitting;
   };
+
+  // Log state for debugging
+  console.log("Form state:", {
+    open,
+    step,
+    selectedMode,
+    selectedProjectId,
+    initialProjectId,
+    formTab,
+    selectedAdIds,
+    projectDataLoaded: !!projectData
+  });
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -207,15 +228,17 @@ export default function FacebookCampaignForm({
                 onSelect={handleProjectSelect}
                 selectedProjectId={selectedProjectId}
               />
+              
               {selectedProjectId && (
-                <p className="text-sm text-muted-foreground mt-2">
-                  Project selected: Using project data to help create your campaign
-                </p>
+                <div className="flex items-center mt-2 text-sm text-green-600">
+                  <CheckCircle className="h-4 w-4 mr-1" />
+                  <p>Project successfully selected</p>
+                </div>
               )}
             </div>
             
             {/* Show data validation warning if project is selected */}
-            {(selectedProjectId || initialProjectId) && !projectData.loading && (
+            {(selectedProjectId) && !projectData.loading && (
               <DataCompletionWarning 
                 validation={projectData.validation}
                 completenessPercentage={projectData.dataCompleteness}
@@ -226,7 +249,7 @@ export default function FacebookCampaignForm({
             <CampaignModeSelection 
               onModeSelect={handleModeSelect}
               selectedMode={selectedMode}
-              projectId={selectedProjectId || initialProjectId}
+              projectId={selectedProjectId}
             />
             
             <div className="flex justify-end mt-6">
@@ -243,7 +266,7 @@ export default function FacebookCampaignForm({
         {step === "form" && (
           <div className="space-y-6">
             {/* Show compact validation warning before tabs in form mode */}
-            {(selectedProjectId || initialProjectId) && !projectData.loading && !projectData.validation.isComplete && (
+            {(selectedProjectId) && !projectData.loading && !projectData.validation.isComplete && (
               <DataCompletionWarning 
                 validation={projectData.validation}
                 completenessPercentage={projectData.dataCompleteness}
@@ -269,7 +292,7 @@ export default function FacebookCampaignForm({
                 )}
                 
                 <CreateCampaignForm 
-                  projectId={selectedProjectId || initialProjectId} 
+                  projectId={selectedProjectId} 
                   creationMode={selectedMode}
                   onSuccess={handleCampaignCreated}
                   onCancel={handleClose}
@@ -302,7 +325,7 @@ export default function FacebookCampaignForm({
                   </Alert>
                   
                   <AdSelectionGallery
-                    projectId={selectedProjectId || initialProjectId}
+                    projectId={selectedProjectId}
                     onAdsSelected={handleAdsSelected}
                     selectedAdIds={selectedAdIds}
                     maxSelection={5}
