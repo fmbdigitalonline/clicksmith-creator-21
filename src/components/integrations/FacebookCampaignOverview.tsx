@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useSession } from "@supabase/auth-helpers-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,35 +24,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Campaign, FacebookCampaignOverviewProps } from "@/types/campaignTypes";
 
-// Update the Campaign interface to match the database schema and include new fields
-interface Campaign {
-  id: string;
-  name: string;
-  status: string;
-  platform: string;
-  created_at: string;
-  platform_campaign_id: string | null;
-  platform_ad_set_id: string | null;
-  platform_ad_id: string | null;
-  image_url?: string | null;
-  targeting?: any;
-  campaign_data?: any;
-  budget?: number | null;
-  end_date?: string | null;
-  start_date?: string | null;
-  user_id?: string | null;
-  project_id?: string | null;
-  updated_at?: string | null;
-  creation_mode?: string;
-  template_id?: string | null;
-  template_name?: string | null;
-  is_template?: boolean;
-  performance_metrics?: any;
-  last_synced_at?: string | null;
-}
-
-export default function FacebookCampaignOverview() {
+export default function FacebookCampaignOverview({ onConnectionChange }: FacebookCampaignOverviewProps) {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [templates, setTemplates] = useState<Campaign[]>([]);
   const [isLoading, setIsLoading] = useState(true);

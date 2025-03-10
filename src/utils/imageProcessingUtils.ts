@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 /**
@@ -48,7 +47,7 @@ export const checkImageStatus = async (adId: string) => {
     return {
       status: data?.image_status || 'pending',
       storageUrl: data?.storage_url,
-      originalUrl: data?.original_url || data?.imageUrl
+      originalUrl: data?.original_url
     };
   } catch (error) {
     console.error('Error checking image status:', error);

@@ -1,4 +1,3 @@
-
 import { Json } from "@/integrations/supabase/types";
 
 export interface SavedAd {
@@ -51,4 +50,8 @@ export interface AdCampaignData {
   project_id?: string;
   created_at: string;
   updated_at: string;
+}
+
+export interface FacebookCampaignOverviewProps {
+  onConnectionChange?: () => Promise<void>;
 }
