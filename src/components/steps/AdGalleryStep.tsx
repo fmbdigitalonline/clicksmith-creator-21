@@ -19,6 +19,7 @@ import { CheckSquare, Loader2, SquareCheckIcon, Save, InfoIcon } from "lucide-re
 import { supabase } from "@/integrations/supabase/client";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { FacebookAdSettings, type FacebookAdSettings as FacebookAdSettingsType } from "./gallery/components/FacebookAdSettings";
 
 interface AdGalleryStepProps {
   businessIdea: BusinessIdea;
@@ -49,6 +50,16 @@ const AdGalleryStep = ({
   const [manualProcessingNeeded, setManualProcessingNeeded] = useState(false);
   const [isProcessingImages, setIsProcessingImages] = useState(false);
   const [showCampaignHelp, setShowCampaignHelp] = useState(false);
+  const [facebookAdSettings, setFacebookAdSettings] = useState<FacebookAdSettingsType>({
+    websiteUrl: "https://example.com",
+    visibleLink: "example.com",
+    language: "en_US",
+    browserAddOns: {
+      blockBrowserExtensions: false,
+      blockPlugins: false
+    },
+    urlParameters: "utm_source=facebook&utm_medium=cpc"
+  });
   const { toast } = useToast();
   
   const {
@@ -142,6 +153,11 @@ const AdGalleryStep = ({
     setSelectedFormat(format);
   };
 
+  const handleFacebookSettingsChange = (settings: FacebookAdSettingsType) => {
+    setFacebookAdSettings(settings);
+    console.log("Facebook ad settings updated:", settings);
+  };
+
   const handleRegenerate = async () => {
     try {
       await generateAds(platform);
@@ -199,6 +215,9 @@ const AdGalleryStep = ({
           continue;
         }
 
+        // Include Facebook ad settings for facebook platform ads
+        const additionalMetadata = ad.platform === 'facebook' ? { facebookAdSettings } : {};
+
         const { data, error } = await supabase
           .from('ad_feedback')
           .insert({
@@ -211,7 +230,8 @@ const AdGalleryStep = ({
             platform: ad.platform,
             size: ad.size || selectedFormat,
             feedback: 'saved',
-            rating: 5
+            rating: 5,
+            metadata: additionalMetadata
           });
 
         if (error) {
@@ -291,6 +311,14 @@ const AdGalleryStep = ({
           onFormatChange={handleFormatChange}
         />
       </div>
+      {platformName === 'facebook' && (
+        <div className="mb-4">
+          <FacebookAdSettings 
+            onChange={handleFacebookSettingsChange}
+            initialSettings={facebookAdSettings}
+          />
+        </div>
+      )}
       <PlatformContent
         platformName={platformName}
         adVariants={adVariants.filter(variant => variant.platform === platformName)}
