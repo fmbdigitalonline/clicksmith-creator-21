@@ -1,4 +1,3 @@
-
 import { BusinessIdea, TargetAudience, AdHook } from "@/types/adWizard";
 import { TabsContent } from "@/components/ui/tabs";
 import LoadingState from "./complete/LoadingState";
@@ -18,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { CheckSquare, Loader2, SquareCheckIcon, Save } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Progress } from "@/components/ui/progress";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface AdGalleryStepProps {
   businessIdea: BusinessIdea;
@@ -343,34 +343,30 @@ const AdGalleryStep = ({
 
       {/* Facebook Processing Button */}
       {platform === 'facebook' && manualProcessingNeeded && (
-        <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
-          <div className="flex justify-between items-center">
-            <div>
-              <h3 className="text-sm font-medium text-amber-800 mb-1">
-                Image Processing Required for Facebook Ads
-              </h3>
-              <p className="text-xs text-amber-700">
-                To use these ads on Facebook, they need to be processed. This makes them compatible with Facebook's ad system.
-              </p>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleProcessFacebookImages}
-              disabled={isProcessingImages}
-              className="bg-white ml-4"
-            >
-              {isProcessingImages ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Processing...
-                </>
-              ) : (
-                'Process Facebook Images'
-              )}
-            </Button>
+        <Alert variant="warning" className="flex justify-between items-center">
+          <div>
+            <AlertTitle>Image Processing Required for Facebook Ads</AlertTitle>
+            <AlertDescription className="text-xs">
+              To use these ads on Facebook, they need to be processed. This makes them compatible with Facebook's ad system.
+            </AlertDescription>
           </div>
-        </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleProcessFacebookImages}
+            disabled={isProcessingImages}
+            className="bg-white ml-4"
+          >
+            {isProcessingImages ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Processing...
+              </>
+            ) : (
+              'Process Facebook Images'
+            )}
+          </Button>
+        </Alert>
       )}
 
       {/* Project Assignment Controls */}

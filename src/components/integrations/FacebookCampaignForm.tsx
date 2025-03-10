@@ -565,14 +565,14 @@ export default function FacebookCampaignForm({
                       </AlertDescription>
                     </Alert>
                     
-                    {/* Add image processing warning if needed */}
+                    {/* Now using the new warning variant */}
                     {imageCheckError && (
-                      <Alert variant="warning" className="bg-amber-50 border-amber-200 flex justify-between items-center">
+                      <Alert variant="warning" className="flex justify-between items-center">
                         <div className="flex items-start">
-                          <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5" />
+                          <AlertCircle className="h-4 w-4 mt-0.5" />
                           <div className="ml-2">
-                            <AlertTitle className="text-amber-800">Image Processing Required</AlertTitle>
-                            <AlertDescription className="text-amber-700">
+                            <AlertTitle>Image Processing Required</AlertTitle>
+                            <AlertDescription>
                               {imageCheckError}
                             </AlertDescription>
                           </div>
