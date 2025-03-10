@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.20.0";
 import { corsHeaders } from "../_shared/cors.ts";
@@ -6,14 +5,38 @@ import { corsHeaders } from "../_shared/cors.ts";
 // Facebook Graph API endpoint
 const FB_GRAPH_API = "https://graph.facebook.com/v18.0";
 
-// Map our simplified objectives to Facebook's valid objective values
+// Map our simplified objectives to Facebook's valid objective values (updated to use OUTCOME_ prefix)
 const objectiveMapping = {
-  "AWARENESS": "BRAND_AWARENESS",
-  "TRAFFIC": "LINK_CLICKS",
-  "ENGAGEMENT": "POST_ENGAGEMENT",
-  "CONVERSIONS": "CONVERSIONS",
+  "AWARENESS": "OUTCOME_AWARENESS",
+  "TRAFFIC": "OUTCOME_TRAFFIC",
+  "ENGAGEMENT": "OUTCOME_ENGAGEMENT",
+  "CONVERSIONS": "OUTCOME_SALES",
   // Add fallback for any unmapped values
+  "DEFAULT": "OUTCOME_AWARENESS"
+};
+
+// Map for optimization goals based on objectives
+const optimizationGoalMapping = {
+  "OUTCOME_AWARENESS": "REACH",
+  "OUTCOME_TRAFFIC": "LINK_CLICKS",
+  "OUTCOME_ENGAGEMENT": "POST_ENGAGEMENT",
+  "OUTCOME_SALES": "OFFSITE_CONVERSIONS",
+  "OUTCOME_LEADS": "LEAD_GENERATION",
+  "OUTCOME_APP_PROMOTION": "APP_INSTALLS",
+  // Default
   "DEFAULT": "REACH"
+};
+
+// Map for billing events based on objectives
+const billingEventMapping = {
+  "OUTCOME_AWARENESS": "IMPRESSIONS",
+  "OUTCOME_TRAFFIC": "LINK_CLICKS",
+  "OUTCOME_ENGAGEMENT": "POST_ENGAGEMENT",
+  "OUTCOME_SALES": "IMPRESSIONS",
+  "OUTCOME_LEADS": "IMPRESSIONS",
+  "OUTCOME_APP_PROMOTION": "IMPRESSIONS",
+  // Default
+  "DEFAULT": "IMPRESSIONS"
 };
 
 serve(async (req) => {
@@ -186,13 +209,13 @@ serve(async (req) => {
           // Log correctly formatted account ID for debugging
           console.log(`Using formatted account ID: ${formattedAccountId}`);
           
-          // Map our objective to a valid Facebook objective
+          // Map our objective to a valid Facebook objective using the updated mapping
           const userObjective = campaign_data.objective || "AWARENESS";
           const fbObjective = objectiveMapping[userObjective] || objectiveMapping.DEFAULT;
           
           console.log(`Mapping objective ${userObjective} to Facebook objective ${fbObjective}`);
           
-          // Create the campaign on Facebook - FIXED: Using the correct account ID path
+          // Create the campaign on Facebook
           const campaignResponse = await fetch(
             `${FB_GRAPH_API}/${formattedAccountId}/campaigns`,
             {
@@ -275,28 +298,13 @@ serve(async (req) => {
             }];
           }
           
-          // Map optimization goals and billing events based on the objective
-          let optimizationGoal, billingEvent;
-          switch (fbObjective) {
-            case "CONVERSIONS":
-              optimizationGoal = "OFFSITE_CONVERSIONS";
-              billingEvent = "IMPRESSIONS";
-              break;
-            case "LINK_CLICKS":
-              optimizationGoal = "LINK_CLICKS";
-              billingEvent = "LINK_CLICKS";
-              break;
-            case "POST_ENGAGEMENT":
-              optimizationGoal = "POST_ENGAGEMENT";
-              billingEvent = "POST_ENGAGEMENT";
-              break;
-            case "BRAND_AWARENESS":
-            default:
-              optimizationGoal = "REACH";
-              billingEvent = "IMPRESSIONS";
-          }
+          // Get optimization goal and billing event based on the mapped objective
+          const optimizationGoal = optimizationGoalMapping[fbObjective] || optimizationGoalMapping.DEFAULT;
+          const billingEvent = billingEventMapping[fbObjective] || billingEventMapping.DEFAULT;
           
-          // Create the ad set - FIXED: Using the correct account ID format here too
+          console.log(`Using optimization goal: ${optimizationGoal} and billing event: ${billingEvent}`);
+          
+          // Create the ad set
           const adSetResponse = await fetch(
             `${FB_GRAPH_API}/${formattedAccountId}/adsets`,
             {
