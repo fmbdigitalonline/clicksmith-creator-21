@@ -1,3 +1,4 @@
+
 import { BusinessIdea, TargetAudience, AdHook } from "@/types/adWizard";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -14,6 +15,18 @@ export const useAdGeneration = (
   const [adVariants, setAdVariants] = useState<any[]>([]);
   const [regenerationCount, setRegenerationCount] = useState(0);
   const [generationStatus, setGenerationStatus] = useState<string>("");
+  const [processingStatus, setProcessingStatus] = useState<{
+    inProgress: boolean;
+    total: number;
+    completed: number;
+    failed: number;
+  }>({
+    inProgress: false,
+    total: 0,
+    completed: 0,
+    failed: 0
+  });
+  
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -41,6 +54,96 @@ export const useAdGeneration = (
 
     loadSavedAds();
   }, [projectId]);
+
+  // Monitor image processing status for variants
+  useEffect(() => {
+    if (!processingStatus.inProgress || processingStatus.total === 0) {
+      return;
+    }
+
+    const checkImageStatuses = async () => {
+      try {
+        // Get the list of variants that are still processing
+        const processingVariantIds = adVariants
+          .filter(v => v.image_status === 'processing')
+          .map(v => v.id);
+          
+        if (processingVariantIds.length === 0) {
+          // All processing is complete
+          setProcessingStatus(prev => ({
+            ...prev,
+            inProgress: false
+          }));
+          return;
+        }
+        
+        // Check the status of all processing variants
+        const { data, error } = await supabase
+          .from('ad_feedback')
+          .select('id, image_status, storage_url')
+          .in('id', processingVariantIds);
+          
+        if (error) {
+          console.error('Error checking image statuses:', error);
+          return;
+        }
+        
+        if (!data || data.length === 0) {
+          return;
+        }
+        
+        // Update our local state based on the query results
+        let updatedVariants = [...adVariants];
+        let newCompleted = 0;
+        let newFailed = 0;
+        
+        data.forEach(item => {
+          if (item.image_status === 'ready') {
+            newCompleted++;
+          } else if (item.image_status === 'failed') {
+            newFailed++;
+          }
+          
+          // Update the variant in our local state
+          const index = updatedVariants.findIndex(v => v.id === item.id);
+          if (index !== -1) {
+            updatedVariants[index] = {
+              ...updatedVariants[index],
+              image_status: item.image_status,
+              storage_url: item.storage_url
+            };
+          }
+        });
+        
+        // Update state with the new information
+        setAdVariants(updatedVariants);
+        setProcessingStatus(prev => ({
+          ...prev,
+          completed: prev.completed + newCompleted,
+          failed: prev.failed + newFailed
+        }));
+        
+        // Update project if we have a project ID
+        if (projectId && projectId !== 'new') {
+          await supabase
+            .from('projects')
+            .update({
+              generated_ads: updatedVariants
+            })
+            .eq('id', projectId);
+        }
+        
+      } catch (error) {
+        console.error('Error monitoring image processing:', error);
+      }
+    };
+    
+    // Check immediately and then every 3 seconds
+    checkImageStatuses();
+    const interval = setInterval(checkImageStatuses, 3000);
+    
+    return () => clearInterval(interval);
+  }, [adVariants, processingStatus, projectId]);
 
   const checkCredits = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -71,58 +174,96 @@ export const useAdGeneration = (
   };
 
   const processImagesForFacebook = async (variants: any[]) => {
-    // Start image processing for all variants
+    // Only proceed if we have variants to process
+    if (!variants || variants.length === 0) {
+      return;
+    }
+    
     try {
-      console.log('Starting background image processing for Facebook ads');
-      
-      const processPromises = variants.map(async (variant) => {
-        if (!variant.id || !variant.imageUrl) return variant;
-        
-        try {
-          console.log(`Processing image for variant ${variant.id}`);
-          
-          // First update status to processing immediately
-          await supabase
-            .from('ad_feedback')
-            .update({ image_status: 'processing' })
-            .eq('id', variant.id);
-          
-          const { data, error } = await supabase.functions.invoke('migrate-images', {
-            body: { adId: variant.id }
-          });
-          
-          if (error) {
-            console.error(`Error invoking migrate-images for variant ${variant.id}:`, error);
-            return variant;
-          }
-          
-          console.log(`Image processing response for variant ${variant.id}:`, data);
-          
-          if (data && data.success && data.storage_url) {
-            // Update the variant with the storage URL
-            console.log(`Updated variant ${variant.id} with storage URL: ${data.storage_url}`);
-            return {
-              ...variant,
-              storage_url: data.storage_url,
-              image_status: 'ready'
-            };
-          }
-        } catch (processError) {
-          console.error('Error processing image for variant', variant.id, processError);
-        }
-        
-        return variant;
+      console.log('Starting batch image processing for Facebook ads');
+      setProcessingStatus({
+        inProgress: true,
+        total: variants.length,
+        completed: 0,
+        failed: 0
       });
       
-      try {
-        const results = await Promise.allSettled(processPromises);
-        console.log('Image processing results:', results);
-      } catch (error) {
-        console.error('Error in background image processing:', error);
+      // Create array of variant IDs for batch processing
+      const variantIds = variants
+        .filter(v => v.id && v.imageUrl)
+        .map(v => v.id);
+      
+      if (variantIds.length === 0) {
+        console.log('No valid variants to process');
+        return;
+      }
+      
+      // Update variants to processing state immediately in local state
+      setAdVariants(prev => {
+        const updated = [...prev];
+        variantIds.forEach(id => {
+          const index = updated.findIndex(v => v.id === id);
+          if (index !== -1) {
+            updated[index] = {
+              ...updated[index],
+              image_status: 'processing'
+            };
+          }
+        });
+        return updated;
+      });
+      
+      // Call the edge function with all IDs for batch processing
+      const { data, error } = await supabase.functions.invoke('migrate-images', {
+        body: { adIds: variantIds }
+      });
+      
+      if (error) {
+        console.error(`Error invoking migrate-images:`, error);
+        toast({
+          title: "Processing Error",
+          description: "There was an error starting image processing. Some images may not be available for Facebook ads.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      console.log(`Batch image processing response:`, data);
+      
+      // Check results and update UI
+      if (data && data.processed) {
+        // Count successes and failures
+        const successCount = data.processed.filter((r: any) => r.success).length;
+        const failCount = data.processed.length - successCount;
+        
+        toast({
+          title: "Image Processing Update",
+          description: `Started processing ${data.processed.length} images. ${successCount} completed immediately.`,
+        });
+        
+        // Update processing status
+        setProcessingStatus(prev => ({
+          ...prev,
+          completed: prev.completed + successCount,
+          failed: prev.failed + failCount
+        }));
       }
       
     } catch (error) {
-      console.error('Error starting image processing:', error);
+      console.error('Error in batch image processing:', error);
+      toast({
+        title: "Processing Error",
+        description: "Failed to start image processing. Please try again later.",
+        variant: "destructive",
+      });
+      
+      // Reset processing status
+      setProcessingStatus({
+        inProgress: false,
+        total: 0,
+        completed: 0,
+        failed: 0
+      });
     }
   };
 
@@ -264,12 +405,10 @@ export const useAdGeneration = (
         description: "Your new ad variants are ready!",
       });
       
-      // Process images for Facebook in the background
-      if (selectedPlatform === 'facebook') {
-        // Timeout to let the UI update first
-        setTimeout(() => {
-          processImagesForFacebook(validVariants);
-        }, 500);
+      // Process images for Facebook in the background - with improved batch processing
+      if (selectedPlatform === 'facebook' && validVariants.length > 0) {
+        // Start processing immediately
+        processImagesForFacebook(validVariants);
       }
       
     } catch (error: any) {
@@ -303,6 +442,8 @@ export const useAdGeneration = (
     adVariants,
     regenerationCount,
     generationStatus,
+    processingStatus,
     generateAds,
+    processImagesForFacebook
   };
 };

@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CheckSquare, Loader2, SquareCheckIcon, Save } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { Progress } from "@/components/ui/progress";
 
 interface AdGalleryStepProps {
   businessIdea: BusinessIdea;
@@ -59,6 +60,7 @@ const AdGalleryStep = ({
     isGenerating,
     adVariants,
     generationStatus,
+    processingStatus,
     generateAds,
   } = useAdGeneration(businessIdea, targetAudience, adHooks);
 
@@ -241,6 +243,11 @@ const AdGalleryStep = ({
     </TabsContent>
   );
 
+  // Calculate progress percentage for the processing status bar
+  const progressPercentage = processingStatus.inProgress 
+    ? Math.round(((processingStatus.completed + processingStatus.failed) / processingStatus.total) * 100)
+    : 0;
+
   return (
     <div className="space-y-6 md:space-y-8">
       <AdGenerationControls
@@ -250,6 +257,30 @@ const AdGalleryStep = ({
         isGenerating={isGenerating}
         generationStatus={generationStatus}
       />
+
+      {/* Processing Status Bar */}
+      {processingStatus.inProgress && (
+        <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <Loader2 className="h-4 w-4 mr-2 text-blue-500 animate-spin" />
+              <h3 className="text-sm font-medium text-blue-700">
+                Processing images for Facebook
+              </h3>
+            </div>
+            <span className="text-sm text-blue-700 font-medium">
+              {processingStatus.completed + processingStatus.failed} of {processingStatus.total} complete
+            </span>
+          </div>
+          <Progress value={progressPercentage} className="h-2" />
+          <div className="flex justify-between text-xs text-blue-600">
+            <span>{processingStatus.completed} successful</span>
+            {processingStatus.failed > 0 && (
+              <span className="text-red-500">{processingStatus.failed} failed</span>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Project Assignment Controls */}
       <div className="bg-slate-50 p-4 rounded-lg shadow-sm border border-slate-200">
