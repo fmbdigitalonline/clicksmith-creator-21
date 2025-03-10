@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -110,19 +111,25 @@ const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, Cr
     const fetchProjectTitle = async () => {
       if (projectId && projectId !== 'new') {
         try {
+          console.log('Fetching project title for projectId:', projectId);
           const { data, error } = await supabase
             .from('projects')
             .select('title')
             .eq('id', projectId)
             .single();
             
-          if (error) throw error;
+          if (error) {
+            console.error('Error fetching project title:', error);
+            throw error;
+          }
           
           if (data?.title) {
+            console.log('Project title found:', data.title);
             setProjectTitle(data.title);
             
             // Set campaign name to project title + "Campaign"
             const campaignName = `${data.title} Campaign`;
+            console.log('Setting campaign name to:', campaignName);
             form.setValue('name', campaignName);
           }
         } catch (error) {
@@ -162,65 +169,7 @@ const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, Cr
     }
   }, [targetingData, creationMode, form]);
 
-  // Load ad data for selected ads
-  const loadAdDataForIds = async (adIds: string[]): Promise<any[]> => {
-    if (!adIds.length) return [];
-    
-    try {
-      // First, try to load from ad_feedback table
-      const { data: adFeedbackData, error: adFeedbackError } = await supabase
-        .from('ad_feedback')
-        .select('id, headline, primary_text, imageUrl, imageurl, size, platform')
-        .in('id', adIds);
-      
-      if (adFeedbackError) throw adFeedbackError;
-      
-      // If we got data, format and return it
-      if (adFeedbackData && adFeedbackData.length > 0) {
-        return adFeedbackData.map(ad => ({
-          id: ad.id,
-          headline: ad.headline,
-          primary_text: ad.primary_text,
-          imageUrl: ad.imageUrl || ad.imageurl,
-          size: ad.size,
-          platform: ad.platform || 'facebook'
-        }));
-      }
-      
-      // If we couldn't find in ad_feedback, try from project's generated_ads array
-      if (projectId) {
-        const { data: project, error: projectError } = await supabase
-          .from('projects')
-          .select('generated_ads')
-          .eq('id', projectId)
-          .single();
-        
-        if (projectError) throw projectError;
-        
-        if (project?.generated_ads && Array.isArray(project.generated_ads)) {
-          // Filter to only include ads with matching IDs
-          const matchingAds = project.generated_ads.filter((ad: any) => 
-            adIds.includes(ad.id)
-          );
-          
-          return matchingAds.map((ad: any) => ({
-            id: ad.id,
-            headline: ad.headline,
-            primary_text: ad.primary_text,
-            imageUrl: ad.imageUrl || ad.imageurl,
-            size: ad.size,
-            platform: ad.platform || 'facebook'
-          }));
-        }
-      }
-      
-      return [];
-    } catch (error) {
-      console.error("Error loading ad data:", error);
-      return [];
-    }
-  };
-
+  // Handle form submission
   const handleFormSubmit = async (values: CampaignFormValues) => {
     console.log("Form values to submit:", values);
     
@@ -470,205 +419,6 @@ const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, Cr
               </FormItem>
             )}
           />
-
-          <FormField
-            control={form.control}
-            name="bid_strategy"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Bid Strategy</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a bid strategy" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="LOWEST_COST_WITHOUT_CAP">Lowest Cost (Automatic)</SelectItem>
-                    <SelectItem value="LOWEST_COST_WITH_BID_CAP">Lowest Cost with Bid Cap</SelectItem>
-                    <SelectItem value="COST_CAP">Cost Cap</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormDescription>
-                  How Facebook should optimize your ad delivery and bidding
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          {shouldShowBidAmount && (
-            <FormField
-              control={form.control}
-              name="bid_amount"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Bid Amount (USD)</FormLabel>
-                  <FormControl>
-                    <div className="relative">
-                      <DollarSign className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                      <Input type="number" min="0.1" step="0.1" placeholder="2.00" className="pl-8" {...field} />
-                    </div>
-                  </FormControl>
-                  <FormDescription>
-                    Maximum amount you're willing to bid (required for your selected bid strategy)
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          )}
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="start_date"
-              render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel>Start Date</FormLabel>
-                  <DatePicker
-                    date={field.value}
-                    setDate={field.onChange}
-                    className="w-full"
-                  />
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="end_date"
-              render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel>End Date (Optional)</FormLabel>
-                  <DatePicker
-                    date={field.value}
-                    setDate={field.onChange}
-                    className="w-full"
-                  />
-                  <FormDescription>
-                    Leave empty for continuous campaign
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-        </div>
-
-        {/* Targeting Options (only displayed in manual mode) */}
-        {creationMode === "manual" && (
-          <div className="space-y-4 border p-4 rounded-md bg-slate-50">
-            <h3 className="text-lg font-medium flex items-center">
-              <Target className="h-5 w-5 mr-2 text-slate-500" />
-              Targeting Options
-            </h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <FormField
-                control={form.control}
-                name="targeting.age_min"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Minimum Age</FormLabel>
-                    <FormControl>
-                      <Input type="number" min="13" max="65" {...field} 
-                        onChange={e => field.onChange(parseInt(e.target.value))} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="targeting.age_max"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Maximum Age</FormLabel>
-                    <FormControl>
-                      <Input type="number" min="13" max="65" {...field}
-                        onChange={e => field.onChange(parseInt(e.target.value))} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="targeting.gender"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Gender</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select gender" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="ALL">All Genders</SelectItem>
-                        <SelectItem value="MALE">Male</SelectItem>
-                        <SelectItem value="FEMALE">Female</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-          </div>
-        )}
-
-        {/* AI Targeting Info */}
-        {creationMode !== "manual" && (
-          <div className="border p-4 rounded-md bg-blue-50">
-            <h3 className="text-lg font-medium flex items-center text-blue-800">
-              <BrainCircuit className="h-5 w-5 mr-2 text-blue-600" />
-              AI-Powered Targeting
-            </h3>
-            <p className="text-sm text-blue-700 mt-2">
-              {creationMode === "automatic" 
-                ? "Full automatic targeting is enabled based on your project data. Our AI will optimize your audience for maximum results."
-                : "Semi-automatic targeting is enabled. We've pre-filled targeting options based on your project data."}
-            </p>
-            
-            {targetingData && (
-              <div className="mt-4 p-3 bg-white rounded border border-blue-200">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2">
-                  <div className="text-sm">
-                    <span className="font-medium text-slate-700">Age Range:</span>{" "}
-                    <span className="text-slate-800">{targetingData.age_min}-{targetingData.age_max}</span>
-                  </div>
-                  <div className="text-sm">
-                    <span className="font-medium text-slate-700">Gender:</span>{" "}
-                    <span className="text-slate-800">{targetingData.gender === "ALL" ? "All Genders" : targetingData.gender === "MALE" ? "Male" : "Female"}</span>
-                  </div>
-                  <div className="text-sm col-span-1 sm:col-span-2 mt-1">
-                    <span className="font-medium text-slate-700">Interests:</span>{" "}
-                    <span className="text-slate-800">{targetingData.interests?.slice(0, 3).join(", ")}{targetingData.interests?.length > 3 ? ` and ${targetingData.interests.length - 3} more...` : ""}</span>
-                  </div>
-                </div>
-              </div>
-            )}
-            
-            {!targetingData && (
-              <div className="mt-4 p-3 bg-white rounded border border-yellow-200 text-yellow-800">
-                <div className="flex items-center">
-                  <span>No targeting data available from your project. Consider providing more details in your project or switch to manual targeting.</span>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
 
           <FormField
             control={form.control}
