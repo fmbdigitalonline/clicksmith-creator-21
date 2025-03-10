@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
 
@@ -28,6 +29,8 @@ interface CampaignData {
   creation_mode: string;
   type: string;
   additional_notes?: string;
+  bid_amount?: number; // New field for bid amount
+  bid_strategy?: string; // New field for bid strategy
 }
 
 interface AdDetail {
@@ -195,7 +198,9 @@ async function createCampaign(
       campaignData.targeting,
       campaignData.objective,
       accessToken,
-      cleanedAccountId
+      cleanedAccountId,
+      campaignData.bid_amount, // Pass the bid amount
+      campaignData.bid_strategy // Pass the bid strategy
     );
     
     if (!adSet.id) {
@@ -302,7 +307,9 @@ async function createCampaign(
           adCreatives,
           objective: campaignData.objective,
           creation_mode: campaignData.creation_mode,
-          additional_notes: campaignData.additional_notes
+          additional_notes: campaignData.additional_notes,
+          bid_amount: campaignData.bid_amount,
+          bid_strategy: campaignData.bid_strategy
         },
         creation_mode: campaignData.creation_mode
       })
@@ -452,7 +459,9 @@ async function createFacebookAdSet(
   targeting: any,
   objective: string,
   accessToken: string,
-  accountId: string
+  accountId: string,
+  bidAmount?: number, // Add bid amount parameter
+  bidStrategy?: string // Add bid strategy parameter
 ) {
   // Fix: Ensure we have the proper account ID format for the API
   const apiAccountId = `act_${accountId.replace(/^act_/i, '')}`;
@@ -540,9 +549,24 @@ async function createFacebookAdSet(
     status: 'PAUSED'
   };
   
+  // Add bid amount if provided
+  if (bidAmount && bidAmount > 0) {
+    adSetData.bid_amount = Math.round(bidAmount * 100); // Convert to cents
+  }
+  
+  // Add bid strategy if provided
+  if (bidStrategy) {
+    adSetData.bid_strategy = bidStrategy;
+  } else {
+    // Default to LOWEST_COST_WITHOUT_CAP if not provided
+    adSetData.bid_strategy = 'LOWEST_COST_WITHOUT_CAP';
+  }
+  
   if (formattedEndDate) {
     adSetData.end_time = formattedEndDate;
   }
+  
+  console.log('Creating ad set with data:', JSON.stringify(adSetData, null, 2));
   
   const response = await fetch(
     `https://graph.facebook.com/v18.0/${apiAccountId}/adsets`,

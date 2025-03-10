@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -28,6 +29,15 @@ const campaignFormSchema = z.object({
     (val) => (val === "" ? undefined : Number(val)),
     z.number().min(5, "Minimum budget is $5").max(1000, "Maximum budget is $1000")
   ),
+  bid_amount: z.preprocess(
+    (val) => (val === "" ? undefined : Number(val)),
+    z.number().min(0, "Bid amount must be positive").optional()
+  ),
+  bid_strategy: z.enum([
+    "LOWEST_COST_WITHOUT_CAP",
+    "LOWEST_COST_WITH_BID_CAP",
+    "COST_CAP"
+  ]).default("LOWEST_COST_WITHOUT_CAP"),
   end_date: z.date().optional(),
   start_date: z.date().default(() => new Date()),
   targeting: z.object({
@@ -80,6 +90,8 @@ const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, Cr
       name: "",
       objective: "OUTCOME_AWARENESS",
       budget: 50,
+      bid_amount: 0, // Default bid amount
+      bid_strategy: "LOWEST_COST_WITHOUT_CAP", // Default bid strategy
       start_date: new Date(),
       end_date: undefined,
       targeting: {
@@ -294,6 +306,9 @@ const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, Cr
     }
   };
 
+  // Determine if bid amount should be shown based on bid strategy
+  const shouldShowBidAmount = form.watch('bid_strategy') !== 'LOWEST_COST_WITHOUT_CAP';
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
@@ -364,6 +379,57 @@ const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, Cr
               </FormItem>
             )}
           />
+
+          <FormField
+            control={form.control}
+            name="bid_strategy"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Bid Strategy</FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a bid strategy" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="LOWEST_COST_WITHOUT_CAP">Lowest Cost (Automatic)</SelectItem>
+                    <SelectItem value="LOWEST_COST_WITH_BID_CAP">Lowest Cost with Bid Cap</SelectItem>
+                    <SelectItem value="COST_CAP">Cost Cap</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormDescription>
+                  How Facebook should optimize your ad delivery and bidding
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {shouldShowBidAmount && (
+            <FormField
+              control={form.control}
+              name="bid_amount"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Bid Amount (USD)</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <DollarSign className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input type="number" min="0.1" step="0.1" placeholder="2.00" className="pl-8" {...field} />
+                    </div>
+                  </FormControl>
+                  <FormDescription>
+                    Maximum amount you're willing to bid (required for your selected bid strategy)
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField
