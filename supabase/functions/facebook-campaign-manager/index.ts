@@ -6,6 +6,16 @@ import { corsHeaders } from "../_shared/cors.ts";
 // Facebook Graph API endpoint
 const FB_GRAPH_API = "https://graph.facebook.com/v18.0";
 
+// Map our simplified objectives to Facebook's valid objective values
+const objectiveMapping = {
+  "AWARENESS": "BRAND_AWARENESS",
+  "TRAFFIC": "LINK_CLICKS",
+  "ENGAGEMENT": "POST_ENGAGEMENT",
+  "CONVERSIONS": "CONVERSIONS",
+  // Add fallback for any unmapped values
+  "DEFAULT": "REACH"
+};
+
 serve(async (req) => {
   // Always handle CORS preflight requests first
   if (req.method === 'OPTIONS') {
@@ -176,6 +186,12 @@ serve(async (req) => {
           // Log correctly formatted account ID for debugging
           console.log(`Using formatted account ID: ${formattedAccountId}`);
           
+          // Map our objective to a valid Facebook objective
+          const userObjective = campaign_data.objective || "AWARENESS";
+          const fbObjective = objectiveMapping[userObjective] || objectiveMapping.DEFAULT;
+          
+          console.log(`Mapping objective ${userObjective} to Facebook objective ${fbObjective}`);
+          
           // Create the campaign on Facebook - FIXED: Using the correct account ID path
           const campaignResponse = await fetch(
             `${FB_GRAPH_API}/${formattedAccountId}/campaigns`,
@@ -186,7 +202,7 @@ serve(async (req) => {
               },
               body: JSON.stringify({
                 name: campaignName,
-                objective: campaign_data.objective || 'AWARENESS',
+                objective: fbObjective,
                 status: 'PAUSED', // Start as paused so users can review before launching
                 special_ad_categories: [],
                 access_token: accessToken,
@@ -259,6 +275,27 @@ serve(async (req) => {
             }];
           }
           
+          // Map optimization goals and billing events based on the objective
+          let optimizationGoal, billingEvent;
+          switch (fbObjective) {
+            case "CONVERSIONS":
+              optimizationGoal = "OFFSITE_CONVERSIONS";
+              billingEvent = "IMPRESSIONS";
+              break;
+            case "LINK_CLICKS":
+              optimizationGoal = "LINK_CLICKS";
+              billingEvent = "LINK_CLICKS";
+              break;
+            case "POST_ENGAGEMENT":
+              optimizationGoal = "POST_ENGAGEMENT";
+              billingEvent = "POST_ENGAGEMENT";
+              break;
+            case "BRAND_AWARENESS":
+            default:
+              optimizationGoal = "REACH";
+              billingEvent = "IMPRESSIONS";
+          }
+          
           // Create the ad set - FIXED: Using the correct account ID format here too
           const adSetResponse = await fetch(
             `${FB_GRAPH_API}/${formattedAccountId}/adsets`,
@@ -270,10 +307,8 @@ serve(async (req) => {
               body: JSON.stringify({
                 name: `${campaignName} - Ad Set`,
                 campaign_id: campaignId,
-                optimization_goal: campaign_data.objective === 'CONVERSIONS' ? 'OFFSITE_CONVERSIONS' : 
-                                  campaign_data.objective === 'TRAFFIC' ? 'LINK_CLICKS' : 'REACH',
-                billing_event: campaign_data.objective === 'CONVERSIONS' ? 'IMPRESSIONS' : 
-                              campaign_data.objective === 'TRAFFIC' ? 'LINK_CLICKS' : 'IMPRESSIONS',
+                optimization_goal: optimizationGoal,
+                billing_event: billingEvent,
                 bid_amount: 1000, // $10.00 in cents as default bid
                 daily_budget: dailyBudget,
                 targeting: fbTargeting,
