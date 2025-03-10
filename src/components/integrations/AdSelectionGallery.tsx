@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, CheckSquare, Square, LayoutGrid, Link } from "lucide-react";
-import { SavedAd, AdSelectionGalleryProps, AdSize, FacebookAdSettings } from "@/types/campaignTypes";
+import { SavedAd, AdSelectionGalleryProps, AdSize } from "@/types/campaignTypes";
 import { Badge } from "@/components/ui/badge";
 import FacebookAdSettingsComponent from "./FacebookAdSettings";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -61,7 +62,21 @@ export default function AdSelectionGallery({
       if (error) throw error;
 
       if (data) {
-        setSavedAds(data as SavedAd[]);
+        // Convert the data to SavedAd type
+        const typedData: SavedAd[] = data.map(item => ({
+          ...item,
+          saved_images: item.saved_images || [],
+          rating: item.rating || 0,
+          size: item.size as AdSize,
+          fb_ad_settings: item.fb_ad_settings || undefined,
+          website_url: item.website_url || undefined,
+          call_to_action: item.call_to_action || undefined,
+          visible_link: item.visible_link || undefined,
+          fb_language: item.fb_language || undefined,
+          url_parameters: item.url_parameters || undefined,
+          browser_addons: item.browser_addons || undefined
+        }));
+        setSavedAds(typedData);
       }
     } catch (error) {
       console.error('Error fetching saved ads:', error);
