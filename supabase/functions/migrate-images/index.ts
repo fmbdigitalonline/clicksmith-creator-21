@@ -15,7 +15,6 @@ interface ProcessImageResult {
   error?: string;
 }
 
-// Main serve function
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -23,7 +22,6 @@ serve(async (req) => {
   }
 
   try {
-    // Support both single image and batch processing
     const body = await req.json();
     const singleAdId = body.adId;
     const adIds = body.adIds || (singleAdId ? [singleAdId] : null);
@@ -43,7 +41,7 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Immediately update all ads to processing status
+    // Update all ads to processing status immediately
     await updateStatusToBatch(supabase, adIds, 'processing');
     
     // Process images in parallel with controlled concurrency
@@ -85,55 +83,44 @@ async function processImagesWithConcurrency(supabase, adIds) {
   const queue = [...adIds];
   const inProgress = new Set();
   
-  // Create a promise that will resolve when all processing is complete
   return new Promise(async (resolve) => {
-    // Create a function to process the next item in the queue
     async function processNext() {
       if (queue.length === 0 && inProgress.size === 0) {
-        // All done
         resolve(results);
         return;
       }
       
-      // Process more items if we have capacity and items in the queue
       while (queue.length > 0 && inProgress.size < MAX_CONCURRENT_PROCESSING) {
         const adId = queue.shift()!;
         inProgress.add(adId);
         
-        // Process this image without awaiting - we'll track completion via the Set
         processImage(supabase, adId)
           .then(result => {
             results.push(result);
             inProgress.delete(adId);
-            // Continue processing
             processNext();
           })
           .catch(error => {
             console.error(`[migrate-images] Error processing ad ${adId}:`, error);
             results.push({ adId, success: false, error: error.message });
             inProgress.delete(adId);
-            // Continue processing
             processNext();
           });
       }
     }
     
-    // Start initial batch of processing
     processNext();
   });
 }
 
-// Process a single image - with built-in timeout
+// Process a single image with timeout
 async function processImage(supabase, adId): Promise<ProcessImageResult> {
-  // Add timeout protection
   const timeoutPromise = new Promise<ProcessImageResult>((_, reject) => {
     setTimeout(() => reject(new Error(`Processing timed out after ${PROCESSING_TIMEOUT}ms`)), PROCESSING_TIMEOUT);
   });
   
-  // Actual processing logic
   const processingPromise = processImageInternal(supabase, adId);
   
-  // Race between timeout and actual processing
   return Promise.race([processingPromise, timeoutPromise]);
 }
 
@@ -142,7 +129,6 @@ async function processImageInternal(supabase, adId): Promise<ProcessImageResult>
   console.log(`[migrate-images] Processing image for ad: ${adId}`);
   
   try {
-    // Get the original image URL
     const { data: adData, error: fetchError } = await supabase
       .from('ad_feedback')
       .select('original_url, imageUrl, imageurl')
@@ -153,7 +139,6 @@ async function processImageInternal(supabase, adId): Promise<ProcessImageResult>
       throw new Error(`Could not fetch ad data: ${fetchError?.message || 'No data returned'}`);
     }
     
-    // Find the image URL from multiple possible fields
     const originalUrl = adData.original_url || adData.imageUrl || adData.imageurl;
     
     if (!originalUrl) {
