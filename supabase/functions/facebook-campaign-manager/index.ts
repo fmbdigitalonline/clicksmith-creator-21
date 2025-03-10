@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
 
@@ -375,10 +376,10 @@ async function createCampaign(
           
           linkData.link = urlWithParameters;
           
-          // Add visible link if provided
-          if (adDetail.fb_ad_settings.visible_link) {
-            linkData.link_caption = adDetail.fb_ad_settings.visible_link;
-          }
+          // REMOVED: Don't use link_caption as it's no longer supported
+          // if (adDetail.fb_ad_settings.visible_link) {
+          //   linkData.link_caption = adDetail.fb_ad_settings.visible_link;
+          // }
           
           // Add call to action if provided
           if (adDetail.fb_ad_settings.call_to_action) {
@@ -865,7 +866,8 @@ async function createFacebookAdCreative(
   const defaultLinkData = {
     link: "https://lovable.dev",
     message: primaryText,
-    link_caption: "lovable.dev",
+    // REMOVED: link_caption is no longer supported by Facebook API
+    // link_caption: "lovable.dev",
     call_to_action: { type: "LEARN_MORE" }
   };
   
