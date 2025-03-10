@@ -1,10 +1,12 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 export const useAdPersistence = (projectId: string | undefined) => {
   const [savedAds, setSavedAds] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     loadSavedAds();
@@ -35,6 +37,45 @@ export const useAdPersistence = (projectId: string | undefined) => {
     }
   };
 
+  const processImagesForFacebook = async (ads: any[]) => {
+    try {
+      // Call the edge function with all ad IDs for batch processing
+      const { data, error } = await supabase.functions.invoke('migrate-images', {
+        body: { adIds: ads.map(ad => ad.id) }
+      });
+      
+      if (error) throw error;
+
+      if (data?.processed) {
+        // Update storage URLs in local state if immediately available
+        const processedIds = new Set(data.processed.map((p: any) => p.adId));
+        setSavedAds(prev => prev.map(ad => {
+          if (processedIds.has(ad.id)) {
+            const processedData = data.processed.find((p: any) => p.adId === ad.id);
+            return {
+              ...ad,
+              storage_url: processedData?.storage_url || ad.storage_url,
+              image_status: processedData?.success ? 'processing' : 'failed'
+            };
+          }
+          return ad;
+        }));
+
+        toast({
+          title: "Image Processing Started",
+          description: "Your images are being processed for Facebook ads. This may take a moment.",
+        });
+      }
+    } catch (error) {
+      console.error('Error processing images:', error);
+      toast({
+        title: "Processing Error",
+        description: "Failed to start image processing. Please try again later.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const saveGeneratedAds = async (newAds: any[]) => {
     if (!projectId || projectId === 'new') return;
 
@@ -57,9 +98,23 @@ export const useAdPersistence = (projectId: string | undefined) => {
         .eq('id', projectId);
 
       if (updateError) throw updateError;
+      
       setSavedAds(updatedAds);
+
+      // Start processing images for Facebook automatically
+      await processImagesForFacebook(newAds);
+      
+      toast({
+        title: "Ads Saved",
+        description: "Your ads have been saved to the project and image processing has started.",
+      });
     } catch (error) {
       console.error('Error saving generated ads:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save ads. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -69,3 +124,4 @@ export const useAdPersistence = (projectId: string | undefined) => {
     saveGeneratedAds
   };
 };
+
