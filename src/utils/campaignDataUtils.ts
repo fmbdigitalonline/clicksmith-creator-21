@@ -122,6 +122,12 @@ export const callFacebookCampaignManager = async (action, data) => {
       throw new Error("No authentication token available. Please log in again.");
     }
     
+    // If we're creating a campaign and have ad details, ensure we're using processed image URLs
+    if (action === 'create_campaign' && data.campaign_data?.ad_details) {
+      // Make sure we're using the storage_url when available
+      data.campaign_data.ad_details = await ensureProcessedImages(data.campaign_data.ad_details);
+    }
+    
     const { data: responseData, error } = await supabase.functions.invoke('facebook-campaign-manager', {
       body: {
         operation: action,
@@ -149,4 +155,50 @@ export const callFacebookCampaignManager = async (action, data) => {
       }
     };
   }
+};
+
+// Helper function to ensure that all ad images are processed and have storage_url
+const ensureProcessedImages = async (adDetails) => {
+  if (!adDetails || !Array.isArray(adDetails) || adDetails.length === 0) {
+    return adDetails;
+  }
+  
+  // Check if any ads need processing (no storage_url)
+  const needsProcessing = adDetails.some(ad => !ad.storage_url);
+  
+  if (!needsProcessing) {
+    return adDetails; // All ads already have storage_url
+  }
+  
+  // Get the latest status for these ads
+  const adIds = adDetails.map(ad => ad.id);
+  const { data, error } = await supabase
+    .from('ad_feedback')
+    .select('id, storage_url, image_status')
+    .in('id', adIds);
+  
+  if (error || !data) {
+    console.error("Error fetching updated ad statuses:", error);
+    return adDetails; // Return original if we can't get updates
+  }
+  
+  // Create a map of latest data
+  const latestData = {};
+  data.forEach(item => {
+    latestData[item.id] = item;
+  });
+  
+  // Update the ad details with latest storage_url where available
+  return adDetails.map(ad => {
+    const latest = latestData[ad.id];
+    if (latest && latest.storage_url) {
+      return {
+        ...ad,
+        imageUrl: latest.storage_url, // Override with storage_url
+        storage_url: latest.storage_url,
+        image_status: latest.image_status
+      };
+    }
+    return ad;
+  });
 };
