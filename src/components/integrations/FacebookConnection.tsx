@@ -502,6 +502,23 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
       
         {isConnected && connection ? (
           <div className="space-y-4">
+            {/* New permission warning */}
+            <Alert className="mb-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Facebook App Permissions</AlertTitle>
+              <AlertDescription>
+                <p className="text-sm">For full functionality with image uploads, your Facebook App must have:</p>
+                <ul className="list-disc list-inside text-xs mt-1">
+                  <li>Ads Management Standard Access (requires app review by Facebook)</li>
+                  <li>Page content management permissions</li>
+                  <li>All requested permissions accepted during connection</li>
+                </ul>
+                <p className="text-xs mt-2">
+                  Without these permissions, some features like image uploads for ad creatives might not work.
+                </p>
+              </AlertDescription>
+            </Alert>
+            
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Account:</span>
               <span className="font-medium">{connection.account_name || 'Default Account'}</span>
