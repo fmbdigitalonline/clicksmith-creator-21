@@ -45,6 +45,8 @@ const AdGalleryStep = ({
   const [selectedProjectId, setSelectedProjectId] = useState<string>("");
   const [isAssigning, setIsAssigning] = useState(false);
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
+  const [manualProcessingNeeded, setManualProcessingNeeded] = useState(false);
+  const [isProcessingImages, setIsProcessingImages] = useState(false);
   const { toast } = useToast();
   
   const {
@@ -62,6 +64,7 @@ const AdGalleryStep = ({
     generationStatus,
     processingStatus,
     generateAds,
+    processImagesForFacebook
   } = useAdGeneration(businessIdea, targetAudience, adHooks);
 
   useEffect(() => {
@@ -82,6 +85,20 @@ const AdGalleryStep = ({
 
     initializeAds();
   }, [platform, videoAdsEnabled]);
+
+  // Check if there are Facebook ads that need manual processing
+  useEffect(() => {
+    if (platform === 'facebook' && adVariants.length > 0) {
+      const needsProcessing = adVariants.some(ad => 
+        ad.platform === 'facebook' && 
+        (!ad.image_status || ad.image_status === 'pending')
+      );
+      
+      setManualProcessingNeeded(needsProcessing);
+    } else {
+      setManualProcessingNeeded(false);
+    }
+  }, [platform, adVariants]);
 
   const onPlatformChange = async (newPlatform: "facebook" | "google" | "linkedin" | "tiktok") => {
     try {
@@ -222,6 +239,48 @@ const AdGalleryStep = ({
     }
   };
 
+  // Handle processing of Facebook images
+  const handleProcessFacebookImages = async () => {
+    if (platform !== 'facebook') return;
+    
+    setIsProcessingImages(true);
+    try {
+      // Get all Facebook ads that need processing
+      const facebookAds = adVariants.filter(ad => 
+        ad.platform === 'facebook' && 
+        (!ad.image_status || ad.image_status === 'pending')
+      );
+      
+      if (facebookAds.length === 0) {
+        toast({
+          title: "No images to process",
+          description: "All Facebook ads are already processed or processing.",
+        });
+        return;
+      }
+      
+      // Process the Facebook images
+      await processImagesForFacebook(facebookAds);
+      
+      toast({
+        title: "Processing Facebook Images",
+        description: `Started processing ${facebookAds.length} images for Facebook ads. This may take a moment.`,
+      });
+      
+      // Update UI to show no manual processing is needed
+      setManualProcessingNeeded(false);
+    } catch (error) {
+      console.error("Error processing Facebook images:", error);
+      toast({
+        title: "Processing Error",
+        description: error instanceof Error ? error.message : "Failed to process Facebook images. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessingImages(false);
+    }
+  };
+
   const renderPlatformContent = (platformName: string) => (
     <TabsContent value={platformName} className="space-y-4">
       <div className="flex justify-end mb-4">
@@ -278,6 +337,38 @@ const AdGalleryStep = ({
             {processingStatus.failed > 0 && (
               <span className="text-red-500">{processingStatus.failed} failed</span>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Facebook Processing Button */}
+      {platform === 'facebook' && manualProcessingNeeded && (
+        <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
+          <div className="flex justify-between items-center">
+            <div>
+              <h3 className="text-sm font-medium text-amber-800 mb-1">
+                Image Processing Required for Facebook Ads
+              </h3>
+              <p className="text-xs text-amber-700">
+                To use these ads on Facebook, they need to be processed. This makes them compatible with Facebook's ad system.
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleProcessFacebookImages}
+              disabled={isProcessingImages}
+              className="bg-white ml-4"
+            >
+              {isProcessingImages ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                'Process Facebook Images'
+              )}
+            </Button>
           </div>
         </div>
       )}

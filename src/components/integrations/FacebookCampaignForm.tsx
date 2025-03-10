@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import CreateCampaignForm from "@/components/integrations/CreateCampaignForm";
@@ -48,6 +49,7 @@ export default function FacebookCampaignForm({
   const [imagesReady, setImagesReady] = useState<boolean>(true);
   const [processingImages, setProcessingImages] = useState<string[]>([]);
   const [imageCheckError, setImageCheckError] = useState<string | null>(null);
+  const [isProcessingSelected, setIsProcessingSelected] = useState(false);
   
   // Log any changes to selectedProjectId
   useEffect(() => {
@@ -139,6 +141,11 @@ export default function FacebookCampaignForm({
 
   const handleAdsSelected = (adIds: string[]) => {
     setSelectedAdIds(adIds);
+    
+    // When ads are selected, trigger checking their status
+    if (adIds.length > 0) {
+      checkImagesStatus(adIds);
+    }
   };
 
   const handleCampaignCreated = (campaignId: string) => {
@@ -269,44 +276,119 @@ export default function FacebookCampaignForm({
     projectError
   });
 
-  // Add a new effect to check if all selected ad images are ready for Facebook
-  useEffect(() => {
-    const checkImagesStatus = async () => {
-      if (!selectedAdIds.length) {
-        setImagesReady(true);
-        setProcessingImages([]);
-        setImageCheckError(null);
+  // Function to check image status and process if needed
+  const checkImagesStatus = async (adIds = selectedAdIds) => {
+    if (!adIds.length) {
+      setImagesReady(true);
+      setProcessingImages([]);
+      setImageCheckError(null);
+      return;
+    }
+    
+    try {
+      const { data, error } = await supabase
+        .from('ad_feedback')
+        .select('id, image_status, storage_url')
+        .in('id', adIds);
+        
+      if (error) throw error;
+      
+      if (data) {
+        const pendingIds = data
+          .filter(ad => ad.image_status === 'pending')
+          .map(ad => ad.id);
+          
+        const processingIds = data
+          .filter(ad => ad.image_status === 'processing')
+          .map(ad => ad.id);
+          
+        const allProcessingIds = [...pendingIds, ...processingIds];
+        
+        setProcessingImages(allProcessingIds);
+        setImagesReady(allProcessingIds.length === 0);
+        
+        // If we have pending images that need processing, show a warning with a button
+        if (pendingIds.length > 0) {
+          setImageCheckError(`${pendingIds.length} image(s) need to be processed for Facebook. Click the "Process Images" button.`);
+        } else if (processingIds.length > 0) {
+          setImageCheckError(`${processingIds.length} image(s) still processing for Facebook. Please wait.`);
+        } else {
+          setImageCheckError(null);
+        }
+        
+        return { pendingIds, processingIds };
+      }
+      
+      return { pendingIds: [], processingIds: [] };
+    } catch (error) {
+      console.error("Error checking image status:", error);
+      setImageCheckError("Could not verify image status. Please try again.");
+      return { pendingIds: [], processingIds: [] };
+    }
+  };
+  
+  // Function to process pending images
+  const processSelectedImages = async () => {
+    setIsProcessingSelected(true);
+    
+    try {
+      // Check current status
+      const { pendingIds } = await checkImagesStatus();
+      
+      if (pendingIds.length === 0) {
+        toast({
+          title: "No images to process",
+          description: "All selected images are already processed or processing",
+        });
+        setIsProcessingSelected(false);
         return;
       }
       
-      try {
-        const { data, error } = await supabase
-          .from('ad_feedback')
-          .select('id, image_status, storage_url')
-          .in('id', selectedAdIds);
-          
-        if (error) throw error;
-        
-        if (data) {
-          const processingIds = data
-            .filter(ad => ad.image_status !== 'ready')
-            .map(ad => ad.id);
-            
-          setProcessingImages(processingIds);
-          setImagesReady(processingIds.length === 0);
-          
-          if (processingIds.length > 0) {
-            setImageCheckError(`${processingIds.length} image(s) still processing for Facebook. Please wait or select different ads.`);
-          } else {
-            setImageCheckError(null);
-          }
-        }
-      } catch (error) {
-        console.error("Error checking image status:", error);
-        setImageCheckError("Could not verify image status. Please try again.");
+      console.log("Processing images:", pendingIds);
+      
+      // Call the edge function with batch processing
+      const { data, error } = await supabase.functions.invoke('migrate-images', {
+        body: { adIds: pendingIds }
+      });
+      
+      if (error) {
+        console.error("Error invoking migrate-images:", error);
+        throw new Error("Failed to start image processing");
       }
-    };
-    
+      
+      console.log("Processing response:", data);
+      
+      if (data?.processed) {
+        toast({
+          title: "Image Processing Started",
+          description: `Processing ${data.processed.length} images for Facebook. This may take a moment.`,
+        });
+        
+        // Refresh status after a short delay
+        setTimeout(() => checkImagesStatus(), 2000);
+        
+        // Start monitoring status
+        const interval = setInterval(async () => {
+          const { processingIds } = await checkImagesStatus();
+          if (processingIds.length === 0) {
+            clearInterval(interval);
+          }
+        }, 5000);
+      }
+    } catch (error) {
+      console.error("Error processing images:", error);
+      toast({
+        title: "Processing Failed",
+        description: error instanceof Error ? error.message : "Failed to process images for Facebook",
+        variant: "destructive"
+      });
+    } finally {
+      setIsProcessingSelected(false);
+    }
+  };
+
+  // Add a new effect to check if all selected ad images are ready for Facebook
+  useEffect(() => {
     if (selectedAdIds.length > 0 && formTab === 'ads') {
       checkImagesStatus();
       
@@ -319,7 +401,7 @@ export default function FacebookCampaignForm({
       
       return () => clearInterval(interval);
     }
-  }, [selectedAdIds, formTab, processingImages.length]);
+  }, [selectedAdIds, formTab]);
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -485,12 +567,33 @@ export default function FacebookCampaignForm({
                     
                     {/* Add image processing warning if needed */}
                     {imageCheckError && (
-                      <Alert variant="destructive" className="bg-amber-50 border-amber-200">
-                        <AlertCircle className="h-4 w-4 text-amber-600" />
-                        <AlertTitle>Image Processing Required</AlertTitle>
-                        <AlertDescription>
-                          {imageCheckError}
-                        </AlertDescription>
+                      <Alert variant="warning" className="bg-amber-50 border-amber-200 flex justify-between items-center">
+                        <div className="flex items-start">
+                          <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5" />
+                          <div className="ml-2">
+                            <AlertTitle className="text-amber-800">Image Processing Required</AlertTitle>
+                            <AlertDescription className="text-amber-700">
+                              {imageCheckError}
+                            </AlertDescription>
+                          </div>
+                        </div>
+                        {imageCheckError.includes("need to be processed") && (
+                          <Button
+                            onClick={processSelectedImages}
+                            disabled={isProcessingSelected}
+                            variant="outline"
+                            className="ml-4 bg-white"
+                          >
+                            {isProcessingSelected ? (
+                              <>
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                Processing...
+                              </>
+                            ) : (
+                              <>Process Images</>
+                            )}
+                          </Button>
+                        )}
                       </Alert>
                     )}
                     
