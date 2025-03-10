@@ -39,12 +39,14 @@ interface AdDetail {
   headline: string;
   primary_text: string;
   imageUrl: string;
+  storage_url?: string;
   size?: {
     width: number;
     height: number;
     label?: string;
   };
   platform?: string;
+  image_status?: string;
 }
 
 serve(async (req) => {
@@ -117,6 +119,22 @@ serve(async (req) => {
     
     switch (operation) {
       case 'create_campaign':
+        // First check if all images are ready
+        if (campaign_data?.ads && campaign_data.ads.length > 0) {
+          const imagesReady = await validateAdImages(campaign_data.ads, supabase);
+          if (!imagesReady.success) {
+            return new Response(JSON.stringify({
+              success: false,
+              error: 'Images not ready',
+              details: imagesReady.details,
+              pendingImages: imagesReady.pendingImages
+            }), {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              status: 422
+            });
+          }
+        }
+        
         result = await createCampaign(campaign_data, access_token, account_id, userId, supabase, connections);
         break;
         
@@ -126,6 +144,13 @@ serve(async (req) => {
         
       case 'deactivate':
         result = await updateCampaignStatus(campaignId, adSetId, recordId, 'PAUSED', access_token, supabase);
+        break;
+        
+      case 'check_images':
+        if (!campaign_data?.ads || !Array.isArray(campaign_data.ads) || campaign_data.ads.length === 0) {
+          throw new Error('No ads specified for image validation');
+        }
+        result = await validateAdImages(campaign_data.ads, supabase);
         break;
         
       default:
@@ -151,6 +176,53 @@ serve(async (req) => {
   }
 });
 
+async function validateAdImages(adIds: string[], supabase: any) {
+  try {
+    console.log('Validating images for ads:', adIds);
+    
+    // Get the ad details from the database
+    const { data: ads, error: adsError } = await supabase
+      .from('ad_feedback')
+      .select('id, headline, primary_text, imageUrl, storage_url, image_status')
+      .in('id', adIds);
+      
+    if (adsError) {
+      throw new Error(`Error fetching ad details: ${adsError.message}`);
+    }
+    
+    if (!ads || ads.length === 0) {
+      throw new Error('No ad details found for the selected ads');
+    }
+    
+    // Check if all ads have a ready storage_url
+    const pendingImages = ads.filter(ad => 
+      !ad.storage_url || 
+      !ad.image_status || 
+      ad.image_status !== 'ready'
+    );
+    
+    if (pendingImages.length > 0) {
+      console.log('Found pending images:', pendingImages.map(ad => ad.id));
+      return {
+        success: false,
+        details: 'Some images are not ready for Facebook ads',
+        pendingImages: pendingImages.map(ad => ({
+          id: ad.id,
+          status: ad.image_status || 'unknown'
+        }))
+      };
+    }
+    
+    return {
+      success: true,
+      message: 'All images are ready for Facebook ads'
+    };
+  } catch (error) {
+    console.error('Error validating ad images:', error);
+    throw error;
+  }
+}
+
 async function createCampaign(
   campaignData: CampaignData,
   accessToken: string,
@@ -174,8 +246,13 @@ async function createCampaign(
     
     // If no page_id provided, try to get it from the connection metadata
     if (!pageId && connections.metadata && connections.metadata.pages && connections.metadata.pages.length > 0) {
-      pageId = connections.metadata.pages[0].id;
-      console.log('Using first available page ID from metadata:', pageId);
+      if (connections.metadata.selected_page_id) {
+        pageId = connections.metadata.selected_page_id;
+        console.log('Using selected page ID from metadata:', pageId);
+      } else {
+        pageId = connections.metadata.pages[0].id;
+        console.log('Using first available page ID from metadata:', pageId);
+      }
     }
     
     if (!pageId) {
@@ -236,7 +313,7 @@ async function createCampaign(
       console.log('Ad details not provided, fetching from database...');
       const { data: adFeedbackData } = await supabase
         .from('ad_feedback')
-        .select('id, headline, primary_text, imageUrl, imageurl')
+        .select('id, headline, primary_text, imageUrl, imageurl, storage_url, image_status')
         .in('id', campaignData.ads);
       
       if (adFeedbackData && adFeedbackData.length > 0) {
@@ -244,7 +321,8 @@ async function createCampaign(
           id: ad.id,
           headline: ad.headline,
           primary_text: ad.primary_text,
-          imageUrl: ad.imageUrl || ad.imageurl
+          imageUrl: ad.storage_url || ad.imageUrl || ad.imageurl, // Prefer storage_url if available
+          image_status: ad.image_status
         }));
       }
     }
@@ -262,13 +340,20 @@ async function createCampaign(
         continue;
       }
       
+      // Make sure we're using a permanent image URL
+      const imageUrl = adDetail.storage_url || adDetail.imageUrl;
+      if (!imageUrl) {
+        console.warn('Skipping ad with no valid image URL:', adDetail.id);
+        continue;
+      }
+      
       try {
         // Create ad creative
         const creative = await createFacebookAdCreative(
           campaign.id,
           adDetail.headline,
           adDetail.primary_text,
-          adDetail.imageUrl,
+          imageUrl,
           accessToken,
           cleanedAccountId,
           pageId // Pass the page ID to the creative creation function
@@ -621,6 +706,22 @@ async function createFacebookAdCreative(
   const linkUrl = 'https://example.com';
   
   console.log("Creating ad creative with page ID:", pageId);
+  console.log("Using image URL:", imageUrl);
+  
+  // Check if the image URL is accessible
+  try {
+    const imgResponse = await fetch(imageUrl, { method: 'HEAD' });
+    
+    if (!imgResponse.ok) {
+      console.error(`Image URL check failed with status: ${imgResponse.status}`);
+      throw new Error(`Image URL ${imageUrl} is not accessible`);
+    }
+    
+    console.log("Image URL is accessible");
+  } catch (imgError) {
+    console.error("Error checking image URL:", imgError);
+    throw new Error(`Image URL validation failed: ${imgError.message}`);
+  }
   
   // First try the standard approach with image upload
   try {

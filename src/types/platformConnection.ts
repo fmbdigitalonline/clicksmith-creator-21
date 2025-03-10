@@ -25,8 +25,9 @@ export interface PlatformConnectionMetadata {
   ad_accounts?: AdAccount[];
   pages?: FacebookPage[];
   selected_account_id?: string;
-  selected_page_id?: string; // Add selected page ID
+  selected_page_id?: string; 
   last_fetched?: string;
+  image_status?: 'ready' | 'pending' | 'processing' | 'failed';
   [key: string]: any;
 }
 
@@ -57,7 +58,7 @@ export interface FacebookOAuthResponse {
   details?: Record<string, any>;
 }
 
-// Zod schema for AdAccount validation - make required fields non-optional to match the interface
+// Zod schema for AdAccount validation
 export const AdAccountSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -68,7 +69,7 @@ export const AdAccountSchema = z.object({
   capabilities: z.array(z.string()).optional()
 });
 
-// Zod schema for FacebookPage validation - make required fields non-optional to match the interface
+// Zod schema for FacebookPage validation
 export const FacebookPageSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -83,8 +84,9 @@ export const PlatformConnectionMetadataSchema = z.object({
   ad_accounts: z.array(AdAccountSchema).optional(),
   pages: z.array(FacebookPageSchema).optional(),
   selected_account_id: z.string().optional(),
-  selected_page_id: z.string().optional(), // Add selected page ID
-  last_fetched: z.string().optional()
+  selected_page_id: z.string().optional(),
+  last_fetched: z.string().optional(),
+  image_status: z.enum(['ready', 'pending', 'processing', 'failed']).optional()
 }).catchall(z.unknown());
 
 // Zod schema for FacebookOAuthResponse validation
@@ -170,6 +172,9 @@ export function validatePlatformConnectionMetadata(metadata: any): PlatformConne
     }
     if (validatedData.last_fetched) {
       result.last_fetched = validatedData.last_fetched;
+    }
+    if (validatedData.image_status) {
+      result.image_status = validatedData.image_status;
     }
     
     return result;

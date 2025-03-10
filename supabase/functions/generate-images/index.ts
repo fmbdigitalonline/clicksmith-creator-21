@@ -111,10 +111,71 @@ serve(async (req) => {
     }
 
     console.log('Generation successful:', result);
+    const imageUrl = result[0];
+
+    // Now download the image and store it in Supabase Storage
+    // We'll do this in the background so we don't delay the response
+    const storeImagePromise = (async () => {
+      try {
+        console.log('Downloading image from URL:', imageUrl);
+        
+        const imageResponse = await fetch(imageUrl);
+        if (!imageResponse.ok) {
+          throw new Error(`Failed to download image: ${imageResponse.status} ${imageResponse.statusText}`);
+        }
+        
+        const imageBlob = await imageResponse.blob();
+        const imageBuffer = await imageBlob.arrayBuffer();
+        
+        // Generate a unique path including a timestamp
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const userId = 'system'; // Default to system if no user context
+        const fileName = `${userId}/${timestamp}-${crypto.randomUUID()}.webp`;
+        
+        console.log('Uploading image to Supabase Storage:', fileName);
+        
+        // Upload the image to Supabase Storage
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('ad-images')
+          .upload(fileName, imageBuffer, {
+            contentType: 'image/webp',
+            cacheControl: '3600',
+          });
+          
+        if (uploadError) {
+          console.error('Error uploading to Supabase Storage:', uploadError);
+          throw uploadError;
+        }
+        
+        // Get public URL for the uploaded image
+        const { data: { publicUrl } } = supabase.storage
+          .from('ad-images')
+          .getPublicUrl(fileName);
+          
+        console.log('Image stored in Supabase, public URL:', publicUrl);
+        
+        return { 
+          original: imageUrl, 
+          storage: publicUrl 
+        };
+      } catch (error) {
+        console.error('Error in background image processing:', error);
+        return { 
+          original: imageUrl, 
+          storage: null, 
+          error: error.message 
+        };
+      }
+    })();
+    
+    // Start the background job without awaiting it
+    // This will allow us to return the response faster
+    EdgeRuntime.waitUntil(storeImagePromise);
 
     return new Response(JSON.stringify({ 
-      url: result[0],
-      prediction_id: prediction.id
+      url: imageUrl,
+      prediction_id: prediction.id,
+      storage_pending: true
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

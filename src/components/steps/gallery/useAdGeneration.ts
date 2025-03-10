@@ -71,6 +71,51 @@ export const useAdGeneration = (
     return true;
   };
 
+  const processImagesForFacebook = async (variants: any[]) => {
+    // Start image processing for all variants
+    try {
+      console.log('Starting background image processing for Facebook ads');
+      
+      const processPromises = variants.map(async (variant) => {
+        if (!variant.id || !variant.imageUrl) return variant;
+        
+        try {
+          const { data, error } = await supabase.functions.invoke('migrate-images', {
+            body: { adId: variant.id }
+          });
+          
+          if (error) throw error;
+          
+          if (data.processed && data.processed.length > 0) {
+            const result = data.processed[0];
+            if (result.success && result.storage_url) {
+              // Update the variant with the storage URL
+              return {
+                ...variant,
+                storage_url: result.storage_url
+              };
+            }
+          }
+        } catch (processError) {
+          console.error('Error processing image for variant', variant.id, processError);
+        }
+        
+        return variant;
+      });
+      
+      // We don't await these promises because we want to let the processing happen in the background
+      // We just kick them off and let them run
+      processPromises.forEach(promise => {
+        promise.catch(error => {
+          console.error('Background image processing error:', error);
+        });
+      });
+      
+    } catch (error) {
+      console.error('Error starting image processing:', error);
+    }
+  };
+
   const generateAds = async (selectedPlatform: string) => {
     setIsGenerating(true);
     setGenerationStatus("Checking credits availability...");
@@ -133,12 +178,37 @@ export const useAdGeneration = (
             return null;
           }
 
+          // Insert into ad_feedback to enable Facebook processing
+          const { data: adFeedback, error: feedbackError } = await supabase
+            .from('ad_feedback')
+            .insert({
+              user_id: (await supabase.auth.getUser()).data.user?.id,
+              project_id: projectId !== 'new' ? projectId : null,
+              saved_images: [variant.imageUrl],
+              primary_text: variant.description,
+              headline: variant.headline,
+              imageUrl: variant.imageUrl,
+              original_url: variant.imageUrl,
+              platform: selectedPlatform,
+              size: variant.size || { width: 1200, height: 628, label: "Landscape (1.91:1)" },
+              image_status: 'pending',
+              feedback: 'generated',
+              rating: 5
+            })
+            .select()
+            .single();
+            
+          if (feedbackError) {
+            console.error('Error creating ad feedback record:', feedbackError);
+          }
+
           const newVariant = {
             ...variant,
-            id: imageVariant.id,
+            id: adFeedback?.id || imageVariant.id,
             imageUrl: variant.imageUrl,
             resizedUrls: variant.resizedUrls || {},
-            platform: selectedPlatform
+            platform: selectedPlatform,
+            image_status: 'pending'
           };
 
           // Save to project if we have a project ID
@@ -183,6 +253,12 @@ export const useAdGeneration = (
         title: "Ads generated successfully",
         description: "Your new ad variants are ready!",
       });
+      
+      // Process images for Facebook in the background
+      if (selectedPlatform === 'facebook') {
+        processImagesForFacebook(validVariants);
+      }
+      
     } catch (error: any) {
       console.error('Ad generation error:', error);
       toast({
