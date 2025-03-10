@@ -1,4 +1,3 @@
-
 import { BusinessIdea, TargetAudience, AdHook } from "@/types/adWizard";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -80,21 +79,33 @@ export const useAdGeneration = (
         if (!variant.id || !variant.imageUrl) return variant;
         
         try {
+          console.log(`Processing image for variant ${variant.id}`);
+          
+          // First update status to processing immediately
+          await supabase
+            .from('ad_feedback')
+            .update({ image_status: 'processing' })
+            .eq('id', variant.id);
+          
           const { data, error } = await supabase.functions.invoke('migrate-images', {
             body: { adId: variant.id }
           });
           
-          if (error) throw error;
+          if (error) {
+            console.error(`Error invoking migrate-images for variant ${variant.id}:`, error);
+            return variant;
+          }
           
-          if (data.processed && data.processed.length > 0) {
-            const result = data.processed[0];
-            if (result.success && result.storage_url) {
-              // Update the variant with the storage URL
-              return {
-                ...variant,
-                storage_url: result.storage_url
-              };
-            }
+          console.log(`Image processing response for variant ${variant.id}:`, data);
+          
+          if (data && data.success && data.storage_url) {
+            // Update the variant with the storage URL
+            console.log(`Updated variant ${variant.id} with storage URL: ${data.storage_url}`);
+            return {
+              ...variant,
+              storage_url: data.storage_url,
+              image_status: 'ready'
+            };
           }
         } catch (processError) {
           console.error('Error processing image for variant', variant.id, processError);
@@ -103,13 +114,12 @@ export const useAdGeneration = (
         return variant;
       });
       
-      // We don't await these promises because we want to let the processing happen in the background
-      // We just kick them off and let them run
-      processPromises.forEach(promise => {
-        promise.catch(error => {
-          console.error('Background image processing error:', error);
-        });
-      });
+      try {
+        const results = await Promise.allSettled(processPromises);
+        console.log('Image processing results:', results);
+      } catch (error) {
+        console.error('Error in background image processing:', error);
+      }
       
     } catch (error) {
       console.error('Error starting image processing:', error);
@@ -256,7 +266,10 @@ export const useAdGeneration = (
       
       // Process images for Facebook in the background
       if (selectedPlatform === 'facebook') {
-        processImagesForFacebook(validVariants);
+        // Timeout to let the UI update first
+        setTimeout(() => {
+          processImagesForFacebook(validVariants);
+        }, 500);
       }
       
     } catch (error: any) {

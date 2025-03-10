@@ -62,7 +62,6 @@ const AdPreviewCard = ({
   const { projectId } = useParams();
   const [isProcessingImage, setIsProcessingImage] = useState(false);
 
-  // Effect to check image status when ad is saved
   useEffect(() => {
     if (variant.id && isProcessingImage) {
       const checkStatus = async () => {
@@ -76,8 +75,7 @@ const AdPreviewCard = ({
           if (error) throw error;
           
           if (data) {
-            // Convert the string to the correct type for imageStatus
-            const newStatus = data.image_status as 'pending' | 'processing' | 'ready' | 'failed' || 'pending';
+            const newStatus = data.image_status as 'pending' | 'processing' | 'ready' | 'failed';
             setImageStatus(newStatus);
             
             if (data.image_status === 'ready') {
@@ -100,11 +98,9 @@ const AdPreviewCard = ({
         }
       };
       
-      // Initial check
       checkStatus();
       
-      // Poll every 5 seconds if still processing
-      const interval = setInterval(checkStatus, 5000);
+      const interval = setInterval(checkStatus, 3000);
       
       return () => clearInterval(interval);
     }
@@ -175,26 +171,32 @@ const AdPreviewCard = ({
 
       console.log('Successfully saved ad:', data);
       
-      // Start processing the image for Facebook
       if (data && data[0]) {
         const adId = data[0].id;
         setIsProcessingImage(true);
         
-        // Call the migrate-images function to process the image
-        const { error: migrationError } = await supabase.functions.invoke('migrate-images', {
-          body: { adId }
-        });
-        
-        if (migrationError) {
-          console.error('Migration error:', migrationError);
-          toast({
-            title: "Image Processing Initiated",
-            description: "Your ad is saved. We're processing the image for Facebook compatibility in the background.",
+        try {
+          const { error: migrationError } = await supabase.functions.invoke('migrate-images', {
+            body: { adId }
           });
-        } else {
+          
+          if (migrationError) {
+            console.error('Migration error:', migrationError);
+            toast({
+              title: "Image Processing Initiated",
+              description: "Your ad is saved. We're processing the image for Facebook compatibility in the background.",
+            });
+          } else {
+            toast({
+              title: "Image Processing Started",
+              description: "Your ad is saved and image processing has begun. This may take a moment.",
+            });
+          }
+        } catch (invokeError) {
+          console.error('Error invoking migrate-images function:', invokeError);
           toast({
             title: "Image Processing Started",
-            description: "Your ad is saved and image processing has begun. This may take a moment.",
+            description: "Your ad is saved. Image processing has started in the background.",
           });
         }
       } else {
@@ -358,7 +360,7 @@ const AdPreviewCard = ({
               imageUrl={getImageUrl()}
               isVideo={isVideo}
               format={selectedFormat}
-              status={isProcessingImage ? 'processing' : undefined}
+              status={isProcessingImage ? imageStatus : undefined}
             />
           </div>
           
