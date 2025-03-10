@@ -1,11 +1,10 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { AdFeedbackControls } from "@/components/steps/gallery/components/AdFeedbackControls";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { Pencil, Check, X, Download, Save, CheckSquare, Square, Image, AlertCircle, Loader2 } from "lucide-react";
+import { Pencil, Check, X, Download, Save, CheckSquare, Square, Image, AlertCircle, Loader2, Facebook, Globe, Copy } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { AdSizeSelector, AD_FORMATS } from "@/components/steps/gallery/components/AdSizeSelector";
@@ -15,6 +14,13 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { uploadMedia } from "@/utils/uploadUtils";
+import { FacebookAdSettings } from "@/types/campaignTypes";
+import { 
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import FacebookAdSettingsForm from "@/components/integrations/FacebookAdSettings";
 
 interface SavedAdCardProps {
   id: string;
@@ -34,6 +40,9 @@ interface SavedAdCardProps {
   selected?: boolean;
   onSelect?: (id: string, isSelected: boolean) => void;
   selectable?: boolean;
+  fb_ad_settings?: FacebookAdSettings;
+  projectUrl?: string;
+  onSettingsSaved?: (settings: FacebookAdSettings, adId: string, applyToAll?: boolean) => void;
 }
 
 export const SavedAdCard = ({ 
@@ -50,6 +59,9 @@ export const SavedAdCard = ({
   selected = false,
   onSelect,
   selectable = false,
+  fb_ad_settings,
+  projectUrl,
+  onSettingsSaved,
 }: SavedAdCardProps) => {
   const [isEditingText, setIsEditingText] = useState(false);
   const [editedHeadline, setEditedHeadline] = useState(headline || "");
@@ -62,7 +74,6 @@ export const SavedAdCard = ({
   const [displayUrl, setDisplayUrl] = useState(storage_url || imageUrl);
   const { toast } = useToast();
 
-  // Effect to check and update image status periodically if not ready
   useEffect(() => {
     if (currentImageStatus === 'ready' || !id) {
       return;
@@ -89,10 +100,8 @@ export const SavedAdCard = ({
       }
     };
 
-    // Check status immediately
     checkImageStatus();
     
-    // Check status every 5 seconds if not ready
     const interval = setInterval(() => {
       if (currentImageStatus !== 'ready') {
         checkImageStatus();
@@ -306,9 +315,22 @@ export const SavedAdCard = ({
     }
   };
 
+  const [isAdSettingsOpen, setIsAdSettingsOpen] = useState(false);
+  
+  const handleAdSettingsSaved = (settings: FacebookAdSettings, applyToAll: boolean = false) => {
+    if (onSettingsSaved) {
+      onSettingsSaved(settings, id, applyToAll);
+    }
+    toast({
+      title: "Facebook Ad Settings Saved",
+      description: applyToAll 
+        ? "Your settings have been applied to all selected ads" 
+        : "Your Facebook ad settings have been saved for this ad"
+    });
+  };
+
   return (
     <Card className={`overflow-hidden relative ${selected ? 'ring-2 ring-primary border-primary' : ''}`}>
-      {/* Selection Checkbox - Made more visible with improved styling */}
       {selectable && (
         <div className="absolute top-3 left-3 z-10 bg-white/90 p-1.5 rounded-md shadow-sm border border-gray-200">
           <Checkbox 
@@ -320,14 +342,12 @@ export const SavedAdCard = ({
         </div>
       )}
 
-      {/* Project Label */}
       {projectId && (
         <div className="absolute top-3 right-3 z-10 bg-primary/90 text-white text-xs px-2 py-1 rounded-md">
           Project
         </div>
       )}
 
-      {/* Format Selector */}
       <div className="p-4 space-y-4">
         <div className="flex justify-between mb-2 items-center">
           <div className="flex-shrink-0">
@@ -350,7 +370,41 @@ export const SavedAdCard = ({
           </div>
         </div>
 
-        {/* Primary Text Section */}
+        {platform === "facebook" && (
+          <Collapsible 
+            open={isAdSettingsOpen} 
+            onOpenChange={setIsAdSettingsOpen}
+            className="border rounded-lg bg-blue-50/30 mb-4"
+          >
+            <div className="flex items-center justify-between p-3 border-b">
+              <div className="flex items-center">
+                <Facebook className="h-4 w-4 mr-2 text-facebook" />
+                <h3 className="text-sm font-medium">Facebook Ad Settings</h3>
+                {fb_ad_settings?.website_url && !isAdSettingsOpen && (
+                  <Badge variant="outline" className="ml-2 text-xs bg-blue-50 border-blue-200">
+                    <Globe className="h-3 w-3 mr-1" /> 
+                    {fb_ad_settings.website_url}
+                  </Badge>
+                )}
+              </div>
+              <CollapsibleTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                  {isAdSettingsOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                </Button>
+              </CollapsibleTrigger>
+            </div>
+            <CollapsibleContent className="p-3">
+              <FacebookAdSettingsForm 
+                adIds={[id]} 
+                projectUrl={projectUrl}
+                initialSettings={fb_ad_settings}
+                onSettingsSaved={handleAdSettingsSaved}
+                showApplyToAllOption={selectable && selected}
+              />
+            </CollapsibleContent>
+          </Collapsible>
+        )}
+
         <div className="space-y-2">
           <div className="flex justify-between items-center">
             <p className="text-sm font-medium text-gray-600">Primary Text:</p>
@@ -391,7 +445,6 @@ export const SavedAdCard = ({
           )}
         </div>
       
-        {/* Image Section */}
         {displayUrl && (
           <div 
             style={{ 
@@ -425,7 +478,6 @@ export const SavedAdCard = ({
           </Alert>
         )}
 
-        {/* Headline Section */}
         <div className="space-y-2">
           <div className="flex justify-between items-center">
             <p className="text-sm font-medium text-gray-600">Headline:</p>
@@ -440,7 +492,6 @@ export const SavedAdCard = ({
           )}
         </div>
 
-        {/* Download Controls */}
         <div className="mt-4">
           <DownloadControls
             downloadFormat={downloadFormat}
@@ -451,7 +502,6 @@ export const SavedAdCard = ({
           />
         </div>
 
-        {/* Feedback Controls */}
         <CardContent className="p-4 bg-gray-50 rounded-md mt-4">
           <AdFeedbackControls
             adId={id}
@@ -462,3 +512,5 @@ export const SavedAdCard = ({
     </Card>
   );
 };
+
+import { ChevronUp, ChevronDown } from "lucide-react";

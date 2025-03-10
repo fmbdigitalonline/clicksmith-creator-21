@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,7 +19,6 @@ import {
 } from "@/components/ui/select";
 import { SavedAd, AdSelectionGalleryProps, AdSize, FacebookAdSettings } from "@/types/campaignTypes";
 import { AD_FORMATS } from "@/components/steps/gallery/components/AdSizeSelector";
-import FacebookAdSettingsPanel from "./FacebookAdSettingsPanel";
 
 export default function AdSelectionGallery({ 
   projectId, 
@@ -35,7 +33,6 @@ export default function AdSelectionGallery({
   const [ratingFilter, setRatingFilter] = useState<string>("all");
   const [formatFilter, setFormatFilter] = useState<string>("all");
   const [projectUrl, setProjectUrl] = useState<string>("");
-  const [facebookAdSettings, setFacebookAdSettings] = useState<FacebookAdSettings | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -81,7 +78,7 @@ export default function AdSelectionGallery({
 
       let query = supabase
         .from('ad_feedback')
-        .select('id, saved_images, headline, primary_text, rating, feedback, created_at, imageurl, imageUrl, platform, project_id, size, fb_ad_settings');
+        .select('id, saved_images, headline, primary_text, rating, feedback, created_at, imageurl, imageUrl, platform, project_id, size, fb_ad_settings, storage_url');
       
       // If projectId is provided, only show ads for that project
       if (projectId) {
@@ -163,6 +160,61 @@ export default function AdSelectionGallery({
     }
   };
 
+  // Handle Facebook ad settings saved
+  const handleAdSettingsSaved = async (settings: FacebookAdSettings, adId: string, applyToAll: boolean = false) => {
+    try {
+      if (applyToAll) {
+        // Apply to all selected ads
+        const adsToUpdate = applyToAll ? selectedAds : [adId];
+        
+        for (const id of adsToUpdate) {
+          await supabase
+            .from('ad_feedback')
+            .update({ fb_ad_settings: settings })
+            .eq('id', id);
+        }
+        
+        // Update local state
+        setSavedAds(prevAds => 
+          prevAds.map(ad => 
+            (applyToAll && selectedAds.includes(ad.id)) || ad.id === adId
+              ? { ...ad, fb_ad_settings: settings }
+              : ad
+          )
+        );
+        
+        toast({
+          title: "Settings Applied",
+          description: `Facebook ad settings applied to ${adsToUpdate.length} ads.`,
+        });
+      } else {
+        // Update just this ad
+        await supabase
+          .from('ad_feedback')
+          .update({ fb_ad_settings: settings })
+          .eq('id', adId);
+          
+        // Update local state
+        setSavedAds(prevAds => 
+          prevAds.map(ad => 
+            ad.id === adId ? { ...ad, fb_ad_settings: settings } : ad
+          )
+        );
+      }
+      
+      // Refresh the ads to ensure everything is up to date
+      await fetchSavedAds();
+      
+    } catch (error) {
+      console.error('Error saving ad settings:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save ad settings. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   useEffect(() => {
     // Notify parent component when selection changes
     onAdsSelected(selectedAds);
@@ -228,15 +280,6 @@ export default function AdSelectionGallery({
       value,
       label: size.label || `${size.width}x${size.height}`
     }));
-  };
-
-  // Handle Facebook ad settings updates
-  const handleFacebookAdSettingsSaved = (settings: FacebookAdSettings) => {
-    setFacebookAdSettings(settings);
-    toast({
-      title: "Facebook Ad Settings Saved",
-      description: "Your Facebook ad settings have been saved for the selected ads."
-    });
   };
 
   const filteredAds = getFilteredAds();
@@ -354,15 +397,7 @@ export default function AdSelectionGallery({
         </div>
       </div>
       
-      {/* Facebook Ad Settings Panel */}
-      {selectedAds.length > 0 && (
-        <FacebookAdSettingsPanel
-          selectedAdIds={selectedAds}
-          projectId={projectId}
-          projectUrl={projectUrl}
-          onSettingsSaved={handleFacebookAdSettingsSaved}
-        />
-      )}
+      {/* Removed FacebookAdSettingsPanel from here */}
       
       {/* No results after filtering */}
       {filteredAds.length === 0 && (
@@ -423,75 +458,25 @@ export default function AdSelectionGallery({
       {/* Ads Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredAds.map((ad) => (
-          <Card key={ad.id} className={`overflow-hidden relative border-2 ${selectedAds.includes(ad.id) ? 'border-primary' : 'border-transparent'}`}>
-            <div className="absolute top-3 left-3 z-10 bg-white/90 p-1.5 rounded-md shadow-sm border border-gray-200">
-              <Checkbox 
-                checked={selectedAds.includes(ad.id)}
-                onCheckedChange={(checked) => handleAdSelect(ad.id, checked === true)}
-                className="h-5 w-5"
-                id={`select-ad-${ad.id}`}
-              />
-            </div>
-            
-            {/* Format Badge */}
-            {ad.size && (
-              <div className="absolute top-3 right-3 z-10 bg-white/90 px-2 py-1 rounded text-xs font-medium border border-gray-200 flex items-center">
-                <LayoutGrid className="h-3 w-3 mr-1" />
-                {ad.size.label}
-              </div>
-            )}
-            
-            {/* Ad Preview */}
-            <div className="p-4">
-              {/* Primary Text */}
-              <div className="mb-4">
-                <h3 className="text-sm font-medium text-gray-500 mb-1">Primary Text:</h3>
-                <p className="text-sm line-clamp-3">{ad.primary_text || "No text available"}</p>
-              </div>
-              
-              {/* Image */}
-              {(ad.imageUrl || ad.imageurl || (ad.saved_images && ad.saved_images.length > 0)) && (
-                <div 
-                  style={{ 
-                    aspectRatio: ad.size ? `${ad.size.width} / ${ad.size.height}` : "1 / 1",
-                    maxHeight: '200px'
-                  }} 
-                  className="relative rounded-lg overflow-hidden mb-4"
-                >
-                  <img
-                    src={ad.imageUrl || ad.imageurl || ad.saved_images[0]}
-                    alt={ad.headline || "Ad creative"}
-                    className="object-cover w-full h-full"
-                  />
-                </div>
-              )}
-              
-              {/* Headline */}
-              <div className="mb-2">
-                <h3 className="text-sm font-medium text-gray-500 mb-1">Headline:</h3>
-                <p className="font-medium">{ad.headline || "No headline available"}</p>
-              </div>
-
-              {/* Facebook Ad Settings Badge (if available) */}
-              {ad.fb_ad_settings && ad.fb_ad_settings.website_url && (
-                <div className="flex items-center text-xs text-blue-600 mt-2">
-                  <Badge variant="outline" className="bg-blue-50 border-blue-200 text-blue-600 flex items-center gap-1">
-                    <Facebook className="h-3 w-3" />
-                    Facebook Settings Configured
-                  </Badge>
-                </div>
-              )}
-              
-              {/* Rating indicator as stars */}
-              {ad.rating && (
-                <div className="flex items-center gap-1 my-2">
-                  {Array(5).fill(0).map((_, i) => (
-                    <span key={i} className={`text-sm ${i < ad.rating ? 'text-yellow-500' : 'text-gray-300'}`}>★</span>
-                  ))}
-                </div>
-              )}
-            </div>
-          </Card>
+          <SavedAdCard 
+            key={ad.id}
+            id={ad.id}
+            primaryText={ad.primary_text}
+            headline={ad.headline}
+            imageUrl={ad.imageUrl || ad.imageurl || (ad.saved_images && ad.saved_images[0])}
+            storage_url={ad.storage_url}
+            image_status={ad.image_status}
+            onFeedbackSubmit={fetchSavedAds}
+            platform={ad.platform}
+            size={ad.size}
+            projectId={ad.project_id}
+            selected={selectedAds.includes(ad.id)}
+            onSelect={handleAdSelect}
+            selectable={true}
+            fb_ad_settings={ad.fb_ad_settings}
+            projectUrl={projectUrl}
+            onSettingsSaved={handleAdSettingsSaved}
+          />
         ))}
       </div>
     </div>

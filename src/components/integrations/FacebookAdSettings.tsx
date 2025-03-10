@@ -1,101 +1,236 @@
-
 import { useState, useEffect } from "react";
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { Button } from "@/components/ui/button";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { Loader2, Globe, Copy } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { FacebookAdSettings } from "@/types/campaignTypes";
+
+// Define the schema for Facebook ad settings
+const facebookAdSettingsSchema = z.object({
+  website_url: z.string().url({ message: "Please enter a valid URL" }),
+  visible_link: z.string().optional(),
+  call_to_action: z.string(),
+  ad_language: z.string(),
+  url_parameters: z.string().optional(),
+  browser_addon: z.string().optional(),
+});
 
 interface FacebookAdSettingsFormProps {
   adIds: string[];
   projectUrl?: string;
-  onSettingsSaved?: (settings: FacebookAdSettings) => void;
+  onSettingsSaved?: (settings: FacebookAdSettings, applyToAll?: boolean) => void;
+  initialSettings?: FacebookAdSettings;
+  showApplyToAllOption?: boolean;
 }
+
+// Call to action options for Facebook ads
+const CTA_OPTIONS = [
+  { value: "LEARN_MORE", label: "Learn More" },
+  { value: "SHOP_NOW", label: "Shop Now" },
+  { value: "SIGN_UP", label: "Sign Up" },
+  { value: "BOOK_TRAVEL", label: "Book Now" },
+  { value: "GET_QUOTE", label: "Get Quote" },
+  { value: "APPLY_NOW", label: "Apply Now" },
+  { value: "CONTACT_US", label: "Contact Us" },
+  { value: "DOWNLOAD", label: "Download" },
+  { value: "GET_OFFER", label: "Get Offer" },
+  { value: "SUBSCRIBE", label: "Subscribe" },
+  { value: "DONATE", label: "Donate" },
+  { value: "WATCH_MORE", label: "Watch More" },
+];
+
+// Language options for Facebook ads
+const LANGUAGE_OPTIONS = [
+  { value: "en_US", label: "English (US)" },
+  { value: "es_LA", label: "Spanish" },
+  { value: "fr_FR", label: "French" },
+  { value: "de_DE", label: "German" },
+  { value: "it_IT", label: "Italian" },
+  { value: "pt_BR", label: "Portuguese (Brazil)" },
+  { value: "zh_CN", label: "Chinese (Simplified)" },
+  { value: "ja_JP", label: "Japanese" },
+  { value: "ko_KR", label: "Korean" },
+  { value: "ru_RU", label: "Russian" },
+];
 
 export default function FacebookAdSettingsForm({
   adIds,
   projectUrl,
-  onSettingsSaved
+  onSettingsSaved,
+  initialSettings,
+  showApplyToAllOption = false,
 }: FacebookAdSettingsFormProps) {
-  const form = useForm<FacebookAdSettings>({
+  const [isLoading, setIsLoading] = useState(false);
+  const [settings, setSettings] = useState<FacebookAdSettings | null>(null);
+  const [applyToAll, setApplyToAll] = useState(false);
+  const { toast } = useToast();
+
+  const form = useForm<z.infer<typeof facebookAdSettingsSchema>>({
+    resolver: zodResolver(facebookAdSettingsSchema),
     defaultValues: {
       website_url: projectUrl || "",
-      visible_link: projectUrl || "",
-      call_to_action: "Learn More",
-      ad_language: "English (US)",
-      url_parameters: "utm_source=facebook&utm_medium=paid",
-      browser_addon: "None"
-    }
+      visible_link: "",
+      call_to_action: "LEARN_MORE",
+      ad_language: "en_US",
+      url_parameters: "",
+      browser_addon: "",
+    },
   });
 
-  const onSubmit = async (data: FacebookAdSettings) => {
-    if (onSettingsSaved) {
-      onSettingsSaved(data);
-    }
-  };
-
+  // Fetch existing settings or use initialSettings if provided
   useEffect(() => {
-    if (projectUrl) {
-      form.setValue("website_url", projectUrl);
-      form.setValue("visible_link", projectUrl);
+    const fetchSettings = async () => {
+      if (initialSettings) {
+        form.reset(initialSettings);
+        setSettings(initialSettings);
+        return;
+      }
+
+      if (adIds.length === 0) return;
+
+      setIsLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('ad_feedback')
+          .select('fb_ad_settings')
+          .eq('id', adIds[0])
+          .single();
+
+        if (error) throw error;
+
+        if (data?.fb_ad_settings) {
+          form.reset(data.fb_ad_settings as any);
+          setSettings(data.fb_ad_settings as FacebookAdSettings);
+        }
+      } catch (error) {
+        console.error('Error fetching ad settings:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchSettings();
+  }, [adIds, form, initialSettings]);
+
+  // Update form when projectUrl changes
+  useEffect(() => {
+    if (projectUrl && !form.getValues().website_url) {
+      form.setValue('website_url', projectUrl);
     }
   }, [projectUrl, form]);
 
-  const callToActionOptions = [
-    "Learn More",
-    "Shop Now",
-    "Sign Up",
-    "Contact Us",
-    "Book Now",
-    "Download"
-  ];
+  const handleUseProjectUrl = () => {
+    if (projectUrl) {
+      form.setValue('website_url', projectUrl);
+    }
+  };
 
-  const languageOptions = [
-    "English (US)",
-    "English (UK)",
-    "Spanish",
-    "French",
-    "German"
-  ];
+  const onSubmit = async (values: z.infer<typeof facebookAdSettingsSchema>) => {
+    if (adIds.length === 0) {
+      toast({
+        title: "Error",
+        description: "No ads selected to apply settings to.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      // If onSettingsSaved is provided, use it (this allows parent components to handle the saving)
+      if (onSettingsSaved) {
+        onSettingsSaved(values, applyToAll);
+      } else {
+        // Otherwise save directly to the database
+        // This will save to the first ad in the adIds array
+        const { error } = await supabase
+          .from('ad_feedback')
+          .update({ fb_ad_settings: values })
+          .eq('id', adIds[0]);
+
+        if (error) throw error;
+
+        toast({
+          title: "Success",
+          description: "Facebook ad settings have been saved.",
+        });
+      }
+
+      setSettings(values);
+    } catch (error) {
+      console.error('Error saving ad settings:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save Facebook ad settings.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        {/* Website URL field with project URL suggestion */}
         <FormField
           control={form.control}
           name="website_url"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Website URL</FormLabel>
-              <FormControl>
-                <Input {...field} placeholder="https://example.com" required />
-              </FormControl>
-              <FormDescription>Landing page URL for your ad</FormDescription>
+              <div className="flex gap-2">
+                <FormControl>
+                  <Input placeholder="https://example.com" {...field} />
+                </FormControl>
+                {projectUrl && (
+                  <Button type="button" variant="outline" size="sm" onClick={handleUseProjectUrl}>
+                    <Copy className="h-4 w-4 mr-1" />
+                    Use Project
+                  </Button>
+                )}
+              </div>
+              <FormDescription>
+                The destination URL when people click your ad
+              </FormDescription>
+              <FormMessage />
             </FormItem>
           )}
         />
 
+        {/* Visible link text */}
         <FormField
           control={form.control}
           name="visible_link"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Visible Link Display</FormLabel>
+              <FormLabel>Display URL (Optional)</FormLabel>
               <FormControl>
-                <Input {...field} placeholder="https://example.com" />
+                <Input placeholder="example.com" {...field} />
               </FormControl>
-              <FormDescription>Shown URL in ad (can be different from actual URL)</FormDescription>
+              <FormDescription>
+                A shorter, cleaner URL to display in your ad, leave empty to use the actual URL
+              </FormDescription>
+              <FormMessage />
             </FormItem>
           )}
         />
 
+        {/* Call to action dropdown */}
         <FormField
           control={form.control}
           name="call_to_action"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Call to Action Button</FormLabel>
+              <FormLabel>Call to Action</FormLabel>
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
                   <SelectTrigger>
@@ -103,17 +238,22 @@ export default function FacebookAdSettingsForm({
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {callToActionOptions.map((option) => (
-                    <SelectItem key={option} value={option}>
-                      {option}
+                  {CTA_OPTIONS.map(option => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              <FormDescription>
+                The button text that encourages people to take action
+              </FormDescription>
+              <FormMessage />
             </FormItem>
           )}
         />
 
+        {/* Ad language dropdown */}
         <FormField
           control={form.control}
           name="ad_language"
@@ -127,34 +267,66 @@ export default function FacebookAdSettingsForm({
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {languageOptions.map((option) => (
-                    <SelectItem key={option} value={option}>
-                      {option}
+                  {LANGUAGE_OPTIONS.map(option => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              <FormDescription>
+                The primary language of your ad
+              </FormDescription>
+              <FormMessage />
             </FormItem>
           )}
         />
 
+        {/* URL parameters for tracking */}
         <FormField
           control={form.control}
           name="url_parameters"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>URL Parameters</FormLabel>
+              <FormLabel>URL Parameters (Optional)</FormLabel>
               <FormControl>
-                <Input {...field} placeholder="utm_source=facebook&utm_medium=paid" />
+                <Input placeholder="utm_source=facebook&utm_medium=cpc" {...field} />
               </FormControl>
-              <FormDescription>Tracking parameters to add to your URL</FormDescription>
+              <FormDescription>
+                Add tracking parameters to your URL
+              </FormDescription>
+              <FormMessage />
             </FormItem>
           )}
         />
 
-        <div className="flex justify-end">
-          <Button type="submit">Save Settings</Button>
-        </div>
+        {/* "Apply to all" checkbox */}
+        {showApplyToAllOption && (
+          <div className="flex items-center space-x-2 pt-2">
+            <Checkbox
+              id="apply-to-all"
+              checked={applyToAll}
+              onCheckedChange={(checked) => setApplyToAll(checked === true)}
+            />
+            <label
+              htmlFor="apply-to-all"
+              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            >
+              Apply these settings to all selected ads
+            </label>
+          </div>
+        )}
+
+        <Button type="submit" className="w-full" disabled={isLoading}>
+          {isLoading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            "Save Ad Settings"
+          )}
+        </Button>
       </form>
     </Form>
   );

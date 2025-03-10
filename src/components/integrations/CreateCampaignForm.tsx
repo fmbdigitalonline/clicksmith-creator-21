@@ -292,7 +292,7 @@ const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, Cr
       // First, try to load from ad_feedback table
       const { data: adFeedbackData, error: adFeedbackError } = await supabase
         .from('ad_feedback')
-        .select('id, headline, primary_text, imageUrl, imageurl, size, platform')
+        .select('id, headline, primary_text, imageUrl, imageurl, size, platform, fb_ad_settings, storage_url')
         .in('id', adIds);
       
       if (adFeedbackError) throw adFeedbackError;
@@ -303,9 +303,10 @@ const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, Cr
           id: ad.id,
           headline: ad.headline,
           primary_text: ad.primary_text,
-          imageUrl: ad.imageUrl || ad.imageurl,
+          imageUrl: ad.storage_url || ad.imageUrl || ad.imageurl,
           size: ad.size,
-          platform: ad.platform || 'facebook'
+          platform: ad.platform || 'facebook',
+          fb_ad_settings: ad.fb_ad_settings
         }));
       }
       
@@ -331,7 +332,8 @@ const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, Cr
             primary_text: ad.primary_text,
             imageUrl: ad.imageUrl || ad.imageurl,
             size: ad.size,
-            platform: ad.platform || 'facebook'
+            platform: ad.platform || 'facebook',
+            fb_ad_settings: ad.fb_ad_settings
           }));
         }
       }
