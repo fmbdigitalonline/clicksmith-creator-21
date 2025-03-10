@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Lightbulb, FolderOpen, Eye, Pencil, Bell, BookOpen, MessageSquare, HelpCircle, Star, Info, AlertOctagon, ArrowRight, Globe, BookmarkCheck } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,10 +13,12 @@ import { OnboardingDialog } from "@/components/onboarding/OnboardingDialog";
 import { formatDistanceToNow } from "date-fns";
 import { CheckCircle } from "lucide-react";
 import { Users, UsersRound, DollarSign, Share2 } from 'lucide-react';
+import CreateProjectDialog from "@/components/projects/CreateProjectDialog";
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
 
   const { data: userData } = useQuery({
     queryKey: ["user-profile"],
@@ -218,6 +220,19 @@ const Dashboard = () => {
     navigate(`/projects/${projectId}`);
   };
 
+  const handleProjectSuccess = (projectId: string) => {
+    queryClient.invalidateQueries({ queryKey: ['recent-projects'] });
+    queryClient.invalidateQueries({ queryKey: ['projectStats'] });
+  };
+
+  const handleStartAdWizard = (projectId?: string) => {
+    if (projectId) {
+      navigate(`/ad-wizard/${projectId}`);
+    } else {
+      navigate("/ad-wizard/new");
+    }
+  };
+
   return (
     <>
       <OnboardingDialog />
@@ -258,7 +273,7 @@ const Dashboard = () => {
               <CardDescription>Access all your previously generated ads</CardDescription>
             </CardHeader>
           </Card>
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer bg-gradient-to-br from-green-500/5 to-green-500/10" onClick={() => navigate("/projects")}>
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer bg-gradient-to-br from-green-500/5 to-green-500/10" onClick={() => setIsCreateProjectOpen(true)}>
             <CardHeader>
               <Plus className="h-8 w-8 mb-2 text-green-500" />
               <CardTitle>Create New Project</CardTitle>
@@ -481,6 +496,14 @@ const Dashboard = () => {
           </Card>
         </div>
       </div>
+
+      {/* Add CreateProjectDialog component */}
+      <CreateProjectDialog
+        open={isCreateProjectOpen}
+        onOpenChange={setIsCreateProjectOpen}
+        onSuccess={handleProjectSuccess}
+        onStartAdWizard={handleStartAdWizard}
+      />
     </>
   );
 };
