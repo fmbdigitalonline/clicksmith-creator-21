@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { AdFeedbackControls } from "@/components/steps/gallery/components/AdFeedbackControls";
