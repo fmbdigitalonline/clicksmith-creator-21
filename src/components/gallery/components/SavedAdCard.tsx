@@ -4,7 +4,7 @@ import { AdFeedbackControls } from "@/components/steps/gallery/components/AdFeed
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { Pencil, Check, X, Download, Save, CheckSquare, Square, Image, AlertCircle, Loader2, Facebook, Globe, Copy } from "lucide-react";
+import { Pencil, Check, X, Download, Save, CheckSquare, Square, Image, AlertCircle, Loader2, Facebook, Globe, Copy, ChevronUp, ChevronDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { AdSizeSelector, AD_FORMATS } from "@/components/steps/gallery/components/AdSizeSelector";
@@ -317,9 +317,9 @@ export const SavedAdCard = ({
 
   const [isAdSettingsOpen, setIsAdSettingsOpen] = useState(false);
   
-  const handleAdSettingsSaved = (settings: FacebookAdSettings, id: string, applyToAll: boolean = false) => {
+  const handleAdSettingsSaved = (settings: FacebookAdSettings, adId: string, applyToAll: boolean = false) => {
     if (onSettingsSaved) {
-      onSettingsSaved(settings, id, applyToAll);
+      onSettingsSaved(settings, adId, applyToAll);
     }
     toast({
       title: "Facebook Ad Settings Saved",
@@ -512,5 +512,3 @@ export const SavedAdCard = ({
     </Card>
   );
 };
-
-import { ChevronUp, ChevronDown } from "lucide-react";
