@@ -1,5 +1,11 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { SavedAd, SavedAdJson } from "@/types/campaignTypes";
+
+// Export this function to fix the missing export error
+export const saveAd = async (projectId: string, adData: any) => {
+  return await saveAdToSupabase(projectId, adData);
+};
 
 // Modified to use properties from SavedAd interface
 export const saveAdToProject = async (
@@ -62,9 +68,10 @@ export const saveAdToSupabase = async (projectId: string, adData: any) => {
     
     const savedAd = formatSavedAd(adData);
     
-    let generatedAds = [];
+    let generatedAds: SavedAd[] = [];
     if (project?.generated_ads && Array.isArray(project.generated_ads)) {
-      generatedAds = [...project.generated_ads];
+      // Convert all JSON ads to proper SavedAd objects
+      generatedAds = (project.generated_ads as any[]).map(ad => formatSavedAd(ad));
     }
     
     // Check if ad already exists
@@ -103,7 +110,9 @@ export const deleteAdFromSupabase = async (projectId: string, adId: string) => {
       return;
     }
     
-    const updatedAds = project.generated_ads.filter(ad => ad.id !== adId);
+    // Correctly type the generated_ads array
+    const typedAds = (project.generated_ads as any[]).map(ad => formatSavedAd(ad));
+    const updatedAds = typedAds.filter(ad => ad.id !== adId);
     
     const { error } = await supabase
       .from('projects')
@@ -131,7 +140,9 @@ export const updateAdRating = async (projectId: string, adId: string, rating: nu
       return;
     }
     
-    const updatedAds = project.generated_ads.map(ad => {
+    // Correctly type the generated_ads array
+    const typedAds = (project.generated_ads as any[]).map(ad => formatSavedAd(ad));
+    const updatedAds = typedAds.map(ad => {
       if (ad.id === adId) {
         return { ...ad, rating };
       }
@@ -164,7 +175,9 @@ export const updateAdFeedback = async (projectId: string, adId: string, feedback
       return;
     }
     
-    const updatedAds = project.generated_ads.map(ad => {
+    // Correctly type the generated_ads array
+    const typedAds = (project.generated_ads as any[]).map(ad => formatSavedAd(ad));
+    const updatedAds = typedAds.map(ad => {
       if (ad.id === adId) {
         return { ...ad, feedback };
       }
