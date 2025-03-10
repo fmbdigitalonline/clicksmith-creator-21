@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -16,7 +17,14 @@ import { extractTargetingData, callFacebookCampaignManager } from "@/utils/campa
 // Define the schema for campaign creation with updated Facebook objective values
 const campaignFormSchema = z.object({
   name: z.string().min(3, "Campaign name must be at least 3 characters"),
-  objective: z.enum(["OUTCOME_AWARENESS", "OUTCOME_TRAFFIC", "OUTCOME_ENGAGEMENT", "OUTCOME_SALES"]),
+  objective: z.enum([
+    "OUTCOME_AWARENESS", 
+    "OUTCOME_TRAFFIC", 
+    "OUTCOME_ENGAGEMENT", 
+    "OUTCOME_SALES", 
+    "OUTCOME_LEADS", 
+    "OUTCOME_APP_PROMOTION"
+  ]),
   budget: z.preprocess(
     (val) => (val === "" ? undefined : Number(val)),
     z.number().min(5, "Minimum budget is $5").max(1000, "Maximum budget is $1000")
@@ -258,6 +266,8 @@ const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, Cr
                     <SelectItem value="OUTCOME_TRAFFIC">Website Traffic</SelectItem>
                     <SelectItem value="OUTCOME_ENGAGEMENT">Engagement</SelectItem>
                     <SelectItem value="OUTCOME_SALES">Conversions</SelectItem>
+                    <SelectItem value="OUTCOME_LEADS">Lead Generation</SelectItem>
+                    <SelectItem value="OUTCOME_APP_PROMOTION">App Promotion</SelectItem>
                   </SelectContent>
                 </Select>
                 <FormDescription>
