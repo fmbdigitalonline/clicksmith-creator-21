@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
@@ -88,7 +89,7 @@ export default function AdSelectionGallery({
             visible_link: item.visible_link || undefined,
             fb_language: item.fb_language || undefined,
             url_parameters: item.url_parameters || undefined,
-            browser_addons: item.browser_addon || "none",
+            browser_addons: item.browser_addons || "none", // Fixed: using browser_addons instead of browser_addon
             image_status: typedImageStatus,
           } as SavedAd; // Use type assertion to ensure TypeScript treats this as SavedAd
         });
