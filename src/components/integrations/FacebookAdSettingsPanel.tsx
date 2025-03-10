@@ -2,8 +2,10 @@
 import { useState, useEffect } from "react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronUp, Facebook, AlertCircle } from "lucide-react";
+import { ChevronDown, ChevronUp } from "lucide-react";
+import { Facebook } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 import FacebookAdSettingsForm from "@/components/integrations/FacebookAdSettings";
 import { FacebookAdSettings } from "@/types/campaignTypes";
 
