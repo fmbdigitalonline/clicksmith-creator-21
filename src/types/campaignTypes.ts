@@ -1,4 +1,3 @@
-
 import { Json } from "@/integrations/supabase/types";
 
 export interface SavedAd {
@@ -24,7 +23,7 @@ export interface SavedAd {
   visible_link?: string;
   fb_language?: string;
   url_parameters?: string;
-  browser_addon?: string;
+  browser_addons?: string; // Changed from browser_addon to browser_addons to match the database
 }
 
 export interface FacebookAdSettings {
@@ -33,7 +32,7 @@ export interface FacebookAdSettings {
   visible_link?: string;
   language?: string;
   url_parameters?: string;
-  browser_addon?: string;
+  browser_addons?: string; // Changed to match property name in the database
 }
 
 export interface AdSize {

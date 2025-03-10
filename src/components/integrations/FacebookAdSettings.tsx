@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -66,7 +65,7 @@ export default function FacebookAdSettingsComponent({ ad, onSettingsChanged }: F
     visible_link: ad.fb_ad_settings?.visible_link || ad.visible_link || "",
     language: ad.fb_ad_settings?.language || ad.fb_language || "en_US",
     url_parameters: ad.fb_ad_settings?.url_parameters || ad.url_parameters || "",
-    browser_addon: ad.fb_ad_settings?.browser_addon || "none"
+    browser_addons: ad.fb_ad_settings?.browser_addons || "none"
   });
   const { toast } = useToast();
 
@@ -89,7 +88,7 @@ export default function FacebookAdSettingsComponent({ ad, onSettingsChanged }: F
           visible_link: settings.visible_link,
           fb_language: settings.language,
           url_parameters: settings.url_parameters,
-          browser_addon: settings.browser_addon
+          browser_addons: settings.browser_addons
         })
         .eq('id', ad.id);
 
@@ -207,8 +206,8 @@ export default function FacebookAdSettingsComponent({ ad, onSettingsChanged }: F
           <div className="space-y-2">
             <Label htmlFor="browser_addon">Browser Add-on</Label>
             <Select
-              value={settings.browser_addon || "none"}
-              onValueChange={(value) => handleChange("browser_addon", value)}
+              value={settings.browser_addons || "none"}
+              onValueChange={(value) => handleChange("browser_addons", value)}
             >
               <SelectTrigger id="browser_addon">
                 <SelectValue placeholder="Select add-on" />

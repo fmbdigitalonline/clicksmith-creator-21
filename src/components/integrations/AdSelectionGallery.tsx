@@ -88,7 +88,7 @@ export default function AdSelectionGallery({
             visible_link: item.visible_link || undefined,
             fb_language: item.fb_language || undefined,
             url_parameters: item.url_parameters || undefined,
-            browser_addon: item.browser_addon || "none",
+            browser_addons: item.browser_addon || "none",
             image_status: typedImageStatus,
           } as SavedAd; // Use type assertion to ensure TypeScript treats this as SavedAd
         });

@@ -1,6 +1,5 @@
-
 import { useState, useEffect } from "react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { AdFeedbackControls } from "@/components/steps/gallery/components/AdFeedbackControls";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -15,6 +14,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { uploadMedia } from "@/utils/uploadUtils";
+import { CardContent } from "@/components/ui/card";
 
 interface SavedAdCardProps {
   id: string;
@@ -187,6 +187,8 @@ export const SavedAdCard = ({
         description: error instanceof Error ? error.message : "Failed to download file.",
         variant: "destructive",
       });
+    } finally {
+      setIsSaving(false);
     }
   };
 
