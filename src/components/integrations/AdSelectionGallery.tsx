@@ -65,7 +65,7 @@ export default function AdSelectionGallery({
         // Convert the data to SavedAd type
         const typedData: SavedAd[] = data.map(item => ({
           ...item,
-          saved_images: item.saved_images || [],
+          saved_images: Array.isArray(item.saved_images) ? item.saved_images : (item.saved_images ? [item.saved_images] : []),
           rating: item.rating || 0,
           size: item.size as AdSize,
           fb_ad_settings: item.fb_ad_settings || undefined,
@@ -74,7 +74,7 @@ export default function AdSelectionGallery({
           visible_link: item.visible_link || undefined,
           fb_language: item.fb_language || undefined,
           url_parameters: item.url_parameters || undefined,
-          browser_addons: item.browser_addons || undefined
+          browser_addons: Array.isArray(item.browser_addons) ? item.browser_addons : (item.browser_addons ? [item.browser_addons] : [])
         }));
         setSavedAds(typedData);
       }
