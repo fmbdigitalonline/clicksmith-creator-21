@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.20.0";
 import { corsHeaders } from "../_shared/cors.ts";
@@ -169,9 +170,15 @@ serve(async (req) => {
           // Now actually create the campaign in Facebook
           console.log(`Creating Facebook campaign with account ID: ${adAccountId} and access token length: ${accessToken.length}`);
           
-          // Create the campaign on Facebook
+          // FIXED: Remove duplicate 'act_' prefix - the adAccountId already contains the prefix
+          const formattedAccountId = adAccountId.startsWith('act_') ? adAccountId : `act_${adAccountId}`;
+          
+          // Log correctly formatted account ID for debugging
+          console.log(`Using formatted account ID: ${formattedAccountId}`);
+          
+          // Create the campaign on Facebook - FIXED: Using the correct account ID path
           const campaignResponse = await fetch(
-            `${FB_GRAPH_API}/act_${adAccountId}/campaigns`,
+            `${FB_GRAPH_API}/${formattedAccountId}/campaigns`,
             {
               method: 'POST',
               headers: {
@@ -252,9 +259,9 @@ serve(async (req) => {
             }];
           }
           
-          // Create the ad set
+          // Create the ad set - FIXED: Using the correct account ID format here too
           const adSetResponse = await fetch(
-            `${FB_GRAPH_API}/act_${adAccountId}/adsets`,
+            `${FB_GRAPH_API}/${formattedAccountId}/adsets`,
             {
               method: 'POST',
               headers: {
