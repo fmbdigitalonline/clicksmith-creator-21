@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -73,16 +74,19 @@ export default function FacebookAdSettingsForm({
   const [applyToAll, setApplyToAll] = useState(false);
   const { toast } = useToast();
 
+  // Default settings with required properties
+  const defaultSettings: FacebookAdSettings = {
+    website_url: projectUrl || "",
+    visible_link: "",
+    call_to_action: "LEARN_MORE",
+    ad_language: "en_US",
+    url_parameters: "",
+    browser_addon: "",
+  };
+
   const form = useForm<z.infer<typeof facebookAdSettingsSchema>>({
     resolver: zodResolver(facebookAdSettingsSchema),
-    defaultValues: {
-      website_url: projectUrl || "",
-      visible_link: "",
-      call_to_action: "LEARN_MORE",
-      ad_language: "en_US",
-      url_parameters: "",
-      browser_addon: "",
-    },
+    defaultValues: defaultSettings,
   });
 
   // Fetch existing settings or use initialSettings if provided
@@ -107,8 +111,13 @@ export default function FacebookAdSettingsForm({
         if (error) throw error;
 
         if (data?.fb_ad_settings) {
-          form.reset(data.fb_ad_settings as any);
-          setSettings(data.fb_ad_settings as FacebookAdSettings);
+          // Ensure type safety by coalescing with defaultSettings
+          const safeSettings: FacebookAdSettings = {
+            ...defaultSettings,
+            ...(data.fb_ad_settings as Record<string, unknown>)
+          };
+          form.reset(safeSettings);
+          setSettings(safeSettings);
         }
       } catch (error) {
         console.error('Error fetching ad settings:', error);
@@ -118,7 +127,7 @@ export default function FacebookAdSettingsForm({
     };
 
     fetchSettings();
-  }, [adIds, form, initialSettings]);
+  }, [adIds, form, initialSettings, projectUrl]);
 
   // Update form when projectUrl changes
   useEffect(() => {
@@ -143,17 +152,27 @@ export default function FacebookAdSettingsForm({
       return;
     }
 
+    // Ensure the submitted values have all required properties of FacebookAdSettings
+    const completeSettings: FacebookAdSettings = {
+      website_url: values.website_url,
+      visible_link: values.visible_link || "",
+      call_to_action: values.call_to_action,
+      ad_language: values.ad_language,
+      url_parameters: values.url_parameters || "",
+      browser_addon: values.browser_addon || "",
+    };
+
     setIsLoading(true);
     try {
       // If onSettingsSaved is provided, use it (this allows parent components to handle the saving)
       if (onSettingsSaved) {
-        onSettingsSaved(values, applyToAll);
+        onSettingsSaved(completeSettings, applyToAll);
       } else {
         // Otherwise save directly to the database
         // This will save to the first ad in the adIds array
         const { error } = await supabase
           .from('ad_feedback')
-          .update({ fb_ad_settings: values })
+          .update({ fb_ad_settings: completeSettings })
           .eq('id', adIds[0]);
 
         if (error) throw error;
@@ -164,7 +183,7 @@ export default function FacebookAdSettingsForm({
         });
       }
 
-      setSettings(values);
+      setSettings(completeSettings);
     } catch (error) {
       console.error('Error saving ad settings:', error);
       toast({

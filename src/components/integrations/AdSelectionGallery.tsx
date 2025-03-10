@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -122,12 +123,27 @@ export default function AdSelectionGallery({
             };
           }
         }
+
+        // Handle Facebook ad settings
+        let fbAdSettings: FacebookAdSettings | undefined = undefined;
+        if (ad.fb_ad_settings) {
+          // Create a proper FacebookAdSettings object with required fields
+          const fbSettings = ad.fb_ad_settings as Record<string, unknown>;
+          fbAdSettings = {
+            website_url: typeof fbSettings.website_url === 'string' ? fbSettings.website_url : "",
+            visible_link: typeof fbSettings.visible_link === 'string' ? fbSettings.visible_link : "",
+            call_to_action: typeof fbSettings.call_to_action === 'string' ? fbSettings.call_to_action : "LEARN_MORE",
+            ad_language: typeof fbSettings.ad_language === 'string' ? fbSettings.ad_language : "en_US",
+            url_parameters: typeof fbSettings.url_parameters === 'string' ? fbSettings.url_parameters : "",
+            browser_addon: typeof fbSettings.browser_addon === 'string' ? fbSettings.browser_addon : "",
+          };
+        }
         
         return {
           ...ad,
           saved_images: savedImages,
           size: sizeObj,
-          fb_ad_settings: ad.fb_ad_settings as unknown as FacebookAdSettings
+          fb_ad_settings: fbAdSettings
         };
       });
 
@@ -475,7 +491,7 @@ export default function AdSelectionGallery({
             selectable={true}
             fb_ad_settings={ad.fb_ad_settings}
             projectUrl={projectUrl}
-            onSettingsSaved={handleAdSettingsSaved}
+            onSettingsSaved={(settings, applyToAll) => handleAdSettingsSaved(settings, ad.id, applyToAll)}
           />
         ))}
       </div>
