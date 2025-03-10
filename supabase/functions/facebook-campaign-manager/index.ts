@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
 
@@ -579,46 +578,54 @@ async function createFacebookCampaign(
   accessToken: string,
   accountId: string
 ) {
-  // Map the objective to Facebook's API format
+  // Updated mapping for new Facebook objective format
   let fbObjective;
   let specialAdCategories = '[]'; // Default to no special categories
   
-  // Map the objective
-  switch (objective.toLowerCase()) {
-    case 'awareness':
-    case 'brand awareness':
-      fbObjective = 'BRAND_AWARENESS';
-      break;
-    case 'reach':
-      fbObjective = 'REACH';
-      break;
-    case 'traffic':
-      fbObjective = 'TRAFFIC';
-      break;
-    case 'engagement':
-      fbObjective = 'POST_ENGAGEMENT';
-      break;
-    case 'app installs':
-    case 'app_installs':
-      fbObjective = 'APP_INSTALLS';
-      break;
-    case 'lead generation':
-    case 'leads':
-      fbObjective = 'LEAD_GENERATION';
-      break;
-    case 'conversions':
-      fbObjective = 'CONVERSIONS';
-      break;
-    case 'sales':
-    case 'catalog sales':
-      fbObjective = 'PRODUCT_CATALOG_SALES';
-      break;
-    case 'store traffic':
-      fbObjective = 'STORE_VISITS';
-      break;
-    default:
-      fbObjective = 'REACH'; // Default to reach if nothing matches
+  // Map to new objective format
+  console.log('Received objective:', objective);
+  
+  // Use the objective directly if it already has the OUTCOME_ prefix
+  if (objective.startsWith('OUTCOME_')) {
+    fbObjective = objective;
+  } else {
+    // Otherwise map from old style to new style
+    switch (objective.toLowerCase()) {
+      case 'awareness':
+      case 'brand awareness':
+        fbObjective = 'OUTCOME_AWARENESS';
+        break;
+      case 'reach':
+        fbObjective = 'OUTCOME_AWARENESS';
+        break;
+      case 'traffic':
+        fbObjective = 'OUTCOME_TRAFFIC';
+        break;
+      case 'engagement':
+        fbObjective = 'OUTCOME_ENGAGEMENT';
+        break;
+      case 'app installs':
+      case 'app_installs':
+        fbObjective = 'OUTCOME_APP_PROMOTION';
+        break;
+      case 'lead generation':
+      case 'leads':
+        fbObjective = 'OUTCOME_LEADS';
+        break;
+      case 'conversions':
+      case 'sales':
+      case 'catalog sales':
+        fbObjective = 'OUTCOME_SALES';
+        break;
+      case 'store traffic':
+        fbObjective = 'OUTCOME_TRAFFIC';
+        break;
+      default:
+        fbObjective = 'OUTCOME_AWARENESS'; // Default to awareness if nothing matches
+    }
   }
+  
+  console.log('Using Facebook objective:', fbObjective);
   
   const response = await fetch(
     `https://graph.facebook.com/v18.0/act_${accountId}/campaigns`,
@@ -719,36 +726,74 @@ async function createFacebookAdSet(
     }
   }
   
-  // Optimization goals based on objective
+  // Map to updated optimization goals based on new objectives
   let optimizationGoal;
   let billingEvent;
   
-  switch (objective.toLowerCase()) {
-    case 'awareness':
-    case 'brand awareness':
-      optimizationGoal = 'BRAND_AWARENESS';
-      billingEvent = 'IMPRESSIONS';
-      break;
-    case 'traffic':
-      optimizationGoal = 'LINK_CLICKS';
-      billingEvent = 'LINK_CLICKS';
-      break;
-    case 'engagement':
-      optimizationGoal = 'POST_ENGAGEMENT';
-      billingEvent = 'POST_ENGAGEMENT';
-      break;
-    case 'conversions':
-      optimizationGoal = 'OFFSITE_CONVERSIONS';
-      billingEvent = 'IMPRESSIONS';
-      break;
-    case 'lead generation':
-    case 'leads':
-      optimizationGoal = 'LEAD_GENERATION';
-      billingEvent = 'IMPRESSIONS';
-      break;
-    default:
-      optimizationGoal = 'REACH';
-      billingEvent = 'IMPRESSIONS';
+  // Handle both new and old objective formats
+  const objectiveLower = objective.toLowerCase();
+  const isNewFormat = objective.startsWith('OUTCOME_');
+  
+  if (isNewFormat) {
+    // Map new format objectives to optimization goals
+    switch (objective) {
+      case 'OUTCOME_AWARENESS':
+        optimizationGoal = 'REACH';
+        billingEvent = 'IMPRESSIONS';
+        break;
+      case 'OUTCOME_TRAFFIC':
+        optimizationGoal = 'LINK_CLICKS';
+        billingEvent = 'LINK_CLICKS';
+        break;
+      case 'OUTCOME_ENGAGEMENT':
+        optimizationGoal = 'POST_ENGAGEMENT';
+        billingEvent = 'POST_ENGAGEMENT';
+        break;
+      case 'OUTCOME_SALES':
+        optimizationGoal = 'OFFSITE_CONVERSIONS';
+        billingEvent = 'IMPRESSIONS';
+        break;
+      case 'OUTCOME_LEADS':
+        optimizationGoal = 'LEAD_GENERATION';
+        billingEvent = 'IMPRESSIONS';
+        break;
+      case 'OUTCOME_APP_PROMOTION':
+        optimizationGoal = 'APP_INSTALLS';
+        billingEvent = 'IMPRESSIONS';
+        break;
+      default:
+        optimizationGoal = 'REACH';
+        billingEvent = 'IMPRESSIONS';
+    }
+  } else {
+    // Handle legacy objective format (for backward compatibility)
+    switch (objectiveLower) {
+      case 'awareness':
+      case 'brand awareness':
+        optimizationGoal = 'BRAND_AWARENESS';
+        billingEvent = 'IMPRESSIONS';
+        break;
+      case 'traffic':
+        optimizationGoal = 'LINK_CLICKS';
+        billingEvent = 'LINK_CLICKS';
+        break;
+      case 'engagement':
+        optimizationGoal = 'POST_ENGAGEMENT';
+        billingEvent = 'POST_ENGAGEMENT';
+        break;
+      case 'conversions':
+        optimizationGoal = 'OFFSITE_CONVERSIONS';
+        billingEvent = 'IMPRESSIONS';
+        break;
+      case 'lead generation':
+      case 'leads':
+        optimizationGoal = 'LEAD_GENERATION';
+        billingEvent = 'IMPRESSIONS';
+        break;
+      default:
+        optimizationGoal = 'REACH';
+        billingEvent = 'IMPRESSIONS';
+    }
   }
   
   // Determine bid strategy
