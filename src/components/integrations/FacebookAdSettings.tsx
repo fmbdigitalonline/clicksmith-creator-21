@@ -46,14 +46,14 @@ const LANGUAGE_OPTIONS = [
   { value: "ar_AR", label: "Arabic" }
 ];
 
-// Browser addon options - updated with correct options
+// Browser addon options - updated with English options
 const BROWSER_ADDONS = [
-  { value: "none", label: "Geen (geen knop toevoegen)" },
-  { value: "call_button", label: "Bellen (voeg een belknop toe)" },
-  { value: "express_form", label: "Expresformulier (verzamel contactgegevens)" },
-  { value: "chat_app", label: "Chatberichtenapp (Messenger, Instagram of WhatsApp)" },
-  { value: "instant_experience", label: "Instant Experience (snel ladende mobiele ervaring)" },
-  { value: "facebook_event", label: "Facebook-evenement (naar evenement op Facebook)" }
+  { value: "none", label: "None (no button added)" },
+  { value: "call_button", label: "Call (add a call button)" },
+  { value: "express_form", label: "Express Form (collect contact details)" },
+  { value: "chat_app", label: "Chat App (Messenger, Instagram or WhatsApp)" },
+  { value: "instant_experience", label: "Instant Experience (fast-loading mobile experience)" },
+  { value: "facebook_event", label: "Facebook Event (to event on Facebook)" }
 ];
 
 export default function FacebookAdSettingsComponent({ ad, onSettingsChanged }: FacebookAdSettingsProps) {
