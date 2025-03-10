@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
@@ -12,7 +11,7 @@ import AdDetails from "./AdDetails";
 import DownloadControls from "./DownloadControls";
 import { AdFeedbackControls } from "./AdFeedbackControls";
 import { convertImage } from "@/utils/imageUtils";
-import { Pencil, Check, X, CheckSquare, Square } from "lucide-react";
+import { Pencil, Check, X, CheckSquare, Square, Loader2 } from "lucide-react";
 import { useAdPersistence } from "@/hooks/gallery/useAdPersistence";
 import { AdSizeSelector, AD_FORMATS } from "../components/AdSizeSelector";
 
@@ -77,7 +76,10 @@ const AdPreviewCard = ({
           if (error) throw error;
           
           if (data) {
-            setImageStatus(data.image_status || 'pending');
+            // Convert the string to the correct type for imageStatus
+            const newStatus = data.image_status as 'pending' | 'processing' | 'ready' | 'failed' || 'pending';
+            setImageStatus(newStatus);
+            
             if (data.image_status === 'ready') {
               setIsProcessingImage(false);
               toast({

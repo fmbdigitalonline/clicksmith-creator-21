@@ -6,13 +6,14 @@ import { Button } from "@/components/ui/button";
 import { ProjectSelector } from "@/components/gallery/components/ProjectSelector";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AdSelectionGallery from "@/components/integrations/AdSelectionGallery";
-import { AlertCircle, Info, CheckCircle, LayoutDashboard } from "lucide-react";
+import { AlertCircle, Info, CheckCircle, LayoutDashboard, Loader2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { extractTargetingData } from "@/utils/campaignDataUtils";
 import { useProjectCampaignData } from "@/hooks/useProjectCampaignData";
 import DataCompletionWarning from "@/components/projects/DataCompletionWarning";
 import CampaignStatusCard from "@/components/integrations/CampaignStatusCard";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface FacebookCampaignFormProps {
   open: boolean;
@@ -484,7 +485,7 @@ export default function FacebookCampaignForm({
                     
                     {/* Add image processing warning if needed */}
                     {imageCheckError && (
-                      <Alert variant="warning" className="bg-amber-50 border-amber-200">
+                      <Alert variant="destructive" className="bg-amber-50 border-amber-200">
                         <AlertCircle className="h-4 w-4 text-amber-600" />
                         <AlertTitle>Image Processing Required</AlertTitle>
                         <AlertDescription>
