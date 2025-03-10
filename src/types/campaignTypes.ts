@@ -17,6 +17,16 @@ export interface SavedAd {
   platform?: string;
   project_id?: string;
   size?: AdSize;
+  fb_ad_settings?: FacebookAdSettings;
+}
+
+export interface FacebookAdSettings {
+  website_url: string;
+  visible_link?: string;
+  call_to_action?: string;
+  ad_language?: string;
+  url_parameters?: string;
+  browser_addon?: string;
 }
 
 export interface AdSize {

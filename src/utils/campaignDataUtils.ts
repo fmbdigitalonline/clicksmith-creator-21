@@ -150,3 +150,32 @@ export const callFacebookCampaignManager = async (action, data) => {
     };
   }
 };
+
+// Get ad details with Facebook settings
+export const getAdDetailsWithSettings = async (adIds) => {
+  try {
+    if (!adIds || adIds.length === 0) {
+      return { data: [], error: null };
+    }
+    
+    const { data, error } = await supabase
+      .from('ad_feedback')
+      .select('id, headline, primary_text, imageUrl, imageurl, storage_url, image_status, fb_ad_settings, size')
+      .in('id', adIds);
+      
+    if (error) {
+      throw error;
+    }
+    
+    return { data, error: null };
+  } catch (error) {
+    console.error("Error fetching ad details with settings:", error);
+    return { 
+      data: null, 
+      error: {
+        message: error.message || "Failed to fetch ad details",
+        details: error
+      }
+    };
+  }
+};

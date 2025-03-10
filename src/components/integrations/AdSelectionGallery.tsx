@@ -18,8 +18,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { SavedAd, AdSelectionGalleryProps, AdSize } from "@/types/campaignTypes";
+import { SavedAd, AdSelectionGalleryProps, AdSize, FacebookAdSettings } from "@/types/campaignTypes";
 import { AD_FORMATS } from "@/components/steps/gallery/components/AdSizeSelector";
+import FacebookAdSettingsPanel from "./FacebookAdSettingsPanel";
 
 export default function AdSelectionGallery({ 
   projectId, 
@@ -33,16 +34,40 @@ export default function AdSelectionGallery({
   const [searchTerm, setSearchTerm] = useState("");
   const [ratingFilter, setRatingFilter] = useState<string>("all");
   const [formatFilter, setFormatFilter] = useState<string>("all");
+  const [projectUrl, setProjectUrl] = useState<string>("");
+  const [facebookAdSettings, setFacebookAdSettings] = useState<FacebookAdSettings | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
     fetchSavedAds();
+    if (projectId) {
+      fetchProjectUrl();
+    }
   }, [projectId]);
 
   // Update internal state when external selection changes
   useEffect(() => {
     setSelectedAds(selectedAdIds);
   }, [selectedAdIds]);
+
+  const fetchProjectUrl = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('projects')
+        .select('id, title')
+        .eq('id', projectId)
+        .single();
+        
+      if (error) throw error;
+      
+      if (data) {
+        const formattedUrl = `https://lovable.dev/projects/${data.id}`;
+        setProjectUrl(formattedUrl);
+      }
+    } catch (error) {
+      console.error('Error fetching project details:', error);
+    }
+  };
 
   const fetchSavedAds = async () => {
     try {
@@ -56,7 +81,7 @@ export default function AdSelectionGallery({
 
       let query = supabase
         .from('ad_feedback')
-        .select('id, saved_images, headline, primary_text, rating, feedback, created_at, imageurl, imageUrl, platform, project_id, size');
+        .select('id, saved_images, headline, primary_text, rating, feedback, created_at, imageurl, imageUrl, platform, project_id, size, fb_ad_settings');
       
       // If projectId is provided, only show ads for that project
       if (projectId) {
@@ -104,7 +129,8 @@ export default function AdSelectionGallery({
         return {
           ...ad,
           saved_images: savedImages,
-          size: sizeObj
+          size: sizeObj,
+          fb_ad_settings: ad.fb_ad_settings as unknown as FacebookAdSettings
         };
       });
 
@@ -121,7 +147,6 @@ export default function AdSelectionGallery({
     }
   };
 
-  
   const handleAdSelect = (adId: string, isSelected: boolean) => {
     if (isSelected) {
       // Check if we've hit the selection limit
@@ -203,6 +228,15 @@ export default function AdSelectionGallery({
       value,
       label: size.label || `${size.width}x${size.height}`
     }));
+  };
+
+  // Handle Facebook ad settings updates
+  const handleFacebookAdSettingsSaved = (settings: FacebookAdSettings) => {
+    setFacebookAdSettings(settings);
+    toast({
+      title: "Facebook Ad Settings Saved",
+      description: "Your Facebook ad settings have been saved for the selected ads."
+    });
   };
 
   const filteredAds = getFilteredAds();
@@ -320,6 +354,16 @@ export default function AdSelectionGallery({
         </div>
       </div>
       
+      {/* Facebook Ad Settings Panel */}
+      {selectedAds.length > 0 && (
+        <FacebookAdSettingsPanel
+          selectedAdIds={selectedAds}
+          projectId={projectId}
+          projectUrl={projectUrl}
+          onSettingsSaved={handleFacebookAdSettingsSaved}
+        />
+      )}
+      
       {/* No results after filtering */}
       {filteredAds.length === 0 && (
         <div className="text-center py-6 border rounded-lg">
@@ -427,6 +471,16 @@ export default function AdSelectionGallery({
                 <h3 className="text-sm font-medium text-gray-500 mb-1">Headline:</h3>
                 <p className="font-medium">{ad.headline || "No headline available"}</p>
               </div>
+
+              {/* Facebook Ad Settings Badge (if available) */}
+              {ad.fb_ad_settings && ad.fb_ad_settings.website_url && (
+                <div className="flex items-center text-xs text-blue-600 mt-2">
+                  <Badge variant="outline" className="bg-blue-50 border-blue-200 text-blue-600 flex items-center gap-1">
+                    <Facebook className="h-3 w-3" />
+                    Facebook Settings Configured
+                  </Badge>
+                </div>
+              )}
               
               {/* Rating indicator as stars */}
               {ad.rating && (

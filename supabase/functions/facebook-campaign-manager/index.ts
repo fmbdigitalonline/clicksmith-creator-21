@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
 
@@ -46,6 +47,14 @@ interface AdDetail {
   };
   platform?: string;
   image_status?: string;
+  fb_ad_settings?: {
+    website_url: string;
+    visible_link?: string;
+    call_to_action?: string;
+    ad_language?: string;
+    url_parameters?: string;
+    browser_addon?: string;
+  };
 }
 
 serve(async (req) => {
@@ -312,7 +321,7 @@ async function createCampaign(
       console.log('Ad details not provided, fetching from database...');
       const { data: adFeedbackData } = await supabase
         .from('ad_feedback')
-        .select('id, headline, primary_text, imageUrl, imageurl, storage_url, image_status')
+        .select('id, headline, primary_text, imageUrl, imageurl, storage_url, image_status, fb_ad_settings')
         .in('id', campaignData.ads);
       
       if (adFeedbackData && adFeedbackData.length > 0) {
@@ -321,7 +330,8 @@ async function createCampaign(
           headline: ad.headline,
           primary_text: ad.primary_text,
           imageUrl: ad.storage_url || ad.imageUrl || ad.imageurl, // Prefer storage_url if available
-          image_status: ad.image_status
+          image_status: ad.image_status,
+          fb_ad_settings: ad.fb_ad_settings // Include FB ad settings
         }));
       }
     }
@@ -345,8 +355,57 @@ async function createCampaign(
         console.warn('Skipping ad with no valid image URL:', adDetail.id);
         continue;
       }
-      
+
       try {
+        // Prepare link data with FB ad settings
+        const linkData: any = {
+          call_to_action: { type: "LEARN_MORE" }
+        };
+
+        // Include Facebook ad settings if available
+        if (adDetail.fb_ad_settings) {
+          // Website URL is required
+          const finalUrl = adDetail.fb_ad_settings.website_url;
+          let urlWithParameters = finalUrl;
+          
+          // Add URL parameters if provided
+          if (adDetail.fb_ad_settings.url_parameters) {
+            const separator = finalUrl.includes('?') ? '&' : '?';
+            urlWithParameters = `${finalUrl}${separator}${adDetail.fb_ad_settings.url_parameters}`;
+          }
+          
+          linkData.link = urlWithParameters;
+          
+          // Add visible link if provided
+          if (adDetail.fb_ad_settings.visible_link) {
+            linkData.link_caption = adDetail.fb_ad_settings.visible_link;
+          }
+          
+          // Add call to action if provided
+          if (adDetail.fb_ad_settings.call_to_action) {
+            // Convert friendly name to FB API format
+            const ctaMap: Record<string, string> = {
+              "Learn More": "LEARN_MORE",
+              "Shop Now": "SHOP_NOW",
+              "Sign Up": "SIGN_UP",
+              "Book Now": "BOOK_NOW",
+              "Contact Us": "CONTACT_US",
+              "Subscribe": "SUBSCRIBE",
+              "Apply Now": "APPLY_NOW",
+              "Download": "DOWNLOAD",
+              "Watch More": "WATCH_MORE",
+              "Get Offer": "GET_OFFER"
+            };
+            
+            linkData.call_to_action = {
+              type: ctaMap[adDetail.fb_ad_settings.call_to_action] || "LEARN_MORE"
+            };
+          }
+        } else {
+          // Default URL if no settings provided
+          linkData.link = "https://lovable.dev";
+        }
+        
         // Create ad creative
         const creative = await createFacebookAdCreative(
           campaign.id,
@@ -355,7 +414,8 @@ async function createCampaign(
           imageUrl,
           accessToken,
           cleanedAccountId,
-          pageId // Pass the page ID to the creative creation function
+          pageId,
+          linkData // Pass the link data with FB ad settings
         );
         
         console.log('Ad Creative created:', creative);
@@ -498,19 +558,17 @@ async function updateCampaignStatus(
       .eq('id', recordId);
     
     if (updateError) {
-      throw new Error(`Error updating campaign record: ${updateError.message}`);
+      throw new Error(`Error updating campaign status in database: ${updateError.message}`);
     }
     
     return {
       success: true,
-      campaign: campaignResult,
-      adSet: adSetResult,
-      status: dbStatus
+      campaign_status: status,
+      campaign_result: campaignResult,
+      ad_set_result: adSetResult
     };
-    
   } catch (error) {
-    console.error('Failed to update campaign status:', error);
-    
+    console.error('Error updating campaign status:', error);
     throw new Error(`Failed to update campaign status: ${error.message}`);
   }
 }
@@ -521,13 +579,49 @@ async function createFacebookCampaign(
   accessToken: string,
   accountId: string
 ) {
-  // Fix: Ensure we have the proper account ID format for the API
-  const apiAccountId = `act_${accountId.replace(/^act_/i, '')}`;
+  // Map the objective to Facebook's API format
+  let fbObjective;
+  let specialAdCategories = '[]'; // Default to no special categories
   
-  console.log(`Creating campaign with account ID: ${apiAccountId}`);
+  // Map the objective
+  switch (objective.toLowerCase()) {
+    case 'awareness':
+    case 'brand awareness':
+      fbObjective = 'BRAND_AWARENESS';
+      break;
+    case 'reach':
+      fbObjective = 'REACH';
+      break;
+    case 'traffic':
+      fbObjective = 'TRAFFIC';
+      break;
+    case 'engagement':
+      fbObjective = 'POST_ENGAGEMENT';
+      break;
+    case 'app installs':
+    case 'app_installs':
+      fbObjective = 'APP_INSTALLS';
+      break;
+    case 'lead generation':
+    case 'leads':
+      fbObjective = 'LEAD_GENERATION';
+      break;
+    case 'conversions':
+      fbObjective = 'CONVERSIONS';
+      break;
+    case 'sales':
+    case 'catalog sales':
+      fbObjective = 'PRODUCT_CATALOG_SALES';
+      break;
+    case 'store traffic':
+      fbObjective = 'STORE_VISITS';
+      break;
+    default:
+      fbObjective = 'REACH'; // Default to reach if nothing matches
+  }
   
   const response = await fetch(
-    `https://graph.facebook.com/v18.0/${apiAccountId}/campaigns`,
+    `https://graph.facebook.com/v18.0/act_${accountId}/campaigns`,
     {
       method: 'POST',
       headers: {
@@ -535,10 +629,10 @@ async function createFacebookCampaign(
         'Authorization': `Bearer ${accessToken}`
       },
       body: JSON.stringify({
-        name,
-        objective,
-        status: 'PAUSED', // Always create in paused state
-        special_ad_categories: []
+        name: name,
+        objective: fbObjective,
+        status: 'PAUSED', // Always create as paused first
+        special_ad_categories: specialAdCategories
       })
     }
   );
@@ -564,120 +658,143 @@ async function createFacebookAdSet(
   bidAmount?: number,
   bidStrategy?: string
 ) {
-  // Fix: Ensure we have the proper account ID format for the API
-  const apiAccountId = `act_${accountId.replace(/^act_/i, '')}`;
-  
   // Format dates for Facebook API
-  const formattedStartDate = startDate.toISOString();
-  const formattedEndDate = endDate ? endDate.toISOString() : undefined;
+  const startTime = Math.floor(startDate.getTime() / 1000);
+  const endTime = endDate ? Math.floor(endDate.getTime() / 1000) : undefined;
   
-  // Map gender values to Facebook format
-  let genderArray = [1, 2]; // Default: all genders
-  if (targeting?.gender === 'MALE') {
-    genderArray = [1];
-  } else if (targeting?.gender === 'FEMALE') {
-    genderArray = [2];
+  // Default targeting if none provided
+  const defaultTargeting = {
+    age_min: 18,
+    age_max: 65,
+    genders: [0], // 0 = all, 1 = male, 2 = female
+    geo_locations: {
+      countries: ['US']
+    }
+  };
+  
+  // Build the targeting object
+  let targetingSpec = { ...defaultTargeting };
+  
+  if (targeting) {
+    // Age targeting
+    if (targeting.age_min) targetingSpec.age_min = targeting.age_min;
+    if (targeting.age_max) targetingSpec.age_max = targeting.age_max;
+    
+    // Gender targeting
+    if (targeting.gender) {
+      if (targeting.gender === 'MALE') {
+        targetingSpec.genders = [1];
+      } else if (targeting.gender === 'FEMALE') {
+        targetingSpec.genders = [2];
+      } else {
+        targetingSpec.genders = [0]; // ALL
+      }
+    }
+    
+    // Interests
+    if (targeting.interests && targeting.interests.length > 0) {
+      targetingSpec.flexible_spec = [{
+        interests: targeting.interests.map((interest: string) => ({
+          name: interest,
+          id: interest // For now, just using the interest as the id
+        }))
+      }];
+    }
+    
+    // Locations
+    if (targeting.locations && targeting.locations.length > 0) {
+      targetingSpec.geo_locations = {};
+      
+      targeting.locations.forEach((location: any) => {
+        if (location.key === 'countries') {
+          targetingSpec.geo_locations.countries = location.value;
+        } else if (location.key === 'cities') {
+          targetingSpec.geo_locations.cities = location.value.map((city: string) => ({
+            name: city,
+            distance_unit: 'mile',
+            radius: 10
+          }));
+        }
+      });
+    }
   }
   
-  // Determine optimization goal and billing event based on objective
-  let optimizationGoal = 'REACH';
-  let billingEvent = 'IMPRESSIONS';
+  // Optimization goals based on objective
+  let optimizationGoal;
+  let billingEvent;
   
-  switch (objective) {
-    case 'OUTCOME_AWARENESS':
-      optimizationGoal = 'REACH';
+  switch (objective.toLowerCase()) {
+    case 'awareness':
+    case 'brand awareness':
+      optimizationGoal = 'BRAND_AWARENESS';
       billingEvent = 'IMPRESSIONS';
       break;
-    case 'OUTCOME_TRAFFIC':
+    case 'traffic':
       optimizationGoal = 'LINK_CLICKS';
       billingEvent = 'LINK_CLICKS';
       break;
-    case 'OUTCOME_ENGAGEMENT':
+    case 'engagement':
       optimizationGoal = 'POST_ENGAGEMENT';
-      billingEvent = 'IMPRESSIONS';
+      billingEvent = 'POST_ENGAGEMENT';
       break;
-    case 'OUTCOME_SALES':
+    case 'conversions':
       optimizationGoal = 'OFFSITE_CONVERSIONS';
       billingEvent = 'IMPRESSIONS';
       break;
-    case 'OUTCOME_LEADS':
+    case 'lead generation':
+    case 'leads':
       optimizationGoal = 'LEAD_GENERATION';
       billingEvent = 'IMPRESSIONS';
       break;
-    case 'OUTCOME_APP_PROMOTION':
-      optimizationGoal = 'APP_INSTALLS';
+    default:
+      optimizationGoal = 'REACH';
       billingEvent = 'IMPRESSIONS';
-      break;
   }
   
-  // Prepare targeting spec
-  const targetingSpec: any = {
-    age_min: targeting?.age_min || 18,
-    age_max: targeting?.age_max || 65,
-    genders: genderArray
+  // Determine bid strategy
+  const bidConfig: any = {
+    bid_strategy: 'LOWEST_COST_WITHOUT_CAP'
   };
   
-  // Add interests if specified
-  if (targeting?.interests && targeting.interests.length > 0) {
-    targetingSpec.flexible_spec = [{
-      interests: targeting.interests.map((interest: string) => ({
-        name: interest,
-        id: interest // This assumes interest is the ID, which may need to be retrieved from Facebook
-      }))
-    }];
+  if (bidStrategy) {
+    bidConfig.bid_strategy = bidStrategy.toUpperCase();
   }
   
-  // Add locations if specified
-  if (targeting?.locations && targeting.locations.length > 0) {
-    targetingSpec.geo_locations = {
-      countries: targeting.locations
-    };
-  } else {
-    // Default to United States if no location is specified
-    targetingSpec.geo_locations = {
-      countries: ['US']
-    };
+  if (bidAmount && bidAmount > 0) {
+    bidConfig.bid_amount = bidAmount;
   }
   
-  const adSetData: any = {
-    name,
+  const adSetPayload: any = {
+    name: name,
     campaign_id: campaignId,
     daily_budget: dailyBudget,
-    start_time: formattedStartDate,
-    targeting: targetingSpec,
-    optimization_goal: optimizationGoal,
     billing_event: billingEvent,
-    status: 'PAUSED'
+    optimization_goal: optimizationGoal,
+    bid_strategy: bidConfig.bid_strategy,
+    targeting: targetingSpec,
+    status: 'PAUSED', // Always create as paused first
+    start_time: new Date(startTime * 1000).toISOString()
   };
   
   // Add bid amount if provided
-  if (bidAmount && bidAmount > 0) {
-    adSetData.bid_amount = Math.round(bidAmount * 100); // Convert to cents
+  if (bidConfig.bid_amount) {
+    adSetPayload.bid_amount = bidConfig.bid_amount;
   }
   
-  // Add bid strategy if provided
-  if (bidStrategy) {
-    adSetData.bid_strategy = bidStrategy;
-  } else {
-    // Default to LOWEST_COST_WITHOUT_CAP if not provided
-    adSetData.bid_strategy = 'LOWEST_COST_WITHOUT_CAP';
+  // Add end time if provided
+  if (endTime) {
+    adSetPayload.end_time = new Date(endTime * 1000).toISOString();
   }
-  
-  if (formattedEndDate) {
-    adSetData.end_time = formattedEndDate;
-  }
-  
-  console.log('Creating ad set with data:', JSON.stringify(adSetData, null, 2));
   
   const response = await fetch(
-    `https://graph.facebook.com/v18.0/${apiAccountId}/adsets`,
+    `https://graph.facebook.com/v18.0/act_${accountId}/adsets`,
     {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${accessToken}`
       },
-      body: JSON.stringify(adSetData)
+      body: JSON.stringify(adSetPayload)
     }
   );
   
@@ -696,176 +813,52 @@ async function createFacebookAdCreative(
   imageUrl: string,
   accessToken: string,
   accountId: string,
-  pageId: string
+  pageId: string, 
+  linkData: any = {}
 ) {
-  // Fix: Ensure we have the proper account ID format for the API
-  const apiAccountId = `act_${accountId.replace(/^act_/i, '')}`;
+  // Default link data
+  const defaultLinkData = {
+    link: "https://lovable.dev",
+    message: primaryText,
+    link_caption: "lovable.dev",
+    call_to_action: { type: "LEARN_MORE" }
+  };
   
-  // Default landing page URL if not provided
-  const linkUrl = 'https://example.com';
+  // Merge provided link data with defaults
+  const finalLinkData = {
+    ...defaultLinkData,
+    ...linkData,
+    message: primaryText, // Always use primary text as message
+    name: headline // Always use headline as name
+  };
   
-  console.log("Creating ad creative with page ID:", pageId);
-  console.log("Using image URL:", imageUrl);
-  
-  // Check if the image URL is accessible
-  try {
-    const imgResponse = await fetch(imageUrl, { method: 'HEAD' });
-    
-    if (!imgResponse.ok) {
-      console.error(`Image URL check failed with status: ${imgResponse.status}`);
-      throw new Error(`Image URL ${imageUrl} is not accessible`);
+  const response = await fetch(
+    `https://graph.facebook.com/v18.0/act_${accountId}/adcreatives`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`
+      },
+      body: JSON.stringify({
+        name: `Creative for ${headline}`,
+        object_story_spec: {
+          page_id: pageId,
+          link_data: {
+            ...finalLinkData,
+            image_url: imageUrl
+          }
+        }
+      })
     }
-    
-    console.log("Image URL is accessible");
-  } catch (imgError) {
-    console.error("Error checking image URL:", imgError);
-    throw new Error(`Image URL validation failed: ${imgError.message}`);
+  );
+  
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(`Error creating ad creative: ${JSON.stringify(errorData)}`);
   }
   
-  // First try the standard approach with image upload
-  try {
-    // First, upload the image to Facebook
-    console.log("Attempting to upload image to Facebook:", imageUrl);
-    const imageResponse = await fetch(
-      `https://graph.facebook.com/v18.0/${apiAccountId}/adimages`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`
-        },
-        body: JSON.stringify({
-          filename: `ad_image_${Date.now()}.jpg`,
-          url: imageUrl
-        })
-      }
-    );
-    
-    if (!imageResponse.ok) {
-      const errorData = await imageResponse.json();
-      console.error(`Error uploading image: ${JSON.stringify(errorData)}`);
-      throw new Error(`Error uploading image: ${JSON.stringify(errorData)}`);
-    }
-    
-    const imageData = await imageResponse.json();
-    
-    // Extract the image hash from the response
-    const imageHash = imageData.images?.['ad_image_' + Date.now() + '.jpg']?.hash;
-    
-    if (!imageHash) {
-      throw new Error('Failed to get image hash from Facebook');
-    }
-    
-    // Now create the ad creative with the image
-    const creativeResponse = await fetch(
-      `https://graph.facebook.com/v18.0/${apiAccountId}/adcreatives`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`
-        },
-        body: JSON.stringify({
-          name: `Creative for ${headline}`,
-          object_story_spec: {
-            page_id: pageId,
-            link_data: {
-              message: primaryText,
-              link: linkUrl,
-              name: headline,
-              image_hash: imageHash
-            }
-          }
-        })
-      }
-    );
-    
-    if (!creativeResponse.ok) {
-      const errorData = await creativeResponse.json();
-      throw new Error(`Error creating ad creative: ${JSON.stringify(errorData)}`);
-    }
-    
-    return await creativeResponse.json();
-  } catch (uploadError) {
-    // If image upload fails, try the fallback approach with direct image URL
-    console.log("Image upload failed, trying fallback approach with direct image URL");
-    console.error("Error in image upload:", uploadError.message);
-    
-    try {
-      // Fallback: Create ad creative with direct image URL
-      console.log("Creating fallback ad creative with direct image URL");
-      const fallbackCreativeResponse = await fetch(
-        `https://graph.facebook.com/v18.0/${apiAccountId}/adcreatives`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${accessToken}`
-          },
-          body: JSON.stringify({
-            name: `Creative for ${headline}`,
-            object_story_spec: {
-              page_id: pageId,
-              link_data: {
-                message: primaryText,
-                link: linkUrl,
-                name: headline,
-                picture: imageUrl  // Use direct image URL instead of hash
-              }
-            }
-          })
-        }
-      );
-      
-      if (!fallbackCreativeResponse.ok) {
-        const errorData = await fallbackCreativeResponse.json();
-        throw new Error(`Error creating fallback ad creative: ${JSON.stringify(errorData)}`);
-      }
-      
-      return await fallbackCreativeResponse.json();
-    } catch (fallbackError) {
-      console.error("Fallback approach also failed:", fallbackError.message);
-      
-      // Try a third approach with minimal data
-      console.log("Trying minimal approach for ad creative");
-      try {
-        const minimalCreativeResponse = await fetch(
-          `https://graph.facebook.com/v18.0/${apiAccountId}/adcreatives`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${accessToken}`
-            },
-            body: JSON.stringify({
-              name: `Creative for ${headline}`,
-              title: headline,
-              body: primaryText,
-              link_url: linkUrl,
-              object_story_spec: {
-                page_id: pageId,
-                link_data: {
-                  message: primaryText,
-                  link: linkUrl,
-                  name: headline
-                }
-              }
-            })
-          }
-        );
-        
-        if (!minimalCreativeResponse.ok) {
-          const errorData = await minimalCreativeResponse.json();
-          throw new Error(`Error creating minimal ad creative: ${JSON.stringify(errorData)}`);
-        }
-        
-        return await minimalCreativeResponse.json();
-      } catch (minimalError) {
-        console.error("All creative approaches failed. Last error:", minimalError.message);
-        throw new Error(`Failed to create ad creative after multiple attempts: ${minimalError.message}`);
-      }
-    }
-  }
+  return await response.json();
 }
 
 async function createFacebookAd(
@@ -876,11 +869,8 @@ async function createFacebookAd(
   accessToken: string,
   accountId: string
 ) {
-  // Fix: Ensure we have the proper account ID format for the API
-  const apiAccountId = `act_${accountId.replace(/^act_/i, '')}`;
-  
   const response = await fetch(
-    `https://graph.facebook.com/v18.0/${apiAccountId}/ads`,
+    `https://graph.facebook.com/v18.0/act_${accountId}/ads`,
     {
       method: 'POST',
       headers: {
@@ -888,10 +878,10 @@ async function createFacebookAd(
         'Authorization': `Bearer ${accessToken}`
       },
       body: JSON.stringify({
-        name,
+        name: name,
         adset_id: adSetId,
         creative: { creative_id: creativeId },
-        status: 'PAUSED'
+        status: 'PAUSED' // Always create as paused first
       })
     }
   );

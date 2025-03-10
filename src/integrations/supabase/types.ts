@@ -101,8 +101,12 @@ export type Database = {
       ad_feedback: {
         Row: {
           ad_id: string | null
+          browser_addons: Json | null
+          call_to_action: string | null
           created_at: string
           created_by: string | null
+          fb_ad_settings: Json | null
+          fb_language: string | null
           feedback: string | null
           headline: string | null
           id: string
@@ -119,12 +123,19 @@ export type Database = {
           size: Json | null
           storage_url: string | null
           updated_at: string
+          url_parameters: string | null
           user_id: string | null
+          visible_link: string | null
+          website_url: string | null
         }
         Insert: {
           ad_id?: string | null
+          browser_addons?: Json | null
+          call_to_action?: string | null
           created_at?: string
           created_by?: string | null
+          fb_ad_settings?: Json | null
+          fb_language?: string | null
           feedback?: string | null
           headline?: string | null
           id?: string
@@ -141,12 +152,19 @@ export type Database = {
           size?: Json | null
           storage_url?: string | null
           updated_at?: string
+          url_parameters?: string | null
           user_id?: string | null
+          visible_link?: string | null
+          website_url?: string | null
         }
         Update: {
           ad_id?: string | null
+          browser_addons?: Json | null
+          call_to_action?: string | null
           created_at?: string
           created_by?: string | null
+          fb_ad_settings?: Json | null
+          fb_language?: string | null
           feedback?: string | null
           headline?: string | null
           id?: string
@@ -163,7 +181,10 @@ export type Database = {
           size?: Json | null
           storage_url?: string | null
           updated_at?: string
+          url_parameters?: string | null
           user_id?: string | null
+          visible_link?: string | null
+          website_url?: string | null
         }
         Relationships: [
           {
@@ -729,6 +750,63 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      facebook_ad_settings: {
+        Row: {
+          ad_language: string | null
+          browser_addon: string | null
+          call_to_action: string | null
+          campaign_id: string | null
+          created_at: string | null
+          id: string
+          updated_at: string | null
+          url_parameters: string | null
+          user_id: string
+          visible_link: string | null
+          website_url: string
+        }
+        Insert: {
+          ad_language?: string | null
+          browser_addon?: string | null
+          call_to_action?: string | null
+          campaign_id?: string | null
+          created_at?: string | null
+          id?: string
+          updated_at?: string | null
+          url_parameters?: string | null
+          user_id: string
+          visible_link?: string | null
+          website_url: string
+        }
+        Update: {
+          ad_language?: string | null
+          browser_addon?: string | null
+          call_to_action?: string | null
+          campaign_id?: string | null
+          created_at?: string | null
+          id?: string
+          updated_at?: string | null
+          url_parameters?: string | null
+          user_id?: string
+          visible_link?: string | null
+          website_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facebook_ad_settings_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "ad_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facebook_ad_settings_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_templates"
             referencedColumns: ["id"]
           },
         ]
