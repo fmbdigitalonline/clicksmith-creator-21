@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
@@ -89,9 +88,7 @@ export default function AdSelectionGallery({
             visible_link: item.visible_link || undefined,
             fb_language: item.fb_language || undefined,
             url_parameters: item.url_parameters || undefined,
-            browser_addons: Array.isArray(item.browser_addons) 
-              ? item.browser_addons.map(addon => typeof addon === 'string' ? addon : JSON.stringify(addon))
-              : [],
+            browser_addon: item.browser_addon || "none",
             image_status: typedImageStatus,
           } as SavedAd; // Use type assertion to ensure TypeScript treats this as SavedAd
         });

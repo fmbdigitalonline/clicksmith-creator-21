@@ -47,12 +47,14 @@ const LANGUAGE_OPTIONS = [
   { value: "ar_AR", label: "Arabic" }
 ];
 
-// Browser addon options
+// Browser addon options - updated with correct options
 const BROWSER_ADDONS = [
-  { value: "automatic_placements", label: "Automatic Placements" },
-  { value: "pixel_tracking", label: "Facebook Pixel Tracking" },
-  { value: "instagram_placement", label: "Instagram Placement" },
-  { value: "messenger_placement", label: "Messenger Placement" }
+  { value: "none", label: "Geen (geen knop toevoegen)" },
+  { value: "call_button", label: "Bellen (voeg een belknop toe)" },
+  { value: "express_form", label: "Expresformulier (verzamel contactgegevens)" },
+  { value: "chat_app", label: "Chatberichtenapp (Messenger, Instagram of WhatsApp)" },
+  { value: "instant_experience", label: "Instant Experience (snel ladende mobiele ervaring)" },
+  { value: "facebook_event", label: "Facebook-evenement (naar evenement op Facebook)" }
 ];
 
 export default function FacebookAdSettingsComponent({ ad, onSettingsChanged }: FacebookAdSettingsProps) {
@@ -64,7 +66,7 @@ export default function FacebookAdSettingsComponent({ ad, onSettingsChanged }: F
     visible_link: ad.fb_ad_settings?.visible_link || ad.visible_link || "",
     language: ad.fb_ad_settings?.language || ad.fb_language || "en_US",
     url_parameters: ad.fb_ad_settings?.url_parameters || ad.url_parameters || "",
-    browser_addons: ad.fb_ad_settings?.browser_addons || ad.browser_addons || []
+    browser_addon: ad.fb_ad_settings?.browser_addon || "none"
   });
   const { toast } = useToast();
 
@@ -73,17 +75,6 @@ export default function FacebookAdSettingsComponent({ ad, onSettingsChanged }: F
       ...prev,
       [field]: value
     }));
-  };
-
-  const handleAddonToggle = (value: string) => {
-    setSettings(prev => {
-      const addons = prev.browser_addons || [];
-      if (addons.includes(value)) {
-        return { ...prev, browser_addons: addons.filter(a => a !== value) };
-      } else {
-        return { ...prev, browser_addons: [...addons, value] };
-      }
-    });
   };
 
   const saveSettings = async () => {
@@ -98,7 +89,7 @@ export default function FacebookAdSettingsComponent({ ad, onSettingsChanged }: F
           visible_link: settings.visible_link,
           fb_language: settings.language,
           url_parameters: settings.url_parameters,
-          browser_addons: settings.browser_addons
+          browser_addon: settings.browser_addon
         })
         .eq('id', ad.id);
 
@@ -214,24 +205,23 @@ export default function FacebookAdSettingsComponent({ ad, onSettingsChanged }: F
           </div>
           
           <div className="space-y-2">
-            <Label className="mb-2 block">Browser Add-ons</Label>
-            <div className="space-y-2">
-              {BROWSER_ADDONS.map(addon => (
-                <div key={addon.value} className="flex items-center space-x-2">
-                  <Checkbox 
-                    id={`addon-${addon.value}`}
-                    checked={(settings.browser_addons || []).includes(addon.value)}
-                    onCheckedChange={() => handleAddonToggle(addon.value)}
-                  />
-                  <label
-                    htmlFor={`addon-${addon.value}`}
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                  >
-                    {addon.label}
-                  </label>
-                </div>
-              ))}
-            </div>
+            <Label htmlFor="browser_addon">Browser Add-on</Label>
+            <Select
+              value={settings.browser_addon || "none"}
+              onValueChange={(value) => handleChange("browser_addon", value)}
+            >
+              <SelectTrigger id="browser_addon">
+                <SelectValue placeholder="Select add-on" />
+              </SelectTrigger>
+              <SelectContent>
+                {BROWSER_ADDONS.map(option => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">Special features to add to your ad</p>
           </div>
           
           <div className="pt-2 flex justify-end">
