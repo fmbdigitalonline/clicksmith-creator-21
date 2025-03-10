@@ -1,22 +1,14 @@
-
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import { SavedAd, FacebookAdSettings } from "@/types/campaignTypes";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Check, ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
+import { SavedAd, FacebookAdSettings } from "@/types/campaignTypes";
 
 interface FacebookAdSettingsProps {
   ad: SavedAd;
@@ -62,7 +54,7 @@ const BROWSER_ADDONS = [
   { value: "messenger_placement", label: "Messenger Placement" }
 ];
 
-export default function FacebookAdSettings({ ad, onSettingsChanged }: FacebookAdSettingsProps) {
+export default function FacebookAdSettingsComponent({ ad, onSettingsChanged }: FacebookAdSettingsProps) {
   const [expanded, setExpanded] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [settings, setSettings] = useState<FacebookAdSettings>({
@@ -96,7 +88,6 @@ export default function FacebookAdSettings({ ad, onSettingsChanged }: FacebookAd
   const saveSettings = async () => {
     setIsSaving(true);
     try {
-      // Save to database
       const { error } = await supabase
         .from('ad_feedback')
         .update({
@@ -112,7 +103,6 @@ export default function FacebookAdSettings({ ad, onSettingsChanged }: FacebookAd
 
       if (error) throw error;
 
-      // Notify parent component
       onSettingsChanged(ad.id, settings);
       
       toast({

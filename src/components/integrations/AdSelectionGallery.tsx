@@ -1,27 +1,17 @@
-
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { Json } from "@/integrations/supabase/types";
 import { Card, CardContent } from "@/components/ui/card";
-import { SavedAdCard } from "@/components/gallery/components/SavedAdCard";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, CheckSquare, Square, Filter, LayoutGrid, MapPin, Link } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { supabase } from "@/integrations/supabase/client";
+import { Loader2, CheckSquare, Square, LayoutGrid, Link } from "lucide-react";
 import { SavedAd, AdSelectionGalleryProps, AdSize, FacebookAdSettings } from "@/types/campaignTypes";
-import { AD_FORMATS } from "@/components/steps/gallery/components/AdSizeSelector";
-import FacebookAdSettings from "./FacebookAdSettings";
+import { Badge } from "@/components/ui/badge";
+import FacebookAdSettingsComponent from "./FacebookAdSettings";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 export default function AdSelectionGallery({ 
   projectId, 
@@ -58,9 +48,8 @@ export default function AdSelectionGallery({
 
       let query = supabase
         .from('ad_feedback')
-        .select('id, saved_images, headline, primary_text, rating, feedback, created_at, imageurl, imageUrl, platform, project_id, size, website_url, call_to_action, visible_link, fb_language, url_parameters, browser_addons, fb_ad_settings');
+        .select('*');
       
-      // If projectId is provided, only show ads for that project
       if (projectId) {
         query = query.eq('project_id', projectId);
       }
@@ -71,48 +60,9 @@ export default function AdSelectionGallery({
 
       if (error) throw error;
 
-      // Convert database response to SavedAd type with proper type handling
-      const formattedAds: SavedAd[] = (data || []).map(ad => {
-        // Handle the saved_images field which could be a variety of types
-        let savedImages: string[] = [];
-        
-        if (ad.saved_images) {
-          if (Array.isArray(ad.saved_images)) {
-            // Try to convert each item to string if possible
-            savedImages = (ad.saved_images as Json[]).map(img => 
-              typeof img === 'string' ? img : String(img)
-            );
-          } else if (typeof ad.saved_images === 'string') {
-            savedImages = [ad.saved_images];
-          }
-        }
-        
-        // Handle the size field which is JSON
-        let sizeObj: AdSize = { width: 1200, height: 628, label: "Default" };
-        if (ad.size) {
-          // First ensure we're dealing with an object
-          if (typeof ad.size === 'object' && ad.size !== null) {
-            const sizeData = ad.size as Record<string, Json>;
-            
-            // Now we can safely access properties with type checking
-            sizeObj = {
-              width: typeof sizeData.width === 'number' ? sizeData.width : 1200,
-              height: typeof sizeData.height === 'number' ? sizeData.height : 628,
-              label: typeof sizeData.label === 'string' ? sizeData.label : "Default"
-            };
-          }
-        }
-        
-        return {
-          ...ad,
-          saved_images: savedImages,
-          size: sizeObj,
-          // Make sure we cast or properly initialize Facebook ad settings
-          fb_ad_settings: ad.fb_ad_settings as FacebookAdSettings || undefined
-        };
-      });
-
-      setSavedAds(formattedAds);
+      if (data) {
+        setSavedAds(data as SavedAd[]);
+      }
     } catch (error) {
       console.error('Error fetching saved ads:', error);
       toast({
@@ -208,17 +158,12 @@ export default function AdSelectionGallery({
     }));
   };
 
-  // Handle Facebook ad settings change for a specific ad
-  const handleFacebookSettingsChanged = (adId: string, settings: FacebookAdSettings) => {
+  const handleFacebookSettingsChanged = (adId: string, settings: SavedAd['fb_ad_settings']) => {
     setSavedAds(prevAds => 
       prevAds.map(ad => 
-        ad.id === adId 
-          ? { ...ad, fb_ad_settings: settings, website_url: settings.website_url, call_to_action: settings.call_to_action } 
-          : ad
+        ad.id === adId ? { ...ad, fb_ad_settings: settings } : ad
       )
     );
-    
-    fetchSavedAds(); // Refresh to get updated settings
   };
 
   const filteredAds = getFilteredAds();
@@ -474,7 +419,7 @@ export default function AdSelectionGallery({
               )}
               
               {/* Facebook Ad Settings */}
-              <FacebookAdSettings 
+              <FacebookAdSettingsComponent 
                 ad={ad}
                 onSettingsChanged={handleFacebookSettingsChanged}
               />

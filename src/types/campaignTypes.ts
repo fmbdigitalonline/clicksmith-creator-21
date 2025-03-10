@@ -1,4 +1,3 @@
-
 import { Json } from "@/integrations/supabase/types";
 
 export interface SavedAd {
@@ -18,13 +17,13 @@ export interface SavedAd {
   project_id?: string;
   size?: AdSize;
   // Facebook Ad specific settings
+  fb_ad_settings?: FacebookAdSettings;
   website_url?: string;
   call_to_action?: string;
   visible_link?: string;
   fb_language?: string;
   url_parameters?: string;
   browser_addons?: string[];
-  fb_ad_settings?: FacebookAdSettings;
 }
 
 export interface FacebookAdSettings {
