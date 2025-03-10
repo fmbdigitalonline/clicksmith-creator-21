@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
 
@@ -161,12 +160,16 @@ async function createCampaign(
   const dailyBudget = Math.round(campaignData.budget * 100);
   
   try {
+    // Fix: Remove account_id prefix if it already exists
+    const cleanedAccountId = accountId.replace(/^act_/i, '');
+    console.log('Using cleaned account ID:', cleanedAccountId);
+    
     // Step 1: Create the campaign
     const campaign = await createFacebookCampaign(
       campaignData.name,
       campaignData.objective,
       accessToken,
-      accountId
+      cleanedAccountId
     );
     
     if (!campaign.id) {
@@ -192,7 +195,7 @@ async function createCampaign(
       campaignData.targeting,
       campaignData.objective,
       accessToken,
-      accountId
+      cleanedAccountId
     );
     
     if (!adSet.id) {
@@ -247,7 +250,7 @@ async function createCampaign(
           adDetail.primary_text,
           adDetail.imageUrl,
           accessToken,
-          accountId
+          cleanedAccountId
         );
         
         console.log('Ad Creative created:', creative);
@@ -261,7 +264,7 @@ async function createCampaign(
             creative.id,
             adDetail.headline + ' Ad',
             accessToken,
-            accountId
+            cleanedAccountId
           );
           
           console.log('Ad created:', ad);
@@ -410,8 +413,13 @@ async function createFacebookCampaign(
   accessToken: string,
   accountId: string
 ) {
+  // Fix: Ensure we have the proper account ID format for the API
+  const apiAccountId = `act_${accountId.replace(/^act_/i, '')}`;
+  
+  console.log(`Creating campaign with account ID: ${apiAccountId}`);
+  
   const response = await fetch(
-    `https://graph.facebook.com/v18.0/act_${accountId}/campaigns`,
+    `https://graph.facebook.com/v18.0/${apiAccountId}/campaigns`,
     {
       method: 'POST',
       headers: {
@@ -446,6 +454,9 @@ async function createFacebookAdSet(
   accessToken: string,
   accountId: string
 ) {
+  // Fix: Ensure we have the proper account ID format for the API
+  const apiAccountId = `act_${accountId.replace(/^act_/i, '')}`;
+  
   // Format dates for Facebook API
   const formattedStartDate = startDate.toISOString();
   const formattedEndDate = endDate ? endDate.toISOString() : undefined;
@@ -534,7 +545,7 @@ async function createFacebookAdSet(
   }
   
   const response = await fetch(
-    `https://graph.facebook.com/v18.0/act_${accountId}/adsets`,
+    `https://graph.facebook.com/v18.0/${apiAccountId}/adsets`,
     {
       method: 'POST',
       headers: {
@@ -561,12 +572,15 @@ async function createFacebookAdCreative(
   accessToken: string,
   accountId: string
 ) {
+  // Fix: Ensure we have the proper account ID format for the API
+  const apiAccountId = `act_${accountId.replace(/^act_/i, '')}`;
+  
   // Default landing page URL if not provided
   const linkUrl = 'https://example.com';
   
   // First, upload the image to Facebook
   const imageResponse = await fetch(
-    `https://graph.facebook.com/v18.0/act_${accountId}/adimages`,
+    `https://graph.facebook.com/v18.0/${apiAccountId}/adimages`,
     {
       method: 'POST',
       headers: {
@@ -596,7 +610,7 @@ async function createFacebookAdCreative(
   
   // Now create the ad creative with the image
   const creativeResponse = await fetch(
-    `https://graph.facebook.com/v18.0/act_${accountId}/adcreatives`,
+    `https://graph.facebook.com/v18.0/${apiAccountId}/adcreatives`,
     {
       method: 'POST',
       headers: {
@@ -634,8 +648,11 @@ async function createFacebookAd(
   accessToken: string,
   accountId: string
 ) {
+  // Fix: Ensure we have the proper account ID format for the API
+  const apiAccountId = `act_${accountId.replace(/^act_/i, '')}`;
+  
   const response = await fetch(
-    `https://graph.facebook.com/v18.0/act_${accountId}/ads`,
+    `https://graph.facebook.com/v18.0/${apiAccountId}/ads`,
     {
       method: 'POST',
       headers: {
