@@ -1,12 +1,13 @@
 
 import { supabase } from "@/integrations/supabase/client";
+import { SavedAd } from "@/types/savedAd";
 
 /**
- * Process an image for Facebook ads
+ * Processes an image for Facebook ads, ensuring it's stored in Supabase Storage
  * @param adId The ID of the ad to process
- * @returns Object with processing result
+ * @returns A promise resolving to the processing result
  */
-export const processImageForFacebook = async (adId: string) => {
+export async function processImageForAd(adId: string) {
   try {
     const { data, error } = await supabase.functions.invoke('migrate-images', {
       body: { adId }
@@ -14,54 +15,19 @@ export const processImageForFacebook = async (adId: string) => {
 
     if (error) throw error;
 
-    if (!data || !data.processed || data.processed.length === 0) {
-      throw new Error('No processing result returned');
-    }
-
-    const result = data.processed[0];
-    if (!result.success) {
-      throw new Error(result.error || 'Failed to process image');
-    }
-
-    return result;
+    return data;
   } catch (error) {
-    console.error('Error processing image for Facebook:', error);
+    console.error('Error processing image:', error);
     throw error;
   }
-};
+}
 
 /**
- * Check the status of image processing
- * @param adId The ID of the ad to check
- * @returns Object with current image status
+ * Processes images for a batch of ads 
+ * @param batchSize Number of ads to process in batch (default: 10)
+ * @returns Processing results
  */
-export const checkImageStatus = async (adId: string) => {
-  try {
-    const { data, error } = await supabase
-      .from('ad_feedback')
-      .select('image_status, storage_url, original_url')
-      .eq('id', adId)
-      .single();
-
-    if (error) throw error;
-
-    return {
-      status: data?.image_status || 'pending',
-      storageUrl: data?.storage_url,
-      originalUrl: data?.original_url || data?.imageUrl
-    };
-  } catch (error) {
-    console.error('Error checking image status:', error);
-    throw error;
-  }
-};
-
-/**
- * Process a batch of images for Facebook ads
- * @param batchSize Number of images to process
- * @returns Object with processing results
- */
-export const processBatchForFacebook = async (batchSize = 10) => {
+export async function processPendingImages(batchSize = 10) {
   try {
     const { data, error } = await supabase.functions.invoke('migrate-images', {
       body: { 
@@ -74,63 +40,63 @@ export const processBatchForFacebook = async (batchSize = 10) => {
 
     return data;
   } catch (error) {
-    console.error('Error processing batch for Facebook:', error);
+    console.error('Error processing images in batch:', error);
     throw error;
   }
-};
+}
 
 /**
- * Upload an image to Supabase Storage and update ad_feedback
- * @param file The file to upload
- * @param adId The ID of the ad to update
- * @returns Object with upload result
+ * Gets the current image status for an ad
+ * @param adId The ID of the ad
+ * @returns The current image status and URLs
  */
-export const uploadAndProcessImage = async (file: File, adId: string) => {
+export async function getImageStatus(adId: string) {
   try {
-    // First, upload the file to Supabase Storage
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('User not authenticated');
-    
-    // Generate a unique path including userId and timestamp
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const userId = user.id;
-    const fileName = `${userId}/${timestamp}-${file.name}`;
-    
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('ad-images')
-      .upload(fileName, file, {
-        cacheControl: '3600',
-      });
-      
-    if (uploadError) throw uploadError;
-    
-    // Get the public URL
-    const { data: { publicUrl } } = supabase.storage
-      .from('ad-images')
-      .getPublicUrl(fileName);
-      
-    // Update the ad_feedback record
-    const { data: updateData, error: updateError } = await supabase
+    const { data, error } = await supabase
       .from('ad_feedback')
-      .update({
-        storage_url: publicUrl,
-        imageUrl: publicUrl,
-        imageurl: publicUrl,
-        image_status: 'ready'
-      })
+      .select('image_status, storage_url, original_url, imageUrl, imageurl')
       .eq('id', adId)
-      .select()
       .single();
-      
-    if (updateError) throw updateError;
-    
+
+    if (error) throw error;
+
     return {
-      success: true,
-      publicUrl,
-      adData: updateData
+      status: data.image_status || 'pending',
+      storageUrl: data.storage_url,
+      originalUrl: data.original_url || data.imageUrl || data.imageurl,
     };
   } catch (error) {
-    console.error('Error uploading and processing image:', error);
+    console.error('Error getting image status:', error);
     throw error;
   }
-};
+}
+
+/**
+ * Checks if a URL is publicly accessible
+ * @param url The URL to check
+ * @returns Whether the URL is publicly accessible
+ */
+export async function isImageUrlAccessible(url: string): Promise<boolean> {
+  if (!url) return false;
+  
+  try {
+    const response = await fetch(url, { 
+      method: 'HEAD',
+      mode: 'no-cors'
+    });
+    return response.ok;
+  } catch (error) {
+    console.error('Error checking image accessibility:', error);
+    return false;
+  }
+}
+
+/**
+ * Gets the best available URL for an ad image
+ * Prefers storage_url if available, falls back to imageUrl/imageurl
+ * @param ad The ad object
+ * @returns The best available URL
+ */
+export function getBestImageUrl(ad: SavedAd): string | undefined {
+  return ad.storage_url || ad.imageUrl || ad.imageurl;
+}
