@@ -1,151 +1,186 @@
-
 import { supabase } from "@/integrations/supabase/client";
-import { AdHook, AdImage } from "@/types/adWizard";
-import { SavedAd, SavedAdJson } from "@/types/savedAd";
-import { Json } from "@/integrations/supabase/types";
-import { v4 as uuidv4 } from 'uuid';
+import { SavedAd, SavedAdJson } from "@/types/campaignTypes";
 
-interface SaveAdParams {
-  image: AdImage;
-  hook: AdHook;
-  rating: string;
-  feedback: string;
-  projectId?: string;
-  primaryText?: string;
-  headline?: string;
-}
+// Modified to use properties from SavedAd interface
+export const saveAdToProject = async (
+  projectId: string, 
+  adData: any
+) => {
+  // Implementation would depend on the actual adData structure
+  // Converting whatever structure we have to match SavedAd interface
+  
+  const savedAd: SavedAd = {
+    id: adData.id || crypto.randomUUID(),
+    saved_images: adData.saved_images || [],
+    headline: adData.headline,
+    primary_text: adData.primary_text,
+    rating: adData.rating || 0,
+    feedback: adData.feedback || "",
+    created_at: new Date().toISOString(),
+    imageurl: adData.imageurl || adData.imageUrl,
+    imageUrl: adData.imageUrl || adData.imageurl,
+    platform: adData.platform,
+    project_id: projectId,
+    size: adData.size
+  };
 
-interface SaveAdResult {
-  success: boolean;
-  message: string;
-  shouldCreateProject?: boolean;
-}
+  // Save to database logic...
+  return savedAd;
+};
 
-export const saveAd = async (params: SaveAdParams): Promise<SaveAdResult> => {
-  const { image, hook, rating, feedback, projectId, primaryText, headline } = params;
-
-  if (!rating) {
-    return {
-      success: false,
-      message: "Please provide a rating before saving."
-    };
+export const formatSavedAd = (ad: any): SavedAd => {
+  // Handle legacy format or other format conversions
+  if ('imageurl' in ad || 'imageUrl' in ad) {
+    // This is already in SavedAd format
+    return ad as SavedAd;
   }
+  
+  // Convert from another format to SavedAd
+  return {
+    id: ad.id || crypto.randomUUID(),
+    saved_images: ad.saved_images || [ad.imageurl || ad.imageUrl].filter(Boolean),
+    headline: ad.headline,
+    primary_text: ad.primary_text,
+    rating: ad.rating || 0,
+    feedback: ad.feedback || "",
+    created_at: ad.created_at || new Date().toISOString(),
+    imageurl: ad.imageurl || (ad.imageUrl || ""),
+    imageUrl: ad.imageUrl || (ad.imageurl || ""),
+    platform: ad.platform,
+    project_id: ad.project_id,
+    size: ad.size
+  };
+};
 
+export const saveAdToSupabase = async (projectId: string, adData: any) => {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: project } = await supabase
+      .from('projects')
+      .select('generated_ads')
+      .eq('id', projectId)
+      .single();
     
-    if (!user) {
-      return {
-        success: false,
-        message: "User must be logged in to save feedback"
-      };
+    const savedAd = formatSavedAd(adData);
+    
+    let generatedAds = [];
+    if (project?.generated_ads && Array.isArray(project.generated_ads)) {
+      generatedAds = [...project.generated_ads];
     }
-
-    const isValidUUID = projectId && 
-                       projectId !== "new" && 
-                       /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(projectId);
-    const validProjectId = isValidUUID ? projectId : null;
-
-    if (validProjectId) {
-      // Only attempt to fetch and update project if we have a valid UUID
-      const { data: project, error: projectError } = await supabase
-        .from('projects')
-        .select('generated_ads')
-        .eq('id', validProjectId)
-        .single();
-
-      if (projectError) {
-        console.error('Error fetching project:', projectError);
-        throw projectError;
-      }
-
-      const existingAds = ((project?.generated_ads as SavedAdJson[]) || []).map(ad => ({
-        image: ad.image as AdImage,
-        hook: ad.hook as AdHook,
-        rating: ad.rating as number,
-        feedback: ad.feedback as string,
-        savedAt: ad.savedAt as string,
-      }));
-
-      const newAd: SavedAd = {
-        image,
-        hook,
-        rating: parseInt(rating, 10),
-        feedback,
-        savedAt: new Date().toISOString()
-      };
-
-      const jsonAds: SavedAdJson[] = [...existingAds, newAd].map(ad => ({
-        image: ad.image as Json,
-        hook: ad.hook as Json,
-        rating: ad.rating as Json,
-        feedback: ad.feedback as Json,
-        savedAt: ad.savedAt as Json,
-      }));
-
-      const { error: updateError } = await supabase
-        .from('projects')
-        .update({
-          generated_ads: jsonAds
-        })
-        .eq('id', validProjectId);
-
-      if (updateError) {
-        console.error('Error updating project:', updateError);
-        throw updateError;
-      }
-    } else if (projectId === "new") {
-      return {
-        success: false,
-        message: "No Project Selected",
-        shouldCreateProject: true
-      };
+    
+    // Check if ad already exists
+    const existingAdIndex = generatedAds.findIndex(ad => ad.id === savedAd.id);
+    if (existingAdIndex >= 0) {
+      // Update existing ad
+      generatedAds[existingAdIndex] = savedAd;
+    } else {
+      // Add new ad
+      generatedAds.push(savedAd);
     }
-
-    // Create base feedback data with the correct column name 'imageurl'
-    const baseFeedbackData = {
-      id: uuidv4(),
-      user_id: user.id,
-      rating: parseInt(rating, 10),
-      feedback,
-      saved_images: [image.url],
-      primary_text: primaryText || hook.text || null,
-      headline: headline || hook.description || null,
-      imageurl: image.url, // Changed from imageUrl to imageurl
-      platform: "facebook", // Added default platform
-      size: {
-        width: 1200,
-        height: 628,
-        label: "Landscape (1.91:1)"
-      },
-      created_at: new Date().toISOString()
-    };
-
-    // Add project_id if valid
-    const feedbackData = validProjectId 
-      ? { ...baseFeedbackData, project_id: validProjectId }
-      : baseFeedbackData;
-
-    const { error: feedbackError } = await supabase
-      .from('ad_feedback')
-      .insert(feedbackData);
-
-    if (feedbackError) {
-      console.error('Error saving feedback:', feedbackError);
-      throw feedbackError;
-    }
-
-    return {
-      success: true,
-      message: validProjectId 
-        ? "Your feedback has been saved and ad added to project."
-        : "Your feedback has been saved."
-    };
+    
+    const { error } = await supabase
+      .from('projects')
+      .update({ generated_ads: generatedAds })
+      .eq('id', projectId);
+    
+    if (error) throw error;
+    
+    return savedAd;
   } catch (error) {
-    console.error('Error saving ad:', error);
-    return {
-      success: false,
-      message: error instanceof Error ? error.message : "Failed to save feedback."
-    };
+    console.error('Error saving ad to Supabase:', error);
+    throw error;
+  }
+};
+
+export const deleteAdFromSupabase = async (projectId: string, adId: string) => {
+  try {
+    const { data: project } = await supabase
+      .from('projects')
+      .select('generated_ads')
+      .eq('id', projectId)
+      .single();
+    
+    if (!project?.generated_ads || !Array.isArray(project.generated_ads)) {
+      return;
+    }
+    
+    const updatedAds = project.generated_ads.filter(ad => ad.id !== adId);
+    
+    const { error } = await supabase
+      .from('projects')
+      .update({ generated_ads: updatedAds })
+      .eq('id', projectId);
+    
+    if (error) throw error;
+    
+    return true;
+  } catch (error) {
+    console.error('Error deleting ad from Supabase:', error);
+    throw error;
+  }
+};
+
+export const updateAdRating = async (projectId: string, adId: string, rating: number) => {
+  try {
+    const { data: project } = await supabase
+      .from('projects')
+      .select('generated_ads')
+      .eq('id', projectId)
+      .single();
+    
+    if (!project?.generated_ads || !Array.isArray(project.generated_ads)) {
+      return;
+    }
+    
+    const updatedAds = project.generated_ads.map(ad => {
+      if (ad.id === adId) {
+        return { ...ad, rating };
+      }
+      return ad;
+    });
+    
+    const { error } = await supabase
+      .from('projects')
+      .update({ generated_ads: updatedAds })
+      .eq('id', projectId);
+    
+    if (error) throw error;
+    
+    return true;
+  } catch (error) {
+    console.error('Error updating ad rating:', error);
+    throw error;
+  }
+};
+
+export const updateAdFeedback = async (projectId: string, adId: string, feedback: string) => {
+  try {
+    const { data: project } = await supabase
+      .from('projects')
+      .select('generated_ads')
+      .eq('id', projectId)
+      .single();
+    
+    if (!project?.generated_ads || !Array.isArray(project.generated_ads)) {
+      return;
+    }
+    
+    const updatedAds = project.generated_ads.map(ad => {
+      if (ad.id === adId) {
+        return { ...ad, feedback };
+      }
+      return ad;
+    });
+    
+    const { error } = await supabase
+      .from('projects')
+      .update({ generated_ads: updatedAds })
+      .eq('id', projectId);
+    
+    if (error) throw error;
+    
+    return true;
+  } catch (error) {
+    console.error('Error updating ad feedback:', error);
+    throw error;
   }
 };

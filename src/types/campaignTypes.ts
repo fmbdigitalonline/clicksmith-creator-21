@@ -16,6 +16,9 @@ export interface SavedAd {
   size?: AdSize;
 }
 
+// Add this alias type to fix the missing SavedAdJson export
+export type SavedAdJson = SavedAd;
+
 export interface AdSize {
   width: number;
   height: number;
