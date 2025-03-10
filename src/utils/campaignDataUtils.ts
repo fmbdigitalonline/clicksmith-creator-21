@@ -30,6 +30,20 @@ export const extractTargetingData = (targetAudience, audienceAnalysis) => {
       }
     }
     
+    // Try to extract age from demographics if age_range not present
+    if (!targetAudience.age_range && targetAudience.demographics) {
+      const demographics = targetAudience.demographics;
+      if (typeof demographics === 'string') {
+        // Look for patterns like "35-45 years old" in demographics string
+        const ageMatch = demographics.match(/(\d+)[-\s]*(\d+)[\s]*years?\s*old/i);
+        if (ageMatch && ageMatch.length >= 3) {
+          const [_, min, max] = ageMatch;
+          if (!isNaN(parseInt(min))) ageMin = Math.max(13, parseInt(min));
+          if (!isNaN(parseInt(max))) ageMax = Math.min(65, parseInt(max));
+        }
+      }
+    }
+    
     // Extract gender
     let gender = "ALL";
     if (targetAudience.gender) {
@@ -37,6 +51,16 @@ export const extractTargetingData = (targetAudience, audienceAnalysis) => {
         gender = "MALE";
       } else if (targetAudience.gender.toLowerCase() === "female") {
         gender = "FEMALE";
+      }
+    } else if (targetAudience.demographics) {
+      // Try to extract gender from demographics string
+      const demographics = targetAudience.demographics;
+      if (typeof demographics === 'string') {
+        if (demographics.toLowerCase().includes("female")) {
+          gender = "FEMALE";
+        } else if (demographics.toLowerCase().includes("male")) {
+          gender = "MALE";
+        }
       }
     }
     
@@ -56,12 +80,28 @@ export const extractTargetingData = (targetAudience, audienceAnalysis) => {
         : [targetAudience.location];
     }
     
+    // Format locations for Facebook API
+    const formattedLocations = locations.length > 0 
+      ? locations.map(loc => {
+          // Check if it's a country code
+          if (typeof loc === 'string' && loc.length === 2) {
+            return { key: 'countries', value: [loc.toUpperCase()] };
+          }
+          // Check if it's a city
+          else if (typeof loc === 'string' && loc.indexOf(',') > -1) {
+            return { key: 'cities', value: [loc.trim()] };
+          }
+          // Default to US
+          return { key: 'countries', value: ['US'] };
+        })
+      : [{ key: 'countries', value: ['US'] }];
+    
     return {
       age_min: ageMin,
       age_max: ageMax,
       gender,
       interests,
-      locations
+      locations: formattedLocations
     };
   } catch (error) {
     console.error("Error extracting targeting data:", error);
@@ -74,11 +114,22 @@ export const callFacebookCampaignManager = async (action, data) => {
   console.log(`Calling Facebook Campaign Manager with action: ${action}`, data);
   
   try {
+    // Get auth token for the user
+    const { data: { session } } = await supabase.auth.getSession();
+    const accessToken = session?.access_token;
+    
+    if (!accessToken) {
+      throw new Error("No authentication token available. Please log in again.");
+    }
+    
     const { data: responseData, error } = await supabase.functions.invoke('facebook-campaign-manager', {
       body: {
         operation: action,
         ...data
       },
+      headers: {
+        Authorization: `Bearer ${accessToken}`
+      }
     });
     
     if (error) {
