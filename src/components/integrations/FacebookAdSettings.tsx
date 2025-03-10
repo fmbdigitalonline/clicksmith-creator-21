@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -12,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Globe, Copy } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { FacebookAdSettings } from "@/types/campaignTypes";
+import { Json } from "@/integrations/supabase/types";
 
 // Define the schema for Facebook ad settings
 const facebookAdSettingsSchema = z.object({
@@ -26,7 +28,7 @@ const facebookAdSettingsSchema = z.object({
 interface FacebookAdSettingsFormProps {
   adIds: string[];
   projectUrl?: string;
-  onSettingsSaved?: (settings: FacebookAdSettings, applyToAll?: boolean) => void;
+  onSettingsSaved?: (settings: FacebookAdSettings, adId: string, applyToAll?: boolean) => void;
   initialSettings?: FacebookAdSettings;
   showApplyToAllOption?: boolean;
 }
@@ -109,9 +111,15 @@ export default function FacebookAdSettingsForm({
 
         if (data?.fb_ad_settings) {
           // Ensure type safety by coalescing with defaultSettings
+          const fbSettings = data.fb_ad_settings as Record<string, unknown>;
           const safeSettings: FacebookAdSettings = {
             ...defaultSettings,
-            ...(data.fb_ad_settings as Record<string, unknown>)
+            website_url: typeof fbSettings.website_url === 'string' ? fbSettings.website_url : defaultSettings.website_url,
+            visible_link: typeof fbSettings.visible_link === 'string' ? fbSettings.visible_link : defaultSettings.visible_link,
+            call_to_action: typeof fbSettings.call_to_action === 'string' ? fbSettings.call_to_action : defaultSettings.call_to_action,
+            ad_language: typeof fbSettings.ad_language === 'string' ? fbSettings.ad_language : defaultSettings.ad_language,
+            url_parameters: typeof fbSettings.url_parameters === 'string' ? fbSettings.url_parameters : defaultSettings.url_parameters,
+            browser_addon: typeof fbSettings.browser_addon === 'string' ? fbSettings.browser_addon : defaultSettings.browser_addon,
           };
           form.reset(safeSettings);
         }
@@ -123,7 +131,7 @@ export default function FacebookAdSettingsForm({
     };
 
     fetchSettings();
-  }, [adIds, form, initialSettings, projectUrl]);
+  }, [adIds, form, initialSettings, projectUrl, defaultSettings]);
 
   // Update form when projectUrl changes
   useEffect(() => {
@@ -161,12 +169,21 @@ export default function FacebookAdSettingsForm({
     setIsLoading(true);
     try {
       if (onSettingsSaved) {
-        onSettingsSaved(completeSettings, applyToAll);
+        onSettingsSaved(completeSettings, adIds[0], applyToAll);
+      } else {
+        // Direct database update fallback if no callback provided
+        const { error } = await supabase
+          .from('ad_feedback')
+          .update({ fb_ad_settings: completeSettings as unknown as Json })
+          .eq('id', adIds[0]);
+          
+        if (error) throw error;
+        
+        toast({
+          title: "Success",
+          description: "Facebook ad settings have been saved.",
+        });
       }
-      toast({
-        title: "Success",
-        description: "Facebook ad settings have been saved.",
-      });
     } catch (error) {
       console.error('Error saving ad settings:', error);
       toast({

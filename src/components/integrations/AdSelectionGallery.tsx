@@ -185,7 +185,7 @@ export default function AdSelectionGallery({
         for (const id of adsToUpdate) {
           await supabase
             .from('ad_feedback')
-            .update({ fb_ad_settings: settings as Json })
+            .update({ fb_ad_settings: settings as unknown as Json })
             .eq('id', id);
         }
         
@@ -206,7 +206,7 @@ export default function AdSelectionGallery({
         // Update just this ad
         await supabase
           .from('ad_feedback')
-          .update({ fb_ad_settings: settings as Json })
+          .update({ fb_ad_settings: settings as unknown as Json })
           .eq('id', adId);
           
         // Update local state
