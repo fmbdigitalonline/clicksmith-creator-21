@@ -1,18 +1,25 @@
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { Json } from "@/integrations/supabase/types";
 import { Card, CardContent } from "@/components/ui/card";
+import { SavedAdCard } from "@/components/gallery/components/SavedAdCard";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Loader2, CheckSquare, Square, Filter, LayoutGrid, MapPin } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { supabase } from "@/integrations/supabase/client";
-import { Loader2, CheckSquare, Square, LayoutGrid, Link } from "lucide-react";
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { SavedAd, AdSelectionGalleryProps, AdSize } from "@/types/campaignTypes";
-import { Badge } from "@/components/ui/badge";
-import FacebookAdSettingsComponent from "./FacebookAdSettings";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { AD_FORMATS } from "@/components/steps/gallery/components/AdSizeSelector";
 
 export default function AdSelectionGallery({ 
   projectId, 
@@ -49,8 +56,9 @@ export default function AdSelectionGallery({
 
       let query = supabase
         .from('ad_feedback')
-        .select('*');
+        .select('id, saved_images, headline, primary_text, rating, feedback, created_at, imageurl, imageUrl, platform, project_id, size');
       
+      // If projectId is provided, only show ads for that project
       if (projectId) {
         query = query.eq('project_id', projectId);
       }
@@ -61,40 +69,46 @@ export default function AdSelectionGallery({
 
       if (error) throw error;
 
-      if (data) {
-        // Convert the data to SavedAd type with proper type handling
-        const typedData: SavedAd[] = data.map(item => {
-          // Handle image_status type conversion to ensure it matches the union type
-          let typedImageStatus: "pending" | "processing" | "ready" | "failed" | undefined;
-          if (item.image_status) {
-            // Only assign valid values from the union type
-            if (['pending', 'processing', 'ready', 'failed'].includes(item.image_status)) {
-              typedImageStatus = item.image_status as "pending" | "processing" | "ready" | "failed";
-            } else {
-              typedImageStatus = "pending"; // Default fallback
-            }
+      // Convert database response to SavedAd type with proper type handling
+      const formattedAds: SavedAd[] = (data || []).map(ad => {
+        // Handle the saved_images field which could be a variety of types
+        let savedImages: string[] = [];
+        
+        if (ad.saved_images) {
+          if (Array.isArray(ad.saved_images)) {
+            // Try to convert each item to string if possible
+            savedImages = (ad.saved_images as Json[]).map(img => 
+              typeof img === 'string' ? img : String(img)
+            );
+          } else if (typeof ad.saved_images === 'string') {
+            savedImages = [ad.saved_images];
           }
+        }
+        
+        // Handle the size field which is JSON
+        let sizeObj: AdSize = { width: 1200, height: 628, label: "Default" };
+        if (ad.size) {
+          // First ensure we're dealing with an object
+          if (typeof ad.size === 'object' && ad.size !== null) {
+            const sizeData = ad.size as Record<string, Json>;
+            
+            // Now we can safely access properties with type checking
+            sizeObj = {
+              width: typeof sizeData.width === 'number' ? sizeData.width : 1200,
+              height: typeof sizeData.height === 'number' ? sizeData.height : 628,
+              label: typeof sizeData.label === 'string' ? sizeData.label : "Default"
+            };
+          }
+        }
+        
+        return {
+          ...ad,
+          saved_images: savedImages,
+          size: sizeObj
+        };
+      });
 
-          return {
-            ...item,
-            id: item.id,
-            saved_images: Array.isArray(item.saved_images) 
-              ? item.saved_images.map(img => typeof img === 'string' ? img : JSON.stringify(img))
-              : (item.saved_images ? [item.saved_images.toString()] : []),
-            rating: typeof item.rating === 'number' ? item.rating : 0,
-            size: item.size as unknown as AdSize || { width: 1200, height: 628, label: 'Facebook Feed' },
-            fb_ad_settings: item.fb_ad_settings || undefined,
-            website_url: item.website_url || undefined,
-            call_to_action: item.call_to_action || undefined,
-            visible_link: item.visible_link || undefined,
-            fb_language: item.fb_language || undefined,
-            url_parameters: item.url_parameters || undefined,
-            browser_addons: item.browser_addons || "none", // Fixed: using browser_addons instead of browser_addon
-            image_status: typedImageStatus,
-          } as SavedAd; // Use type assertion to ensure TypeScript treats this as SavedAd
-        });
-        setSavedAds(typedData);
-      }
+      setSavedAds(formattedAds);
     } catch (error) {
       console.error('Error fetching saved ads:', error);
       toast({
@@ -107,6 +121,7 @@ export default function AdSelectionGallery({
     }
   };
 
+  
   const handleAdSelect = (adId: string, isSelected: boolean) => {
     if (isSelected) {
       // Check if we've hit the selection limit
@@ -188,14 +203,6 @@ export default function AdSelectionGallery({
       value,
       label: size.label || `${size.width}x${size.height}`
     }));
-  };
-
-  const handleFacebookSettingsChanged = (adId: string, settings: SavedAd['fb_ad_settings']) => {
-    setSavedAds(prevAds => 
-      prevAds.map(ad => 
-        ad.id === adId ? { ...ad, fb_ad_settings: settings } : ad
-      )
-    );
   };
 
   const filteredAds = getFilteredAds();
@@ -332,9 +339,6 @@ export default function AdSelectionGallery({
               const ad = savedAds.find(a => a.id === adId);
               if (!ad) return null;
               
-              const hasWebsiteUrl = ad.website_url || (ad.fb_ad_settings?.website_url);
-              const callToAction = ad.call_to_action || ad.fb_ad_settings?.call_to_action || "LEARN_MORE";
-              
               return (
                 <div 
                   key={ad.id} 
@@ -365,23 +369,6 @@ export default function AdSelectionGallery({
                   
                   {/* Headline (truncated) */}
                   <p className="text-xs font-medium truncate">{ad.headline}</p>
-                  
-                  {/* Website URL if available */}
-                  {hasWebsiteUrl && (
-                    <div className="mt-1 flex items-center text-xs text-blue-600">
-                      <Link className="h-3 w-3 mr-1" />
-                      <span className="truncate">{ad.visible_link || ad.fb_ad_settings?.visible_link || new URL(hasWebsiteUrl).hostname}</span>
-                    </div>
-                  )}
-                  
-                  {/* Call-to-action button */}
-                  {callToAction && (
-                    <div className="mt-1">
-                      <span className="inline-block px-1.5 py-0.5 text-xs bg-facebook text-white rounded">
-                        {callToAction.replace(/_/g, " ")}
-                      </span>
-                    </div>
-                  )}
                 </div>
               );
             })}
@@ -390,7 +377,7 @@ export default function AdSelectionGallery({
       )}
       
       {/* Ads Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredAds.map((ad) => (
           <Card key={ad.id} className={`overflow-hidden relative border-2 ${selectedAds.includes(ad.id) ? 'border-primary' : 'border-transparent'}`}>
             <div className="absolute top-3 left-3 z-10 bg-white/90 p-1.5 rounded-md shadow-sm border border-gray-200">
@@ -449,12 +436,6 @@ export default function AdSelectionGallery({
                   ))}
                 </div>
               )}
-              
-              {/* Facebook Ad Settings */}
-              <FacebookAdSettingsComponent 
-                ad={ad}
-                onSettingsChanged={handleFacebookSettingsChanged}
-              />
             </div>
           </Card>
         ))}

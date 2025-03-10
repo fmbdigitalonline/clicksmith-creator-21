@@ -101,12 +101,8 @@ export type Database = {
       ad_feedback: {
         Row: {
           ad_id: string | null
-          browser_addons: Json | null
-          call_to_action: string | null
           created_at: string
           created_by: string | null
-          fb_ad_settings: Json | null
-          fb_language: string | null
           feedback: string | null
           headline: string | null
           id: string
@@ -123,19 +119,12 @@ export type Database = {
           size: Json | null
           storage_url: string | null
           updated_at: string
-          url_parameters: string | null
           user_id: string | null
-          visible_link: string | null
-          website_url: string | null
         }
         Insert: {
           ad_id?: string | null
-          browser_addons?: Json | null
-          call_to_action?: string | null
           created_at?: string
           created_by?: string | null
-          fb_ad_settings?: Json | null
-          fb_language?: string | null
           feedback?: string | null
           headline?: string | null
           id?: string
@@ -152,19 +141,12 @@ export type Database = {
           size?: Json | null
           storage_url?: string | null
           updated_at?: string
-          url_parameters?: string | null
           user_id?: string | null
-          visible_link?: string | null
-          website_url?: string | null
         }
         Update: {
           ad_id?: string | null
-          browser_addons?: Json | null
-          call_to_action?: string | null
           created_at?: string
           created_by?: string | null
-          fb_ad_settings?: Json | null
-          fb_language?: string | null
           feedback?: string | null
           headline?: string | null
           id?: string
@@ -181,10 +163,7 @@ export type Database = {
           size?: Json | null
           storage_url?: string | null
           updated_at?: string
-          url_parameters?: string | null
           user_id?: string | null
-          visible_link?: string | null
-          website_url?: string | null
         }
         Relationships: [
           {

@@ -141,7 +141,7 @@ const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, Cr
       // First, try to load from ad_feedback table
       const { data: adFeedbackData, error: adFeedbackError } = await supabase
         .from('ad_feedback')
-        .select('id, headline, primary_text, storage_url, imageUrl, imageurl, size, platform, image_status')
+        .select('id, headline, primary_text, imageUrl, imageurl, size, platform')
         .in('id', adIds);
       
       if (adFeedbackError) throw adFeedbackError;
@@ -152,11 +152,9 @@ const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, Cr
           id: ad.id,
           headline: ad.headline,
           primary_text: ad.primary_text,
-          // Prioritize storage_url over imageUrl/imageurl
-          imageUrl: ad.storage_url || ad.imageUrl || ad.imageurl,
+          imageUrl: ad.imageUrl || ad.imageurl,
           size: ad.size,
-          platform: ad.platform || 'facebook',
-          image_status: ad.image_status
+          platform: ad.platform || 'facebook'
         }));
       }
       
@@ -180,11 +178,9 @@ const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, Cr
             id: ad.id,
             headline: ad.headline,
             primary_text: ad.primary_text,
-            // Prioritize storage_url over imageUrl/imageurl
-            imageUrl: ad.storage_url || ad.imageUrl || ad.imageurl,
+            imageUrl: ad.imageUrl || ad.imageurl,
             size: ad.size,
-            platform: ad.platform || 'facebook',
-            image_status: ad.image_status
+            platform: ad.platform || 'facebook'
           }));
         }
       }
@@ -223,34 +219,6 @@ const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, Cr
       
       if (adDetails.length === 0) {
         throw new Error("Could not load details for the selected ads");
-      }
-      
-      // Check if any images need processing
-      const needsProcessing = adDetails.some(ad => 
-        (!ad.image_status || ad.image_status === 'pending') && 
-        !ad.storage_url
-      );
-      
-      if (needsProcessing) {
-        toast({
-          title: "Processing Required",
-          description: "Some images need to be processed for Facebook ads. Please wait while we process them.",
-        });
-        
-        // Call the batch processing function
-        try {
-          const { data: processingData, error: processingError } = await supabase.functions.invoke('migrate-images', {
-            body: { adIds: selectedAdIds }
-          });
-          
-          if (processingError) {
-            console.error("Error processing images:", processingError);
-          } else {
-            console.log("Processing started:", processingData);
-          }
-        } catch (procError) {
-          console.error("Error calling image processing:", procError);
-        }
       }
       
       // Prepare campaign data with selected ads and their details

@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 // Extract and format targeting data from project data
@@ -121,12 +122,6 @@ export const callFacebookCampaignManager = async (action, data) => {
       throw new Error("No authentication token available. Please log in again.");
     }
     
-    // If we're creating a campaign and have ad details, ensure we're using processed image URLs
-    if (action === 'create_campaign' && data.campaign_data?.ad_details) {
-      // Make sure we're using the storage_url when available
-      data.campaign_data.ad_details = await ensureProcessedImages(data.campaign_data.ad_details);
-    }
-    
     const { data: responseData, error } = await supabase.functions.invoke('facebook-campaign-manager', {
       body: {
         operation: action,
@@ -154,77 +149,4 @@ export const callFacebookCampaignManager = async (action, data) => {
       }
     };
   }
-};
-
-// Helper function to ensure that all ad images are processed and have storage_url
-export const ensureProcessedImages = async (adDetails) => {
-  if (!adDetails || !Array.isArray(adDetails) || adDetails.length === 0) {
-    return adDetails;
-  }
-  
-  // Check if any ads need processing (no storage_url)
-  const needsProcessing = adDetails.some(ad => !ad.storage_url);
-  
-  if (!needsProcessing) {
-    console.log("All images already have storage_url, no processing needed");
-    return adDetails; // All ads already have storage_url
-  }
-  
-  console.log("Some images need processing, calling migrate-images function");
-  
-  // First, try to process all images in a batch
-  try {
-    const adIds = adDetails.map(ad => ad.id);
-    const { data: processingResult, error: processingError } = await supabase.functions.invoke('migrate-images', {
-      body: { adIds }
-    });
-    
-    if (processingError) {
-      console.error("Error processing images in batch:", processingError);
-    } else {
-      console.log("Batch processing result:", processingResult);
-    }
-  } catch (error) {
-    console.error("Error calling batch image processing:", error);
-  }
-  
-  // Now get the latest status for these ads
-  const adIds = adDetails.map(ad => ad.id);
-  console.log("Fetching updated ad statuses for IDs:", adIds);
-  
-  const { data, error } = await supabase
-    .from('ad_feedback')
-    .select('id, storage_url, image_status')
-    .in('id', adIds);
-  
-  if (error || !data) {
-    console.error("Error fetching updated ad statuses:", error);
-    return adDetails; // Return original if we can't get updates
-  }
-  
-  console.log("Received updated ad data:", data);
-  
-  // Create a map of latest data
-  const latestData = {};
-  data.forEach(item => {
-    latestData[item.id] = item;
-  });
-  
-  // Update the ad details with latest storage_url where available
-  const updatedDetails = adDetails.map(ad => {
-    const latest = latestData[ad.id];
-    if (latest && latest.storage_url) {
-      console.log(`Using storage_url for ad ${ad.id}: ${latest.storage_url}`);
-      return {
-        ...ad,
-        imageUrl: latest.storage_url, // Override with storage_url
-        storage_url: latest.storage_url,
-        image_status: latest.image_status
-      };
-    }
-    return ad;
-  });
-  
-  console.log("Updated ad details with storage URLs:", updatedDetails);
-  return updatedDetails;
 };
