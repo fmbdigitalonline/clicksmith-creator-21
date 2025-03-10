@@ -1,3 +1,4 @@
+
 import * as React from "react"
 import * as TabsPrimitive from "@radix-ui/react-tabs"
 
@@ -46,6 +47,8 @@ const TabsContent = React.forwardRef<
       className
     )}
     {...props}
+    // Add forceMount to prevent unmounting of content when switching tabs
+    forceMount={true}
   />
 ))
 TabsContent.displayName = TabsPrimitive.Content.displayName

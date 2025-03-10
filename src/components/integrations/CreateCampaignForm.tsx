@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -52,6 +51,13 @@ const campaignFormSchema = z.object({
 
 type CampaignFormValues = z.infer<typeof campaignFormSchema>;
 
+// Extend the FormRef interface to include form data access methods
+export interface CampaignFormRef {
+  submitForm: () => Promise<boolean>;
+  getFormValues: () => CampaignFormValues;
+  setFormValues: (values: Partial<CampaignFormValues>) => void;
+}
+
 interface CreateCampaignFormProps {
   projectId?: string;
   creationMode: "manual" | "semi-automatic" | "automatic";
@@ -62,10 +68,10 @@ interface CreateCampaignFormProps {
   onBack: () => void;
   projectDataCompleteness?: number;
   targetingData?: any;
-  formRef?: React.MutableRefObject<{ submitForm: () => Promise<boolean> } | null>;
+  formRef?: React.MutableRefObject<CampaignFormRef | null>;
 }
 
-const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, CreateCampaignFormProps>((
+const CreateCampaignForm = forwardRef<CampaignFormRef, CreateCampaignFormProps>((
   { 
     projectId,
     creationMode,
@@ -105,18 +111,38 @@ const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, Cr
     },
   });
 
-  // FIX: Properly expose the submitForm function through both ref AND formRef
+  // Expose methods to parent component
   useImperativeHandle(ref, () => ({
     submitForm: handleSubmit,
+    getFormValues: () => form.getValues(),
+    setFormValues: (values: Partial<CampaignFormValues>) => {
+      Object.entries(values).forEach(([key, value]) => {
+        // Skip undefined values
+        if (value !== undefined) {
+          form.setValue(key as any, value as any);
+        }
+      });
+    }
   }));
 
-  // FIX: Sync the external formRef with the local ref
+  // Sync the external formRef with the local ref
   useEffect(() => {
     if (formRef) {
       console.log("Setting form ref");
-      formRef.current = { submitForm: handleSubmit };
+      formRef.current = {
+        submitForm: handleSubmit,
+        getFormValues: () => form.getValues(),
+        setFormValues: (values: Partial<CampaignFormValues>) => {
+          Object.entries(values).forEach(([key, value]) => {
+            // Skip undefined values
+            if (value !== undefined) {
+              form.setValue(key as any, value as any);
+            }
+          });
+        }
+      };
     }
-  }, [formRef]);
+  }, [formRef, form]);
 
   // Update targeting when project data changes or creation mode changes
   useEffect(() => {

@@ -52,3 +52,27 @@ export interface AdCampaignData {
   created_at: string;
   updated_at: string;
 }
+
+export interface CampaignFormValues {
+  name: string;
+  objective: string;
+  budget: number;
+  bid_amount?: number;
+  bid_strategy: string;
+  end_date?: Date;
+  start_date: Date;
+  targeting?: {
+    age_min: number;
+    age_max: number;
+    gender: string;
+    interests?: string[];
+    locations?: string[];
+  };
+  additional_notes?: string;
+}
+
+export interface CampaignFormRef {
+  submitForm: () => Promise<boolean>;
+  getFormValues: () => CampaignFormValues;
+  setFormValues: (values: Partial<CampaignFormValues>) => void;
+}

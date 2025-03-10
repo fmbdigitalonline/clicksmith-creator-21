@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import CreateCampaignForm from "@/components/integrations/CreateCampaignForm";
+import CreateCampaignForm, { CampaignFormRef } from "@/components/integrations/CreateCampaignForm";
 import CampaignModeSelection from "@/components/integrations/CampaignModeSelection";
 import { Button } from "@/components/ui/button";
 import { ProjectSelector } from "@/components/gallery/components/ProjectSelector";
@@ -38,13 +38,24 @@ export default function FacebookCampaignForm({
   const [initialProjectSet, setInitialProjectSet] = useState<boolean>(false);
   const { toast } = useToast();
   
-  // Fix: Make sure the form ref is properly created and initialized
-  const campaignFormRef = useRef<{ submitForm: () => Promise<boolean> } | null>(null);
+  // Use a ref to keep track of and access the form methods
+  const campaignFormRef = useRef<CampaignFormRef | null>(null);
   
   // Fetch project data for targeting suggestions and validation
   const projectData = useProjectCampaignData(selectedProjectId);
 
-  // Log any changes to selectedProjectId
+  // Track if we need to save form data before switching tabs
+  const [formDataSaved, setFormDataSaved] = useState<boolean>(false);
+  
+  // Store cached form values to persist between tab changes
+  const [cachedFormValues, setCachedFormValues] = useState<any>({
+    name: "",
+    objective: "OUTCOME_AWARENESS",
+    budget: 50,
+    bid_strategy: "LOWEST_COST_WITHOUT_CAP",
+  });
+
+  // Effect to log project ID changes
   useEffect(() => {
     console.log("Selected project ID changed in FacebookCampaignForm:", selectedProjectId);
     // Clear project error when a project is selected
@@ -53,7 +64,7 @@ export default function FacebookCampaignForm({
     }
   }, [selectedProjectId]);
 
-  // This useEffect ensures the project ID is properly set from props once, but allows it to be changed by user
+  // This useEffect ensures the project ID is properly set from props
   useEffect(() => {
     if (initialProjectId && !selectedProjectId && !initialProjectSet) {
       console.log("Setting initial project ID:", initialProjectId);
@@ -66,6 +77,30 @@ export default function FacebookCampaignForm({
   // Extract targeting data if available
   const targetingData = projectData.targetAudience ? 
     extractTargetingData(projectData.targetAudience, projectData.audienceAnalysis) : null;
+
+  // Handle tab change - save form data before switching
+  const handleTabChange = (value: "details" | "ads") => {
+    if (value === "ads" && formTab === "details") {
+      // Save form data when switching from details to ads
+      if (campaignFormRef.current) {
+        const currentValues = campaignFormRef.current.getFormValues();
+        console.log("Saving form values before tab switch:", currentValues);
+        setCachedFormValues(currentValues);
+        setFormDataSaved(true);
+      }
+    }
+    
+    // Now it's safe to switch tabs
+    setFormTab(value);
+  };
+
+  // Effect to restore form data when the form component mounts or remounts
+  useEffect(() => {
+    if (campaignFormRef.current && formDataSaved) {
+      console.log("Restoring form values after tab switch:", cachedFormValues);
+      campaignFormRef.current.setFormValues(cachedFormValues);
+    }
+  }, [formTab, formDataSaved, cachedFormValues]);
 
   const handleModeSelect = (mode: "manual" | "semi-automatic" | "automatic") => {
     setSelectedMode(mode);
@@ -128,6 +163,8 @@ export default function FacebookCampaignForm({
       setIsSubmitting(false);
       setProjectError(null);
       setInitialProjectSet(false);
+      setFormDataSaved(false);
+      setCachedFormValues({});
     }, 300); // Small delay to avoid seeing the reset during close animation
     onOpenChange(false);
   };
@@ -175,7 +212,7 @@ export default function FacebookCampaignForm({
       setIsSubmitting(true);
       console.log("Submitting campaign with selected ads:", selectedAdIds);
       
-      // Fix: Check if campaignFormRef.current exists BEFORE trying to access submitForm
+      // Check if campaignFormRef.current exists before trying to access submitForm
       if (!campaignFormRef.current) {
         console.error("Campaign form ref is null");
         setIsSubmitting(false);
@@ -187,20 +224,12 @@ export default function FacebookCampaignForm({
         return;
       }
       
-      // Now we know campaignFormRef.current exists
-      if (typeof campaignFormRef.current.submitForm !== 'function') {
-        console.error("submitForm method not found on campaign form ref");
-        setIsSubmitting(false);
-        toast({
-          title: "Internal Error",
-          description: "Could not submit the form. Please try again or refresh the page.",
-          variant: "destructive"
-        });
-        return;
-      }
+      // First, grab the current form values to ensure we have the latest state
+      const currentValues = campaignFormRef.current.getFormValues();
+      setCachedFormValues(currentValues);
       
       // Debug the targeting data and selected ads before submission
-      console.log("Targeting data before submission:", targetingData);
+      console.log("Form values before submission:", currentValues);
       console.log("Selected ads before submission:", selectedAdIds);
       
       const result = await campaignFormRef.current.submitForm();
@@ -226,14 +255,29 @@ export default function FacebookCampaignForm({
     }
   };
 
-  // Validate if user can proceed to ad selection
-  const canContinueToAds = () => {
+  // Function to handle switching to ad selection tab
+  const handleContinueToAds = () => {
     // Make sure we have a project selected before continuing
     if (!selectedProjectId) {
       setProjectError("Please select a project before continuing");
-      return false;
+      toast({
+        title: "Project Required",
+        description: "You must select a project before proceeding to ad selection.",
+        variant: "destructive"
+      });
+      return;
     }
-    return formTab === "details";
+    
+    // Save current form values before switching tabs
+    if (campaignFormRef.current) {
+      const currentValues = campaignFormRef.current.getFormValues();
+      console.log("Saving form values before tab switch:", currentValues);
+      setCachedFormValues(currentValues);
+      setFormDataSaved(true);
+    }
+    
+    // Switch to ads tab
+    setFormTab("ads");
   };
 
   // Validate if form is ready for submission
@@ -250,6 +294,8 @@ export default function FacebookCampaignForm({
     initialProjectId,
     formTab,
     selectedAdIds,
+    formDataSaved,
+    cachedFormValues: { ...cachedFormValues },
     projectDataLoaded: !!projectData,
     projectError
   });
@@ -336,7 +382,7 @@ export default function FacebookCampaignForm({
               />
             )}
             
-            <Tabs value={formTab} onValueChange={(value) => setFormTab(value as "details" | "ads")} className="relative z-10">
+            <Tabs value={formTab} onValueChange={(value) => handleTabChange(value as "details" | "ads")} className="relative z-10">
               <TabsList className="grid w-full grid-cols-2 mb-6">
                 <TabsTrigger value="details">Campaign Details</TabsTrigger>
                 <TabsTrigger value="ads" disabled={!selectedProjectId}>Creative Selection</TabsTrigger>
@@ -363,7 +409,6 @@ export default function FacebookCampaignForm({
                   </Alert>
                 )}
                 
-                {/* Fix: Make sure to properly initialize the form ref */}
                 <CreateCampaignForm 
                   projectId={selectedProjectId} 
                   creationMode={selectedMode}
@@ -371,26 +416,7 @@ export default function FacebookCampaignForm({
                   onCancel={handleClose}
                   onBack={handleBack}
                   selectedAdIds={selectedAdIds}
-                  onContinue={() => {
-                    if (canContinueToAds()) {
-                      setFormTab("ads");
-                    } else {
-                      if (!selectedProjectId) {
-                        setProjectError("Please select a project before continuing");
-                        toast({
-                          title: "Project Required",
-                          description: "You must select a project before proceeding to ad selection.",
-                          variant: "destructive"
-                        });
-                      } else {
-                        toast({
-                          title: "Please complete all required fields",
-                          description: "Make sure you've filled in all the campaign details before continuing.",
-                          variant: "destructive"
-                        });
-                      }
-                    }
-                  }}
+                  onContinue={handleContinueToAds}
                   projectDataCompleteness={projectData.dataCompleteness}
                   targetingData={targetingData}
                   formRef={campaignFormRef}
@@ -424,7 +450,7 @@ export default function FacebookCampaignForm({
                     />
                     
                     <div className="flex items-center justify-between pt-4 border-t">
-                      <Button variant="outline" onClick={() => setFormTab("details")}>
+                      <Button variant="outline" onClick={() => handleTabChange("details")}>
                         Back to Campaign Details
                       </Button>
                       <Button 
