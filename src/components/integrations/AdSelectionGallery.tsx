@@ -486,7 +486,7 @@ export default function AdSelectionGallery({
             size={ad.size}
             projectId={ad.project_id}
             selected={selectedAdIds.includes(ad.id)}
-            onSelect={(checked: boolean) => handleAdSelect(ad.id, checked)}
+            onSelect={(id: string, checked: boolean) => handleAdSelect(id, checked)}
             selectable={true}
             fb_ad_settings={ad.fb_ad_settings}
             projectUrl={projectUrl}

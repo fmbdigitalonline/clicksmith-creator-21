@@ -317,7 +317,7 @@ export const SavedAdCard = ({
 
   const [isAdSettingsOpen, setIsAdSettingsOpen] = useState(false);
   
-  const handleAdSettingsSaved = (settings: FacebookAdSettings, applyToAll: boolean = false) => {
+  const handleAdSettingsSaved = (settings: FacebookAdSettings, id: string, applyToAll: boolean = false) => {
     if (onSettingsSaved) {
       onSettingsSaved(settings, id, applyToAll);
     }
