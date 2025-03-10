@@ -28,8 +28,9 @@ interface CampaignData {
   creation_mode: string;
   type: string;
   additional_notes?: string;
-  bid_amount?: number; // New field for bid amount
-  bid_strategy?: string; // New field for bid strategy
+  bid_amount?: number;
+  bid_strategy?: string;
+  selected_page_id?: string; // Add field for storing selected page ID
 }
 
 interface AdDetail {
@@ -198,8 +199,8 @@ async function createCampaign(
       campaignData.objective,
       accessToken,
       cleanedAccountId,
-      campaignData.bid_amount, // Pass the bid amount
-      campaignData.bid_strategy // Pass the bid strategy
+      campaignData.bid_amount,
+      campaignData.bid_strategy
     );
     
     if (!adSet.id) {
@@ -239,6 +240,21 @@ async function createCampaign(
     
     console.log('Creating ads with details:', adDetails);
     
+    // Get page ID from the user's Facebook connection
+    // Use selected page ID if provided, otherwise try to find a page from metadata
+    let pageId = campaignData.selected_page_id;
+    
+    if (!pageId && connections.metadata && connections.metadata.pages && connections.metadata.pages.length > 0) {
+      console.log('Pages available:', connections.metadata.pages);
+      // Take the first page from the user's connected pages
+      pageId = connections.metadata.pages[0].id;
+      console.log('Using first available page ID:', pageId);
+    }
+    
+    if (!pageId) {
+      throw new Error('No Facebook page ID found. Please connect a Facebook page first.');
+    }
+    
     // Create ad creative and ad for each selected ad
     for (const adDetail of adDetails) {
       if (!adDetail.headline || !adDetail.primary_text || !adDetail.imageUrl) {
@@ -247,14 +263,15 @@ async function createCampaign(
       }
       
       try {
-        // Create ad creative
+        // Create ad creative using the page ID
         const creative = await createFacebookAdCreative(
           campaign.id,
           adDetail.headline,
           adDetail.primary_text,
           adDetail.imageUrl,
           accessToken,
-          cleanedAccountId
+          cleanedAccountId,
+          pageId // Use the page ID here
         );
         
         console.log('Ad Creative created:', creative);
@@ -308,7 +325,8 @@ async function createCampaign(
           creation_mode: campaignData.creation_mode,
           additional_notes: campaignData.additional_notes,
           bid_amount: campaignData.bid_amount,
-          bid_strategy: campaignData.bid_strategy
+          bid_strategy: campaignData.bid_strategy,
+          page_id: pageId
         },
         creation_mode: campaignData.creation_mode
       })
@@ -593,7 +611,8 @@ async function createFacebookAdCreative(
   primaryText: string,
   imageUrl: string,
   accessToken: string,
-  accountId: string
+  accountId: string,
+  pageId: string // Add pageId parameter
 ) {
   // Fix: Ensure we have the proper account ID format for the API
   const apiAccountId = `act_${accountId.replace(/^act_/i, '')}`;
@@ -601,7 +620,7 @@ async function createFacebookAdCreative(
   // Default landing page URL if not provided
   const linkUrl = 'https://example.com';
   
-  console.log(`Attempting to create ad creative with image URL: ${imageUrl}`);
+  console.log(`Attempting to create ad creative with image URL: ${imageUrl} and page ID: ${pageId}`);
   
   try {
     // First attempt - try to upload the image to Facebook
@@ -640,7 +659,7 @@ async function createFacebookAdCreative(
           body: JSON.stringify({
             name: `Creative for ${headline}`,
             object_story_spec: {
-              page_id: accountId, // Using account ID, but ideally should be a page ID
+              page_id: pageId, // Use the page ID here
               link_data: {
                 message: primaryText,
                 link: linkUrl,
@@ -681,7 +700,7 @@ async function createFacebookAdCreative(
         body: JSON.stringify({
           name: `Creative for ${headline}`,
           object_story_spec: {
-            page_id: accountId, // Using account ID, but ideally should be a page ID
+            page_id: pageId, // Use the page ID here
             link_data: {
               message: primaryText,
               link: linkUrl,

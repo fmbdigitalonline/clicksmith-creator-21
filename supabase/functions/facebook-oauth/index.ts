@@ -182,7 +182,7 @@ serve(async (req) => {
       );
     }
 
-    // Get Facebook pages
+    // Get Facebook pages with detailed information
     console.log("Getting Facebook pages...");
     const pagesResponse = await fetch(
       `https://graph.facebook.com/v19.0/me/accounts?fields=name,access_token,category,fan_count,followers_count&access_token=${accessToken}`
