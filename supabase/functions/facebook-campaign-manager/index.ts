@@ -5,15 +5,8 @@ import { corsHeaders } from "../_shared/cors.ts";
 // Facebook Graph API endpoint
 const FB_GRAPH_API = "https://graph.facebook.com/v18.0";
 
-// Map our simplified objectives to Facebook's valid objective values (updated to use OUTCOME_ prefix)
-const objectiveMapping = {
-  "AWARENESS": "OUTCOME_AWARENESS",
-  "TRAFFIC": "OUTCOME_TRAFFIC",
-  "ENGAGEMENT": "OUTCOME_ENGAGEMENT",
-  "CONVERSIONS": "OUTCOME_SALES",
-  // Add fallback for any unmapped values
-  "DEFAULT": "OUTCOME_AWARENESS"
-};
+// These are the valid objective values per Facebook's API
+// We no longer need to map our objectives since the form will provide these directly
 
 // Map for optimization goals based on objectives
 const optimizationGoalMapping = {
@@ -209,11 +202,10 @@ serve(async (req) => {
           // Log correctly formatted account ID for debugging
           console.log(`Using formatted account ID: ${formattedAccountId}`);
           
-          // Map our objective to a valid Facebook objective using the updated mapping
-          const userObjective = campaign_data.objective || "AWARENESS";
-          const fbObjective = objectiveMapping[userObjective] || objectiveMapping.DEFAULT;
+          // No need to map objective anymore - use directly from form
+          const fbObjective = campaign_data.objective || "OUTCOME_AWARENESS";
           
-          console.log(`Mapping objective ${userObjective} to Facebook objective ${fbObjective}`);
+          console.log(`Using Facebook objective ${fbObjective}`);
           
           // Create the campaign on Facebook
           const campaignResponse = await fetch(
@@ -298,7 +290,7 @@ serve(async (req) => {
             }];
           }
           
-          // Get optimization goal and billing event based on the mapped objective
+          // Get optimization goal and billing event based on the objective
           const optimizationGoal = optimizationGoalMapping[fbObjective] || optimizationGoalMapping.DEFAULT;
           const billingEvent = billingEventMapping[fbObjective] || billingEventMapping.DEFAULT;
           

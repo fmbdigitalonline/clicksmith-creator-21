@@ -13,10 +13,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DatePicker } from "@/components/ui/date-picker";
 import { extractTargetingData, callFacebookCampaignManager } from "@/utils/campaignDataUtils";
 
-// Define the schema for campaign creation
+// Define the schema for campaign creation with updated Facebook objective values
 const campaignFormSchema = z.object({
   name: z.string().min(3, "Campaign name must be at least 3 characters"),
-  objective: z.enum(["AWARENESS", "TRAFFIC", "ENGAGEMENT", "CONVERSIONS"]),
+  objective: z.enum(["OUTCOME_AWARENESS", "OUTCOME_TRAFFIC", "OUTCOME_ENGAGEMENT", "OUTCOME_SALES"]),
   budget: z.preprocess(
     (val) => (val === "" ? undefined : Number(val)),
     z.number().min(5, "Minimum budget is $5").max(1000, "Maximum budget is $1000")
@@ -71,7 +71,7 @@ const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, Cr
     resolver: zodResolver(campaignFormSchema),
     defaultValues: {
       name: "",
-      objective: "AWARENESS",
+      objective: "OUTCOME_AWARENESS",
       budget: 50,
       start_date: new Date(),
       end_date: undefined,
@@ -254,10 +254,10 @@ const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, Cr
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="AWARENESS">Brand Awareness</SelectItem>
-                    <SelectItem value="TRAFFIC">Website Traffic</SelectItem>
-                    <SelectItem value="ENGAGEMENT">Engagement</SelectItem>
-                    <SelectItem value="CONVERSIONS">Conversions</SelectItem>
+                    <SelectItem value="OUTCOME_AWARENESS">Brand Awareness</SelectItem>
+                    <SelectItem value="OUTCOME_TRAFFIC">Website Traffic</SelectItem>
+                    <SelectItem value="OUTCOME_ENGAGEMENT">Engagement</SelectItem>
+                    <SelectItem value="OUTCOME_SALES">Conversions</SelectItem>
                   </SelectContent>
                 </Select>
                 <FormDescription>
