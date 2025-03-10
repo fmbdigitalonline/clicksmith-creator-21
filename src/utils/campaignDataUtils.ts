@@ -1,128 +1,101 @@
 
-import { TargetAudience } from "@/types/adWizard";
+import { supabase } from "@/integrations/supabase/client";
 
-/**
- * Extracts targeting data from target audience and audience analysis
- * 
- * @param targetAudience The target audience information
- * @param audienceAnalysis Additional analysis data
- * @returns Formatted targeting data for campaign creation
- */
-export const extractTargetingData = (targetAudience: TargetAudience, audienceAnalysis?: any) => {
+// Extract and format targeting data from project data
+export const extractTargetingData = (targetAudience, audienceAnalysis) => {
   console.log("Extracting targeting data from:", { targetAudience, audienceAnalysis });
   
-  // Default age range for targeting
-  let ageMin = 18;
-  let ageMax = 65;
+  if (!targetAudience) return null;
   
-  // Try to extract age range from demographics
-  if (targetAudience.demographics) {
-    const ageMatch = targetAudience.demographics.match(/(\d+)-(\d+)/);
-    if (ageMatch && ageMatch.length >= 3) {
-      ageMin = parseInt(ageMatch[1]);
-      ageMax = parseInt(ageMatch[2]);
-      
-      // Ensure values are within Facebook's allowed range (13-65)
-      ageMin = Math.max(13, Math.min(65, ageMin));
-      ageMax = Math.max(13, Math.min(65, ageMax));
-    }
-  }
+  // Default values if data is missing
+  const defaultTargeting = {
+    age_min: 18,
+    age_max: 65,
+    gender: "ALL",
+    interests: [],
+    locations: []
+  };
   
-  // Generate interests from audience data
-  let interests: string[] = [];
-  let gender: "ALL" | "MALE" | "FEMALE" = "ALL";
-  
-  // Extract gender if predominantly one type is mentioned
-  if (targetAudience.demographics) {
-    if (targetAudience.demographics.toLowerCase().includes("female") && 
-        !targetAudience.demographics.toLowerCase().includes("male")) {
-      gender = "FEMALE";
-    } else if (targetAudience.demographics.toLowerCase().includes("male") && 
-              !targetAudience.demographics.toLowerCase().includes("female")) {
-      gender = "MALE";
-    }
-  }
-  
-  // Generate interests from audience description and pain points
-  const generateInterests = () => {
-    const interestSources = [
-      targetAudience.description,
-      targetAudience.painPoints?.join(" "),
-      audienceAnalysis?.marketDesire,
-      audienceAnalysis?.expandedDefinition
-    ].filter(Boolean).join(" ");
+  try {
+    // Extract age range
+    let ageMin = 18;
+    let ageMax = 65;
     
-    // Extract potential interests
-    const potentialInterests = new Set<string>();
-    
-    // Common interest categories
-    const interestCategories = [
-      "technology", "business", "finance", "investing", "education", 
-      "parenting", "health", "fitness", "wellness", "beauty", 
-      "fashion", "travel", "food", "cooking", "home", "real estate", 
-      "gardening", "pets", "sports", "outdoors", "music", "art", 
-      "books", "writing", "photography", "digital marketing", 
-      "entrepreneurship", "career development", "personal growth"
-    ];
-    
-    // Check for presence of interest categories
-    interestCategories.forEach(category => {
-      if (interestSources.toLowerCase().includes(category)) {
-        potentialInterests.add(category.charAt(0).toUpperCase() + category.slice(1));
+    if (targetAudience.age_range) {
+      const ageRange = targetAudience.age_range;
+      if (typeof ageRange === 'string' && ageRange.includes('-')) {
+        const [min, max] = ageRange.split('-').map(a => parseInt(a.trim()));
+        if (!isNaN(min)) ageMin = Math.max(13, min);
+        if (!isNaN(max)) ageMax = Math.min(65, max);
       }
-    });
+    }
     
-    // Convert to array and return up to 10 interests
-    return Array.from(potentialInterests).slice(0, 10);
-  };
-  
-  interests = generateInterests();
-  
-  // Create and return targeting object
-  return {
-    age_min: ageMin,
-    age_max: ageMax,
-    gender,
-    interests,
-    locations: [], // We don't extract locations currently
-  };
+    // Extract gender
+    let gender = "ALL";
+    if (targetAudience.gender) {
+      if (targetAudience.gender.toLowerCase() === "male") {
+        gender = "MALE";
+      } else if (targetAudience.gender.toLowerCase() === "female") {
+        gender = "FEMALE";
+      }
+    }
+    
+    // Extract interests from audience analysis
+    let interests = [];
+    if (audienceAnalysis && audienceAnalysis.interests) {
+      interests = Array.isArray(audienceAnalysis.interests)
+        ? audienceAnalysis.interests
+        : Object.keys(audienceAnalysis.interests || {});
+    }
+    
+    // Extract locations
+    let locations = [];
+    if (targetAudience.location) {
+      locations = Array.isArray(targetAudience.location)
+        ? targetAudience.location
+        : [targetAudience.location];
+    }
+    
+    return {
+      age_min: ageMin,
+      age_max: ageMax,
+      gender,
+      interests,
+      locations
+    };
+  } catch (error) {
+    console.error("Error extracting targeting data:", error);
+    return defaultTargeting;
+  }
 };
 
-/**
- * Call Facebook Campaign Manager edge function
- * 
- * @param action The action to perform
- * @param data The data for the action
- * @returns The response from the edge function
- */
-export const callFacebookCampaignManager = async (action: string, data: any) => {
+// Call the Facebook Campaign Manager Edge Function
+export const callFacebookCampaignManager = async (action, data) => {
+  console.log(`Calling Facebook Campaign Manager with action: ${action}`, data);
+  
   try {
-    const { supabase } = await import('@/integrations/supabase/client');
-    
-    console.log(`Calling Facebook Campaign Manager with action: ${action}`, data);
-    
-    const response = await supabase.functions.invoke('facebook-campaign-manager', {
+    const { data: responseData, error } = await supabase.functions.invoke('facebook-campaign-manager', {
       body: {
-        action,
+        operation: action,
         ...data
       },
     });
     
-    console.log(`Response from Facebook Campaign Manager:`, response);
-    
-    if (response.error) {
-      throw new Error(`Edge function error: ${response.error.message}`);
+    if (error) {
+      console.error("Response from Facebook Campaign Manager:", { data: responseData, error });
+      throw new Error(`Edge function error: ${error.message}`);
     }
     
-    return {
-      data: response.data,
-      error: null
-    };
+    console.log("Facebook Campaign Manager response:", responseData);
+    return { data: responseData, error: null };
   } catch (error) {
     console.error("Error calling Facebook Campaign Manager:", error);
-    return {
-      data: null,
-      error: error instanceof Error ? error : new Error('Unknown error occurred')
+    return { 
+      data: null, 
+      error: {
+        message: error.message || "Failed to communicate with campaign manager",
+        details: error
+      }
     };
   }
 };
