@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { SavedAdCard } from "@/components/gallery/components/SavedAdCard";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, CheckSquare, Square, Filter, LayoutGrid, MapPin } from "lucide-react";
+import { Loader2, CheckSquare, Square, Filter, LayoutGrid, MapPin, Globe, Link2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,8 +18,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { SavedAd, AdSelectionGalleryProps, AdSize } from "@/types/campaignTypes";
+import { SavedAd, AdSelectionGalleryProps, AdSize, FacebookAdSettings } from "@/types/campaignTypes";
 import { AD_FORMATS } from "@/components/steps/gallery/components/AdSizeSelector";
+import { 
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger
+} from "@/components/ui/accordion";
 
 export default function AdSelectionGallery({ 
   projectId, 
@@ -56,7 +62,7 @@ export default function AdSelectionGallery({
 
       let query = supabase
         .from('ad_feedback')
-        .select('id, saved_images, headline, primary_text, rating, feedback, created_at, imageurl, imageUrl, platform, project_id, size');
+        .select('id, saved_images, headline, primary_text, rating, feedback, created_at, imageurl, imageUrl, platform, project_id, size, metadata');
       
       // If projectId is provided, only show ads for that project
       if (projectId) {
@@ -104,7 +110,8 @@ export default function AdSelectionGallery({
         return {
           ...ad,
           saved_images: savedImages,
-          size: sizeObj
+          size: sizeObj,
+          metadata: ad.metadata as { facebookAdSettings?: FacebookAdSettings; [key: string]: any; } | undefined
         };
       });
 
@@ -207,6 +214,66 @@ export default function AdSelectionGallery({
 
   const filteredAds = getFilteredAds();
   const uniqueFormats = getUniqueFormats();
+
+  // Render Facebook ad settings if available
+  const renderFacebookAdSettings = (ad: SavedAd) => {
+    if (ad.platform !== 'facebook' || !ad.metadata?.facebookAdSettings) {
+      return null;
+    }
+
+    const settings = ad.metadata.facebookAdSettings;
+    
+    return (
+      <Accordion type="single" collapsible className="w-full mt-2">
+        <AccordionItem value="facebook-settings">
+          <AccordionTrigger className="text-xs font-medium">
+            Facebook Ad Settings
+          </AccordionTrigger>
+          <AccordionContent className="space-y-2 pt-2 text-xs">
+            {settings.websiteUrl && (
+              <div className="flex items-center gap-1">
+                <Globe className="h-3 w-3 text-facebook" />
+                <span className="font-medium">URL:</span>
+                <span className="truncate text-gray-700">{settings.websiteUrl}</span>
+              </div>
+            )}
+            
+            {settings.visibleLink && (
+              <div className="flex items-center gap-1">
+                <Link2 className="h-3 w-3 text-facebook" />
+                <span className="font-medium">Display URL:</span>
+                <span className="text-gray-700">{settings.visibleLink}</span>
+              </div>
+            )}
+            
+            {settings.language && (
+              <div className="flex items-center gap-1">
+                <span className="font-medium">Language:</span>
+                <span className="text-gray-700">{settings.language}</span>
+              </div>
+            )}
+            
+            {settings.browserAddOns && (
+              <div>
+                <span className="font-medium">Browser Options:</span>
+                <div className="text-gray-700 ml-2">
+                  {settings.browserAddOns.blockBrowserExtensions && <div>• Block extensions</div>}
+                  {settings.browserAddOns.blockPlugins && <div>• Block plugins</div>}
+                </div>
+              </div>
+            )}
+            
+            {settings.urlParameters && (
+              <div>
+                <span className="font-medium">URL Parameters:</span>
+                <div className="text-gray-700 truncate">{settings.urlParameters}</div>
+              </div>
+            )}
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
+    );
+  };
 
   if (isLoading) {
     return (
@@ -369,6 +436,14 @@ export default function AdSelectionGallery({
                   
                   {/* Headline (truncated) */}
                   <p className="text-xs font-medium truncate">{ad.headline}</p>
+                  
+                  {/* Facebook Ad Settings */}
+                  {ad.platform === 'facebook' && ad.metadata?.facebookAdSettings?.websiteUrl && (
+                    <div className="mt-1 text-xs text-gray-500 flex items-center">
+                      <Globe className="h-3 w-3 mr-1" />
+                      <span className="truncate">{ad.metadata.facebookAdSettings.websiteUrl}</span>
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -427,6 +502,9 @@ export default function AdSelectionGallery({
                 <h3 className="text-sm font-medium text-gray-500 mb-1">Headline:</h3>
                 <p className="font-medium">{ad.headline || "No headline available"}</p>
               </div>
+              
+              {/* Facebook Ad Settings */}
+              {ad.platform === 'facebook' && renderFacebookAdSettings(ad)}
               
               {/* Rating indicator as stars */}
               {ad.rating && (
