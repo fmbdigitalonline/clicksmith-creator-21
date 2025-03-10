@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
 
@@ -866,8 +865,6 @@ async function createFacebookAdCreative(
   const defaultLinkData = {
     link: "https://lovable.dev",
     message: primaryText,
-    // REMOVED: link_caption is no longer supported by Facebook API
-    // link_caption: "lovable.dev",
     call_to_action: { type: "LEARN_MORE" }
   };
   
@@ -876,7 +873,8 @@ async function createFacebookAdCreative(
     ...defaultLinkData,
     ...linkData,
     message: primaryText, // Always use primary text as message
-    name: headline // Always use headline as name
+    name: headline, // Always use headline as name
+    picture: imageUrl // Use picture instead of image_url for link_data
   };
   
   const response = await fetch(
@@ -891,10 +889,7 @@ async function createFacebookAdCreative(
         name: `Creative for ${headline}`,
         object_story_spec: {
           page_id: pageId,
-          link_data: {
-            ...finalLinkData,
-            image_url: imageUrl
-          }
+          link_data: finalLinkData
         }
       })
     }
