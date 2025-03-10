@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useSession } from "@supabase/auth-helpers-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";

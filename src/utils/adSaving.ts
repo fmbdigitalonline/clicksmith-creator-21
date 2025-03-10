@@ -1,17 +1,23 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { SavedAd, SavedAdJson } from "@/types/campaignTypes";
+import { Json } from "@/integrations/supabase/types";
 
 // Export this function to fix the missing export error
-export const saveAd = async (projectId: string, adData: any) => {
-  return await saveAdToSupabase(projectId, adData);
+export const saveAd = async (projectId: string, adData: any): Promise<SavedAdJson> => {
+  const savedAd = await saveAdToSupabase(projectId, adData);
+  return {
+    ...savedAd,
+    success: true,
+    message: "Ad saved successfully"
+  };
 };
 
 // Modified to use properties from SavedAd interface
 export const saveAdToProject = async (
   projectId: string, 
   adData: any
-) => {
+): Promise<SavedAd> => {
   // Implementation would depend on the actual adData structure
   // Converting whatever structure we have to match SavedAd interface
   
@@ -58,7 +64,7 @@ export const formatSavedAd = (ad: any): SavedAd => {
   };
 };
 
-export const saveAdToSupabase = async (projectId: string, adData: any) => {
+export const saveAdToSupabase = async (projectId: string, adData: any): Promise<SavedAd> => {
   try {
     const { data: project } = await supabase
       .from('projects')
@@ -86,7 +92,7 @@ export const saveAdToSupabase = async (projectId: string, adData: any) => {
     
     const { error } = await supabase
       .from('projects')
-      .update({ generated_ads: generatedAds })
+      .update({ generated_ads: generatedAds as unknown as Json })
       .eq('id', projectId);
     
     if (error) throw error;
@@ -98,7 +104,7 @@ export const saveAdToSupabase = async (projectId: string, adData: any) => {
   }
 };
 
-export const deleteAdFromSupabase = async (projectId: string, adId: string) => {
+export const deleteAdFromSupabase = async (projectId: string, adId: string): Promise<boolean | undefined> => {
   try {
     const { data: project } = await supabase
       .from('projects')
@@ -116,7 +122,7 @@ export const deleteAdFromSupabase = async (projectId: string, adId: string) => {
     
     const { error } = await supabase
       .from('projects')
-      .update({ generated_ads: updatedAds })
+      .update({ generated_ads: updatedAds as unknown as Json })
       .eq('id', projectId);
     
     if (error) throw error;
@@ -128,7 +134,7 @@ export const deleteAdFromSupabase = async (projectId: string, adId: string) => {
   }
 };
 
-export const updateAdRating = async (projectId: string, adId: string, rating: number) => {
+export const updateAdRating = async (projectId: string, adId: string, rating: number): Promise<boolean | undefined> => {
   try {
     const { data: project } = await supabase
       .from('projects')
@@ -151,7 +157,7 @@ export const updateAdRating = async (projectId: string, adId: string, rating: nu
     
     const { error } = await supabase
       .from('projects')
-      .update({ generated_ads: updatedAds })
+      .update({ generated_ads: updatedAds as unknown as Json })
       .eq('id', projectId);
     
     if (error) throw error;
@@ -163,7 +169,7 @@ export const updateAdRating = async (projectId: string, adId: string, rating: nu
   }
 };
 
-export const updateAdFeedback = async (projectId: string, adId: string, feedback: string) => {
+export const updateAdFeedback = async (projectId: string, adId: string, feedback: string): Promise<boolean | undefined> => {
   try {
     const { data: project } = await supabase
       .from('projects')
@@ -186,7 +192,7 @@ export const updateAdFeedback = async (projectId: string, adId: string, feedback
     
     const { error } = await supabase
       .from('projects')
-      .update({ generated_ads: updatedAds })
+      .update({ generated_ads: updatedAds as unknown as Json })
       .eq('id', projectId);
     
     if (error) throw error;
