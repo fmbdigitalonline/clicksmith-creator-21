@@ -25,6 +25,7 @@ export interface PlatformConnectionMetadata {
   ad_accounts?: AdAccount[];
   pages?: FacebookPage[];
   selected_account_id?: string;
+  selected_page_id?: string; // Add selected page ID
   last_fetched?: string;
   [key: string]: any;
 }
@@ -40,7 +41,7 @@ export interface PlatformConnection {
   created_at: string;
   updated_at: string;
   user_id: string | null;
-  metadata?: PlatformConnectionMetadata;
+  metadata: PlatformConnectionMetadata | null;
 }
 
 // Response type from Facebook OAuth Edge Function
@@ -82,6 +83,7 @@ export const PlatformConnectionMetadataSchema = z.object({
   ad_accounts: z.array(AdAccountSchema).optional(),
   pages: z.array(FacebookPageSchema).optional(),
   selected_account_id: z.string().optional(),
+  selected_page_id: z.string().optional(), // Add selected page ID
   last_fetched: z.string().optional()
 }).catchall(z.unknown());
 
@@ -162,6 +164,9 @@ export function validatePlatformConnectionMetadata(metadata: any): PlatformConne
     // Copy any additional metadata fields
     if (validatedData.selected_account_id) {
       result.selected_account_id = validatedData.selected_account_id;
+    }
+    if (validatedData.selected_page_id) {
+      result.selected_page_id = validatedData.selected_page_id;
     }
     if (validatedData.last_fetched) {
       result.last_fetched = validatedData.last_fetched;

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,7 +11,8 @@ import {
   ChevronDown, 
   ExternalLink,
   RefreshCw,
-  Building2
+  Building2,
+  BookOpen
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useSession } from "@supabase/auth-helpers-react";
@@ -46,8 +48,8 @@ const generateFacebookAuthURL = () => {
   const redirectUri = `${currentOrigin}/integrations?connection=facebook`;
   const encodedRedirectUri = encodeURIComponent(redirectUri);
   
-  // Include enhanced permissions for Ads Manager access
-  const scopes = encodeURIComponent("ads_management,ads_read,business_management,pages_read_engagement,pages_show_list");
+  // Include enhanced permissions for Ads Manager access with image capabilities
+  const scopes = encodeURIComponent("ads_management,ads_read,business_management,pages_read_engagement,pages_show_list,ads_images:read,ads_images:write");
   
   // Generate a secure state parameter with timestamp and random value for CSRF protection
   const stateValue = JSON.stringify({
@@ -83,6 +85,7 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
   const [showDetails, setShowDetails] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
+  const [selectedPageId, setSelectedPageId] = useState<string | null>(null);
   const { toast } = useToast();
   const session = useSession();
 
@@ -114,7 +117,7 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
           toast({
             title: "Connection Expired",
             description: "Your Facebook connection has expired. Please reconnect.",
-            variant: "warning",
+            variant: "destructive",
           });
           return false;
         }
@@ -123,19 +126,29 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
       console.log("Facebook connection data:", data);
       if (data) {
         // Safely process metadata
+        let processedData = { ...data };
+        
         if (data.metadata) {
-          data.metadata = validatePlatformConnectionMetadata(data.metadata);
+          processedData.metadata = validatePlatformConnectionMetadata(data.metadata);
         }
         
-        setConnection(data as PlatformConnection);
+        setConnection(processedData as PlatformConnection);
         
         // Set the selected account ID if available in metadata
-        if (data.metadata && typeof data.metadata === 'object') {
-          const metadata = data.metadata as PlatformConnectionMetadata;
+        if (processedData.metadata) {
+          const metadata = processedData.metadata as PlatformConnectionMetadata;
           if (metadata.selected_account_id) {
             setSelectedAccountId(metadata.selected_account_id);
           } else if (data.account_id) {
             setSelectedAccountId(data.account_id);
+          }
+          
+          // Set the selected page ID if available in metadata
+          if (metadata.selected_page_id) {
+            setSelectedPageId(metadata.selected_page_id);
+          } else if (metadata.pages && metadata.pages.length > 0) {
+            // Default to the first page if available
+            setSelectedPageId(metadata.pages[0].id);
           }
         }
         return true;
@@ -303,6 +316,7 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
       setIsConnected(false);
       setConnection(null);
       setSelectedAccountId(null);
+      setSelectedPageId(null);
       
       toast({
         title: "Disconnected",
@@ -421,6 +435,60 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
       });
     }
   };
+  
+  // Handle page selection
+  const handlePageSelection = async (pageId: string) => {
+    if (!session || !connection || !connection.metadata) return;
+    
+    try {
+      // Find the page details
+      const metadata = connection.metadata as PlatformConnectionMetadata;
+      const selectedPage = metadata?.pages?.find(page => page.id === pageId);
+      
+      if (!selectedPage) {
+        throw new Error("Selected page not found");
+      }
+      
+      // Update the platform_connection in the database
+      const { error } = await supabase
+        .from('platform_connections')
+        .update({
+          metadata: {
+            ...metadata,
+            selected_page_id: pageId
+          } as PlatformConnectionMetadata
+        })
+        .eq('platform', 'facebook');
+      
+      if (error) throw error;
+      
+      // Update local state
+      setSelectedPageId(pageId);
+      setConnection({
+        ...connection,
+        metadata: {
+          ...metadata,
+          selected_page_id: pageId
+        } as PlatformConnectionMetadata
+      });
+      
+      toast({
+        title: "Page Selected",
+        description: `Now using "${selectedPage.name}" for Facebook Ads`,
+      });
+      
+      if (onConnectionChange) {
+        onConnectionChange();
+      }
+    } catch (error) {
+      console.error("Error setting page:", error);
+      toast({
+        title: "Error",
+        description: "Failed to set selected page",
+        variant: "destructive",
+      });
+    }
+  };
 
   // Create campaign
   const handleCreateCampaign = async () => {
@@ -513,10 +581,7 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
               </span>
             </div>
             
-            {/* Ad Account Selector */}
-            {connection.metadata && typeof connection.metadata === 'object' && 
-             (connection.metadata as PlatformConnectionMetadata).ad_accounts && 
-             (connection.metadata as PlatformConnectionMetadata).ad_accounts.length > 0 && (
+            {connection.metadata && connection.metadata.ad_accounts && connection.metadata.ad_accounts.length > 0 && (
               <div className="pt-2">
                 <label className="text-sm font-medium mb-1 block">
                   Select Ad Account
@@ -530,7 +595,7 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
                       <SelectValue placeholder="Select ad account" />
                     </SelectTrigger>
                     <SelectContent>
-                      {(connection.metadata as PlatformConnectionMetadata).ad_accounts.map(account => {
+                      {connection.metadata.ad_accounts.map(account => {
                         const status = formatAccountStatus(account.account_status);
                         return (
                           <SelectItem key={account.id} value={account.id}>
@@ -560,22 +625,77 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {(connection.metadata as PlatformConnectionMetadata).ad_accounts.length} ad account{(connection.metadata as PlatformConnectionMetadata).ad_accounts.length !== 1 ? 's' : ''} available
+                  {connection.metadata.ad_accounts.length} ad account{connection.metadata.ad_accounts.length !== 1 ? 's' : ''} available
                 </p>
               </div>
             )}
             
-            {/* Pages Information */}
-            {connection.metadata && typeof connection.metadata === 'object' && 
-             (connection.metadata as PlatformConnectionMetadata).pages && 
-             (connection.metadata as PlatformConnectionMetadata).pages.length > 0 && (
+            {/* Pages Selector */}
+            {connection.metadata && connection.metadata.pages && connection.metadata.pages.length > 0 ? (
               <div className="pt-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Connected Pages:</span>
-                  <span className="font-medium">{(connection.metadata as PlatformConnectionMetadata).pages.length}</span>
+                <label className="text-sm font-medium mb-1 block">
+                  Select Facebook Page
+                </label>
+                <div className="flex gap-2">
+                  <Select 
+                    value={selectedPageId || undefined} 
+                    onValueChange={handlePageSelection}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select Facebook page" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {connection.metadata.pages.map(page => (
+                        <SelectItem key={page.id} value={page.id}>
+                          <div className="flex justify-between items-center w-full">
+                            <span>{page.name}</span>
+                            {page.category && (
+                              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                                {page.category}
+                              </Badge>
+                            )}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {connection.metadata.pages.length} Facebook page{connection.metadata.pages.length !== 1 ? 's' : ''} available
+                </p>
               </div>
+            ) : (
+              <Alert variant="default" className="bg-yellow-50 border-yellow-200 mt-4">
+                <AlertCircle className="h-4 w-4 text-yellow-600" />
+                <AlertTitle className="text-yellow-800">Facebook Page Required</AlertTitle>
+                <AlertDescription className="text-yellow-700">
+                  You need to connect at least one Facebook Page to create ad campaigns. 
+                  Make sure your Facebook account has admin access to a Facebook Page.
+                </AlertDescription>
+              </Alert>
             )}
+            
+            {/* Permission Warning */}
+            <Alert className="bg-yellow-50 border-yellow-200 mt-4">
+              <AlertCircle className="h-4 w-4 text-yellow-600" />
+              <AlertTitle className="text-yellow-800">Limited Permissions</AlertTitle>
+              <AlertDescription className="text-yellow-700">
+                <p className="mb-2">
+                  Your Facebook App has limited permissions until it passes Facebook App Review. 
+                  Some features like image uploads may be restricted.
+                </p>
+                <div className="flex items-center gap-1 mt-1">
+                  <a 
+                    href="https://developers.facebook.com/docs/app-review"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center text-xs text-blue-600 hover:underline"
+                  >
+                    <BookOpen className="h-3 w-3 mr-1" /> Learn about Facebook App Review
+                  </a>
+                </div>
+              </AlertDescription>
+            </Alert>
             
             {/* Expanded details */}
             <Collapsible open={showDetails} onOpenChange={setShowDetails} className="mt-4">

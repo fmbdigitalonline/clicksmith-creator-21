@@ -1,193 +1,249 @@
 
-import { useState } from "react";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Routes, Route, useLocation, Link } from "react-router-dom";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import FacebookConnection from "./FacebookConnection";
-import FacebookCampaignOverview from "./FacebookCampaignOverview";
-import EnvConfigCheck from "./EnvConfigCheck";
-import { AutomaticModeMonitoring } from "./AutomaticModeMonitoring";
-import { Facebook, AlertCircle, CheckCircle2, Plus } from "lucide-react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { useToast } from "@/components/ui/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { useState, useEffect } from "react";
+import { useSession } from "@supabase/auth-helpers-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { AlertCircle, AlertTriangle, Facebook, Instagram, Loader2, MessageSquare, Twitter } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import EnvConfigCheck from "@/components/integrations/EnvConfigCheck";
+import FacebookConnection from "@/components/integrations/FacebookConnection";
+import FacebookCampaignOverview from "@/components/integrations/FacebookCampaignOverview";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 export default function PlatformIntegrations() {
-  const [activeTab, setActiveTab] = useState<string>("facebook");
-  const [isCheckingConfig, setIsCheckingConfig] = useState(false);
-  const location = useLocation();
+  const [platform, setPlatform] = useState<string>("facebook");
+  const [isConfigured, setIsConfigured] = useState<boolean>(false);
+  const [isConfigLoading, setIsConfigLoading] = useState<boolean>(true);
+  const [isConnectionLoading, setIsConnectionLoading] = useState<boolean>(true);
+  const [hasConnections, setHasConnections] = useState<boolean>(false);
   const { toast } = useToast();
+  const session = useSession();
 
-  // Check if we're on a nested route
-  const isMonitoringRoute = location.pathname.includes('/campaign/') && location.pathname.includes('/monitoring');
-  const isCampaignRoute = location.pathname.includes('/campaign/');
-  
-  // Extract campaign ID if available
-  const campaignId = isCampaignRoute ? 
-    location.pathname.split('/campaign/')[1]?.split('/')[0] : 
-    undefined;
-
-  // Function to check Facebook campaign manager configuration
-  const checkCampaignManagerConfig = async () => {
-    setIsCheckingConfig(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
+  useEffect(() => {
+    // Check if Facebook config exists
+    const checkConfig = () => {
+      const facebookAppId = import.meta.env.VITE_FACEBOOK_APP_ID;
+      const facebookRedirectUri = import.meta.env.VITE_FACEBOOK_REDIRECT_URI;
       
-      if (!user) {
-        throw new Error("User not authenticated");
-      }
-      
-      const response = await supabase.functions.invoke('facebook-campaign-manager', {
-        body: { 
-          operation: 'verify_connection',
-          userId: user.id
-        }
+      // Log environment variable availability for debugging
+      console.log("Facebook environment variables:", {
+        appId: !!facebookAppId,
+        redirectUri: !!facebookRedirectUri
       });
       
-      if (response.error) {
-        throw new Error(`HTTP error! status: ${response.error.message}`);
+      setIsConfigured(!!facebookAppId && !!facebookRedirectUri);
+      setIsConfigLoading(false);
+    };
+    
+    checkConfig();
+  }, []);
+  
+  // Check for existing connections
+  useEffect(() => {
+    async function checkConnections() {
+      if (!session?.user?.id) {
+        setIsConnectionLoading(false);
+        return;
       }
       
-      const result = response.data;
-      
-      if (result.success) {
+      try {
+        setIsConnectionLoading(true);
+        const { data, error } = await supabase
+          .from('platform_connections')
+          .select('platform')
+          .eq('user_id', session.user.id);
+          
+        if (error) throw error;
+        
+        setHasConnections(data && data.length > 0);
+      } catch (error) {
+        console.error("Error checking connections:", error);
         toast({
-          title: "Campaign Manager",
-          description: result.isValid 
-            ? "Campaign manager is properly configured and connected."
-            : result.message || "Campaign manager configured but Facebook connection is missing.",
-          variant: result.isValid ? "default" : "destructive",
-        });
-      } else {
-        toast({
-          title: "Configuration Issue",
-          description: result.message || "There was an issue with the campaign manager configuration.",
+          title: "Error",
+          description: "Failed to check platform connections",
           variant: "destructive",
         });
+      } finally {
+        setIsConnectionLoading(false);
       }
+    }
+    
+    checkConnections();
+  }, [session, toast]);
+  
+  // When connections change, refresh the state
+  const handleConnectionChange = async () => {
+    if (!session?.user?.id) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('platform_connections')
+        .select('platform')
+        .eq('user_id', session.user.id);
+        
+      if (error) throw error;
+      
+      setHasConnections(data && data.length > 0);
     } catch (error) {
-      console.error("Error checking campaign manager:", error);
-      toast({
-        title: "Error",
-        description: "Failed to connect to the campaign manager.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsCheckingConfig(false);
+      console.error("Error refreshing connections:", error);
     }
   };
 
-  // Function to handle campaign connection refresh
-  const handleConnectionChange = () => {
-    // Refresh the campaign overview
-    toast({
-      title: "Connection Updated",
-      description: "Facebook connection has been updated.",
-    });
-  };
+  // If URLs aren't properly configured, show a configuration warning
+  if (!isConfigLoading && !isConfigured) {
+    return (
+      <div className="container max-w-6xl mx-auto py-10">
+        <EnvConfigCheck />
+      </div>
+    );
+  }
+  
+  // If we're still loading, show a spinner
+  if (isConfigLoading || isConnectionLoading) {
+    return (
+      <div className="flex justify-center items-center p-12">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
-    <div className="container pb-10">
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>Ad Platform Integrations</CardTitle>
-          <CardDescription>
-            Connect your ad accounts and manage campaigns across platforms
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <EnvConfigCheck />
-          <div className="mt-4 flex justify-end">
-            <Button 
-              onClick={checkCampaignManagerConfig} 
-              disabled={isCheckingConfig}
-              size="sm"
-              variant="outline"
-            >
-              {isCheckingConfig ? "Checking..." : "Check Campaign Manager"}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+    <div className="container max-w-6xl mx-auto py-8">
+      <div className="space-y-2">
+        <h1 className="text-3xl font-bold">Platform Integrations</h1>
+        <p className="text-muted-foreground">
+          Connect your social media and advertising platforms to automate campaign management
+        </p>
+      </div>
 
-      <Routes>
-        <Route 
-          path="/" 
-          element={
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="mb-6">
-                <TabsTrigger value="facebook">Facebook</TabsTrigger>
-                <TabsTrigger value="google" disabled>Google Ads</TabsTrigger>
-                <TabsTrigger value="tiktok" disabled>TikTok</TabsTrigger>
+      <Separator className="my-6" />
+      
+      {/* Main content */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-1">
+          {/* Platform selection and connections */}
+          <div className="space-y-4">
+            <h2 className="text-xl font-semibold mb-4">Connect Platforms</h2>
+            
+            <Tabs defaultValue="facebook" onValueChange={setPlatform} className="w-full">
+              <TabsList className="w-full">
+                <TabsTrigger value="facebook" className="flex-1">
+                  <Facebook className="w-4 h-4 mr-2" />
+                  Facebook
+                </TabsTrigger>
+                <TabsTrigger value="instagram" className="flex-1" disabled>
+                  <Instagram className="w-4 h-4 mr-2" />
+                  Instagram
+                </TabsTrigger>
+                <TabsTrigger value="twitter" className="flex-1" disabled>
+                  <Twitter className="w-4 h-4 mr-2" />
+                  Twitter
+                </TabsTrigger>
               </TabsList>
               
               <TabsContent value="facebook">
-                <div className="space-y-6">
-                  <Alert className="mb-4">
-                    <Facebook className="h-4 w-4" />
-                    <AlertTitle>Facebook Integration Status</AlertTitle>
-                    <AlertDescription>
-                      Connect your Facebook Ads account to create and manage campaigns. 
-                      Make sure your Facebook App settings include the redirect URI and required permissions.
-                    </AlertDescription>
-                  </Alert>
-                  
-                  <FacebookConnection onConnectionChange={handleConnectionChange} />
-                  
-                  {/* Removed the duplicate Create Campaign button */}
-                  
-                  <FacebookCampaignOverview />
-                </div>
+                <FacebookConnection onConnectionChange={handleConnectionChange} />
               </TabsContent>
               
-              <TabsContent value="google">
+              <TabsContent value="instagram">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Google Ads Integration</CardTitle>
-                    <CardDescription>Connect your Google Ads account</CardDescription>
+                    <CardTitle className="flex items-center">
+                      <Instagram className="w-5 h-5 mr-2" /> Instagram
+                    </CardTitle>
+                    <CardDescription>Connect your Instagram account</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-center py-10 text-muted-foreground">
-                      Google Ads integration coming soon
-                    </div>
+                    <Alert variant="default">
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertTitle>Coming Soon</AlertTitle>
+                      <AlertDescription>
+                        Instagram integration is currently in development
+                      </AlertDescription>
+                    </Alert>
                   </CardContent>
+                  <CardFooter>
+                    <Button className="w-full" disabled>Connect Instagram</Button>
+                  </CardFooter>
                 </Card>
               </TabsContent>
               
-              <TabsContent value="tiktok">
+              <TabsContent value="twitter">
                 <Card>
                   <CardHeader>
-                    <CardTitle>TikTok Ads Integration</CardTitle>
-                    <CardDescription>Connect your TikTok Ads account</CardDescription>
+                    <CardTitle className="flex items-center">
+                      <Twitter className="w-5 h-5 mr-2" /> Twitter
+                    </CardTitle>
+                    <CardDescription>Connect your Twitter account</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-center py-10 text-muted-foreground">
-                      TikTok Ads integration coming soon
-                    </div>
+                    <Alert variant="default">
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertTitle>Coming Soon</AlertTitle>
+                      <AlertDescription>
+                        Twitter integration is currently in development
+                      </AlertDescription>
+                    </Alert>
                   </CardContent>
+                  <CardFooter>
+                    <Button className="w-full" disabled>Connect Twitter</Button>
+                  </CardFooter>
                 </Card>
               </TabsContent>
             </Tabs>
-          } 
-        />
+          </div>
+        </div>
         
-        {/* Campaign monitoring route */}
-        <Route 
-          path="/campaign/:campaignId/monitoring" 
-          element={
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <h2 className="text-xl font-bold">Campaign Monitoring</h2>
-                <Link to="/integrations" className="text-sm text-blue-600 hover:underline">
-                  Back to Campaigns
-                </Link>
-              </div>
-              <AutomaticModeMonitoring campaignId={campaignId} />
-            </div>
-          } 
-        />
-      </Routes>
+        <div className="lg:col-span-2">
+          {/* Platform-specific campaign overview */}
+          <div className="space-y-4">
+            <h2 className="text-xl font-semibold mb-4">Campaign Management</h2>
+            
+            {!session ? (
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Authentication Required</AlertTitle>
+                <AlertDescription>
+                  Please sign in to manage your platform campaigns
+                </AlertDescription>
+              </Alert>
+            ) : !hasConnections ? (
+              <Alert>
+                <MessageSquare className="h-4 w-4" />
+                <AlertTitle>No Connected Platforms</AlertTitle>
+                <AlertDescription>
+                  Connect a platform on the left to start managing your campaigns
+                </AlertDescription>
+              </Alert>
+            ) : (
+              <>
+                {platform === 'facebook' && <FacebookCampaignOverview onConnectionChange={handleConnectionChange} />}
+                {platform === 'instagram' && (
+                  <Alert>
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>Coming Soon</AlertTitle>
+                    <AlertDescription>
+                      Instagram campaign management is under development
+                    </AlertDescription>
+                  </Alert>
+                )}
+                {platform === 'twitter' && (
+                  <Alert>
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>Coming Soon</AlertTitle>
+                    <AlertDescription>
+                      Twitter campaign management is under development
+                    </AlertDescription>
+                  </Alert>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
