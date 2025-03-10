@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import CreateCampaignForm from "@/components/integrations/CreateCampaignForm";
@@ -38,6 +37,8 @@ export default function FacebookCampaignForm({
   const [projectError, setProjectError] = useState<string | null>(null);
   const [initialProjectSet, setInitialProjectSet] = useState<boolean>(false);
   const { toast } = useToast();
+  
+  // Fix: Make sure the form ref is properly created and initialized
   const campaignFormRef = useRef<{ submitForm: () => Promise<boolean> } | null>(null);
   
   // Fetch project data for targeting suggestions and validation
@@ -174,30 +175,43 @@ export default function FacebookCampaignForm({
       setIsSubmitting(true);
       console.log("Submitting campaign with selected ads:", selectedAdIds);
       
-      // Use the ref to call the submitForm method directly
-      if (campaignFormRef.current && typeof campaignFormRef.current.submitForm === 'function') {
-        // Debug the targeting data and selected ads before submission
-        console.log("Targeting data before submission:", targetingData);
-        console.log("Selected ads before submission:", selectedAdIds);
-        
-        const result = await campaignFormRef.current.submitForm();
-        console.log("Form submission result:", result);
-        
-        if (!result) {
-          // If the form submission fails, reset the submitting state
-          setIsSubmitting(false);
-          toast({
-            title: "Campaign creation failed",
-            description: "There was an error creating your campaign. Please check your form values and try again.",
-            variant: "destructive"
-          });
-        }
-      } else {
-        console.error("Campaign form ref or submitForm method not found");
+      // Fix: Check if campaignFormRef.current exists BEFORE trying to access submitForm
+      if (!campaignFormRef.current) {
+        console.error("Campaign form ref is null");
         setIsSubmitting(false);
         toast({
           title: "Internal Error",
-          description: "Could not access the campaign form. Please try again or refresh the page.",
+          description: "Could not access the campaign form. Please try refreshing the page.",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // Now we know campaignFormRef.current exists
+      if (typeof campaignFormRef.current.submitForm !== 'function') {
+        console.error("submitForm method not found on campaign form ref");
+        setIsSubmitting(false);
+        toast({
+          title: "Internal Error",
+          description: "Could not submit the form. Please try again or refresh the page.",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // Debug the targeting data and selected ads before submission
+      console.log("Targeting data before submission:", targetingData);
+      console.log("Selected ads before submission:", selectedAdIds);
+      
+      const result = await campaignFormRef.current.submitForm();
+      console.log("Form submission result:", result);
+      
+      if (!result) {
+        // If the form submission fails, reset the submitting state
+        setIsSubmitting(false);
+        toast({
+          title: "Campaign creation failed",
+          description: "There was an error creating your campaign. Please check your form values and try again.",
           variant: "destructive"
         });
       }
@@ -349,6 +363,7 @@ export default function FacebookCampaignForm({
                   </Alert>
                 )}
                 
+                {/* Fix: Make sure to properly initialize the form ref */}
                 <CreateCampaignForm 
                   projectId={selectedProjectId} 
                   creationMode={selectedMode}
@@ -377,7 +392,7 @@ export default function FacebookCampaignForm({
                     }
                   }}
                   projectDataCompleteness={projectData.dataCompleteness}
-                  targetingData={targetingData}  // Pass targeting data explicitly
+                  targetingData={targetingData}
                   formRef={campaignFormRef}
                 />
               </TabsContent>

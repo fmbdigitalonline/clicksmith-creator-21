@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -12,7 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DatePicker } from "@/components/ui/date-picker";
-import { extractTargetingData } from "@/utils/campaignDataUtils";
+import { extractTargetingData, callFacebookCampaignManager } from "@/utils/campaignDataUtils";
 
 // Define the schema for campaign creation
 const campaignFormSchema = z.object({
@@ -87,10 +86,18 @@ const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, Cr
     },
   });
 
-  // Expose submitForm function to parent through ref
+  // FIX: Properly expose the submitForm function through both ref AND formRef
   useImperativeHandle(ref, () => ({
     submitForm: handleSubmit,
   }));
+
+  // FIX: Sync the external formRef with the local ref
+  useEffect(() => {
+    if (formRef) {
+      console.log("Setting form ref");
+      formRef.current = { submitForm: handleSubmit };
+    }
+  }, [formRef]);
 
   // Update targeting when project data changes or creation mode changes
   useEffect(() => {
@@ -113,7 +120,7 @@ const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, Cr
     if (selectedAdIds.length === 0) {
       console.log("No ads selected, redirecting to ad selection tab");
       onContinue();
-      return;
+      return false;
     }
     
     if (!projectId) {
@@ -122,7 +129,7 @@ const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, Cr
         description: "Please select a project for this campaign",
         variant: "destructive",
       });
-      return;
+      return false;
     }
 
     setIsSubmitting(true);
@@ -140,13 +147,8 @@ const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, Cr
       
       console.log("Submitting campaign data:", campaignData);
 
-      // Call the edge function to create the campaign
-      const { data, error } = await supabase.functions.invoke('facebook-campaign-manager', {
-        body: {
-          action: 'create_campaign',
-          campaign_data: campaignData
-        },
-      });
+      // Use the utility function instead of direct supabase call
+      const { data, error } = await callFacebookCampaignManager('create_campaign', { campaign_data: campaignData });
 
       if (error) {
         console.error("Function error:", error);
