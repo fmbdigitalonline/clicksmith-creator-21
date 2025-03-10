@@ -1,3 +1,4 @@
+
 import { BusinessIdea, TargetAudience, AdHook } from "@/types/adWizard";
 import { TabsContent } from "@/components/ui/tabs";
 import LoadingState from "./complete/LoadingState";
@@ -14,7 +15,7 @@ import { ProjectSelector } from "../gallery/components/ProjectSelector";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CheckSquare, Loader2, SquareCheckIcon, Save } from "lucide-react";
+import { CheckSquare, Loader2, SquareCheckIcon, Save, InfoIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -47,6 +48,7 @@ const AdGalleryStep = ({
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const [manualProcessingNeeded, setManualProcessingNeeded] = useState(false);
   const [isProcessingImages, setIsProcessingImages] = useState(false);
+  const [showCampaignHelp, setShowCampaignHelp] = useState(false);
   const { toast } = useToast();
   
   const {
@@ -341,32 +343,95 @@ const AdGalleryStep = ({
         </div>
       )}
 
-      {/* Facebook Processing Button */}
-      {platform === 'facebook' && manualProcessingNeeded && (
-        <Alert variant="warning" className="flex justify-between items-center">
-          <div>
-            <AlertTitle>Image Processing Required for Facebook Ads</AlertTitle>
-            <AlertDescription className="text-xs">
-              To use these ads on Facebook, they need to be processed. This makes them compatible with Facebook's ad system.
-            </AlertDescription>
+      {/* Facebook Campaign Help Dialog */}
+      <AlertDialog open={showCampaignHelp} onOpenChange={setShowCampaignHelp}>
+        <AlertDialogContent className="max-w-3xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Understanding Facebook Ad Campaigns</AlertDialogTitle>
+          </AlertDialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <p className="text-sm">
+              Here's what you need to know about how Facebook ad campaigns work:
+            </p>
+            
+            <div className="space-y-2">
+              <h3 className="font-medium">Why can't I see my campaign in Facebook Ads Manager?</h3>
+              <ul className="list-disc pl-6 text-sm space-y-1">
+                <li>All campaigns created through our app are initially set to <strong>PAUSED</strong> status on Facebook.</li>
+                <li>You need to activate them within our app by clicking "Activate Campaign" on the status page after creation.</li>
+                <li>There may be a delay (up to 30 minutes) before new campaigns appear in Facebook Ads Manager.</li>
+                <li>Make sure you're looking at the correct Ad Account in Facebook Ads Manager.</li>
+              </ul>
+            </div>
+            
+            <div className="space-y-2">
+              <h3 className="font-medium">Why do images need to be processed for Facebook?</h3>
+              <ul className="list-disc pl-6 text-sm space-y-1">
+                <li>Facebook requires images to be uploaded to their system before they can be used in ads.</li>
+                <li>We first store your images in our secure storage for reliability.</li>
+                <li>Then we process them for Facebook's ad system through their API.</li>
+                <li>This ensures images comply with Facebook's technical requirements and content policies.</li>
+                <li>This process is necessary and cannot be skipped for Facebook ads to function properly.</li>
+              </ul>
+            </div>
+            
+            <div className="space-y-2">
+              <h3 className="font-medium">How long does the process take?</h3>
+              <ul className="list-disc pl-6 text-sm space-y-1">
+                <li>Image processing usually takes 1-2 minutes per image.</li>
+                <li>Campaign creation takes approximately 2-5 minutes.</li>
+                <li>New campaigns may take up to 30 minutes to appear in Facebook Ads Manager.</li>
+              </ul>
+            </div>
           </div>
+          
+          <AlertDialogFooter>
+            <AlertDialogAction>I understand</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      
+      {/* Facebook Processing Button + Help Button */}
+      {platform === 'facebook' && (
+        <div className="flex items-start gap-4">
+          {manualProcessingNeeded && (
+            <Alert variant="warning" className="flex justify-between items-center flex-1">
+              <div>
+                <AlertTitle>Image Processing Required for Facebook Ads</AlertTitle>
+                <AlertDescription className="text-xs">
+                  To use these ads on Facebook, they need to be processed. This makes them compatible with Facebook's ad system.
+                </AlertDescription>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleProcessFacebookImages}
+                disabled={isProcessingImages}
+                className="bg-white ml-4"
+              >
+                {isProcessingImages ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  'Process Facebook Images'
+                )}
+              </Button>
+            </Alert>
+          )}
+          
           <Button
             variant="outline"
             size="sm"
-            onClick={handleProcessFacebookImages}
-            disabled={isProcessingImages}
-            className="bg-white ml-4"
+            onClick={() => setShowCampaignHelp(true)}
+            className="bg-white text-sm flex-shrink-0"
           >
-            {isProcessingImages ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Processing...
-              </>
-            ) : (
-              'Process Facebook Images'
-            )}
+            <InfoIcon className="h-4 w-4 mr-2" />
+            About Facebook Campaigns
           </Button>
-        </Alert>
+        </div>
       )}
 
       {/* Project Assignment Controls */}
