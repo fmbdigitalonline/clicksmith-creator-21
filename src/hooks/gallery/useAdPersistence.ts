@@ -22,7 +22,11 @@ export const useAdPersistence = (projectId: string | undefined) => {
         .single();
       
       if (project?.generated_ads && Array.isArray(project.generated_ads)) {
-        setSavedAds(project.generated_ads);
+        // Ensure uniqueness by ad ID when loading
+        const uniqueAds = Array.from(
+          new Map(project.generated_ads.map((ad: any) => [ad.id, ad])).values()
+        );
+        setSavedAds(uniqueAds);
       }
     } catch (error) {
       console.error('Error loading saved ads:', error);
@@ -35,10 +39,17 @@ export const useAdPersistence = (projectId: string | undefined) => {
     if (!projectId || projectId === 'new') return;
 
     try {
-      // Merge new ads with existing ones, avoiding duplicates
-      const updatedAds = [...savedAds, ...newAds].filter((ad, index, self) => 
-        index === self.findIndex((t) => t.id === ad.id)
-      );
+      // Create a Map to store unique ads by ID
+      const uniqueAdsMap = new Map();
+      
+      // First add existing ads to the map
+      savedAds.forEach(ad => uniqueAdsMap.set(ad.id, ad));
+      
+      // Then add new ads, overwriting any duplicates
+      newAds.forEach(ad => uniqueAdsMap.set(ad.id, ad));
+      
+      // Convert map back to array
+      const updatedAds = Array.from(uniqueAdsMap.values());
 
       const { error: updateError } = await supabase
         .from('projects')
