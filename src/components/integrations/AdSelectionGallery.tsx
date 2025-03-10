@@ -62,25 +62,39 @@ export default function AdSelectionGallery({
       if (error) throw error;
 
       if (data) {
-        // Convert the data to SavedAd type
-        const typedData: SavedAd[] = data.map(item => ({
-          ...item,
-          id: item.id,
-          saved_images: Array.isArray(item.saved_images) 
-            ? item.saved_images.map(img => typeof img === 'string' ? img : JSON.stringify(img))
-            : (item.saved_images ? [item.saved_images.toString()] : []),
-          rating: typeof item.rating === 'number' ? item.rating : 0,
-          size: item.size as unknown as AdSize || { width: 1200, height: 628, label: 'Facebook Feed' },
-          fb_ad_settings: item.fb_ad_settings || undefined,
-          website_url: item.website_url || undefined,
-          call_to_action: item.call_to_action || undefined,
-          visible_link: item.visible_link || undefined,
-          fb_language: item.fb_language || undefined,
-          url_parameters: item.url_parameters || undefined,
-          browser_addons: Array.isArray(item.browser_addons) 
-            ? item.browser_addons.map(addon => typeof addon === 'string' ? addon : JSON.stringify(addon))
-            : []
-        }));
+        // Convert the data to SavedAd type with proper type handling
+        const typedData: SavedAd[] = data.map(item => {
+          // Handle image_status type conversion to ensure it matches the union type
+          let typedImageStatus: "pending" | "processing" | "ready" | "failed" | undefined;
+          if (item.image_status) {
+            // Only assign valid values from the union type
+            if (['pending', 'processing', 'ready', 'failed'].includes(item.image_status)) {
+              typedImageStatus = item.image_status as "pending" | "processing" | "ready" | "failed";
+            } else {
+              typedImageStatus = "pending"; // Default fallback
+            }
+          }
+
+          return {
+            ...item,
+            id: item.id,
+            saved_images: Array.isArray(item.saved_images) 
+              ? item.saved_images.map(img => typeof img === 'string' ? img : JSON.stringify(img))
+              : (item.saved_images ? [item.saved_images.toString()] : []),
+            rating: typeof item.rating === 'number' ? item.rating : 0,
+            size: item.size as unknown as AdSize || { width: 1200, height: 628, label: 'Facebook Feed' },
+            fb_ad_settings: item.fb_ad_settings || undefined,
+            website_url: item.website_url || undefined,
+            call_to_action: item.call_to_action || undefined,
+            visible_link: item.visible_link || undefined,
+            fb_language: item.fb_language || undefined,
+            url_parameters: item.url_parameters || undefined,
+            browser_addons: Array.isArray(item.browser_addons) 
+              ? item.browser_addons.map(addon => typeof addon === 'string' ? addon : JSON.stringify(addon))
+              : [],
+            image_status: typedImageStatus,
+          } as SavedAd; // Use type assertion to ensure TypeScript treats this as SavedAd
+        });
         setSavedAds(typedData);
       }
     } catch (error) {
