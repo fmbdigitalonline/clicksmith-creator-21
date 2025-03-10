@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -181,19 +180,19 @@ export default function AdSelectionGallery({
     try {
       if (applyToAll) {
         // Apply to all selected ads
-        const adsToUpdate = applyToAll ? selectedAds : [adId];
+        const adsToUpdate = applyToAll ? selectedAdIds : [adId];
         
         for (const id of adsToUpdate) {
           await supabase
             .from('ad_feedback')
-            .update({ fb_ad_settings: settings })
+            .update({ fb_ad_settings: settings as Json })
             .eq('id', id);
         }
         
         // Update local state
         setSavedAds(prevAds => 
           prevAds.map(ad => 
-            (applyToAll && selectedAds.includes(ad.id)) || ad.id === adId
+            (applyToAll && selectedAdIds.includes(ad.id)) || ad.id === adId
               ? { ...ad, fb_ad_settings: settings }
               : ad
           )
@@ -207,7 +206,7 @@ export default function AdSelectionGallery({
         // Update just this ad
         await supabase
           .from('ad_feedback')
-          .update({ fb_ad_settings: settings })
+          .update({ fb_ad_settings: settings as Json })
           .eq('id', adId);
           
         // Update local state
@@ -486,12 +485,12 @@ export default function AdSelectionGallery({
             platform={ad.platform}
             size={ad.size}
             projectId={ad.project_id}
-            selected={selectedAds.includes(ad.id)}
-            onSelect={handleAdSelect}
+            selected={selectedAdIds.includes(ad.id)}
+            onSelect={(checked: boolean) => handleAdSelect(ad.id, checked)}
             selectable={true}
             fb_ad_settings={ad.fb_ad_settings}
             projectUrl={projectUrl}
-            onSettingsSaved={(settings, applyToAll) => handleAdSettingsSaved(settings, ad.id, applyToAll)}
+            onSettingsSaved={handleAdSettingsSaved}
           />
         ))}
       </div>

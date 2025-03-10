@@ -1,4 +1,3 @@
-
 import { Json } from "@/integrations/supabase/types";
 
 export interface SavedAd {
@@ -20,7 +19,7 @@ export interface SavedAd {
   fb_ad_settings?: FacebookAdSettings;
 }
 
-export interface FacebookAdSettings {
+export interface FacebookAdSettings extends Record<string, Json> {
   website_url: string;
   visible_link: string;
   call_to_action: string;

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -70,7 +69,6 @@ export default function FacebookAdSettingsForm({
   showApplyToAllOption = false,
 }: FacebookAdSettingsFormProps) {
   const [isLoading, setIsLoading] = useState(false);
-  const [settings, setSettings] = useState<FacebookAdSettings | null>(null);
   const [applyToAll, setApplyToAll] = useState(false);
   const { toast } = useToast();
 
@@ -86,7 +84,7 @@ export default function FacebookAdSettingsForm({
 
   const form = useForm<z.infer<typeof facebookAdSettingsSchema>>({
     resolver: zodResolver(facebookAdSettingsSchema),
-    defaultValues: defaultSettings,
+    defaultValues: initialSettings || defaultSettings,
   });
 
   // Fetch existing settings or use initialSettings if provided
@@ -94,7 +92,6 @@ export default function FacebookAdSettingsForm({
     const fetchSettings = async () => {
       if (initialSettings) {
         form.reset(initialSettings);
-        setSettings(initialSettings);
         return;
       }
 
@@ -117,7 +114,6 @@ export default function FacebookAdSettingsForm({
             ...(data.fb_ad_settings as Record<string, unknown>)
           };
           form.reset(safeSettings);
-          setSettings(safeSettings);
         }
       } catch (error) {
         console.error('Error fetching ad settings:', error);
@@ -164,26 +160,13 @@ export default function FacebookAdSettingsForm({
 
     setIsLoading(true);
     try {
-      // If onSettingsSaved is provided, use it (this allows parent components to handle the saving)
       if (onSettingsSaved) {
         onSettingsSaved(completeSettings, applyToAll);
-      } else {
-        // Otherwise save directly to the database
-        // This will save to the first ad in the adIds array
-        const { error } = await supabase
-          .from('ad_feedback')
-          .update({ fb_ad_settings: completeSettings })
-          .eq('id', adIds[0]);
-
-        if (error) throw error;
-
-        toast({
-          title: "Success",
-          description: "Facebook ad settings have been saved.",
-        });
       }
-
-      setSettings(completeSettings);
+      toast({
+        title: "Success",
+        description: "Facebook ad settings have been saved.",
+      });
     } catch (error) {
       console.error('Error saving ad settings:', error);
       toast({
