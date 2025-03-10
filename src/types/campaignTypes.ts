@@ -11,6 +11,9 @@ export interface SavedAd {
   created_at: string;
   imageurl?: string;
   imageUrl?: string;
+  storage_url?: string;
+  original_url?: string;
+  image_status?: 'pending' | 'processing' | 'ready' | 'failed';
   platform?: string;
   project_id?: string;
   size?: AdSize;

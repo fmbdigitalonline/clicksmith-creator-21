@@ -58,8 +58,55 @@ const AdPreviewCard = ({
   const [editedHeadline, setEditedHeadline] = useState(variant.headline);
   const [editedDescription, setEditedDescription] = useState(variant.description);
   const [selectedFormat, setSelectedFormat] = useState(initialFormat || variant.size);
+  const [imageStatus, setImageStatus] = useState<'pending' | 'processing' | 'ready' | 'failed'>('pending');
   const { toast } = useToast();
   const { projectId } = useParams();
+  const [isProcessingImage, setIsProcessingImage] = useState(false);
+
+  // Effect to check image status when ad is saved
+  useEffect(() => {
+    if (variant.id && isProcessingImage) {
+      const checkStatus = async () => {
+        try {
+          const { data, error } = await supabase
+            .from('ad_feedback')
+            .select('image_status, storage_url')
+            .eq('id', variant.id)
+            .single();
+          
+          if (error) throw error;
+          
+          if (data) {
+            setImageStatus(data.image_status || 'pending');
+            if (data.image_status === 'ready') {
+              setIsProcessingImage(false);
+              toast({
+                title: "Image Ready",
+                description: "Your image has been processed and is ready for Facebook ads.",
+              });
+            } else if (data.image_status === 'failed') {
+              setIsProcessingImage(false);
+              toast({
+                title: "Image Processing Failed",
+                description: "We couldn't process this image for Facebook ads. Try a different image.",
+                variant: "destructive",
+              });
+            }
+          }
+        } catch (error) {
+          console.error('Error checking image status:', error);
+        }
+      };
+      
+      // Initial check
+      checkStatus();
+      
+      // Poll every 5 seconds if still processing
+      const interval = setInterval(checkStatus, 5000);
+      
+      return () => clearInterval(interval);
+    }
+  }, [variant.id, isProcessingImage, toast]);
 
   const getImageUrl = () => {
     if (variant.image?.url) {
@@ -110,6 +157,8 @@ const AdPreviewCard = ({
           primary_text: editedDescription,
           headline: editedHeadline,
           imageUrl: imageUrl,
+          original_url: imageUrl, // Store original URL for migration
+          image_status: 'pending',
           platform: variant.platform,
           size: selectedFormat,
           feedback: 'saved',
@@ -123,11 +172,35 @@ const AdPreviewCard = ({
       }
 
       console.log('Successfully saved ad:', data);
-
-      toast({
-        title: "Success!",
-        description: "Your ad has been saved successfully.",
-      });
+      
+      // Start processing the image for Facebook
+      if (data && data[0]) {
+        const adId = data[0].id;
+        setIsProcessingImage(true);
+        
+        // Call the migrate-images function to process the image
+        const { error: migrationError } = await supabase.functions.invoke('migrate-images', {
+          body: { adId }
+        });
+        
+        if (migrationError) {
+          console.error('Migration error:', migrationError);
+          toast({
+            title: "Image Processing Initiated",
+            description: "Your ad is saved. We're processing the image for Facebook compatibility in the background.",
+          });
+        } else {
+          toast({
+            title: "Image Processing Started",
+            description: "Your ad is saved and image processing has begun. This may take a moment.",
+          });
+        }
+      } else {
+        toast({
+          title: "Success!",
+          description: "Your ad has been saved successfully.",
+        });
+      }
     } catch (error) {
       console.error('Error saving ad:', error);
       toast({
@@ -283,8 +356,18 @@ const AdPreviewCard = ({
               imageUrl={getImageUrl()}
               isVideo={isVideo}
               format={selectedFormat}
+              status={isProcessingImage ? 'processing' : undefined}
             />
           </div>
+          
+          {isProcessingImage && (
+            <div className="mt-2 bg-blue-50 p-2 rounded-md border border-blue-100">
+              <div className="flex items-center gap-2 text-sm text-blue-700">
+                <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
+                <span>Processing image for Facebook compatibility...</span>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Headline Section */}
@@ -310,7 +393,7 @@ const AdPreviewCard = ({
             onFormatChange={(value) => setDownloadFormat(value as "jpg" | "png" | "pdf" | "docx")}
             onSave={handleSave}
             onDownload={handleDownload}
-            isSaving={isSaving}
+            isSaving={isSaving || isProcessingImage}
           />
 
           <AdFeedbackControls

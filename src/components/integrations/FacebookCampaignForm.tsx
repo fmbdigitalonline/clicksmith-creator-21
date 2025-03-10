@@ -44,6 +44,10 @@ export default function FacebookCampaignForm({
   // Fetch project data for targeting suggestions and validation
   const projectData = useProjectCampaignData(selectedProjectId);
 
+  const [imagesReady, setImagesReady] = useState<boolean>(true);
+  const [processingImages, setProcessingImages] = useState<string[]>([]);
+  const [imageCheckError, setImageCheckError] = useState<string | null>(null);
+  
   // Log any changes to selectedProjectId
   useEffect(() => {
     console.log("Selected project ID changed in FacebookCampaignForm:", selectedProjectId);
@@ -171,6 +175,16 @@ export default function FacebookCampaignForm({
       return;
     }
     
+    // Add image validation before submission
+    if (!imagesReady) {
+      toast({
+        title: "Images Not Ready",
+        description: "Some of your selected images are still being processed for Facebook. Please wait or select different ads.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     try {
       setIsSubmitting(true);
       console.log("Submitting campaign with selected ads:", selectedAdIds);
@@ -253,6 +267,58 @@ export default function FacebookCampaignForm({
     projectDataLoaded: !!projectData,
     projectError
   });
+
+  // Add a new effect to check if all selected ad images are ready for Facebook
+  useEffect(() => {
+    const checkImagesStatus = async () => {
+      if (!selectedAdIds.length) {
+        setImagesReady(true);
+        setProcessingImages([]);
+        setImageCheckError(null);
+        return;
+      }
+      
+      try {
+        const { data, error } = await supabase
+          .from('ad_feedback')
+          .select('id, image_status, storage_url')
+          .in('id', selectedAdIds);
+          
+        if (error) throw error;
+        
+        if (data) {
+          const processingIds = data
+            .filter(ad => ad.image_status !== 'ready')
+            .map(ad => ad.id);
+            
+          setProcessingImages(processingIds);
+          setImagesReady(processingIds.length === 0);
+          
+          if (processingIds.length > 0) {
+            setImageCheckError(`${processingIds.length} image(s) still processing for Facebook. Please wait or select different ads.`);
+          } else {
+            setImageCheckError(null);
+          }
+        }
+      } catch (error) {
+        console.error("Error checking image status:", error);
+        setImageCheckError("Could not verify image status. Please try again.");
+      }
+    };
+    
+    if (selectedAdIds.length > 0 && formTab === 'ads') {
+      checkImagesStatus();
+      
+      // Check status periodically if there are processing images
+      const interval = setInterval(() => {
+        if (processingImages.length > 0) {
+          checkImagesStatus();
+        }
+      }, 5000);
+      
+      return () => clearInterval(interval);
+    }
+  }, [selectedAdIds, formTab, processingImages.length]);
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -416,6 +482,17 @@ export default function FacebookCampaignForm({
                       </AlertDescription>
                     </Alert>
                     
+                    {/* Add image processing warning if needed */}
+                    {imageCheckError && (
+                      <Alert variant="warning" className="bg-amber-50 border-amber-200">
+                        <AlertCircle className="h-4 w-4 text-amber-600" />
+                        <AlertTitle>Image Processing Required</AlertTitle>
+                        <AlertDescription>
+                          {imageCheckError}
+                        </AlertDescription>
+                      </Alert>
+                    )}
+                    
                     <AdSelectionGallery
                       projectId={selectedProjectId}
                       onAdsSelected={handleAdsSelected}
@@ -429,12 +506,19 @@ export default function FacebookCampaignForm({
                       </Button>
                       <Button 
                         onClick={handleFormSubmit}
-                        disabled={!canSubmitCampaign()}
+                        disabled={!canSubmitCampaign() || !imagesReady}
                         variant="facebook"
                       >
                         {isSubmitting ? "Creating Campaign..." : `Create Campaign with ${selectedAdIds.length} ad${selectedAdIds.length !== 1 ? 's' : ''}`}
                       </Button>
                     </div>
+                    
+                    {!imagesReady && (
+                      <div className="text-sm text-amber-600 flex items-center mt-2">
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Images are still being processed for Facebook. Campaign creation will be available once processing is complete.
+                      </div>
+                    )}
                   </div>
                 )}
               </TabsContent>
