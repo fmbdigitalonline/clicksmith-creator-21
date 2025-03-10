@@ -19,6 +19,7 @@ import { CheckSquare, Loader2, SquareCheckIcon, Save, InfoIcon } from "lucide-re
 import { supabase } from "@/integrations/supabase/client";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useAdPersistence } from "@/hooks/gallery/useAdPersistence";
 
 interface AdGalleryStepProps {
   businessIdea: BusinessIdea;
@@ -68,6 +69,8 @@ const AdGalleryStep = ({
     generateAds,
     processImagesForFacebook
   } = useAdGeneration(businessIdea, targetAudience, adHooks);
+  
+  const { saveGeneratedAds } = useAdPersistence(selectedProjectId);
 
   useEffect(() => {
     const initializeAds = async () => {
@@ -191,6 +194,7 @@ const AdGalleryStep = ({
 
       const selectedAds = adVariants.filter(ad => selectedAdIds.includes(ad.id));
       const savedAds = [];
+      const facebookAds = [];
       
       for (const ad of selectedAds) {
         const imageUrl = ad.imageUrl || ad.image?.url;
@@ -212,7 +216,9 @@ const AdGalleryStep = ({
             size: ad.size || selectedFormat,
             feedback: 'saved',
             rating: 5
-          });
+          })
+          .select()
+          .single();
 
         if (error) {
           console.error("Error saving ad to project:", error);
@@ -220,12 +226,49 @@ const AdGalleryStep = ({
         }
         
         savedAds.push(data);
+        
+        // Collect Facebook ads for processing
+        if (ad.platform === 'facebook' && (!ad.image_status || ad.image_status === 'pending')) {
+          facebookAds.push({
+            ...ad,
+            id: data.id,  // Use the newly created ad_feedback id
+            imageUrl: imageUrl
+          });
+        }
+      }
+
+      // Save to project's generated_ads array using useAdPersistence
+      if (savedAds.length > 0) {
+        await saveGeneratedAds(savedAds);
       }
 
       toast({
         title: "Ads saved to project",
         description: `${selectedAdIds.length} ad(s) saved to project successfully.`,
       });
+      
+      // Auto-process Facebook images if there are any
+      if (facebookAds.length > 0) {
+        toast({
+          title: "Processing Facebook images",
+          description: "Starting automatic processing of Facebook images...",
+        });
+        
+        try {
+          await processImagesForFacebook(facebookAds);
+          toast({
+            title: "Facebook image processing started",
+            description: `${facebookAds.length} Facebook images are being processed in the background.`,
+          });
+        } catch (processError) {
+          console.error("Error auto-processing Facebook images:", processError);
+          toast({
+            title: "Warning",
+            description: "Ads saved, but there was an issue processing Facebook images. You may need to process them manually.",
+            variant: "destructive",
+          });
+        }
+      }
       
       setSelectedAdIds([]);
       setIsConfirmDialogOpen(false);
@@ -498,6 +541,14 @@ const AdGalleryStep = ({
                   <AlertDialogTitle>Save Ads to Project</AlertDialogTitle>
                   <AlertDialogDescription>
                     Are you sure you want to save {selectedAdIds.length} ad(s) to the selected project?
+                    {selectedAdIds.some(id => {
+                      const ad = adVariants.find(v => v.id === id);
+                      return ad?.platform === 'facebook';
+                    }) && (
+                      <div className="mt-2 text-blue-600">
+                        Facebook images will be automatically processed after saving.
+                      </div>
+                    )}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
