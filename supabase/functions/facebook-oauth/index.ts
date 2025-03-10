@@ -85,8 +85,8 @@ serve(async (req) => {
       facebookAuthUrl.searchParams.append("client_id", facebookAppId);
       facebookAuthUrl.searchParams.append("redirect_uri", redirectUri);
       facebookAuthUrl.searchParams.append("state", oauthState);
-      // Include all required permissions for Facebook Ads management and image upload capabilities
-      facebookAuthUrl.searchParams.append("scope", "ads_management,ads_read,business_management,pages_show_list,pages_read_engagement,ads_images:read,ads_images:write,catalog_management,instagram_basic,instagram_content_publish,Instagram_manage_comments");
+      // Include all required permissions for Facebook Ads management
+      facebookAuthUrl.searchParams.append("scope", "ads_management,ads_read,business_management,pages_show_list,pages_read_engagement");
       facebookAuthUrl.searchParams.append("response_type", "code");
 
       console.log("Redirecting to Facebook OAuth:", facebookAuthUrl.toString());
@@ -182,7 +182,7 @@ serve(async (req) => {
       );
     }
 
-    // Get Facebook pages with detailed information
+    // Get Facebook pages
     console.log("Getting Facebook pages...");
     const pagesResponse = await fetch(
       `https://graph.facebook.com/v19.0/me/accounts?fields=name,access_token,category,fan_count,followers_count&access_token=${accessToken}`

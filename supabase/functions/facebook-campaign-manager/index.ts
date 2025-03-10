@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
 
@@ -28,9 +29,8 @@ interface CampaignData {
   creation_mode: string;
   type: string;
   additional_notes?: string;
-  bid_amount?: number;
-  bid_strategy?: string;
-  selected_page_id?: string; // Add field for storing selected page ID
+  bid_amount?: number; // New field for bid amount
+  bid_strategy?: string; // New field for bid strategy
 }
 
 interface AdDetail {
@@ -199,8 +199,8 @@ async function createCampaign(
       campaignData.objective,
       accessToken,
       cleanedAccountId,
-      campaignData.bid_amount,
-      campaignData.bid_strategy
+      campaignData.bid_amount, // Pass the bid amount
+      campaignData.bid_strategy // Pass the bid strategy
     );
     
     if (!adSet.id) {
@@ -240,21 +240,6 @@ async function createCampaign(
     
     console.log('Creating ads with details:', adDetails);
     
-    // Get page ID from the user's Facebook connection
-    // Use selected page ID if provided, otherwise try to find a page from metadata
-    let pageId = campaignData.selected_page_id;
-    
-    if (!pageId && connections.metadata && connections.metadata.pages && connections.metadata.pages.length > 0) {
-      console.log('Pages available:', connections.metadata.pages);
-      // Take the first page from the user's connected pages
-      pageId = connections.metadata.pages[0].id;
-      console.log('Using first available page ID:', pageId);
-    }
-    
-    if (!pageId) {
-      throw new Error('No Facebook page ID found. Please connect a Facebook page first.');
-    }
-    
     // Create ad creative and ad for each selected ad
     for (const adDetail of adDetails) {
       if (!adDetail.headline || !adDetail.primary_text || !adDetail.imageUrl) {
@@ -263,15 +248,14 @@ async function createCampaign(
       }
       
       try {
-        // Create ad creative using the page ID
+        // Create ad creative
         const creative = await createFacebookAdCreative(
           campaign.id,
           adDetail.headline,
           adDetail.primary_text,
           adDetail.imageUrl,
           accessToken,
-          cleanedAccountId,
-          pageId // Use the page ID here
+          cleanedAccountId
         );
         
         console.log('Ad Creative created:', creative);
@@ -325,8 +309,7 @@ async function createCampaign(
           creation_mode: campaignData.creation_mode,
           additional_notes: campaignData.additional_notes,
           bid_amount: campaignData.bid_amount,
-          bid_strategy: campaignData.bid_strategy,
-          page_id: pageId
+          bid_strategy: campaignData.bid_strategy
         },
         creation_mode: campaignData.creation_mode
       })
@@ -611,8 +594,7 @@ async function createFacebookAdCreative(
   primaryText: string,
   imageUrl: string,
   accessToken: string,
-  accountId: string,
-  pageId: string // Add pageId parameter
+  accountId: string
 ) {
   // Fix: Ensure we have the proper account ID format for the API
   const apiAccountId = `act_${accountId.replace(/^act_/i, '')}`;
@@ -620,108 +602,66 @@ async function createFacebookAdCreative(
   // Default landing page URL if not provided
   const linkUrl = 'https://example.com';
   
-  console.log(`Attempting to create ad creative with image URL: ${imageUrl} and page ID: ${pageId}`);
+  // First, upload the image to Facebook
+  const imageResponse = await fetch(
+    `https://graph.facebook.com/v18.0/${apiAccountId}/adimages`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`
+      },
+      body: JSON.stringify({
+        filename: `ad_image_${Date.now()}.jpg`,
+        url: imageUrl
+      })
+    }
+  );
   
-  try {
-    // First attempt - try to upload the image to Facebook
-    console.log("Attempting to upload image via Facebook API...");
-    const imageResponse = await fetch(
-      `https://graph.facebook.com/v18.0/${apiAccountId}/adimages`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`
-        },
-        body: JSON.stringify({
-          filename: `ad_image_${Date.now()}.jpg`,
-          url: imageUrl
-        })
-      }
-    );
-    
-    const imageData = await imageResponse.json();
-    
-    if (!imageResponse.ok || imageData.error) {
-      console.warn("Error uploading image via API:", JSON.stringify(imageData, null, 2));
-      console.log("Falling back to direct image URL usage in ad creative...");
-      
-      // Fallback approach - use the image URL directly in the ad creative
-      // Create the ad creative with the direct image URL without uploading
-      const fallbackCreativeResponse = await fetch(
-        `https://graph.facebook.com/v18.0/${apiAccountId}/adcreatives`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${accessToken}`
-          },
-          body: JSON.stringify({
-            name: `Creative for ${headline}`,
-            object_story_spec: {
-              page_id: pageId, // Use the page ID here
-              link_data: {
-                message: primaryText,
-                link: linkUrl,
-                name: headline,
-                picture: imageUrl  // Using direct image URL instead of hash
-              }
-            }
-          })
-        }
-      );
-      
-      if (!fallbackCreativeResponse.ok) {
-        const errorData = await fallbackCreativeResponse.json();
-        throw new Error(`Error creating fallback ad creative: ${JSON.stringify(errorData)}`);
-      }
-      
-      return await fallbackCreativeResponse.json();
-    }
-    
-    // Extract the image hash from the response
-    const imageHash = imageData.images?.['ad_image_' + Date.now() + '.jpg']?.hash;
-    
-    if (!imageHash) {
-      throw new Error('Failed to get image hash from Facebook');
-    }
-    
-    console.log("Successfully uploaded image with hash:", imageHash);
-    
-    // Now create the ad creative with the image
-    const creativeResponse = await fetch(
-      `https://graph.facebook.com/v18.0/${apiAccountId}/adcreatives`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`
-        },
-        body: JSON.stringify({
-          name: `Creative for ${headline}`,
-          object_story_spec: {
-            page_id: pageId, // Use the page ID here
-            link_data: {
-              message: primaryText,
-              link: linkUrl,
-              name: headline,
-              image_hash: imageHash
-            }
-          }
-        })
-      }
-    );
-    
-    if (!creativeResponse.ok) {
-      const errorData = await creativeResponse.json();
-      throw new Error(`Error creating ad creative: ${JSON.stringify(errorData)}`);
-    }
-    
-    return await creativeResponse.json();
-  } catch (error) {
-    console.error("Error in createFacebookAdCreative:", error.message);
-    throw error;
+  if (!imageResponse.ok) {
+    const errorData = await imageResponse.json();
+    throw new Error(`Error uploading image: ${JSON.stringify(errorData)}`);
   }
+  
+  const imageData = await imageResponse.json();
+  
+  // Extract the image hash from the response
+  const imageHash = imageData.images?.['ad_image_' + Date.now() + '.jpg']?.hash;
+  
+  if (!imageHash) {
+    throw new Error('Failed to get image hash from Facebook');
+  }
+  
+  // Now create the ad creative with the image
+  const creativeResponse = await fetch(
+    `https://graph.facebook.com/v18.0/${apiAccountId}/adcreatives`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`
+      },
+      body: JSON.stringify({
+        name: `Creative for ${headline}`,
+        object_story_spec: {
+          page_id: accountId, // Using account ID, but ideally should be a page ID
+          link_data: {
+            message: primaryText,
+            link: linkUrl,
+            name: headline,
+            image_hash: imageHash
+          }
+        }
+      })
+    }
+  );
+  
+  if (!creativeResponse.ok) {
+    const errorData = await creativeResponse.json();
+    throw new Error(`Error creating ad creative: ${JSON.stringify(errorData)}`);
+  }
+  
+  return await creativeResponse.json();
 }
 
 async function createFacebookAd(

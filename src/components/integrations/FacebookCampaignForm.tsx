@@ -1,543 +1,471 @@
-import React, { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
-import { supabase } from '@/integrations/supabase/client';
-import { useUser } from '@/hooks/useUser';
-import { DatePicker } from '@/components/ui/date-picker';
-import AdSelectionGallery from './AdSelectionGallery';
-import { toast } from 'sonner';
-import { FacebookPage } from '@/types/platformConnection';
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-
-const formSchema = z.object({
-  name: z.string().min(2, {
-    message: "Campaign name must be at least 2 characters.",
-  }),
-  objective: z.string().min(1, {
-    message: "Please select a campaign objective.",
-  }),
-  budget: z.string().refine((value) => {
-    try {
-      const num = parseFloat(value);
-      return !isNaN(num) && num > 0;
-    } catch (e) {
-      return false;
-    }
-  }, {
-    message: "Budget must be a valid number greater than zero.",
-  }),
-  start_date: z.date(),
-  end_date: z.date().optional(),
-  age_min: z.string().min(1, {
-    message: "Please select a minimum age.",
-  }),
-  age_max: z.string().min(1, {
-    message: "Please select a maximum age.",
-  }),
-  gender: z.string().min(1, {
-    message: "Please select a gender.",
-  }),
-  locations: z.string().optional(),
-  additional_notes: z.string().optional(),
-  bid_strategy: z.string().optional(),
-  bid_amount: z.string().optional(),
-  page_id: z.string().min(1, {
-    message: "Please select a Facebook page.",
-  }),
-});
+import { useState, useEffect, useRef } from "react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import CreateCampaignForm from "@/components/integrations/CreateCampaignForm";
+import CampaignModeSelection from "@/components/integrations/CampaignModeSelection";
+import { Button } from "@/components/ui/button";
+import { ProjectSelector } from "@/components/gallery/components/ProjectSelector";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import AdSelectionGallery from "@/components/integrations/AdSelectionGallery";
+import { AlertCircle, Info, CheckCircle, LayoutDashboard } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { extractTargetingData } from "@/utils/campaignDataUtils";
+import { useProjectCampaignData } from "@/hooks/useProjectCampaignData";
+import DataCompletionWarning from "@/components/projects/DataCompletionWarning";
+import CampaignStatusCard from "@/components/integrations/CampaignStatusCard";
+import { useToast } from "@/hooks/use-toast";
 
 interface FacebookCampaignFormProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   projectId?: string;
-  onSuccess?: (campaignId: string) => void;
-  onCancel?: () => void;
+  onSuccess?: () => void;
 }
 
-export default function FacebookCampaignForm({
-  projectId,
-  onSuccess,
-  onCancel,
+export default function FacebookCampaignForm({ 
+  open, 
+  onOpenChange, 
+  projectId: initialProjectId,
+  onSuccess
 }: FacebookCampaignFormProps) {
-  const { user } = useUser();
-  const [loading, setLoading] = useState(false);
-  const [selectedAds, setSelectedAds] = useState<string[]>([]);
-  const [facebookPages, setFacebookPages] = useState<FacebookPage[]>([]);
-
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      name: "",
-      objective: "",
-      budget: "10.00",
-      start_date: new Date(),
-      end_date: undefined,
-      age_min: "18",
-      age_max: "65",
-      gender: "ALL",
-      locations: "US",
-      additional_notes: "",
-      bid_strategy: "LOWEST_COST_WITHOUT_CAP",
-      bid_amount: undefined,
-      page_id: "",
-    },
-  });
-
-  // Fetch Facebook pages
-  useEffect(() => {
-    async function fetchFacebookPages() {
-      if (!user?.id) return;
-      
-      try {
-        const { data, error } = await supabase
-          .from('platform_connections')
-          .select('metadata')
-          .eq('user_id', user.id)
-          .eq('platform', 'facebook')
-          .single();
-          
-        if (error) {
-          console.error('Error fetching Facebook pages:', error);
-          return;
-        }
-        
-        if (data?.metadata?.pages && Array.isArray(data.metadata.pages)) {
-          setFacebookPages(data.metadata.pages);
-        }
-      } catch (error) {
-        console.error('Error fetching Facebook pages:', error);
-      }
-    }
-    
-    fetchFacebookPages();
-  }, [user?.id]);
+  const [step, setStep] = useState<"mode-selection" | "form" | "status">("mode-selection");
+  const [selectedMode, setSelectedMode] = useState<"manual" | "semi-automatic" | "automatic">("manual");
+  const [selectedProjectId, setSelectedProjectId] = useState<string>(initialProjectId || "");
+  const [formTab, setFormTab] = useState<"details" | "ads">("details");
+  const [selectedAdIds, setSelectedAdIds] = useState<string[]>([]);
+  const [createdCampaignId, setCreatedCampaignId] = useState<string>("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [projectError, setProjectError] = useState<string | null>(null);
+  const [initialProjectSet, setInitialProjectSet] = useState<boolean>(false);
+  const { toast } = useToast();
   
-  // Define the bid strategies
-  const bidStrategies = [
-    { value: 'LOWEST_COST_WITHOUT_CAP', label: 'Lowest Cost (No Cap)' },
-    { value: 'LOWEST_COST_WITH_BID_CAP', label: 'Lowest Cost with Bid Cap' },
-    { value: 'COST_CAP', label: 'Cost Cap' }
-  ];
+  // Fix: Make sure the form ref is properly created and initialized
+  const campaignFormRef = useRef<{ submitForm: () => Promise<boolean> } | null>(null);
+  
+  // Fetch project data for targeting suggestions and validation
+  const projectData = useProjectCampaignData(selectedProjectId);
 
-  // Function to submit the campaign
-  const onSubmit = async (formData: any) => {
-    if (selectedAds.length === 0) {
-      toast.error('Please select at least one ad');
-      return;
+  // Log any changes to selectedProjectId
+  useEffect(() => {
+    console.log("Selected project ID changed in FacebookCampaignForm:", selectedProjectId);
+    // Clear project error when a project is selected
+    if (selectedProjectId) {
+      setProjectError(null);
     }
+  }, [selectedProjectId]);
+
+  // This useEffect ensures the project ID is properly set from props once, but allows it to be changed by user
+  useEffect(() => {
+    if (initialProjectId && !selectedProjectId && !initialProjectSet) {
+      console.log("Setting initial project ID:", initialProjectId);
+      setSelectedProjectId(initialProjectId);
+      setInitialProjectSet(true);
+      setProjectError(null);
+    }
+  }, [initialProjectId, selectedProjectId, initialProjectSet]);
+  
+  // Extract targeting data if available
+  const targetingData = projectData.targetAudience ? 
+    extractTargetingData(projectData.targetAudience, projectData.audienceAnalysis) : null;
+
+  const handleModeSelect = (mode: "manual" | "semi-automatic" | "automatic") => {
+    setSelectedMode(mode);
+  };
+
+  const handleProjectSelect = (projectId: string) => {
+    console.log("Project selected in Facebook form:", projectId);
     
-    setLoading(true);
+    // Make sure we properly update the state
+    setSelectedProjectId(projectId);
     
-    try {
-      // Convert budget to number
-      const budget = parseFloat(formData.budget);
-      if (isNaN(budget) || budget <= 0) {
-        throw new Error('Invalid budget amount');
-      }
-      
-      // Convert bid amount if present
-      let bidAmount = undefined;
-      if (formData.bid_amount) {
-        bidAmount = parseFloat(formData.bid_amount);
-        if (isNaN(bidAmount) || bidAmount <= 0) {
-          throw new Error('Invalid bid amount');
-        }
-      }
-      
-      // Include selected page ID in the campaign data
-      const campaignData = {
-        name: formData.name,
-        objective: formData.objective,
-        budget: budget,
-        start_date: formData.start_date.toISOString(),
-        end_date: formData.end_date ? formData.end_date.toISOString() : undefined,
-        targeting: {
-          age_min: parseInt(formData.age_min, 10),
-          age_max: parseInt(formData.age_max, 10),
-          gender: formData.gender,
-          locations: formData.locations ? [formData.locations] : ['US'],
-        },
-        status: 'PAUSED',
-        ads: selectedAds,
-        project_id: projectId,
-        creation_mode: 'manual',
-        type: 'facebook',
-        additional_notes: formData.additional_notes,
-        bid_strategy: formData.bid_strategy,
-        bid_amount: bidAmount,
-        selected_page_id: formData.page_id
-      };
-      
-      console.log('Creating campaign with data:', campaignData);
-      
-      const { data, error } = await supabase.functions.invoke('facebook-campaign-manager', {
-        body: {
-          operation: 'create_campaign',
-          campaign_data: campaignData
-        }
-      });
-      
-      if (error) {
-        throw new Error(`Error creating campaign: ${error.message}`);
-      }
-      
-      if (!data.success) {
-        throw new Error(data.error?.message || 'Failed to create campaign');
-      }
-      
-      toast.success('Campaign created successfully');
-      
-      if (onSuccess) {
-        onSuccess(data.campaign_id);
-      }
-    } catch (error: any) {
-      console.error('Error creating campaign:', error);
-      toast.error(`Failed to create campaign: ${error.message}`);
-    } finally {
-      setLoading(false);
+    // Clear project error when a project is selected
+    setProjectError(null);
+    
+    // If they select a project and were in a disabled mode, switch to semi-automatic
+    if (selectedMode !== "manual" && !selectedProjectId) {
+      setSelectedMode("semi-automatic");
     }
   };
 
+  const validateProjectSelection = (): boolean => {
+    // For non-manual modes, a project is required
+    if ((selectedMode === "semi-automatic" || selectedMode === "automatic") && !selectedProjectId) {
+      setProjectError("A project is required for semi-automatic or automatic mode");
+      return false;
+    }
+    
+    return true;
+  };
+
+  const handleContinue = () => {
+    // Check project selection
+    if (!validateProjectSelection()) {
+      return;
+    }
+    
+    setStep("form");
+  };
+
+  const handleBack = () => {
+    if (step === "form") {
+      setStep("mode-selection");
+    } else if (step === "status") {
+      setStep("form");
+      setCreatedCampaignId("");
+    }
+  };
+
+  const handleClose = () => {
+    // Reset state when dialog is closed
+    setTimeout(() => {
+      setStep("mode-selection");
+      if (!initialProjectId) {
+        setSelectedProjectId("");
+      }
+      setSelectedMode("manual");
+      setFormTab("details");
+      setSelectedAdIds([]);
+      setCreatedCampaignId("");
+      setIsSubmitting(false);
+      setProjectError(null);
+      setInitialProjectSet(false);
+    }, 300); // Small delay to avoid seeing the reset during close animation
+    onOpenChange(false);
+  };
+
+  const handleAdsSelected = (adIds: string[]) => {
+    setSelectedAdIds(adIds);
+  };
+
+  const handleCampaignCreated = (campaignId: string) => {
+    console.log("Campaign created with ID:", campaignId);
+    setCreatedCampaignId(campaignId);
+    setStep("status");
+    setIsSubmitting(false);
+    
+    // Call onSuccess if provided
+    if (onSuccess) {
+      onSuccess();
+    }
+  };
+
+  const handleCampaignActivated = () => {
+    console.log("Campaign activated!");
+    if (onSuccess) {
+      onSuccess();
+    }
+  };
+
+  // Function to handle form submission directly
+  const handleFormSubmit = async () => {
+    if (isSubmitting) {
+      console.log("Already submitting, ignoring duplicate submission");
+      return;
+    }
+    
+    if (selectedAdIds.length === 0) {
+      toast({
+        title: "No ads selected",
+        description: "Please select at least one ad for your campaign",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    try {
+      setIsSubmitting(true);
+      console.log("Submitting campaign with selected ads:", selectedAdIds);
+      
+      // Fix: Check if campaignFormRef.current exists BEFORE trying to access submitForm
+      if (!campaignFormRef.current) {
+        console.error("Campaign form ref is null");
+        setIsSubmitting(false);
+        toast({
+          title: "Internal Error",
+          description: "Could not access the campaign form. Please try refreshing the page.",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // Now we know campaignFormRef.current exists
+      if (typeof campaignFormRef.current.submitForm !== 'function') {
+        console.error("submitForm method not found on campaign form ref");
+        setIsSubmitting(false);
+        toast({
+          title: "Internal Error",
+          description: "Could not submit the form. Please try again or refresh the page.",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // Debug the targeting data and selected ads before submission
+      console.log("Targeting data before submission:", targetingData);
+      console.log("Selected ads before submission:", selectedAdIds);
+      
+      const result = await campaignFormRef.current.submitForm();
+      console.log("Form submission result:", result);
+      
+      if (!result) {
+        // If the form submission fails, reset the submitting state
+        setIsSubmitting(false);
+        toast({
+          title: "Campaign creation failed",
+          description: "There was an error creating your campaign. Please check your form values and try again.",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error("Error submitting form:", error);
+      setIsSubmitting(false);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to create campaign. Please check the console for details.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Validate if user can proceed to ad selection
+  const canContinueToAds = () => {
+    // Make sure we have a project selected before continuing
+    if (!selectedProjectId) {
+      setProjectError("Please select a project before continuing");
+      return false;
+    }
+    return formTab === "details";
+  };
+
+  // Validate if form is ready for submission
+  const canSubmitCampaign = () => {
+    return selectedAdIds.length > 0 && !isSubmitting;
+  };
+
+  // Log state for debugging
+  console.log("Form state:", {
+    open,
+    step,
+    selectedMode,
+    selectedProjectId,
+    initialProjectId,
+    formTab,
+    selectedAdIds,
+    projectDataLoaded: !!projectData,
+    projectError
+  });
+
   return (
-    <div className="space-y-6">
-      <Card className="p-6">
-        <h2 className="text-xl font-bold mb-4">Create Facebook Campaign</h2>
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Create Facebook Campaign</DialogTitle>
+          <DialogDescription>
+            Create a new Facebook ad campaign for your project
+          </DialogDescription>
+        </DialogHeader>
         
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Campaign Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Enter campaign name" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="objective"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Campaign Objective</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select an objective" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="OUTCOME_AWARENESS">Awareness</SelectItem>
-                        <SelectItem value="OUTCOME_TRAFFIC">Traffic</SelectItem>
-                        <SelectItem value="OUTCOME_ENGAGEMENT">Engagement</SelectItem>
-                        <SelectItem value="OUTCOME_LEADS">Lead Generation</SelectItem>
-                        <SelectItem value="OUTCOME_SALES">Sales</SelectItem>
-                        <SelectItem value="OUTCOME_APP_PROMOTION">App Promotion</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
+        {/* Mode selection step */}
+        {step === "mode-selection" && (
+          <>
+            <div className="mb-6 bg-white p-4 rounded-lg border border-slate-200">
+              <h3 className="text-lg font-medium mb-3 flex items-center text-slate-800">
+                <LayoutDashboard className="h-5 w-5 mr-2 text-slate-500" />
+                Select Project
+              </h3>
+              <ProjectSelector 
+                onSelect={handleProjectSelect}
+                selectedProjectId={selectedProjectId}
+                required={selectedMode !== "manual"}
+                errorMessage={projectError || "A project is required for this campaign mode"}
               />
               
-              <FormField
-                control={form.control}
-                name="budget"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Daily Budget (USD)</FormLabel>
-                    <FormControl>
-                      <Input type="number" min="1" step="0.01" placeholder="10.00" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {selectedProjectId && !projectError && (
+                <div className="flex items-center mt-2 text-sm text-green-600">
+                  <CheckCircle className="h-4 w-4 mr-1" />
+                  <p>Project successfully selected</p>
+                </div>
+              )}
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="start_date"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>Start Date</FormLabel>
-                    <DatePicker
-                      date={field.value}
-                      setDate={field.onChange}
-                    />
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="end_date"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>End Date (Optional)</FormLabel>
-                    <DatePicker
-                      date={field.value}
-                      setDate={field.onChange}
-                    />
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <FormField
-                control={form.control}
-                name="age_min"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Minimum Age</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Min age" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {Array.from({ length: 48 }, (_, i) => i + 18).map((age) => (
-                          <SelectItem key={age} value={age.toString()}>
-                            {age}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="age_max"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Maximum Age</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Max age" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {Array.from({ length: 48 }, (_, i) => i + 18).map((age) => (
-                          <SelectItem key={age} value={age.toString()}>
-                            {age}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="gender"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Gender</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select gender" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="ALL">All</SelectItem>
-                        <SelectItem value="MALE">Male</SelectItem>
-                        <SelectItem value="FEMALE">Female</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            
-            <FormField
-              control={form.control}
-              name="locations"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Location (Country Code)</FormLabel>
-                  <FormControl>
-                    <Input placeholder="US" {...field} />
-                  </FormControl>
-                  <FormDescription>
-                    Enter a 2-letter country code (e.g., US, CA, UK)
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            {/* Add Facebook Page selection */}
-            <FormField
-              control={form.control}
-              name="page_id"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Facebook Page</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a Facebook page" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {facebookPages.length > 0 ? (
-                        facebookPages.map((page) => (
-                          <SelectItem key={page.id} value={page.id}>
-                            {page.name}
-                          </SelectItem>
-                        ))
-                      ) : (
-                        <SelectItem value="none" disabled>
-                          No pages available
-                        </SelectItem>
-                      )}
-                    </SelectContent>
-                  </Select>
-                  <FormDescription>
-                    Select a Facebook page to associate with your ads
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            {/* Bid Strategy */}
-            <FormField
-              control={form.control}
-              name="bid_strategy"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Bid Strategy</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a bid strategy" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {bidStrategies.map((strategy) => (
-                        <SelectItem key={strategy.value} value={strategy.value}>
-                          {strategy.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormDescription>
-                    How you want Facebook to optimize your ad spending
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            {/* Conditional Bid Amount based on bid strategy */}
-            {(form.watch('bid_strategy') === 'LOWEST_COST_WITH_BID_CAP' || 
-             form.watch('bid_strategy') === 'COST_CAP') && (
-              <FormField
-                control={form.control}
-                name="bid_amount"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Bid Amount (USD)</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="number" 
-                        min="0.01" 
-                        step="0.01" 
-                        placeholder="1.00" 
-                        {...field} 
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      The maximum amount you're willing to pay per result
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
+            {(selectedProjectId) && !projectData.loading && (
+              <DataCompletionWarning 
+                validation={projectData.validation}
+                completenessPercentage={projectData.dataCompleteness}
+                showDetails={true}
               />
             )}
             
-            <FormField
-              control={form.control}
-              name="additional_notes"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Additional Notes (Optional)</FormLabel>
-                  <FormControl>
-                    <Textarea 
-                      placeholder="Add any additional information about this campaign..." 
-                      className="h-24"
-                      {...field} 
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+            <CampaignModeSelection 
+              onModeSelect={handleModeSelect}
+              selectedMode={selectedMode}
+              projectId={selectedProjectId}
             />
             
-            <div className="space-y-2">
-              <Label>Select Ads</Label>
-              <AdSelectionGallery 
-                projectId={projectId}
-                selectedAds={selectedAds}
-                onSelectAds={setSelectedAds}
-              />
-              {selectedAds.length === 0 && (
-                <p className="text-sm text-destructive">Please select at least one ad</p>
-              )}
-            </div>
-            
-            <div className="flex justify-end space-x-2 pt-4">
-              {onCancel && (
-                <Button type="button" variant="outline" onClick={onCancel}>
-                  Cancel
-                </Button>
-              )}
-              <Button type="submit" disabled={loading}>
-                {loading ? 'Creating...' : 'Create Campaign'}
+            <div className="flex justify-end mt-6">
+              <Button 
+                onClick={handleContinue}
+                disabled={(selectedMode !== "manual") && !selectedProjectId}
+              >
+                Continue
               </Button>
             </div>
-          </form>
-        </Form>
-      </Card>
-    </div>
+          </>
+        )}
+        
+        {/* Form step */}
+        {step === "form" && (
+          <div className="space-y-6">
+            {/* Show project selector at the top if not already selected */}
+            {!selectedProjectId && (
+              <div className="mb-6 relative" style={{ zIndex: 90 }}>
+                <h3 className="text-lg font-medium mb-2">Select Project</h3>
+                <ProjectSelector 
+                  onSelect={handleProjectSelect}
+                  selectedProjectId={selectedProjectId}
+                  required={true}
+                  errorMessage="A project is required to create a campaign"
+                />
+              </div>
+            )}
+            
+            {(selectedProjectId) && !projectData.loading && !projectData.validation.isComplete && (
+              <DataCompletionWarning 
+                validation={projectData.validation}
+                completenessPercentage={projectData.dataCompleteness}
+                showDetails={false}
+              />
+            )}
+            
+            <Tabs value={formTab} onValueChange={(value) => setFormTab(value as "details" | "ads")} className="relative z-10">
+              <TabsList className="grid w-full grid-cols-2 mb-6">
+                <TabsTrigger value="details">Campaign Details</TabsTrigger>
+                <TabsTrigger value="ads" disabled={!selectedProjectId}>Creative Selection</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="details">
+                {!selectedProjectId && (
+                  <Alert variant="destructive" className="mb-6">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Project Required</AlertTitle>
+                    <AlertDescription>
+                      Please select a project before continuing with campaign creation.
+                    </AlertDescription>
+                  </Alert>
+                )}
+                
+                {targetingData && selectedMode !== "manual" && selectedProjectId && (
+                  <Alert className="mb-6 bg-blue-50 border-blue-200">
+                    <Info className="h-4 w-4 text-blue-600" />
+                    <AlertTitle className="text-blue-800">Smart Targeting Active</AlertTitle>
+                    <AlertDescription className="text-blue-700">
+                      {`Using ${selectedMode === "automatic" ? "automated" : "assisted"} targeting with age range ${targetingData.age_min}-${targetingData.age_max} and ${targetingData.interests.length} interest categories.`}
+                    </AlertDescription>
+                  </Alert>
+                )}
+                
+                {/* Fix: Make sure to properly initialize the form ref */}
+                <CreateCampaignForm 
+                  projectId={selectedProjectId} 
+                  creationMode={selectedMode}
+                  onSuccess={handleCampaignCreated}
+                  onCancel={handleClose}
+                  onBack={handleBack}
+                  selectedAdIds={selectedAdIds}
+                  onContinue={() => {
+                    if (canContinueToAds()) {
+                      setFormTab("ads");
+                    } else {
+                      if (!selectedProjectId) {
+                        setProjectError("Please select a project before continuing");
+                        toast({
+                          title: "Project Required",
+                          description: "You must select a project before proceeding to ad selection.",
+                          variant: "destructive"
+                        });
+                      } else {
+                        toast({
+                          title: "Please complete all required fields",
+                          description: "Make sure you've filled in all the campaign details before continuing.",
+                          variant: "destructive"
+                        });
+                      }
+                    }
+                  }}
+                  projectDataCompleteness={projectData.dataCompleteness}
+                  targetingData={targetingData}
+                  formRef={campaignFormRef}
+                />
+              </TabsContent>
+              
+              <TabsContent value="ads">
+                {!selectedProjectId ? (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Project Required</AlertTitle>
+                    <AlertDescription>
+                      Please go back and select a project before selecting ads.
+                    </AlertDescription>
+                  </Alert>
+                ) : (
+                  <div className="space-y-6">
+                    <Alert className="bg-blue-50 border-blue-200">
+                      <AlertCircle className="h-4 w-4 text-blue-600" />
+                      <AlertTitle>Creative Selection</AlertTitle>
+                      <AlertDescription>
+                        Choose the ads you want to include in your campaign. You can select up to 5 creatives to test in your campaign.
+                      </AlertDescription>
+                    </Alert>
+                    
+                    <AdSelectionGallery
+                      projectId={selectedProjectId}
+                      onAdsSelected={handleAdsSelected}
+                      selectedAdIds={selectedAdIds}
+                      maxSelection={5}
+                    />
+                    
+                    <div className="flex items-center justify-between pt-4 border-t">
+                      <Button variant="outline" onClick={() => setFormTab("details")}>
+                        Back to Campaign Details
+                      </Button>
+                      <Button 
+                        onClick={handleFormSubmit}
+                        disabled={!canSubmitCampaign()}
+                        variant="facebook"
+                      >
+                        {isSubmitting ? "Creating Campaign..." : `Create Campaign with ${selectedAdIds.length} ad${selectedAdIds.length !== 1 ? 's' : ''}`}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
+          </div>
+        )}
+        
+        {/* Status step */}
+        {step === "status" && createdCampaignId && (
+          <div className="space-y-6">
+            <Alert className="bg-green-50 border-green-200 mb-6">
+              <CheckCircle className="h-4 w-4 text-green-600" />
+              <AlertTitle className="text-green-800">Campaign Created Successfully</AlertTitle>
+              <AlertDescription className="text-green-700">
+                Your campaign has been created and is ready to be activated.
+              </AlertDescription>
+            </Alert>
+            
+            <CampaignStatusCard 
+              campaignId={createdCampaignId}
+              onActivate={handleCampaignActivated}
+            />
+            
+            <div className="flex justify-end mt-4">
+              <Button onClick={handleClose} variant="outline">
+                Close
+              </Button>
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
