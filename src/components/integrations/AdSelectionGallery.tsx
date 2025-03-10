@@ -7,10 +7,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { SavedAdCard } from "@/components/gallery/components/SavedAdCard";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, CheckSquare, Square, Filter, LayoutGrid, MapPin } from "lucide-react";
+import { Loader2, CheckSquare, Square, Filter, LayoutGrid, MapPin, Link } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { 
   Select,
   SelectContent,
@@ -18,8 +19,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { SavedAd, AdSelectionGalleryProps, AdSize } from "@/types/campaignTypes";
+import { SavedAd, AdSelectionGalleryProps, AdSize, FacebookAdSettings } from "@/types/campaignTypes";
 import { AD_FORMATS } from "@/components/steps/gallery/components/AdSizeSelector";
+import FacebookAdSettings from "./FacebookAdSettings";
 
 export default function AdSelectionGallery({ 
   projectId, 
@@ -56,7 +58,7 @@ export default function AdSelectionGallery({
 
       let query = supabase
         .from('ad_feedback')
-        .select('id, saved_images, headline, primary_text, rating, feedback, created_at, imageurl, imageUrl, platform, project_id, size');
+        .select('id, saved_images, headline, primary_text, rating, feedback, created_at, imageurl, imageUrl, platform, project_id, size, website_url, call_to_action, visible_link, fb_language, url_parameters, browser_addons, fb_ad_settings');
       
       // If projectId is provided, only show ads for that project
       if (projectId) {
@@ -104,7 +106,9 @@ export default function AdSelectionGallery({
         return {
           ...ad,
           saved_images: savedImages,
-          size: sizeObj
+          size: sizeObj,
+          // Make sure we cast or properly initialize Facebook ad settings
+          fb_ad_settings: ad.fb_ad_settings as FacebookAdSettings || undefined
         };
       });
 
@@ -121,7 +125,6 @@ export default function AdSelectionGallery({
     }
   };
 
-  
   const handleAdSelect = (adId: string, isSelected: boolean) => {
     if (isSelected) {
       // Check if we've hit the selection limit
@@ -203,6 +206,19 @@ export default function AdSelectionGallery({
       value,
       label: size.label || `${size.width}x${size.height}`
     }));
+  };
+
+  // Handle Facebook ad settings change for a specific ad
+  const handleFacebookSettingsChanged = (adId: string, settings: FacebookAdSettings) => {
+    setSavedAds(prevAds => 
+      prevAds.map(ad => 
+        ad.id === adId 
+          ? { ...ad, fb_ad_settings: settings, website_url: settings.website_url, call_to_action: settings.call_to_action } 
+          : ad
+      )
+    );
+    
+    fetchSavedAds(); // Refresh to get updated settings
   };
 
   const filteredAds = getFilteredAds();
@@ -339,6 +355,9 @@ export default function AdSelectionGallery({
               const ad = savedAds.find(a => a.id === adId);
               if (!ad) return null;
               
+              const hasWebsiteUrl = ad.website_url || (ad.fb_ad_settings?.website_url);
+              const callToAction = ad.call_to_action || ad.fb_ad_settings?.call_to_action || "LEARN_MORE";
+              
               return (
                 <div 
                   key={ad.id} 
@@ -369,6 +388,23 @@ export default function AdSelectionGallery({
                   
                   {/* Headline (truncated) */}
                   <p className="text-xs font-medium truncate">{ad.headline}</p>
+                  
+                  {/* Website URL if available */}
+                  {hasWebsiteUrl && (
+                    <div className="mt-1 flex items-center text-xs text-blue-600">
+                      <Link className="h-3 w-3 mr-1" />
+                      <span className="truncate">{ad.visible_link || ad.fb_ad_settings?.visible_link || new URL(hasWebsiteUrl).hostname}</span>
+                    </div>
+                  )}
+                  
+                  {/* Call-to-action button */}
+                  {callToAction && (
+                    <div className="mt-1">
+                      <span className="inline-block px-1.5 py-0.5 text-xs bg-facebook text-white rounded">
+                        {callToAction.replace(/_/g, " ")}
+                      </span>
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -377,7 +413,7 @@ export default function AdSelectionGallery({
       )}
       
       {/* Ads Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
         {filteredAds.map((ad) => (
           <Card key={ad.id} className={`overflow-hidden relative border-2 ${selectedAds.includes(ad.id) ? 'border-primary' : 'border-transparent'}`}>
             <div className="absolute top-3 left-3 z-10 bg-white/90 p-1.5 rounded-md shadow-sm border border-gray-200">
@@ -436,6 +472,12 @@ export default function AdSelectionGallery({
                   ))}
                 </div>
               )}
+              
+              {/* Facebook Ad Settings */}
+              <FacebookAdSettings 
+                ad={ad}
+                onSettingsChanged={handleFacebookSettingsChanged}
+              />
             </div>
           </Card>
         ))}
