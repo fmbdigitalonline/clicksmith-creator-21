@@ -106,8 +106,10 @@ export type Database = {
           feedback: string | null
           headline: string | null
           id: string
+          image_status: string | null
           imageurl: string | null
           imageUrl: string | null
+          original_url: string | null
           platform: string | null
           primary_text: string | null
           project_data: Json | null
@@ -115,6 +117,7 @@ export type Database = {
           rating: number | null
           saved_images: Json | null
           size: Json | null
+          storage_url: string | null
           updated_at: string
           user_id: string | null
         }
@@ -125,8 +128,10 @@ export type Database = {
           feedback?: string | null
           headline?: string | null
           id?: string
+          image_status?: string | null
           imageurl?: string | null
           imageUrl?: string | null
+          original_url?: string | null
           platform?: string | null
           primary_text?: string | null
           project_data?: Json | null
@@ -134,6 +139,7 @@ export type Database = {
           rating?: number | null
           saved_images?: Json | null
           size?: Json | null
+          storage_url?: string | null
           updated_at?: string
           user_id?: string | null
         }
@@ -144,8 +150,10 @@ export type Database = {
           feedback?: string | null
           headline?: string | null
           id?: string
+          image_status?: string | null
           imageurl?: string | null
           imageUrl?: string | null
+          original_url?: string | null
           platform?: string | null
           primary_text?: string | null
           project_data?: Json | null
@@ -153,6 +161,7 @@ export type Database = {
           rating?: number | null
           saved_images?: Json | null
           size?: Json | null
+          storage_url?: string | null
           updated_at?: string
           user_id?: string | null
         }
