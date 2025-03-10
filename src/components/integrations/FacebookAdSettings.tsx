@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -91,7 +92,7 @@ export default function FacebookAdSettingsComponent({ ad, onSettingsChanged }: F
       const { error } = await supabase
         .from('ad_feedback')
         .update({
-          fb_ad_settings: settings,
+          fb_ad_settings: settings as any,
           website_url: settings.website_url,
           call_to_action: settings.call_to_action,
           visible_link: settings.visible_link,

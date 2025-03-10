@@ -65,16 +65,21 @@ export default function AdSelectionGallery({
         // Convert the data to SavedAd type
         const typedData: SavedAd[] = data.map(item => ({
           ...item,
-          saved_images: Array.isArray(item.saved_images) ? item.saved_images : (item.saved_images ? [item.saved_images] : []),
-          rating: item.rating || 0,
-          size: item.size as AdSize,
+          id: item.id,
+          saved_images: Array.isArray(item.saved_images) 
+            ? item.saved_images.map(img => typeof img === 'string' ? img : JSON.stringify(img))
+            : (item.saved_images ? [item.saved_images.toString()] : []),
+          rating: typeof item.rating === 'number' ? item.rating : 0,
+          size: item.size as unknown as AdSize || { width: 1200, height: 628, label: 'Facebook Feed' },
           fb_ad_settings: item.fb_ad_settings || undefined,
           website_url: item.website_url || undefined,
           call_to_action: item.call_to_action || undefined,
           visible_link: item.visible_link || undefined,
           fb_language: item.fb_language || undefined,
           url_parameters: item.url_parameters || undefined,
-          browser_addons: Array.isArray(item.browser_addons) ? item.browser_addons : (item.browser_addons ? [item.browser_addons] : [])
+          browser_addons: Array.isArray(item.browser_addons) 
+            ? item.browser_addons.map(addon => typeof addon === 'string' ? addon : JSON.stringify(addon))
+            : []
         }));
         setSavedAds(typedData);
       }
