@@ -1,697 +1,660 @@
-import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.20.0";
-import { corsHeaders } from "../_shared/cors.ts";
 
-// Facebook Graph API endpoint
-const FB_GRAPH_API = "https://graph.facebook.com/v18.0";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
 
-// These are the valid objective values per Facebook's API
-// We no longer need to map our objectives since the form will provide these directly
-
-// Map for optimization goals based on objectives
-const optimizationGoalMapping = {
-  "OUTCOME_AWARENESS": "REACH",
-  "OUTCOME_TRAFFIC": "LINK_CLICKS",
-  "OUTCOME_ENGAGEMENT": "POST_ENGAGEMENT",
-  "OUTCOME_SALES": "OFFSITE_CONVERSIONS",
-  "OUTCOME_LEADS": "LEAD_GENERATION",
-  "OUTCOME_APP_PROMOTION": "APP_INSTALLS",
-  // Default
-  "DEFAULT": "REACH"
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Map for billing events based on objectives
-const billingEventMapping = {
-  "OUTCOME_AWARENESS": "IMPRESSIONS",
-  "OUTCOME_TRAFFIC": "LINK_CLICKS",
-  "OUTCOME_ENGAGEMENT": "POST_ENGAGEMENT",
-  "OUTCOME_SALES": "IMPRESSIONS",
-  "OUTCOME_LEADS": "IMPRESSIONS",
-  "OUTCOME_APP_PROMOTION": "IMPRESSIONS",
-  // Default
-  "DEFAULT": "IMPRESSIONS"
-};
+console.log(`Facebook Campaign Manager Function loaded...`);
+
+interface CampaignData {
+  name: string;
+  objective: string;
+  budget: number;
+  start_date: string;
+  end_date?: string;
+  targeting?: {
+    age_min: number;
+    age_max: number;
+    gender: string;
+    interests?: string[];
+    locations?: string[];
+  };
+  status: string;
+  ads: string[];
+  ad_details?: any[]; // Array of objects with ad details
+  project_id?: string;
+  creation_mode: string;
+  type: string;
+  additional_notes?: string;
+}
+
+interface AdDetail {
+  id: string;
+  headline: string;
+  primary_text: string;
+  imageUrl: string;
+  size?: {
+    width: number;
+    height: number;
+    label?: string;
+  };
+  platform?: string;
+}
 
 serve(async (req) => {
-  // Always handle CORS preflight requests first
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      status: 204,
-      headers: corsHeaders
+    return new Response(null, { 
+      headers: corsHeaders,
+      status: 204 
     });
   }
 
-  // Create error response helper to ensure consistent CORS headers
-  const errorResponse = (message, status = 400, additionalData = {}) => {
-    console.error(`Error: ${message}, Status: ${status}`);
-    return new Response(
-      JSON.stringify({ 
-        error: message, 
-        status: status >= 500 ? "server_error" : "client_error",
-        ...additionalData
-      }),
-      { 
-        status, 
-        headers: { 
-          ...corsHeaders, 
-          'Content-Type': 'application/json'
-        } 
-      }
-    );
-  };
-
-  // Create success response helper
-  const successResponse = (data) => {
-    return new Response(
-      JSON.stringify(data),
-      { 
-        headers: { 
-          ...corsHeaders, 
-          'Content-Type': 'application/json'
-        } 
-      }
-    );
-  };
-
   try {
-    // Initialize Supabase client
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
-
-    // Parse the request
-    let requestData;
-    try {
-      requestData = await req.json();
-    } catch (e) {
-      return errorResponse('Invalid JSON in request body', 400);
+    // Create Supabase client
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      throw new Error('Authorization header is required');
     }
-
-    const { operation } = requestData;
     
-    console.log(`Processing Facebook campaign operation: ${operation}`, requestData);
-
-    if (!operation) {
-      return errorResponse('Missing operation parameter');
-    }
-
-    // Handle different operations
-    switch (operation) {
-      case 'create_campaign': {
-        // Create campaign logic
-        const { campaign_data } = requestData;
-        
-        if (!campaign_data) {
-          return errorResponse('Missing campaign data');
-        }
-
-        // Validate user authentication
-        const authHeader = req.headers.get("Authorization");
-        if (!authHeader) {
-          return errorResponse("Missing authorization header", 401);
-        }
-
-        // Verify JWT token from request
-        const token = authHeader.replace("Bearer ", "");
-        const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
-
-        if (userError || !user) {
-          return errorResponse("Invalid or expired authentication token", 401);
-        }
-
-        // Get Facebook connection data
-        const { data: connectionData, error: connectionError } = await supabaseClient
-          .from("platform_connections")
-          .select("*")
-          .eq("platform", "facebook")
-          .eq("user_id", user.id)
-          .single();
-
-        if (connectionError || !connectionData) {
-          return errorResponse(
-            "Facebook account not connected",
-            400,
-            {
-              statusDetails: "Please reconnect your Facebook account",
-              status: "auth_error"
-            }
-          );
-        }
-
-        // Get Facebook access token and account ID
-        const accessToken = connectionData.access_token;
-        const adAccountId = connectionData.account_id;
-
-        if (!accessToken || !adAccountId) {
-          return errorResponse(
-            "Missing Facebook credentials",
-            400,
-            {
-              statusDetails: "Facebook access token or ad account ID is missing",
-              status: "auth_error"
-            }
-          );
-        }
-
-        try {
-          // Create campaign record in our database first
-          const campaignName = campaign_data.name || `Facebook Campaign ${new Date().toISOString().split('T')[0]}`;
-          const projectId = campaign_data.project_id;
-          
-          // Make sure we have a project ID
-          if (!projectId) {
-            return errorResponse("Missing project ID", 400);
-          }
-          
-          const { data: initialCampaign, error: initialSaveError } = await supabaseClient
-            .from("ad_campaigns")
-            .insert({
-              name: campaignName,
-              platform: "facebook",
-              status: "pending", 
-              project_id: projectId,
-              user_id: user.id,
-              creation_mode: campaign_data.creation_mode || "manual",
-              campaign_data: campaign_data
-            })
-            .select()
-            .single();
-
-          if (initialSaveError) {
-            console.error("Error creating initial campaign record:", initialSaveError);
-            return errorResponse(
-              "Failed to initialize campaign tracking",
-              500,
-              {
-                statusDetails: "Database error occurred",
-                status: "db_error"
-              }
-            );
-          }
-
-          // Format budget as daily_budget in cents (Facebook requires it in cents)
-          const dailyBudget = Math.floor((campaign_data.budget || 50) * 100);
-          
-          // Now actually create the campaign in Facebook
-          console.log(`Creating Facebook campaign with account ID: ${adAccountId} and access token length: ${accessToken.length}`);
-          
-          // FIXED: Remove duplicate 'act_' prefix - the adAccountId already contains the prefix
-          const formattedAccountId = adAccountId.startsWith('act_') ? adAccountId : `act_${adAccountId}`;
-          
-          // Log correctly formatted account ID for debugging
-          console.log(`Using formatted account ID: ${formattedAccountId}`);
-          
-          // No need to map objective anymore - use directly from form
-          const fbObjective = campaign_data.objective || "OUTCOME_AWARENESS";
-          
-          console.log(`Using Facebook objective ${fbObjective}`);
-          
-          // Create the campaign on Facebook
-          const campaignResponse = await fetch(
-            `${FB_GRAPH_API}/${formattedAccountId}/campaigns`,
-            {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                name: campaignName,
-                objective: fbObjective,
-                status: 'PAUSED', // Start as paused so users can review before launching
-                special_ad_categories: [],
-                access_token: accessToken,
-              }),
-            }
-          );
-          
-          const campaignResult = await campaignResponse.json();
-          console.log("Facebook campaign creation result:", campaignResult);
-          
-          if (!campaignResponse.ok || campaignResult.error) {
-            console.error("Failed to create Facebook campaign:", campaignResult);
-            
-            // Update our local record to reflect the error
-            await supabaseClient
-              .from("ad_campaigns")
-              .update({ 
-                status: "failed",
-                campaign_data: {
-                  ...campaign_data,
-                  error: campaignResult.error || "Unknown Facebook API error"
-                }
-              })
-              .eq("id", initialCampaign.id);
-              
-            return errorResponse(
-              campaignResult.error?.message || "Failed to create Facebook campaign",
-              400,
-              {
-                statusDetails: "Facebook API error: " + (campaignResult.error?.message || "Unknown error"),
-                facebookError: campaignResult.error,
-                campaignId: initialCampaign.id
-              }
-            );
-          }
-          
-          const campaignId = campaignResult.id;
-          
-          // Create an ad set
-          const today = new Date();
-          const endDate = campaign_data.end_date ? new Date(campaign_data.end_date) : null;
-          
-          // Extract targeting information
-          const targeting = campaign_data.targeting || {
-            age_min: 18,
-            age_max: 65,
-            gender: "ALL",
-            locations: [{ "key": "countries", "value": ["US"] }],
-            interests: []
-          };
-          
-          // Format targeting for Facebook API
-          const fbTargeting = {
-            age_min: targeting.age_min || 18,
-            age_max: targeting.age_max || 65,
-            genders: targeting.gender === "MALE" ? [1] : 
-                     targeting.gender === "FEMALE" ? [2] : [1, 2],
-            geo_locations: {
-              countries: ["US"], // Default to US if no locations specified
-            },
-          };
-          
-          // Add interests if available
-          if (targeting.interests && targeting.interests.length > 0) {
-            fbTargeting.flexible_spec = [{
-              interests: targeting.interests.map(interest => ({
-                id: typeof interest === 'object' ? interest.id : interest,
-                name: typeof interest === 'object' ? interest.name : interest
-              }))
-            }];
-          }
-          
-          // Get optimization goal and billing event based on the objective
-          const optimizationGoal = optimizationGoalMapping[fbObjective] || optimizationGoalMapping.DEFAULT;
-          const billingEvent = billingEventMapping[fbObjective] || billingEventMapping.DEFAULT;
-          
-          console.log(`Using optimization goal: ${optimizationGoal} and billing event: ${billingEvent}`);
-          
-          // Create the ad set
-          const adSetResponse = await fetch(
-            `${FB_GRAPH_API}/${formattedAccountId}/adsets`,
-            {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                name: `${campaignName} - Ad Set`,
-                campaign_id: campaignId,
-                optimization_goal: optimizationGoal,
-                billing_event: billingEvent,
-                bid_amount: 1000, // $10.00 in cents as default bid
-                daily_budget: dailyBudget,
-                targeting: fbTargeting,
-                status: 'PAUSED',
-                start_time: today.toISOString(),
-                end_time: endDate ? endDate.toISOString() : undefined,
-                access_token: accessToken,
-              }),
-            }
-          );
-          
-          const adSetResult = await adSetResponse.json();
-          console.log("Facebook ad set creation result:", adSetResult);
-          
-          if (!adSetResponse.ok || adSetResult.error) {
-            console.error("Failed to create Facebook ad set:", adSetResult);
-            
-            // Update our local record to reflect the error
-            await supabaseClient
-              .from("ad_campaigns")
-              .update({ 
-                status: "failed",
-                platform_campaign_id: campaignId,
-                campaign_data: {
-                  ...campaign_data,
-                  error: adSetResult.error || "Failed to create ad set"
-                }
-              })
-              .eq("id", initialCampaign.id);
-              
-            return errorResponse(
-              adSetResult.error?.message || "Failed to create Facebook ad set",
-              400,
-              {
-                statusDetails: "Facebook API error: " + (adSetResult.error?.message || "Unknown error"),
-                facebookError: adSetResult.error,
-                campaignId: initialCampaign.id,
-                platform_campaign_id: campaignId
-              }
-            );
-          }
-          
-          const adSetId = adSetResult.id;
-          
-          // Update our database record with the Facebook IDs
-          await supabaseClient
-            .from("ad_campaigns")
-            .update({
-              status: "paused", // Mark as paused since the FB campaign is created in paused state
-              platform_campaign_id: campaignId,
-              platform_ad_set_id: adSetId,
-              campaign_data: {
-                ...campaign_data,
-                facebook_campaign_id: campaignId,
-                facebook_ad_set_id: adSetId
-              }
-            })
-            .eq("id", initialCampaign.id);
-          
-          // Return success with the campaign details
-          return successResponse({
-            success: true,
-            campaign_id: initialCampaign.id,
-            platform_campaign_id: campaignId,
-            platform_ad_set_id: adSetId,
-            status: "paused",
-            statusDetails: "Campaign created successfully on Facebook in paused state. You can now activate it."
-          });
-        
-        } catch (error) {
-          console.error("Error processing campaign creation:", error);
-          return errorResponse(
-            error.message || "Unknown error occurred during campaign processing",
-            500,
-            {
-              statusDetails: "Server error while processing campaign",
-              status: "server_error"
-            }
-          );
-        }
-      }
-      
-      case 'delete': {
-        // Delete campaign logic
-        const { recordId } = requestData;
-        
-        if (!recordId) {
-          return errorResponse('Missing recordId parameter');
-        }
-        
-        // Delete the campaign from the database
-        const { error } = await supabaseClient
-          .from('ad_campaigns')
-          .delete()
-          .eq('id', recordId);
-        
-        if (error) {
-          console.error('Error deleting campaign:', error);
-          return errorResponse(error.message, 500);
-        }
-        
-        return successResponse({ success: true });
-      }
-      
-      case 'activate': {
-        // Activate campaign logic
-        const { recordId } = requestData;
-        
-        if (!recordId) {
-          return errorResponse('Missing recordId parameter');
-        }
-        
-        // Get campaign details from database
-        const { data: campaign, error: campaignError } = await supabaseClient
-          .from('ad_campaigns')
-          .select('*')
-          .eq('id', recordId)
-          .single();
-          
-        if (campaignError || !campaign) {
-          return errorResponse('Campaign not found', 404);
-        }
-        
-        // Get user's Facebook credentials
-        const { data: connection, error: connectionError } = await supabaseClient
-          .from('platform_connections')
-          .select('*')
-          .eq('platform', 'facebook')
-          .eq('user_id', campaign.user_id)
-          .single();
-          
-        if (connectionError || !connection) {
-          return errorResponse('Facebook connection not found', 400);
-        }
-        
-        const accessToken = connection.access_token;
-        
-        if (!campaign.platform_campaign_id) {
-          return errorResponse('No Facebook campaign ID found', 400);
-        }
-        
-        try {
-          // Activate the campaign on Facebook
-          const campaignResponse = await fetch(
-            `${FB_GRAPH_API}/${campaign.platform_campaign_id}`,
-            {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                status: 'ACTIVE',
-                access_token: accessToken,
-              }),
-            }
-          );
-          
-          const campaignResult = await campaignResponse.json();
-          
-          if (!campaignResponse.ok || campaignResult.error) {
-            console.error("Failed to activate Facebook campaign:", campaignResult);
-            return errorResponse(
-              campaignResult.error?.message || "Failed to activate Facebook campaign",
-              400
-            );
-          }
-          
-          // If there's an ad set, activate it too
-          if (campaign.platform_ad_set_id) {
-            const adSetResponse = await fetch(
-              `${FB_GRAPH_API}/${campaign.platform_ad_set_id}`,
-              {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                  status: 'ACTIVE',
-                  access_token: accessToken,
-                }),
-              }
-            );
-            
-            const adSetResult = await adSetResponse.json();
-            
-            if (!adSetResponse.ok || adSetResult.error) {
-              console.error("Failed to activate Facebook ad set:", adSetResult);
-            }
-          }
-          
-          // Update the campaign status in the database
-          const { data, error } = await supabaseClient
-            .from('ad_campaigns')
-            .update({ status: 'active' })
-            .eq('id', recordId)
-            .select()
-            .single();
-          
-          if (error) {
-            console.error('Error updating campaign status:', error);
-            return errorResponse(error.message, 500);
-          }
-          
-          return successResponse({ 
-            success: true, 
-            data,
-            statusDetails: "Campaign activated successfully on Facebook"
-          });
-        } catch (error) {
-          console.error("Error activating campaign:", error);
-          return errorResponse(
-            error.message || "Unknown error occurred during campaign activation",
-            500
-          );
-        }
-      }
-      
-      case 'deactivate': {
-        // Deactivate campaign logic
-        const { recordId } = requestData;
-        
-        if (!recordId) {
-          return errorResponse('Missing campaign record ID');
-        }
-        
-        // Get campaign details from database
-        const { data: campaign, error: campaignError } = await supabaseClient
-          .from('ad_campaigns')
-          .select('*')
-          .eq('id', recordId)
-          .single();
-          
-        if (campaignError || !campaign) {
-          return errorResponse('Campaign not found', 404);
-        }
-        
-        // Get user's Facebook credentials
-        const { data: connection, error: connectionError } = await supabaseClient
-          .from('platform_connections')
-          .select('*')
-          .eq('platform', 'facebook')
-          .eq('user_id', campaign.user_id)
-          .single();
-          
-        if (connectionError || !connection) {
-          return errorResponse('Facebook connection not found', 400);
-        }
-        
-        const accessToken = connection.access_token;
-        
-        if (!campaign.platform_campaign_id) {
-          return errorResponse('No Facebook campaign ID found', 400);
-        }
-        
-        try {
-          // Deactivate (pause) the campaign on Facebook
-          const campaignResponse = await fetch(
-            `${FB_GRAPH_API}/${campaign.platform_campaign_id}`,
-            {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                status: 'PAUSED',
-                access_token: accessToken,
-              }),
-            }
-          );
-          
-          const campaignResult = await campaignResponse.json();
-          
-          if (!campaignResponse.ok || campaignResult.error) {
-            console.error("Failed to pause Facebook campaign:", campaignResult);
-            return errorResponse(
-              campaignResult.error?.message || "Failed to pause Facebook campaign",
-              400
-            );
-          }
-          
-          // Update the campaign status in the database
-          const { error: updateError } = await supabaseClient
-            .from('ad_campaigns')
-            .update({ status: 'paused' })
-            .eq('id', recordId);
-          
-          if (updateError) {
-            console.error('Error updating campaign status:', updateError);
-            return errorResponse(updateError.message, 500);
-          }
-          
-          return successResponse({ 
-            success: true, 
-            message: "Campaign paused successfully on Facebook"
-          });
-        } catch (error) {
-          console.error("Error pausing campaign:", error);
-          return errorResponse(
-            error.message || "Unknown error occurred during campaign deactivation",
-            500
-          );
-        }
-      }
-      
-      case 'get_campaign_details': {
-        // Get campaign details logic
-        const { recordId } = requestData;
-        
-        if (!recordId) {
-          return errorResponse('Missing recordId parameter');
-        }
-        
-        // Fetch campaign details from database
-        const { data, error } = await supabaseClient
-          .from('ad_campaigns')
-          .select('*')
-          .eq('id', recordId)
-          .maybeSingle();
-        
-        if (error) {
-          console.error('Error getting campaign details:', error);
-          return errorResponse(error.message, 500);
-        }
-        
-        return successResponse({ success: true, campaign: data });
-      }
-      
-      case 'verify_connection': {
-        // Verify that user has an active Facebook connection
-        const { userId } = requestData;
-        
-        if (!userId) {
-          return errorResponse('Missing userId parameter');
-        }
-        
-        const { data, error } = await supabaseClient
-          .from('platform_connections')
-          .select('*')
-          .eq('platform', 'facebook')
-          .eq('user_id', userId)
-          .maybeSingle();
-        
-        if (error) {
-          console.error('Error verifying connection:', error);
-          return errorResponse(error.message, 500);
-        }
-        
-        // Check if token is expired
-        let isValid = false;
-        let message = 'No Facebook connection found';
-        
-        if (data) {
-          if (data.token_expires_at) {
-            const expiryDate = new Date(data.token_expires_at);
-            if (expiryDate > new Date()) {
-              isValid = true;
-              message = 'Connection valid';
-            } else {
-              message = 'Connection token expired';
-            }
-          } else {
-            // If no expiry date, assume it's valid
-            isValid = true;
-            message = 'Connection valid (no expiry date)';
-          }
-        }
-        
-        return successResponse({ 
-          success: true, 
-          isValid,
-          message,
-          connection: data
-        });
-      }
-      
-      default:
-        return errorResponse(`Unknown operation: ${operation}`);
-    }
-  } catch (error) {
-    console.error('Unhandled error in Facebook campaign manager:', error);
-    return errorResponse(
-      error.message || 'Internal server error',
-      500
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+    
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+      global: { headers: { Authorization: authHeader } },
+      auth: { persistSession: false }
+    });
+    
+    // Get user ID from auth header
+    const { data: { user }, error: userError } = await supabase.auth.getUser(
+      authHeader.replace('Bearer ', '')
     );
+    
+    if (userError || !user) {
+      throw new Error('Unauthorized: ' + (userError?.message || 'Invalid user token'));
+    }
+    
+    const userId = user.id;
+    
+    // Parse request body
+    const body = await req.json();
+    const { operation, campaignId, adSetId, recordId, campaign_data } = body;
+    
+    console.log('Operation requested:', operation);
+    console.log('User ID:', userId);
+    
+    // Check Facebook integration is set up
+    const { data: connections, error: connectionsError } = await supabase
+      .from('platform_connections')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('platform', 'facebook')
+      .maybeSingle();
+    
+    if (connectionsError) {
+      throw new Error(`Error fetching Facebook connection: ${connectionsError.message}`);
+    }
+    
+    if (!connections || !connections.access_token) {
+      throw new Error('Facebook connection not found. Please connect your Facebook account first.');
+    }
+    
+    // Get access token and account ID
+    const { access_token, account_id } = connections;
+    
+    if (!access_token || !account_id) {
+      throw new Error('Facebook access token or account ID not found');
+    }
+    
+    // Handle different operations
+    let result;
+    
+    switch (operation) {
+      case 'create_campaign':
+        result = await createCampaign(campaign_data, access_token, account_id, userId, supabase);
+        break;
+        
+      case 'activate':
+        result = await updateCampaignStatus(campaignId, adSetId, recordId, 'ACTIVE', access_token, supabase);
+        break;
+        
+      case 'deactivate':
+        result = await updateCampaignStatus(campaignId, adSetId, recordId, 'PAUSED', access_token, supabase);
+        break;
+        
+      default:
+        throw new Error(`Unknown operation: ${operation}`);
+    }
+    
+    return new Response(JSON.stringify(result), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 200
+    });
+    
+  } catch (error) {
+    console.error('Error processing request:', error);
+    
+    return new Response(JSON.stringify({
+      error: {
+        message: `Failed to process request: ${error.message}`,
+      }
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 400
+    });
   }
 });
+
+async function createCampaign(
+  campaignData: CampaignData,
+  accessToken: string,
+  accountId: string,
+  userId: string,
+  supabase: any
+) {
+  console.log('Creating campaign with data:', JSON.stringify(campaignData, null, 2));
+  
+  // Cast the budget to an integer in cents
+  const dailyBudget = Math.round(campaignData.budget * 100);
+  
+  try {
+    // Step 1: Create the campaign
+    const campaign = await createFacebookCampaign(
+      campaignData.name,
+      campaignData.objective,
+      accessToken,
+      accountId
+    );
+    
+    if (!campaign.id) {
+      throw new Error('Failed to create Facebook campaign');
+    }
+    
+    console.log('Campaign created:', campaign);
+    
+    // Step 2: Create the Ad Set with targeting
+    const startDate = new Date(campaignData.start_date);
+    let endDate = undefined;
+    
+    if (campaignData.end_date) {
+      endDate = new Date(campaignData.end_date);
+    }
+    
+    const adSet = await createFacebookAdSet(
+      campaign.id,
+      campaignData.name + ' Ad Set',
+      dailyBudget,
+      startDate,
+      endDate,
+      campaignData.targeting,
+      campaignData.objective,
+      accessToken,
+      accountId
+    );
+    
+    if (!adSet.id) {
+      throw new Error('Failed to create Facebook ad set');
+    }
+    
+    console.log('Ad Set created:', adSet);
+    
+    // Step 3: Create ads for each creative
+    const adCreatives = [];
+    const ads = [];
+    
+    // Use ad_details array if it exists, otherwise try to fetch from database
+    let adDetails = campaignData.ad_details || [];
+    
+    if (adDetails.length === 0 && campaignData.ads.length > 0) {
+      // Attempt to fetch ad details from database if not provided
+      console.log('Ad details not provided, fetching from database...');
+      const { data: adFeedbackData } = await supabase
+        .from('ad_feedback')
+        .select('id, headline, primary_text, imageUrl, imageurl')
+        .in('id', campaignData.ads);
+      
+      if (adFeedbackData && adFeedbackData.length > 0) {
+        adDetails = adFeedbackData.map(ad => ({
+          id: ad.id,
+          headline: ad.headline,
+          primary_text: ad.primary_text,
+          imageUrl: ad.imageUrl || ad.imageurl
+        }));
+      }
+    }
+    
+    if (adDetails.length === 0) {
+      throw new Error('No ad details found for the selected ads');
+    }
+    
+    console.log('Creating ads with details:', adDetails);
+    
+    // Create ad creative and ad for each selected ad
+    for (const adDetail of adDetails) {
+      if (!adDetail.headline || !adDetail.primary_text || !adDetail.imageUrl) {
+        console.warn('Skipping ad with missing details:', adDetail.id);
+        continue;
+      }
+      
+      try {
+        // Create ad creative
+        const creative = await createFacebookAdCreative(
+          campaign.id,
+          adDetail.headline,
+          adDetail.primary_text,
+          adDetail.imageUrl,
+          accessToken,
+          accountId
+        );
+        
+        console.log('Ad Creative created:', creative);
+        adCreatives.push(creative);
+        
+        // Create ad using the creative
+        if (creative.id) {
+          const ad = await createFacebookAd(
+            campaign.id,
+            adSet.id,
+            creative.id,
+            adDetail.headline + ' Ad',
+            accessToken,
+            accountId
+          );
+          
+          console.log('Ad created:', ad);
+          ads.push(ad);
+        }
+      } catch (error) {
+        console.error('Error creating ad for', adDetail.id, ':', error.message);
+      }
+    }
+    
+    if (ads.length === 0) {
+      throw new Error('Failed to create any ads');
+    }
+    
+    // Step 4: Record the campaign in the database
+    const { data: savedCampaign, error: saveError } = await supabase
+      .from('ad_campaigns')
+      .insert({
+        name: campaignData.name,
+        platform: 'facebook',
+        status: 'completed', // Set to 'completed' but default to paused state in Facebook
+        user_id: userId,
+        project_id: campaignData.project_id,
+        platform_campaign_id: campaign.id,
+        platform_ad_set_id: adSet.id,
+        platform_ad_id: ads[0]?.id, // Just store the first ad ID if multiple
+        budget: campaignData.budget,
+        start_date: startDate,
+        end_date: endDate,
+        targeting: campaignData.targeting,
+        campaign_data: {
+          campaign,
+          adSet,
+          ads,
+          adCreatives,
+          objective: campaignData.objective,
+          creation_mode: campaignData.creation_mode,
+          additional_notes: campaignData.additional_notes
+        },
+        creation_mode: campaignData.creation_mode
+      })
+      .select('id')
+      .single();
+    
+    if (saveError) {
+      throw new Error(`Error saving campaign record: ${saveError.message}`);
+    }
+    
+    return {
+      success: true,
+      campaign_id: savedCampaign.id,
+      facebook_campaign_id: campaign.id,
+      facebook_ad_set_id: adSet.id,
+      facebook_ads: ads.map(ad => ad.id)
+    };
+    
+  } catch (error) {
+    console.error('Failed to create Facebook campaign:', error);
+    
+    throw new Error(`Failed to create Facebook campaign: ${error.message}`);
+  }
+}
+
+async function updateCampaignStatus(
+  campaignId: string,
+  adSetId: string,
+  recordId: string,
+  status: 'ACTIVE' | 'PAUSED',
+  accessToken: string,
+  supabase: any
+) {
+  try {
+    // Update campaign status
+    const campaignResponse = await fetch(
+      `https://graph.facebook.com/v18.0/${campaignId}?fields=status`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`
+        },
+        body: JSON.stringify({
+          status: status
+        })
+      }
+    );
+    
+    if (!campaignResponse.ok) {
+      const errorData = await campaignResponse.json();
+      throw new Error(`Error updating campaign status: ${JSON.stringify(errorData)}`);
+    }
+    
+    const campaignResult = await campaignResponse.json();
+    
+    // Update ad set status
+    const adSetResponse = await fetch(
+      `https://graph.facebook.com/v18.0/${adSetId}?fields=status`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`
+        },
+        body: JSON.stringify({
+          status: status
+        })
+      }
+    );
+    
+    if (!adSetResponse.ok) {
+      const errorData = await adSetResponse.json();
+      throw new Error(`Error updating ad set status: ${JSON.stringify(errorData)}`);
+    }
+    
+    const adSetResult = await adSetResponse.json();
+    
+    // Update status in database
+    const dbStatus = status === 'ACTIVE' ? 'active' : 'paused';
+    
+    const { error: updateError } = await supabase
+      .from('ad_campaigns')
+      .update({ status: dbStatus })
+      .eq('id', recordId);
+    
+    if (updateError) {
+      throw new Error(`Error updating campaign record: ${updateError.message}`);
+    }
+    
+    return {
+      success: true,
+      campaign: campaignResult,
+      adSet: adSetResult,
+      status: dbStatus
+    };
+    
+  } catch (error) {
+    console.error('Failed to update campaign status:', error);
+    
+    throw new Error(`Failed to update campaign status: ${error.message}`);
+  }
+}
+
+async function createFacebookCampaign(
+  name: string,
+  objective: string,
+  accessToken: string,
+  accountId: string
+) {
+  const response = await fetch(
+    `https://graph.facebook.com/v18.0/act_${accountId}/campaigns`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`
+      },
+      body: JSON.stringify({
+        name,
+        objective,
+        status: 'PAUSED', // Always create in paused state
+        special_ad_categories: []
+      })
+    }
+  );
+  
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(`Error creating campaign: ${JSON.stringify(errorData)}`);
+  }
+  
+  return await response.json();
+}
+
+async function createFacebookAdSet(
+  campaignId: string,
+  name: string,
+  dailyBudget: number,
+  startDate: Date,
+  endDate: Date | undefined,
+  targeting: any,
+  objective: string,
+  accessToken: string,
+  accountId: string
+) {
+  // Format dates for Facebook API
+  const formattedStartDate = startDate.toISOString();
+  const formattedEndDate = endDate ? endDate.toISOString() : undefined;
+  
+  // Map gender values to Facebook format
+  let genderArray = [1, 2]; // Default: all genders
+  if (targeting?.gender === 'MALE') {
+    genderArray = [1];
+  } else if (targeting?.gender === 'FEMALE') {
+    genderArray = [2];
+  }
+  
+  // Determine optimization goal and billing event based on objective
+  let optimizationGoal = 'REACH';
+  let billingEvent = 'IMPRESSIONS';
+  
+  switch (objective) {
+    case 'OUTCOME_AWARENESS':
+      optimizationGoal = 'REACH';
+      billingEvent = 'IMPRESSIONS';
+      break;
+    case 'OUTCOME_TRAFFIC':
+      optimizationGoal = 'LINK_CLICKS';
+      billingEvent = 'LINK_CLICKS';
+      break;
+    case 'OUTCOME_ENGAGEMENT':
+      optimizationGoal = 'POST_ENGAGEMENT';
+      billingEvent = 'IMPRESSIONS';
+      break;
+    case 'OUTCOME_SALES':
+      optimizationGoal = 'OFFSITE_CONVERSIONS';
+      billingEvent = 'IMPRESSIONS';
+      break;
+    case 'OUTCOME_LEADS':
+      optimizationGoal = 'LEAD_GENERATION';
+      billingEvent = 'IMPRESSIONS';
+      break;
+    case 'OUTCOME_APP_PROMOTION':
+      optimizationGoal = 'APP_INSTALLS';
+      billingEvent = 'IMPRESSIONS';
+      break;
+  }
+  
+  // Prepare targeting spec
+  const targetingSpec: any = {
+    age_min: targeting?.age_min || 18,
+    age_max: targeting?.age_max || 65,
+    genders: genderArray
+  };
+  
+  // Add interests if specified
+  if (targeting?.interests && targeting.interests.length > 0) {
+    targetingSpec.flexible_spec = [{
+      interests: targeting.interests.map((interest: string) => ({
+        name: interest,
+        id: interest // This assumes interest is the ID, which may need to be retrieved from Facebook
+      }))
+    }];
+  }
+  
+  // Add locations if specified
+  if (targeting?.locations && targeting.locations.length > 0) {
+    targetingSpec.geo_locations = {
+      countries: targeting.locations
+    };
+  } else {
+    // Default to United States if no location is specified
+    targetingSpec.geo_locations = {
+      countries: ['US']
+    };
+  }
+  
+  const adSetData: any = {
+    name,
+    campaign_id: campaignId,
+    daily_budget: dailyBudget,
+    start_time: formattedStartDate,
+    targeting: targetingSpec,
+    optimization_goal: optimizationGoal,
+    billing_event: billingEvent,
+    status: 'PAUSED'
+  };
+  
+  if (formattedEndDate) {
+    adSetData.end_time = formattedEndDate;
+  }
+  
+  const response = await fetch(
+    `https://graph.facebook.com/v18.0/act_${accountId}/adsets`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`
+      },
+      body: JSON.stringify(adSetData)
+    }
+  );
+  
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(`Error creating ad set: ${JSON.stringify(errorData)}`);
+  }
+  
+  return await response.json();
+}
+
+async function createFacebookAdCreative(
+  campaignId: string,
+  headline: string,
+  primaryText: string,
+  imageUrl: string,
+  accessToken: string,
+  accountId: string
+) {
+  // Default landing page URL if not provided
+  const linkUrl = 'https://example.com';
+  
+  // First, upload the image to Facebook
+  const imageResponse = await fetch(
+    `https://graph.facebook.com/v18.0/act_${accountId}/adimages`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`
+      },
+      body: JSON.stringify({
+        filename: `ad_image_${Date.now()}.jpg`,
+        url: imageUrl
+      })
+    }
+  );
+  
+  if (!imageResponse.ok) {
+    const errorData = await imageResponse.json();
+    throw new Error(`Error uploading image: ${JSON.stringify(errorData)}`);
+  }
+  
+  const imageData = await imageResponse.json();
+  
+  // Extract the image hash from the response
+  const imageHash = imageData.images?.['ad_image_' + Date.now() + '.jpg']?.hash;
+  
+  if (!imageHash) {
+    throw new Error('Failed to get image hash from Facebook');
+  }
+  
+  // Now create the ad creative with the image
+  const creativeResponse = await fetch(
+    `https://graph.facebook.com/v18.0/act_${accountId}/adcreatives`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`
+      },
+      body: JSON.stringify({
+        name: `Creative for ${headline}`,
+        object_story_spec: {
+          page_id: accountId, // Using account ID, but ideally should be a page ID
+          link_data: {
+            message: primaryText,
+            link: linkUrl,
+            name: headline,
+            image_hash: imageHash
+          }
+        }
+      })
+    }
+  );
+  
+  if (!creativeResponse.ok) {
+    const errorData = await creativeResponse.json();
+    throw new Error(`Error creating ad creative: ${JSON.stringify(errorData)}`);
+  }
+  
+  return await creativeResponse.json();
+}
+
+async function createFacebookAd(
+  campaignId: string,
+  adSetId: string,
+  creativeId: string,
+  name: string,
+  accessToken: string,
+  accountId: string
+) {
+  const response = await fetch(
+    `https://graph.facebook.com/v18.0/act_${accountId}/ads`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`
+      },
+      body: JSON.stringify({
+        name,
+        adset_id: adSetId,
+        creative: { creative_id: creativeId },
+        status: 'PAUSED'
+      })
+    }
+  );
+  
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(`Error creating ad: ${JSON.stringify(errorData)}`);
+  }
+  
+  return await response.json();
+}

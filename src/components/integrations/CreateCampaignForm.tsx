@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -122,6 +121,65 @@ const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, Cr
     }
   }, [targetingData, creationMode, form]);
 
+  // Load ad data for selected ads
+  const loadAdDataForIds = async (adIds: string[]): Promise<any[]> => {
+    if (!adIds.length) return [];
+    
+    try {
+      // First, try to load from ad_feedback table
+      const { data: adFeedbackData, error: adFeedbackError } = await supabase
+        .from('ad_feedback')
+        .select('id, headline, primary_text, imageUrl, imageurl, size, platform')
+        .in('id', adIds);
+      
+      if (adFeedbackError) throw adFeedbackError;
+      
+      // If we got data, format and return it
+      if (adFeedbackData && adFeedbackData.length > 0) {
+        return adFeedbackData.map(ad => ({
+          id: ad.id,
+          headline: ad.headline,
+          primary_text: ad.primary_text,
+          imageUrl: ad.imageUrl || ad.imageurl,
+          size: ad.size,
+          platform: ad.platform || 'facebook'
+        }));
+      }
+      
+      // If we couldn't find in ad_feedback, try from project's generated_ads array
+      if (projectId) {
+        const { data: project, error: projectError } = await supabase
+          .from('projects')
+          .select('generated_ads')
+          .eq('id', projectId)
+          .single();
+        
+        if (projectError) throw projectError;
+        
+        if (project?.generated_ads && Array.isArray(project.generated_ads)) {
+          // Filter to only include ads with matching IDs
+          const matchingAds = project.generated_ads.filter((ad: any) => 
+            adIds.includes(ad.id)
+          );
+          
+          return matchingAds.map((ad: any) => ({
+            id: ad.id,
+            headline: ad.headline,
+            primary_text: ad.primary_text,
+            imageUrl: ad.imageUrl || ad.imageurl,
+            size: ad.size,
+            platform: ad.platform || 'facebook'
+          }));
+        }
+      }
+      
+      return [];
+    } catch (error) {
+      console.error("Error loading ad data:", error);
+      return [];
+    }
+  };
+
   const handleFormSubmit = async (values: CampaignFormValues) => {
     console.log("Form values to submit:", values);
     
@@ -143,11 +201,20 @@ const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, Cr
     setIsSubmitting(true);
     
     try {
-      // Prepare campaign data with selected ads
+      // Load detailed ad information for the selected ads
+      const adDetails = await loadAdDataForIds(selectedAdIds);
+      console.log("Loaded ad details:", adDetails);
+      
+      if (adDetails.length === 0) {
+        throw new Error("Could not load details for the selected ads");
+      }
+      
+      // Prepare campaign data with selected ads and their details
       const campaignData = {
         ...values,
         project_id: projectId,
         ads: selectedAdIds,
+        ad_details: adDetails, // Include detailed ad information
         creation_mode: creationMode,
         type: "facebook",
         status: "draft",
