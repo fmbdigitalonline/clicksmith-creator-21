@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 // Extract and format targeting data from project data
@@ -158,7 +157,7 @@ export const callFacebookCampaignManager = async (action, data) => {
 };
 
 // Helper function to ensure that all ad images are processed and have storage_url
-const ensureProcessedImages = async (adDetails) => {
+export const ensureProcessedImages = async (adDetails) => {
   if (!adDetails || !Array.isArray(adDetails) || adDetails.length === 0) {
     return adDetails;
   }
@@ -167,11 +166,32 @@ const ensureProcessedImages = async (adDetails) => {
   const needsProcessing = adDetails.some(ad => !ad.storage_url);
   
   if (!needsProcessing) {
+    console.log("All images already have storage_url, no processing needed");
     return adDetails; // All ads already have storage_url
   }
   
-  // Get the latest status for these ads
+  console.log("Some images need processing, calling migrate-images function");
+  
+  // First, try to process all images in a batch
+  try {
+    const adIds = adDetails.map(ad => ad.id);
+    const { data: processingResult, error: processingError } = await supabase.functions.invoke('migrate-images', {
+      body: { adIds }
+    });
+    
+    if (processingError) {
+      console.error("Error processing images in batch:", processingError);
+    } else {
+      console.log("Batch processing result:", processingResult);
+    }
+  } catch (error) {
+    console.error("Error calling batch image processing:", error);
+  }
+  
+  // Now get the latest status for these ads
   const adIds = adDetails.map(ad => ad.id);
+  console.log("Fetching updated ad statuses for IDs:", adIds);
+  
   const { data, error } = await supabase
     .from('ad_feedback')
     .select('id, storage_url, image_status')
@@ -182,6 +202,8 @@ const ensureProcessedImages = async (adDetails) => {
     return adDetails; // Return original if we can't get updates
   }
   
+  console.log("Received updated ad data:", data);
+  
   // Create a map of latest data
   const latestData = {};
   data.forEach(item => {
@@ -189,9 +211,10 @@ const ensureProcessedImages = async (adDetails) => {
   });
   
   // Update the ad details with latest storage_url where available
-  return adDetails.map(ad => {
+  const updatedDetails = adDetails.map(ad => {
     const latest = latestData[ad.id];
     if (latest && latest.storage_url) {
+      console.log(`Using storage_url for ad ${ad.id}: ${latest.storage_url}`);
       return {
         ...ad,
         imageUrl: latest.storage_url, // Override with storage_url
@@ -201,4 +224,7 @@ const ensureProcessedImages = async (adDetails) => {
     }
     return ad;
   });
+  
+  console.log("Updated ad details with storage URLs:", updatedDetails);
+  return updatedDetails;
 };
