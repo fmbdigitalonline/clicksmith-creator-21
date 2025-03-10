@@ -31,16 +31,6 @@ interface CampaignData {
   bid_amount?: number; // Field for bid amount
   bid_strategy?: string; // Field for bid strategy
   page_id?: string; // Field for Facebook page ID
-  facebookAdSettings?: {
-    websiteUrl: string;
-    visibleLink?: string;
-    language?: string;
-    browserAddOns?: {
-      blockBrowserExtensions: boolean;
-      blockPlugins: boolean;
-    };
-    urlParameters?: string;
-  };
 }
 
 interface AdDetail {
@@ -56,18 +46,6 @@ interface AdDetail {
   };
   platform?: string;
   image_status?: string;
-  metadata?: {
-    facebookAdSettings?: {
-      websiteUrl: string;
-      visibleLink?: string;
-      language?: string;
-      browserAddOns?: {
-        blockBrowserExtensions: boolean;
-        blockPlugins: boolean;
-      };
-      urlParameters?: string;
-    };
-  };
 }
 
 serve(async (req) => {
@@ -244,220 +222,6 @@ async function validateAdImages(adIds: string[], supabase: any) {
   }
 }
 
-async function createFacebookAdCreative(
-  campaignId: string,
-  headline: string,
-  primaryText: string,
-  imageUrl: string,
-  accessToken: string,
-  accountId: string,
-  pageId: string,
-  adSettings?: {
-    websiteUrl?: string;
-    visibleLink?: string;
-    language?: string;
-    urlParameters?: string;
-  }
-) {
-  // Fix: Ensure we have the proper account ID format for the API
-  const apiAccountId = `act_${accountId.replace(/^act_/i, '')}`;
-  
-  // Default landing page URL if not provided in settings
-  const linkUrl = adSettings?.websiteUrl || 'https://example.com';
-  const urlParams = adSettings?.urlParameters || '';
-  
-  // Append URL parameters if provided
-  const finalLinkUrl = urlParams ? `${linkUrl}${linkUrl.includes('?') ? '&' : '?'}${urlParams}` : linkUrl;
-  
-  console.log("Creating ad creative with page ID:", pageId);
-  console.log("Using image URL:", imageUrl);
-  console.log("Using link URL:", finalLinkUrl);
-  
-  // Check if the image URL is accessible
-  try {
-    const imgResponse = await fetch(imageUrl, { method: 'HEAD' });
-    
-    if (!imgResponse.ok) {
-      console.error(`Image URL check failed with status: ${imgResponse.status}`);
-      throw new Error(`Image URL ${imageUrl} is not accessible`);
-    }
-    
-    console.log("Image URL is accessible");
-  } catch (imgError) {
-    console.error("Error checking image URL:", imgError);
-    throw new Error(`Image URL validation failed: ${imgError.message}`);
-  }
-  
-  // First try the standard approach with image upload
-  try {
-    // First, upload the image to Facebook
-    console.log("Attempting to upload image to Facebook:", imageUrl);
-    const imageResponse = await fetch(
-      `https://graph.facebook.com/v18.0/${apiAccountId}/adimages`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`
-        },
-        body: JSON.stringify({
-          filename: `ad_image_${Date.now()}.jpg`,
-          url: imageUrl
-        })
-      }
-    );
-    
-    if (!imageResponse.ok) {
-      const errorData = await imageResponse.json();
-      console.error(`Error uploading image: ${JSON.stringify(errorData)}`);
-      throw new Error(`Error uploading image: ${JSON.stringify(errorData)}`);
-    }
-    
-    const imageData = await imageResponse.json();
-    
-    // Extract the image hash from the response
-    const imageHash = imageData.images?.['ad_image_' + Date.now() + '.jpg']?.hash;
-    
-    if (!imageHash) {
-      throw new Error('Failed to get image hash from Facebook');
-    }
-    
-    // Create creative data object with additional parameters if provided
-    const creativeData: any = {
-      name: `Creative for ${headline}`,
-      object_story_spec: {
-        page_id: pageId,
-        link_data: {
-          message: primaryText,
-          link: finalLinkUrl,
-          name: headline,
-          image_hash: imageHash
-        }
-      }
-    };
-    
-    // Add display URL if provided
-    if (adSettings?.visibleLink) {
-      creativeData.object_story_spec.link_data.call_to_action = {
-        type: 'LEARN_MORE',
-        value: {
-          link: finalLinkUrl,
-          link_caption: adSettings.visibleLink
-        }
-      };
-    }
-    
-    // Add language if provided
-    if (adSettings?.language) {
-      creativeData.adlabels = [{
-        name: `Language: ${adSettings.language}`
-      }];
-      
-      // Note: Facebook doesn't directly support language in ad creative API
-      // We're using adlabels as a workaround for tracking purposes
-    }
-    
-    // Now create the ad creative with the image
-    const creativeResponse = await fetch(
-      `https://graph.facebook.com/v18.0/${apiAccountId}/adcreatives`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`
-        },
-        body: JSON.stringify(creativeData)
-      }
-    );
-    
-    if (!creativeResponse.ok) {
-      const errorData = await creativeResponse.json();
-      throw new Error(`Error creating ad creative: ${JSON.stringify(errorData)}`);
-    }
-    
-    return await creativeResponse.json();
-  } catch (uploadError) {
-    // If image upload fails, try the fallback approach with direct image URL
-    console.log("Image upload failed, trying fallback approach with direct image URL");
-    console.error("Error in image upload:", uploadError.message);
-    
-    try {
-      // Fallback: Create ad creative with direct image URL
-      console.log("Creating fallback ad creative with direct image URL");
-      const fallbackCreativeResponse = await fetch(
-        `https://graph.facebook.com/v18.0/${apiAccountId}/adcreatives`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${accessToken}`
-          },
-          body: JSON.stringify({
-            name: `Creative for ${headline}`,
-            object_story_spec: {
-              page_id: pageId,
-              link_data: {
-                message: primaryText,
-                link: finalLinkUrl,
-                name: headline,
-                picture: imageUrl  // Use direct image URL instead of hash
-              }
-            }
-          })
-        }
-      );
-      
-      if (!fallbackCreativeResponse.ok) {
-        const errorData = await fallbackCreativeResponse.json();
-        throw new Error(`Error creating fallback ad creative: ${JSON.stringify(errorData)}`);
-      }
-      
-      return await fallbackCreativeResponse.json();
-    } catch (fallbackError) {
-      console.error("Fallback approach also failed:", fallbackError.message);
-      
-      // Try a third approach with minimal data
-      console.log("Trying minimal approach for ad creative");
-      try {
-        const minimalCreativeResponse = await fetch(
-          `https://graph.facebook.com/v18.0/${apiAccountId}/adcreatives`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${accessToken}`
-            },
-            body: JSON.stringify({
-              name: `Creative for ${headline}`,
-              title: headline,
-              body: primaryText,
-              link_url: linkUrl,
-              object_story_spec: {
-                page_id: pageId,
-                link_data: {
-                  message: primaryText,
-                  link: linkUrl,
-                  name: headline
-                }
-              }
-            })
-          }
-        );
-        
-        if (!minimalCreativeResponse.ok) {
-          const errorData = await minimalCreativeResponse.json();
-          throw new Error(`Error creating minimal ad creative: ${JSON.stringify(errorData)}`);
-        }
-        
-        return await minimalCreativeResponse.json();
-      } catch (minimalError) {
-        console.error("All creative approaches failed. Last error:", minimalError.message);
-        throw new Error(`Failed to create ad creative after multiple attempts: ${minimalError.message}`);
-      }
-    }
-  }
-}
-
 async function createCampaign(
   campaignData: CampaignData,
   accessToken: string,
@@ -548,7 +312,7 @@ async function createCampaign(
       console.log('Ad details not provided, fetching from database...');
       const { data: adFeedbackData } = await supabase
         .from('ad_feedback')
-        .select('id, headline, primary_text, imageUrl, imageurl, storage_url, image_status, metadata')
+        .select('id, headline, primary_text, imageUrl, imageurl, storage_url, image_status')
         .in('id', campaignData.ads);
       
       if (adFeedbackData && adFeedbackData.length > 0) {
@@ -557,8 +321,7 @@ async function createCampaign(
           headline: ad.headline,
           primary_text: ad.primary_text,
           imageUrl: ad.storage_url || ad.imageUrl || ad.imageurl, // Prefer storage_url if available
-          image_status: ad.image_status,
-          metadata: ad.metadata
+          image_status: ad.image_status
         }));
       }
     }
@@ -568,9 +331,6 @@ async function createCampaign(
     }
     
     console.log('Creating ads with details:', adDetails);
-    
-    // Get global Facebook ad settings if available
-    const globalFacebookSettings = campaignData.facebookAdSettings;
     
     // Create ad creative and ad for each selected ad
     for (const adDetail of adDetails) {
@@ -587,9 +347,6 @@ async function createCampaign(
       }
       
       try {
-        // Get ad-specific Facebook settings or fallback to global settings
-        const adFacebookSettings = adDetail.metadata?.facebookAdSettings || globalFacebookSettings;
-        
         // Create ad creative
         const creative = await createFacebookAdCreative(
           campaign.id,
@@ -598,8 +355,7 @@ async function createCampaign(
           imageUrl,
           accessToken,
           cleanedAccountId,
-          pageId,
-          adFacebookSettings // Pass Facebook ad settings
+          pageId // Pass the page ID to the creative creation function
         );
         
         console.log('Ad Creative created:', creative);
@@ -613,8 +369,7 @@ async function createCampaign(
             creative.id,
             adDetail.headline + ' Ad',
             accessToken,
-            cleanedAccountId,
-            adFacebookSettings?.browserAddOns // Pass browser add-ons options
+            cleanedAccountId
           );
           
           console.log('Ad created:', ad);
@@ -655,8 +410,7 @@ async function createCampaign(
           additional_notes: campaignData.additional_notes,
           bid_amount: campaignData.bid_amount,
           bid_strategy: campaignData.bid_strategy,
-          page_id: pageId,
-          facebookAdSettings: campaignData.facebookAdSettings
+          page_id: pageId
         },
         creation_mode: campaignData.creation_mode
       })
@@ -680,65 +434,6 @@ async function createCampaign(
     
     throw new Error(`Failed to create Facebook campaign: ${error.message}`);
   }
-}
-
-async function createFacebookAd(
-  campaignId: string,
-  adSetId: string,
-  creativeId: string,
-  name: string,
-  accessToken: string,
-  accountId: string,
-  browserAddOns?: {
-    blockBrowserExtensions?: boolean;
-    blockPlugins?: boolean;
-  }
-) {
-  // Fix: Ensure we have the proper account ID format for the API
-  const apiAccountId = `act_${accountId.replace(/^act_/i, '')}`;
-  
-  const adData: any = {
-    name,
-    adset_id: adSetId,
-    creative: { creative_id: creativeId },
-    status: 'PAUSED'
-  };
-  
-  // Add browser add-on options if provided
-  if (browserAddOns) {
-    if (browserAddOns.blockBrowserExtensions) {
-      adData.adlabels = adData.adlabels || [];
-      adData.adlabels.push({
-        name: "Block Browser Extensions"
-      });
-    }
-    
-    if (browserAddOns.blockPlugins) {
-      adData.adlabels = adData.adlabels || [];
-      adData.adlabels.push({
-        name: "Block Plugins"
-      });
-    }
-  }
-  
-  const response = await fetch(
-    `https://graph.facebook.com/v18.0/${apiAccountId}/ads`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${accessToken}`
-      },
-      body: JSON.stringify(adData)
-    }
-  );
-  
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(`Error creating ad: ${JSON.stringify(errorData)}`);
-  }
-  
-  return await response.json();
 }
 
 async function updateCampaignStatus(
@@ -989,6 +684,221 @@ async function createFacebookAdSet(
   if (!response.ok) {
     const errorData = await response.json();
     throw new Error(`Error creating ad set: ${JSON.stringify(errorData)}`);
+  }
+  
+  return await response.json();
+}
+
+async function createFacebookAdCreative(
+  campaignId: string,
+  headline: string,
+  primaryText: string,
+  imageUrl: string,
+  accessToken: string,
+  accountId: string,
+  pageId: string
+) {
+  // Fix: Ensure we have the proper account ID format for the API
+  const apiAccountId = `act_${accountId.replace(/^act_/i, '')}`;
+  
+  // Default landing page URL if not provided
+  const linkUrl = 'https://example.com';
+  
+  console.log("Creating ad creative with page ID:", pageId);
+  console.log("Using image URL:", imageUrl);
+  
+  // Check if the image URL is accessible
+  try {
+    const imgResponse = await fetch(imageUrl, { method: 'HEAD' });
+    
+    if (!imgResponse.ok) {
+      console.error(`Image URL check failed with status: ${imgResponse.status}`);
+      throw new Error(`Image URL ${imageUrl} is not accessible`);
+    }
+    
+    console.log("Image URL is accessible");
+  } catch (imgError) {
+    console.error("Error checking image URL:", imgError);
+    throw new Error(`Image URL validation failed: ${imgError.message}`);
+  }
+  
+  // First try the standard approach with image upload
+  try {
+    // First, upload the image to Facebook
+    console.log("Attempting to upload image to Facebook:", imageUrl);
+    const imageResponse = await fetch(
+      `https://graph.facebook.com/v18.0/${apiAccountId}/adimages`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`
+        },
+        body: JSON.stringify({
+          filename: `ad_image_${Date.now()}.jpg`,
+          url: imageUrl
+        })
+      }
+    );
+    
+    if (!imageResponse.ok) {
+      const errorData = await imageResponse.json();
+      console.error(`Error uploading image: ${JSON.stringify(errorData)}`);
+      throw new Error(`Error uploading image: ${JSON.stringify(errorData)}`);
+    }
+    
+    const imageData = await imageResponse.json();
+    
+    // Extract the image hash from the response
+    const imageHash = imageData.images?.['ad_image_' + Date.now() + '.jpg']?.hash;
+    
+    if (!imageHash) {
+      throw new Error('Failed to get image hash from Facebook');
+    }
+    
+    // Now create the ad creative with the image
+    const creativeResponse = await fetch(
+      `https://graph.facebook.com/v18.0/${apiAccountId}/adcreatives`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`
+        },
+        body: JSON.stringify({
+          name: `Creative for ${headline}`,
+          object_story_spec: {
+            page_id: pageId,
+            link_data: {
+              message: primaryText,
+              link: linkUrl,
+              name: headline,
+              image_hash: imageHash
+            }
+          }
+        })
+      }
+    );
+    
+    if (!creativeResponse.ok) {
+      const errorData = await creativeResponse.json();
+      throw new Error(`Error creating ad creative: ${JSON.stringify(errorData)}`);
+    }
+    
+    return await creativeResponse.json();
+  } catch (uploadError) {
+    // If image upload fails, try the fallback approach with direct image URL
+    console.log("Image upload failed, trying fallback approach with direct image URL");
+    console.error("Error in image upload:", uploadError.message);
+    
+    try {
+      // Fallback: Create ad creative with direct image URL
+      console.log("Creating fallback ad creative with direct image URL");
+      const fallbackCreativeResponse = await fetch(
+        `https://graph.facebook.com/v18.0/${apiAccountId}/adcreatives`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`
+          },
+          body: JSON.stringify({
+            name: `Creative for ${headline}`,
+            object_story_spec: {
+              page_id: pageId,
+              link_data: {
+                message: primaryText,
+                link: linkUrl,
+                name: headline,
+                picture: imageUrl  // Use direct image URL instead of hash
+              }
+            }
+          })
+        }
+      );
+      
+      if (!fallbackCreativeResponse.ok) {
+        const errorData = await fallbackCreativeResponse.json();
+        throw new Error(`Error creating fallback ad creative: ${JSON.stringify(errorData)}`);
+      }
+      
+      return await fallbackCreativeResponse.json();
+    } catch (fallbackError) {
+      console.error("Fallback approach also failed:", fallbackError.message);
+      
+      // Try a third approach with minimal data
+      console.log("Trying minimal approach for ad creative");
+      try {
+        const minimalCreativeResponse = await fetch(
+          `https://graph.facebook.com/v18.0/${apiAccountId}/adcreatives`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${accessToken}`
+            },
+            body: JSON.stringify({
+              name: `Creative for ${headline}`,
+              title: headline,
+              body: primaryText,
+              link_url: linkUrl,
+              object_story_spec: {
+                page_id: pageId,
+                link_data: {
+                  message: primaryText,
+                  link: linkUrl,
+                  name: headline
+                }
+              }
+            })
+          }
+        );
+        
+        if (!minimalCreativeResponse.ok) {
+          const errorData = await minimalCreativeResponse.json();
+          throw new Error(`Error creating minimal ad creative: ${JSON.stringify(errorData)}`);
+        }
+        
+        return await minimalCreativeResponse.json();
+      } catch (minimalError) {
+        console.error("All creative approaches failed. Last error:", minimalError.message);
+        throw new Error(`Failed to create ad creative after multiple attempts: ${minimalError.message}`);
+      }
+    }
+  }
+}
+
+async function createFacebookAd(
+  campaignId: string,
+  adSetId: string,
+  creativeId: string,
+  name: string,
+  accessToken: string,
+  accountId: string
+) {
+  // Fix: Ensure we have the proper account ID format for the API
+  const apiAccountId = `act_${accountId.replace(/^act_/i, '')}`;
+  
+  const response = await fetch(
+    `https://graph.facebook.com/v18.0/${apiAccountId}/ads`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`
+      },
+      body: JSON.stringify({
+        name,
+        adset_id: adSetId,
+        creative: { creative_id: creativeId },
+        status: 'PAUSED'
+      })
+    }
+  );
+  
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(`Error creating ad: ${JSON.stringify(errorData)}`);
   }
   
   return await response.json();
