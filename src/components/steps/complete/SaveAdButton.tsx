@@ -35,38 +35,15 @@ export const SaveAdButton = ({
   const handleSave = async () => {
     setSaving(true);
     try {
-      if (!projectId) {
-        if (onCreateProject) {
-          toast({
-            title: "Project Required",
-            description: "Please create a project to save your ad.",
-            action: (
-              <Button variant="outline" onClick={onCreateProject}>
-                Create Project
-              </Button>
-            ),
-          });
-        } else {
-          toast({
-            title: "Error",
-            description: "No project selected to save the ad.",
-            variant: "destructive",
-          });
-        }
-        setSaving(false);
-        return;
-      }
-      
-      const adData = {
+      const result = await saveAd({
         image,
         hook,
         rating,
         feedback,
+        projectId,
         primaryText,
         headline
-      };
-      
-      const result = await saveAd(projectId, adData);
+      });
 
       if (result.success) {
         onSaveSuccess();
@@ -77,7 +54,7 @@ export const SaveAdButton = ({
       } else {
         if (result.shouldCreateProject && onCreateProject) {
           toast({
-            title: result.message || "Project Required",
+            title: result.message,
             description: "Please create a project to save your ad.",
             action: (
               <Button variant="outline" onClick={onCreateProject}>
@@ -88,7 +65,7 @@ export const SaveAdButton = ({
         } else {
           toast({
             title: "Error",
-            description: result.message || "Failed to save ad.",
+            description: result.message,
             variant: "destructive",
           });
         }

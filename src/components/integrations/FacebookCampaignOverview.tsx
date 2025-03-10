@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useSession } from "@supabase/auth-helpers-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -52,12 +53,7 @@ interface Campaign {
   last_synced_at?: string | null;
 }
 
-// Add interface for the component props
-interface FacebookCampaignOverviewProps {
-  onConnectionChange?: () => Promise<void>;
-}
-
-export default function FacebookCampaignOverview({ onConnectionChange }: FacebookCampaignOverviewProps) {
+export default function FacebookCampaignOverview() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [templates, setTemplates] = useState<Campaign[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -228,10 +224,6 @@ export default function FacebookCampaignOverview({ onConnectionChange }: Faceboo
   const handleRefresh = async () => {
     setIsRefreshing(true);
     await fetchCampaigns();
-    // Call onConnectionChange if provided
-    if (onConnectionChange) {
-      await onConnectionChange();
-    }
     setIsRefreshing(false);
   };
 

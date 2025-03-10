@@ -16,14 +16,6 @@ export interface SavedAd {
   size?: AdSize;
 }
 
-// Define SavedAdJson explicitly rather than using an alias
-export interface SavedAdJson extends SavedAd {
-  // Additional fields specific to JSON representation can be added here if needed
-  success?: boolean;
-  message?: string;
-  shouldCreateProject?: boolean;
-}
-
 export interface AdSize {
   width: number;
   height: number;
