@@ -175,9 +175,9 @@ const Projects = () => {
                 </Button>
               </div>
               <ProjectProgressDetails
-                businessIdea={singleProject.business_idea || undefined}
-                targetAudience={singleProject.target_audience || undefined}
-                audienceAnalysis={singleProject.audience_analysis || undefined}
+                businessIdea={singleProject.business_idea as BusinessIdea | undefined}
+                targetAudience={singleProject.target_audience as TargetAudience | undefined}
+                audienceAnalysis={singleProject.audience_analysis as AudienceAnalysis | undefined}
               />
             </TabsContent>
             
