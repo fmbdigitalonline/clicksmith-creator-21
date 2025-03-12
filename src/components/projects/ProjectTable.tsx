@@ -18,6 +18,7 @@ interface ProjectTableProps {
     current_step: number;
     updated_at: string;
     tags?: string[];
+    generated_ads?: any[]; // Added this property
   }>;
   onProjectClick: (projectId: string) => void;
   onStartAdWizard: (projectId: string) => void;

@@ -30,24 +30,20 @@ const Projects = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
 
-  const { data: project, isError, isLoading: isProjectLoading } = useQuery({
-    queryKey: ["project", projectId],
+  const { data: projects, isError, isLoading: isProjectLoading } = useQuery({
+    queryKey: ["projects"],
     queryFn: async () => {
-      if (!projectId) return null;
-      
-      const { data, error } = await supabase
-        .from("projects")
-        .select("*")
-        .eq("id", projectId)
-        .maybeSingle();
-        
-      if (error) throw error;
-      
-      // First cast to unknown, then to Project
-      const typedData = data as unknown as Project;
-      return typedData;
+      if (!projectId) {
+        const { data, error } = await supabase
+          .from("projects")
+          .select("*")
+          .order("updated_at", { ascending: false });
+          
+        if (error) throw error;
+        return data;
+      }
+      return null;
     },
-    enabled: !!projectId
   });
 
   const handleStartAdWizard = (projectId?: string) => {
@@ -57,6 +53,19 @@ const Projects = () => {
       navigate("/ad-wizard/new", { replace: true });
     }
   };
+
+  const filteredProjects = projects?.filter(project => {
+    const matchesSearch = project.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      project.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      project.tags?.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
+
+    const matchesStatus = statusFilter === "all" ||
+      (statusFilter === "completed" && project.generated_ads?.length > 0) ||
+      (statusFilter === "active" && project.current_step > 1 && !project.generated_ads?.length) ||
+      (statusFilter === "not_started" && project.current_step === 1);
+
+    return matchesSearch && matchesStatus;
+  }) ?? [];
 
   if (projectId && !project && !isProjectLoading) {
     return (
@@ -153,7 +162,11 @@ const Projects = () => {
           />
 
           {view === "grid" ? (
-            <ProjectList onStartAdWizard={handleStartAdWizard} />
+            <ProjectList 
+              onStartAdWizard={handleStartAdWizard}
+              searchQuery={searchQuery}
+              statusFilter={statusFilter}
+            />
           ) : (
             <ProjectTable
               projects={filteredProjects}
