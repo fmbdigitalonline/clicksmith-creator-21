@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -15,7 +14,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-// Use the database types directly and extend them
 type DatabaseProject = Database['public']['Tables']['projects']['Row'];
 type Project = Omit<DatabaseProject, 'business_idea' | 'target_audience' | 'audience_analysis' | 'marketing_campaign' | 'generated_ads'> & {
   business_idea?: {
@@ -30,9 +28,11 @@ type Project = Omit<DatabaseProject, 'business_idea' | 'target_audience' | 'audi
 
 interface ProjectListProps {
   onStartAdWizard: (projectId?: string) => void;
+  searchQuery?: string;
+  statusFilter?: string;
 }
 
-const ProjectList = ({ onStartAdWizard }: ProjectListProps) => {
+const ProjectList = ({ onStartAdWizard, searchQuery = "", statusFilter = "all" }: ProjectListProps) => {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const { toast } = useToast();
 
@@ -55,7 +55,6 @@ const ProjectList = ({ onStartAdWizard }: ProjectListProps) => {
           throw error;
         }
 
-        // Transform the data to match our Project type
         return (data as DatabaseProject[]).map(project => ({
           ...project,
           business_idea: project.business_idea as Project['business_idea'],
@@ -88,7 +87,7 @@ const ProjectList = ({ onStartAdWizard }: ProjectListProps) => {
 
   const getRecentProjects = () => {
     if (!projects) return [];
-    return projects.slice(0, 3); // Get most recent 3 projects
+    return projects.slice(0, 3);
   };
 
   const getMostRecentInProgressProject = () => {
@@ -98,6 +97,19 @@ const ProjectList = ({ onStartAdWizard }: ProjectListProps) => {
       (!project.generated_ads || project.generated_ads.length === 0)
     );
   };
+
+  const filteredProjects = projects?.filter(project => {
+    const matchesSearch = project.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      project.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      project.tags?.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
+
+    const matchesStatus = statusFilter === "all" ||
+      (statusFilter === "completed" && project.generated_ads?.length > 0) ||
+      (statusFilter === "active" && project.current_step > 1 && !project.generated_ads?.length) ||
+      (statusFilter === "not_started" && project.current_step === 1);
+
+    return matchesSearch && matchesStatus;
+  });
 
   if (error) {
     return (
@@ -120,7 +132,6 @@ const ProjectList = ({ onStartAdWizard }: ProjectListProps) => {
 
   return (
     <div className="space-y-8">
-      {/* Recent Projects Section */}
       {recentProjects.length > 0 && (
         <div className="space-y-4">
           <h2 className="text-2xl font-bold tracking-tight">Recent Projects</h2>
@@ -139,7 +150,6 @@ const ProjectList = ({ onStartAdWizard }: ProjectListProps) => {
         </div>
       )}
 
-      {/* All Projects Section */}
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <h2 className="text-2xl font-bold tracking-tight">All Projects</h2>
@@ -181,7 +191,7 @@ const ProjectList = ({ onStartAdWizard }: ProjectListProps) => {
         </div>
 
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-          {projects?.slice(3).map((project) => (
+          {filteredProjects?.map((project) => (
             <ProjectCard 
               key={project.id} 
               project={project} 

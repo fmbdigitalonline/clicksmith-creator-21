@@ -1,4 +1,4 @@
-
+import { useState } from "react";
 import ProjectList from "@/components/projects/ProjectList";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -10,6 +10,9 @@ import { BusinessIdea, TargetAudience, AudienceAnalysis } from "@/types/adWizard
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SavedAdsGallery } from "@/components/gallery/SavedAdsGallery";
 import { Separator } from "@/components/ui/separator";
+import ProjectViewSwitcher from "@/components/projects/ProjectViewSwitcher";
+import ProjectTable from "@/components/projects/ProjectTable";
+import ProjectFilters from "@/components/projects/ProjectFilters";
 
 interface Project {
   id: string;
@@ -23,6 +26,9 @@ interface Project {
 const Projects = () => {
   const navigate = useNavigate();
   const { projectId } = useParams();
+  const [view, setView] = useState<"grid" | "table">("grid");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
 
   const { data: project, isError, isLoading: isProjectLoading } = useQuery({
     queryKey: ["project", projectId],
@@ -46,7 +52,6 @@ const Projects = () => {
 
   const handleStartAdWizard = (projectId?: string) => {
     if (projectId) {
-      // Use replace to prevent back button issues
       navigate(`/ad-wizard/${projectId}`, { replace: true });
     } else {
       navigate("/ad-wizard/new", { replace: true });
@@ -134,7 +139,29 @@ const Projects = () => {
           </Tabs>
         </div>
       ) : (
-        <ProjectList onStartAdWizard={handleStartAdWizard} />
+        <div className="space-y-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <h1 className="text-2xl font-bold">Projects</h1>
+            <ProjectViewSwitcher view={view} onChange={setView} />
+          </div>
+          
+          <ProjectFilters
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            statusFilter={statusFilter}
+            onStatusFilterChange={setStatusFilter}
+          />
+
+          {view === "grid" ? (
+            <ProjectList onStartAdWizard={handleStartAdWizard} />
+          ) : (
+            <ProjectTable
+              projects={filteredProjects}
+              onProjectClick={(id) => navigate(`/projects/${id}`)}
+              onStartAdWizard={handleStartAdWizard}
+            />
+          )}
+        </div>
       )}
     </div>
   );
