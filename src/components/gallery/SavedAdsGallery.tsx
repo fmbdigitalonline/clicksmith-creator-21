@@ -1,15 +1,20 @@
+
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Json } from "@/integrations/supabase/types";
 import { SavedAdCard } from "./components/SavedAdCard";
 import { EmptyState } from "./components/EmptyState";
-import { Loader2, SquareCheckIcon, CheckSquare } from "lucide-react";
+import { Loader2, SquareCheckIcon, CheckSquare, Image, AlertCircle, Grid, Table as TableIcon, ViewIcon, Search } from "lucide-react";
 import { AD_FORMATS } from "@/components/steps/gallery/components/AdSizeSelector";
 import { Button } from "@/components/ui/button";
 import { ProjectSelector } from "./components/ProjectSelector";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SavedAdsTable } from "./components/SavedAdsTable";
+import { Pagination } from "@/components/ui/pagination";
 
 interface SavedAd {
   id: string;
@@ -56,6 +61,13 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps) => {
   const [selectedProjectId, setSelectedProjectId] = useState<string>("");
   const [isAssigning, setIsAssigning] = useState(false);
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
+  const [view, setView] = useState<"grid" | "table">("grid");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [platformFilter, setPlatformFilter] = useState("all");
+  const [sortBy, setSortBy] = useState("newest");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const itemsPerPage = 12;
   const { toast } = useToast();
 
   const fetchSavedAds = async () => {
@@ -101,6 +113,7 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps) => {
 
       console.log("Fetched ads count:", convertedAds.length);
       setSavedAds(convertedAds);
+      setTotalPages(Math.ceil(convertedAds.length / itemsPerPage));
     } catch (error) {
       console.error('Error fetching saved ads:', error);
       toast({
@@ -126,10 +139,10 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps) => {
   };
 
   const handleSelectAll = () => {
-    if (selectedAdIds.length === savedAds.length) {
+    if (selectedAdIds.length === filteredAds.length) {
       setSelectedAdIds([]);
     } else {
-      setSelectedAdIds(savedAds.map(ad => ad.id));
+      setSelectedAdIds(filteredAds.map(ad => ad.id));
     }
   };
 
@@ -160,20 +173,11 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps) => {
 
       console.log("Assigning ads to project:", selectedProjectId, "Ads:", selectedAdIds);
 
-      // Instead of simply updating the project_id which would overwrite any existing assignment,
-      // we'll create a new table to track ad-project relationships
-
-      // Get the existing ads data to maintain all the fields
-      const adsToAssign = savedAds.filter(ad => selectedAdIds.includes(ad.id));
-      
       // For each selected ad, update it with the new project ID
-      // This implementation allows an ad to be in multiple projects
       for (const adId of selectedAdIds) {
         const { error } = await supabase
           .from('ad_feedback')
           .update({ 
-            // If the ad already has a project_id, we keep it as is
-            // If not, we assign the new project_id
             project_id: selectedProjectId 
           })
           .eq('id', adId)
@@ -243,6 +247,39 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps) => {
     }
   };
 
+  // Filter and sort ads based on search query, platform filter, and sort option
+  const filteredAds = savedAds.filter(ad => {
+    const matchesSearch = 
+      (ad.headline?.toLowerCase().includes(searchQuery.toLowerCase()) || false) ||
+      (ad.primary_text?.toLowerCase().includes(searchQuery.toLowerCase()) || false);
+    
+    const matchesPlatform = platformFilter === 'all' || ad.platform === platformFilter;
+    
+    return matchesSearch && matchesPlatform;
+  }).sort((a, b) => {
+    if (sortBy === 'newest') {
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    } else if (sortBy === 'oldest') {
+      return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+    } else if (sortBy === 'rating-high') {
+      return b.rating - a.rating;
+    } else if (sortBy === 'rating-low') {
+      return a.rating - b.rating;
+    }
+    return 0;
+  });
+
+  // Calculate paginated ads
+  const paginatedAds = filteredAds.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  useEffect(() => {
+    setTotalPages(Math.max(1, Math.ceil(filteredAds.length / itemsPerPage)));
+    setCurrentPage(1); // Reset to first page when filters change
+  }, [filteredAds.length, itemsPerPage]);
+
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-12">
@@ -281,7 +318,73 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps) => {
 
   return (
     <div className="space-y-6">
-      {/* Action Bar - Only show when not filtering by project */}
+      {/* Controls and Filters */}
+      <div className="flex flex-col gap-4 bg-gray-50 p-4 rounded-lg shadow-sm">
+        {/* View Controls */}
+        <div className="flex flex-col sm:flex-row gap-4 justify-between">
+          <div className="flex items-center space-x-2">
+            <Button
+              variant={view === "grid" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setView("grid")}
+              className="flex items-center"
+            >
+              <Grid className="h-4 w-4 mr-2" />
+              Grid
+            </Button>
+            <Button
+              variant={view === "table" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setView("table")}
+              className="flex items-center"
+            >
+              <TableIcon className="h-4 w-4 mr-2" />
+              Table
+            </Button>
+          </div>
+          
+          <div className="flex items-center space-x-2">
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Sort by" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="newest">Newest First</SelectItem>
+                <SelectItem value="oldest">Oldest First</SelectItem>
+                <SelectItem value="rating-high">Highest Rating</SelectItem>
+                <SelectItem value="rating-low">Lowest Rating</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        
+        {/* Search and Filters */}
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex-1 relative">
+            <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              placeholder="Search ads by text..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-8"
+            />
+          </div>
+          
+          <Select value={platformFilter} onValueChange={setPlatformFilter}>
+            <SelectTrigger className="w-[160px]">
+              <SelectValue placeholder="Platform" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Platforms</SelectItem>
+              <SelectItem value="facebook">Facebook</SelectItem>
+              <SelectItem value="instagram">Instagram</SelectItem>
+              <SelectItem value="google">Google</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {/* Selection Stats & Actions Bar */}
       {showActionBar && (
         <div className="bg-gray-50 p-4 rounded-lg shadow-sm">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -292,7 +395,7 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps) => {
                 onClick={handleSelectAll}
                 className="flex items-center"
               >
-                {selectedAdIds.length === savedAds.length ? (
+                {selectedAdIds.length === filteredAds.length ? (
                   <>
                     <CheckSquare className="h-4 w-4 mr-2" />
                     Deselect All
@@ -342,7 +445,6 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps) => {
                     <AlertDialogTitle>Assign Ads to Project</AlertDialogTitle>
                     <AlertDialogDescription>
                       Are you sure you want to add {selectedAdIds.length} ad(s) to the selected project?
-                      {/* Removing the warning about reassignment since ads can now be in multiple projects */}
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
@@ -382,6 +484,47 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps) => {
         </div>
       )}
 
+      {/* Filter Stats & Current Filters Display */}
+      <div className="flex flex-wrap gap-2 items-center">
+        <Badge variant="outline" className="bg-gray-50">
+          {filteredAds.length} ads found
+        </Badge>
+        
+        {searchQuery && (
+          <Badge 
+            variant="secondary" 
+            className="flex items-center gap-1"
+          >
+            Search: {searchQuery}
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-4 w-4 p-0 ml-1" 
+              onClick={() => setSearchQuery("")}
+            >
+              ×
+            </Button>
+          </Badge>
+        )}
+        
+        {platformFilter !== 'all' && (
+          <Badge 
+            variant="secondary" 
+            className="flex items-center gap-1"
+          >
+            Platform: {platformFilter}
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-4 w-4 p-0 ml-1" 
+              onClick={() => setPlatformFilter("all")}
+            >
+              ×
+            </Button>
+          </Badge>
+        )}
+      </div>
+
       {/* Project Filter Info - Show when filtering by project */}
       {projectFilter && (
         <div className="mb-4">
@@ -391,25 +534,74 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps) => {
         </div>
       )}
 
-      {/* Ads Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {savedAds.map((ad) => (
-          <SavedAdCard
-            key={ad.id}
-            id={ad.id}
-            primaryText={ad.primary_text}
-            headline={ad.headline}
-            imageUrl={ad.imageUrl || ad.imageurl || ad.saved_images[0]}
-            platform={ad.platform}
-            size={ad.size}
-            projectId={ad.project_id}
-            onFeedbackSubmit={fetchSavedAds}
-            selectable={!projectFilter}
-            selected={selectedAdIds.includes(ad.id)}
-            onSelect={handleAdSelect}
-          />
-        ))}
-      </div>
+      {/* No results message */}
+      {filteredAds.length === 0 && (
+        <div className="text-center py-8 bg-gray-50 rounded-lg">
+          <AlertCircle className="mx-auto h-8 w-8 text-gray-400 mb-2" />
+          <h3 className="text-lg font-medium text-gray-900">No ads found</h3>
+          <p className="mt-1 text-sm text-gray-500">
+            Try adjusting your search or filter criteria
+          </p>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="mt-4"
+            onClick={() => {
+              setSearchQuery("");
+              setPlatformFilter("all");
+              setSortBy("newest");
+            }}
+          >
+            Clear all filters
+          </Button>
+        </div>
+      )}
+
+      {/* Content View: Grid or Table */}
+      {filteredAds.length > 0 && (
+        <>
+          {view === "grid" ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {paginatedAds.map((ad) => (
+                <SavedAdCard
+                  key={ad.id}
+                  id={ad.id}
+                  primaryText={ad.primary_text}
+                  headline={ad.headline}
+                  imageUrl={ad.imageUrl || ad.imageurl || ad.saved_images[0]}
+                  platform={ad.platform}
+                  size={ad.size}
+                  projectId={ad.project_id}
+                  onFeedbackSubmit={fetchSavedAds}
+                  selectable={!projectFilter}
+                  selected={selectedAdIds.includes(ad.id)}
+                  onSelect={handleAdSelect}
+                />
+              ))}
+            </div>
+          ) : (
+            <SavedAdsTable 
+              ads={paginatedAds}
+              selectedAdIds={selectedAdIds}
+              onAdSelect={handleAdSelect}
+              onSelectAll={handleSelectAll}
+              selectable={!projectFilter}
+              onFeedbackSubmit={fetchSavedAds}
+            />
+          )}
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex justify-center mt-8">
+              <Pagination
+                totalPages={totalPages}
+                currentPage={currentPage}
+                onPageChange={setCurrentPage}
+              />
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 };
