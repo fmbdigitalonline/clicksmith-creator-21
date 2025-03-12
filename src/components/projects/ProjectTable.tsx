@@ -18,7 +18,7 @@ interface ProjectTableProps {
     current_step: number;
     updated_at: string;
     tags?: string[];
-    generated_ads?: any[]; // Added this property
+    generated_ads?: any[]; // Keep this property
   }>;
   onProjectClick: (projectId: string) => void;
   onStartAdWizard: (projectId: string) => void;
@@ -35,7 +35,7 @@ const ProjectTable = ({ projects, onProjectClick, onStartAdWizard }: ProjectTabl
   };
 
   const getStepStatusIcon = (project: any) => {
-    if (project.generated_ads?.length > 0) {
+    if (Array.isArray(project.generated_ads) && project.generated_ads.length > 0) {
       return <CheckCircle className="h-4 w-4 text-green-500" />;
     }
     if (project.current_step > 1) {
@@ -76,7 +76,7 @@ const ProjectTable = ({ projects, onProjectClick, onStartAdWizard }: ProjectTabl
               <div className="flex items-center gap-2">
                 {getStepStatusIcon(project)}
                 <span className="text-sm text-muted-foreground">
-                  {project.generated_ads?.length > 0
+                  {Array.isArray(project.generated_ads) && project.generated_ads.length > 0
                     ? "Complete"
                     : project.current_step > 1
                     ? `Step ${project.current_step} of 4`

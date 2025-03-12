@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import ProjectList from "@/components/projects/ProjectList";
 import { useNavigate, useParams } from "react-router-dom";
@@ -21,6 +22,12 @@ interface Project {
   target_audience: TargetAudience | null;
   audience_analysis: AudienceAnalysis | null;
   marketing_campaign: any | null;
+  description?: string | null;
+  status?: string;
+  current_step?: number;
+  updated_at: string;
+  tags?: string[];
+  generated_ads?: any[];
 }
 
 const Projects = () => {
@@ -30,6 +37,7 @@ const Projects = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
 
+  // Query for all projects when on the main projects page
   const { data: projects, isError, isLoading: isProjectLoading } = useQuery({
     queryKey: ["projects"],
     queryFn: async () => {
@@ -40,10 +48,29 @@ const Projects = () => {
           .order("updated_at", { ascending: false });
           
         if (error) throw error;
-        return data;
+        return data as Project[];
       }
       return null;
     },
+  });
+  
+  // Query for a single project when on a project detail page
+  const { data: singleProject } = useQuery({
+    queryKey: ["project", projectId],
+    queryFn: async () => {
+      if (projectId) {
+        const { data, error } = await supabase
+          .from("projects")
+          .select("*")
+          .eq("id", projectId)
+          .maybeSingle();
+          
+        if (error) throw error;
+        return data as Project;
+      }
+      return null;
+    },
+    enabled: !!projectId
   });
 
   const handleStartAdWizard = (projectId?: string) => {
@@ -60,14 +87,15 @@ const Projects = () => {
       project.tags?.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
 
     const matchesStatus = statusFilter === "all" ||
-      (statusFilter === "completed" && project.generated_ads?.length > 0) ||
-      (statusFilter === "active" && project.current_step > 1 && !project.generated_ads?.length) ||
+      (statusFilter === "completed" && Array.isArray(project.generated_ads) && project.generated_ads.length > 0) ||
+      (statusFilter === "active" && project.current_step > 1 && 
+        (!Array.isArray(project.generated_ads) || project.generated_ads.length === 0)) ||
       (statusFilter === "not_started" && project.current_step === 1);
 
     return matchesSearch && matchesStatus;
   }) ?? [];
 
-  if (projectId && !project && !isProjectLoading) {
+  if (projectId && !singleProject && !isProjectLoading) {
     return (
       <div className="container mx-auto px-4 py-4">
         <div className="flex flex-col items-center justify-center py-12">
@@ -94,14 +122,14 @@ const Projects = () => {
 
   return (
     <div className="container mx-auto px-4 py-4">
-      {projectId && project ? (
+      {projectId && singleProject ? (
         <div>
           <div className="flex items-center gap-4 mb-6">
             <Button onClick={() => navigate("/projects")} variant="outline" size="sm">
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back
             </Button>
-            <h1 className="text-2xl font-bold">{project.title}</h1>
+            <h1 className="text-2xl font-bold">{singleProject.title}</h1>
           </div>
           
           <Tabs defaultValue="details" className="space-y-6">
@@ -116,16 +144,16 @@ const Projects = () => {
             <TabsContent value="details" className="space-y-6">
               <div className="flex items-center gap-2">
                 <Button 
-                  onClick={() => handleStartAdWizard(project.id)}
+                  onClick={() => handleStartAdWizard(singleProject.id)}
                   className="w-full sm:w-auto"
                 >
-                  {project.business_idea ? 'Continue Idea Wizard' : 'Start Idea Wizard'}
+                  {singleProject.business_idea ? 'Continue Idea Wizard' : 'Start Idea Wizard'}
                 </Button>
               </div>
               <ProjectProgressDetails
-                businessIdea={project.business_idea || undefined}
-                targetAudience={project.target_audience || undefined}
-                audienceAnalysis={project.audience_analysis || undefined}
+                businessIdea={singleProject.business_idea || undefined}
+                targetAudience={singleProject.target_audience || undefined}
+                audienceAnalysis={singleProject.audience_analysis || undefined}
               />
             </TabsContent>
             
@@ -142,7 +170,7 @@ const Projects = () => {
                   </Button>
                 </div>
                 <Separator />
-                <ProjectAdsGallery projectId={project.id} />
+                <ProjectAdsGallery projectId={singleProject.id} />
               </div>
             </TabsContent>
           </Tabs>
