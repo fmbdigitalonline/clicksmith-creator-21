@@ -14,17 +14,34 @@ import { Separator } from "@/components/ui/separator";
 import ProjectViewSwitcher from "@/components/projects/ProjectViewSwitcher";
 import ProjectTable from "@/components/projects/ProjectTable";
 import ProjectFilters from "@/components/projects/ProjectFilters";
+import { Json } from "@/integrations/supabase/types"; 
 
-interface Project {
+// Use a generic ProjectData interface that's compatible with the Supabase response
+interface ProjectData {
   id: string;
   title: string;
-  business_idea: BusinessIdea | null;
-  target_audience: TargetAudience | null;
-  audience_analysis: AudienceAnalysis | null;
-  marketing_campaign: any | null;
   description?: string | null;
+  business_idea: Json | null;
+  target_audience: Json | null;
+  audience_analysis: Json | null;
+  marketing_campaign: Json | null;
   status?: string;
   current_step?: number;
+  updated_at: string;
+  tags?: string[];
+  generated_ads?: Json | null;
+}
+
+// Interface for the ProjectTable component
+interface ProjectForTable {
+  id: string;
+  title: string;
+  description: string | null;
+  business_idea?: any;
+  target_audience?: any;
+  audience_analysis?: any;
+  status: string;
+  current_step: number;
   updated_at: string;
   tags?: string[];
   generated_ads?: any[];
@@ -48,7 +65,7 @@ const Projects = () => {
           .order("updated_at", { ascending: false });
           
         if (error) throw error;
-        return data as Project[];
+        return data as ProjectData[];
       }
       return null;
     },
@@ -66,7 +83,7 @@ const Projects = () => {
           .maybeSingle();
           
         if (error) throw error;
-        return data as Project;
+        return data as ProjectData;
       }
       return null;
     },
@@ -83,14 +100,21 @@ const Projects = () => {
 
   const filteredProjects = projects?.filter(project => {
     const matchesSearch = project.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      project.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (project.description?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false) ||
       project.tags?.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
 
     const matchesStatus = statusFilter === "all" ||
-      (statusFilter === "completed" && Array.isArray(project.generated_ads) && project.generated_ads.length > 0) ||
-      (statusFilter === "active" && project.current_step > 1 && 
-        (!Array.isArray(project.generated_ads) || project.generated_ads.length === 0)) ||
-      (statusFilter === "not_started" && project.current_step === 1);
+      (statusFilter === "completed" && 
+        project.generated_ads !== null && 
+        typeof project.generated_ads === 'object' && 
+        Array.isArray(project.generated_ads) && 
+        project.generated_ads.length > 0) ||
+      (statusFilter === "active" && 
+        (project.current_step ?? 0) > 1 && 
+        (project.generated_ads === null || 
+         !Array.isArray(project.generated_ads) || 
+         project.generated_ads.length === 0)) ||
+      (statusFilter === "not_started" && (project.current_step === 1 || project.current_step === undefined));
 
     return matchesSearch && matchesStatus;
   }) ?? [];
@@ -197,7 +221,19 @@ const Projects = () => {
             />
           ) : (
             <ProjectTable
-              projects={filteredProjects}
+              projects={filteredProjects.map(p => ({
+                id: p.id,
+                title: p.title,
+                description: p.description || "",
+                business_idea: p.business_idea,
+                target_audience: p.target_audience,
+                audience_analysis: p.audience_analysis,
+                status: p.status || "draft",
+                current_step: p.current_step || 1,
+                updated_at: p.updated_at,
+                tags: p.tags,
+                generated_ads: Array.isArray(p.generated_ads) ? p.generated_ads : []
+              }))}
               onProjectClick={(id) => navigate(`/projects/${id}`)}
               onStartAdWizard={handleStartAdWizard}
             />
