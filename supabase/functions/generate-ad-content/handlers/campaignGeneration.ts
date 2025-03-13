@@ -1,7 +1,57 @@
 
 import { BusinessIdea, TargetAudience } from "../types.ts";
 
-export async function generateCampaign(businessIdea: any, targetAudience: any) {
+// New function to generate compliance guidelines for ad copy
+const getAdCopyComplianceGuidelines = (): string => {
+  return `Ad Copy Compliance Guidelines:
+- NO income or revenue claims (e.g., avoid "make $10,000 a month")
+- NO false urgency phrases (e.g., avoid "limited time offer" or "act now")
+- NO unrealistic promises about timeframes (e.g., avoid "quick results" or "overnight success")
+- NO exaggerated claims about effectiveness (e.g., avoid "revolutionary" or "groundbreaking")
+- NO testimonial-style language without proper context
+- Use educational and informative language rather than promotional
+- Focus on features and factual benefits without overpromising outcomes
+- Be specific and factual rather than vague and sensational
+- Avoid excessive use of capital letters, exclamation points, or sensational punctuation
+- Eliminate language that could appear as clickbait or misleading`;
+};
+
+// Function to get platform-specific guidelines
+const getPlatformCopyGuidelines = (platform: string): string => {
+  const guidelines = {
+    facebook: `Facebook Ad Guidelines:
+- Avoid using "you" or "your" when referring to personal attributes
+- Avoid before/after scenarios or implications
+- Keep tone educational and focus on the solution, not the problem
+- No health claims or references to personal attributes/conditions
+- Avoid language that could be seen as discriminatory`,
+    
+    google: `Google Ad Guidelines:
+- Keep ad copy under character limits (90 characters for headlines, 90 for descriptions)
+- Use proper grammar and avoid unusual capitalization
+- Make all claims verifiable and specific
+- Avoid generic superlatives like "best" or "top-rated" without evidence
+- Use clear calls to action that describe what users will find`,
+    
+    linkedin: `LinkedIn Guidelines:
+- Use professional language appropriate for business audience
+- Focus on professional development, not personal transformation
+- Emphasize educational content and industry insights
+- Use data and research-backed statements when possible
+- Avoid overly casual or promotional tone`,
+    
+    tiktok: `TikTok Guidelines:
+- Use authentic, conversational language
+- Avoid direct calls to engage that break the fourth wall
+- Keep language trendy but avoid clickbait-style hooks
+- Focus on community and shared experiences
+- Maintain a positive, non-controversial tone`
+  };
+  
+  return guidelines[platform] || guidelines.facebook;
+};
+
+export async function generateCampaign(businessIdea: any, targetAudience: any, platform: string = 'facebook') {
   const prompt = `Create a marketing campaign for this business and target audience:
 
 Business:
@@ -10,37 +60,41 @@ ${JSON.stringify(businessIdea, null, 2)}
 Target Audience:
 ${JSON.stringify(targetAudience, null, 2)}
 
+${getAdCopyComplianceGuidelines()}
+
+${getPlatformCopyGuidelines(platform)}
+
 Create a complete marketing campaign with 6 unique ad versions, each with their own copy and headline but maintaining consistent messaging:
 
 Ad Copy Guidelines:
 - Create 6 distinctly different versions while maintaining the core message:
-  1. "Story version": Longer, narrative-focused using pain point one
-  2. "Emotional appeal": Personal, emotionally resonant using pain point two
-  3. "AIDA format": Attention, Interest, Desire, Action structure using pain point three
-  4. "Problem-Solution": Highlight a specific problem and your solution
-  5. "Benefits-focused": Emphasize key benefits and results
-  6. "Social proof angle": Imply or reference customer success
+  1. "Educational format": Focus on explaining solutions and educating the audience
+  2. "Value proposition": Highlight specific features and benefits without making promises
+  3. "Problem-Solution": Describe a common challenge and your factual solution
+  4. "Industry insights": Share relevant information and expertise in the field
+  5. "Features-focused": Emphasize key features and specific functionality
+  6. "Community format": Focus on community and shared experiences
 - Each version should feel unique while targeting the same audience
-- Must grab attention in first sentence
-- Never use specific names
-- Always address the reader directly using "you" and "your"
-- Use the audience pain points from the analysis
-- Highlight the product's benefits and positive experiences
+- Must grab attention in first sentence while remaining factual
+- Never use specific names or income claims
+- Address the reader professionally with appropriate language for the platform
+- Use the audience pain points from the analysis, but focus on education and solutions
+- Highlight the product's features and specific benefits
 - Keep similar length but vary structure and approach
 
 Headline Guidelines:
 - Create 6 unique headlines (one for each ad version)
-- Maximum 6 words each
-- Each should highlight a different benefit or angle
-- Focus on results and transformation
-- Based on market awareness level
-- Keep the core value proposition consistent
+- Maximum 6 words each, focus on clarity over cleverness
+- Each should highlight a different feature or angle
+- Focus on value and solutions, not transformational promises
+- Make them specific, factual, and relevant to the target audience
+- Avoid clickbait language or excessive punctuation
 
 Return ONLY a valid JSON object with these fields:
 {
   "adCopies": [
     {
-      "type": "story|emotional|aida|problem-solution|benefits|social-proof",
+      "type": "educational|value-proposition|problem-solution|industry-insights|features|community",
       "content": "string"
     }
   ],
@@ -65,7 +119,7 @@ Return ONLY a valid JSON object with these fields:
         messages: [
           {
             role: 'system',
-            content: 'You are an expert marketing copywriter specializing in creating diverse but cohesive ad campaigns. Create distinctly different versions while maintaining the core message and brand voice.'
+            content: 'You are an expert marketing copywriter specializing in creating compliant, educational ad content that follows platform guidelines. Create distinctly different versions that educate and inform the audience while avoiding exaggerated claims, unrealistic promises, or overly promotional language. All content must be platform-compliant and focus on factual information.'
           },
           { role: 'user', content: prompt }
         ],

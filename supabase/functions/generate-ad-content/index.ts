@@ -134,7 +134,7 @@ serve(async (req) => {
       throw new Error('Empty request body');
     }
 
-    const { type, businessIdea, targetAudience, regenerationCount = 0, timestamp, forceRegenerate = false, campaign } = body;
+    const { type, businessIdea, targetAudience, regenerationCount = 0, timestamp, forceRegenerate = false, campaign, platform = 'facebook' } = body;
     
     if (!type) {
       throw new Error('type is required in request body');
@@ -144,7 +144,7 @@ serve(async (req) => {
       throw new Error(`Invalid generation type: ${type}. Valid types are: ${VALID_GENERATION_TYPES.join(', ')}`);
     }
 
-    console.log('Processing request:', { type, timestamp });
+    console.log('Processing request:', { type, timestamp, platform });
 
     let responseData;
     switch (type) {
@@ -158,18 +158,18 @@ serve(async (req) => {
         break;
       case 'complete_ads':
       case 'video_ads':
-        console.log('Generating complete ad campaign with params:', { businessIdea, targetAudience, campaign });
+        console.log('Generating complete ad campaign with params:', { businessIdea, targetAudience, campaign, platform });
         try {
           // Generate campaign content (6 unique variations)
-          const campaignData = await generateCampaign(businessIdea, targetAudience);
+          const campaignData = await generateCampaign(businessIdea, targetAudience, platform);
           console.log('Campaign data generated:', campaignData);
           
           // Generate image data
-          const imageData = await generateImagePrompts(businessIdea, targetAudience, campaignData.campaign);
+          const imageData = await generateImagePrompts(businessIdea, targetAudience, campaignData.campaign, platform);
           console.log('Image data generated:', imageData);
 
           // Define platforms
-          const platforms = ['facebook', 'google', 'linkedin', 'tiktok'];
+          const platforms = [platform]; // Use the requested platform
 
           // Use all 6 variations and distribute them across platforms and images
           const variants = distributeVariations(
@@ -192,8 +192,8 @@ serve(async (req) => {
         responseData = await analyzeAudience(businessIdea, targetAudience, regenerationCount);
         break;
       case 'images':
-        console.log('Generating images with params:', { businessIdea, targetAudience, campaign });
-        responseData = await generateImagePrompts(businessIdea, targetAudience, campaign);
+        console.log('Generating images with params:', { businessIdea, targetAudience, campaign, platform });
+        responseData = await generateImagePrompts(businessIdea, targetAudience, campaign, platform);
         break;
       default:
         throw new Error(`Unsupported generation type: ${type}`);
