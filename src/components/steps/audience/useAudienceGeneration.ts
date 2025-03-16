@@ -1,18 +1,17 @@
-
 import { useState } from "react";
 import { BusinessIdea, TargetAudience } from "@/types/adWizard";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 
 export const useAudienceGeneration = () => {
   const [audiences, setAudiences] = useState<TargetAudience[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [regenerationCount, setRegenerationCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
   const generateAudiences = async (businessIdea: BusinessIdea, forceRegenerate: boolean = false) => {
-    setLoading(true);
+    setIsGenerating(true);
     setError(null);
     
     try {
@@ -64,20 +63,14 @@ export const useAudienceGeneration = () => {
         variant: "destructive",
       });
     } finally {
-      setLoading(false);
+      setIsGenerating(false);
     }
-  };
-
-  const regenerate = async (businessIdea: BusinessIdea, regenerationCount: number = 0) => {
-    return generateAudiences(businessIdea, true);
   };
 
   return {
     audiences,
-    loading,
+    isGenerating,
     error,
     generateAudiences,
-    regenerate,
-    isGenerating: loading
   };
 };

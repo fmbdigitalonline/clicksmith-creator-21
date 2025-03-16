@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users } from "lucide-react";
 import { TargetAudience } from "@/types/adWizard";
@@ -6,24 +5,19 @@ import { TargetAudience } from "@/types/adWizard";
 interface AudienceCardProps {
   audience: TargetAudience;
   onClick: () => void;
-  isSelected?: boolean; // Add isSelected prop
 }
 
-const AudienceCard = ({ audience, onClick, isSelected = false }: AudienceCardProps) => {
+const AudienceCard = ({ audience, onClick }: AudienceCardProps) => {
   // Ensure arrays have default values if undefined
   const painPoints = audience.painPoints || [];
   const marketingChannels = audience.marketingChannels || [];
 
   return (
     <Card
-      className={`relative group cursor-pointer hover:shadow-lg transition-all duration-200 border-2 ${
-        isSelected ? "border-facebook" : "hover:border-facebook"
-      }`}
+      className="relative group cursor-pointer hover:shadow-lg transition-all duration-200 border-2 hover:border-facebook"
       onClick={onClick}
     >
-      <div className={`absolute inset-0 bg-gradient-to-br from-facebook/5 to-transparent ${
-        isSelected ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-      } transition-opacity duration-200 rounded-xl`} />
+      <div className="absolute inset-0 bg-gradient-to-br from-facebook/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-xl" />
       <CardHeader>
         <div className="flex items-center space-x-2 mb-2">
           <Users className="w-5 h-5 text-facebook" />
