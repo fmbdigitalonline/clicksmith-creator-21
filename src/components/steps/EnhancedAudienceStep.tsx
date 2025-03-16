@@ -10,11 +10,19 @@ import { RefreshCw, ArrowRight, ChevronLeft } from "lucide-react";
 import { useEnhancedPersonaGeneration } from "./audience/useEnhancedPersonaGeneration";
 import EnhancedPersonaGrid from "./audience/EnhancedPersonaGrid";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import useAudienceGeneration from "./audience/useAudienceGeneration";
+import { useAudienceGeneration } from "./audience/useAudienceGeneration";
 import AudienceCard from "./audience/AudienceCard";
 
 export default function EnhancedAudienceStep() {
-  const { state, update, step, saveProject, goToStep } = useAdWizardState();
+  const { 
+    businessIdea, 
+    currentStep, 
+    targetAudience,
+    handleAudienceSelect,
+    canNavigateToStep,
+    handleBack
+  } = useAdWizardState();
+  
   const { toast } = useToast();
   const [selectedPersona, setSelectedPersona] = useState<EnhancedPersona | null>(null);
   const [regenerationCount, setRegenerationCount] = useState(0);
@@ -42,14 +50,15 @@ export default function EnhancedAudienceStep() {
 
   useEffect(() => {
     // Set selected persona if it exists in the state
-    if (state.enhanced_persona) {
-      setSelectedPersona(state.enhanced_persona as EnhancedPersona);
-    }
-    
-    // Set selected regular audience if it exists
-    if (state.target_audience) {
+    if (targetAudience) {
+      // If we have enhanced persona data in the state, set it
+      if ((targetAudience as any).enhanced_persona) {
+        setSelectedPersona((targetAudience as any).enhanced_persona as EnhancedPersona);
+      }
+      
+      // Set selected regular audience if it exists
       const index = audiences.findIndex(
-        (a) => a.name === (state.target_audience as any)?.name
+        (a) => a.name === targetAudience?.name
       );
       if (index >= 0) {
         setSelectedRegularAudience(index);
@@ -57,18 +66,18 @@ export default function EnhancedAudienceStep() {
     }
     
     // Begin generation if we have a business idea but no personas yet
-    if (state.business_idea && !state.enhanced_persona && personas.length === 0 && !enhancedLoading) {
-      generateEnhancedPersonas(state.business_idea);
+    if (businessIdea && !targetAudience && personas.length === 0 && !enhancedLoading) {
+      generateEnhancedPersonas(businessIdea);
     }
     
     // Also generate regular audiences as fallback
-    if (state.business_idea && !state.target_audience && audiences.length === 0 && !regularLoading) {
-      generateAudiences(state.business_idea);
+    if (businessIdea && !targetAudience && audiences.length === 0 && !regularLoading) {
+      generateAudiences(businessIdea);
     }
-  }, [state.business_idea, state.enhanced_persona, state.target_audience]);
+  }, [businessIdea, targetAudience, personas.length, enhancedLoading, audiences.length, regularLoading]);
 
   const handleRegenerateEnhanced = async () => {
-    if (!state.business_idea) {
+    if (!businessIdea) {
       toast({
         title: "Business idea missing",
         description: "Please go back and define your business idea first.",
@@ -78,11 +87,11 @@ export default function EnhancedAudienceStep() {
     }
 
     setRegenerationCount((prev) => prev + 1);
-    await regenerateEnhanced(state.business_idea, regenerationCount + 1);
+    await regenerateEnhanced(businessIdea, regenerationCount + 1);
   };
 
   const handleRegenerateRegular = async () => {
-    if (!state.business_idea) {
+    if (!businessIdea) {
       toast({
         title: "Business idea missing",
         description: "Please go back and define your business idea first.",
@@ -91,7 +100,7 @@ export default function EnhancedAudienceStep() {
       return;
     }
 
-    await regenerateRegular(state.business_idea, regenerationCount + 1);
+    await regenerateRegular(businessIdea, regenerationCount + 1);
   };
 
   const handleSelectEnhancedPersona = (persona: EnhancedPersona) => {
@@ -104,15 +113,24 @@ export default function EnhancedAudienceStep() {
 
   const handleContinue = async () => {
     if (viewMode === "enhanced" && selectedPersona) {
-      await update({
-        enhanced_persona: selectedPersona,
-        current_step: step + 1,
-      });
+      // Create a hybrid audience object that includes both standard fields and enhanced persona
+      const enhancedAudience = {
+        name: selectedPersona.name,
+        description: selectedPersona.description,
+        demographics: selectedPersona.demographics,
+        painPoints: selectedPersona.challenges,
+        icp: selectedPersona.description,
+        coreMessage: selectedPersona.goals.join(', '),
+        positioning: selectedPersona.strengths.join(', '),
+        marketingAngle: selectedPersona.values.join(', '),
+        messagingApproach: selectedPersona.psychographics,
+        marketingChannels: selectedPersona.mediaPreferences,
+        enhanced_persona: selectedPersona
+      };
+      
+      await handleAudienceSelect(enhancedAudience);
     } else if (viewMode === "regular" && selectedRegularAudience !== null) {
-      await update({
-        target_audience: audiences[selectedRegularAudience],
-        current_step: step + 1,
-      });
+      await handleAudienceSelect(audiences[selectedRegularAudience]);
     } else {
       toast({
         title: "Selection required",
@@ -121,13 +139,10 @@ export default function EnhancedAudienceStep() {
       });
       return;
     }
-
-    await saveProject();
-    goToStep(step + 1);
   };
 
   const handleGoBack = () => {
-    goToStep(step - 1);
+    handleBack();
   };
 
   return (
@@ -172,7 +187,7 @@ export default function EnhancedAudienceStep() {
               {!enhancedLoading && personas.length === 0 && enhancedError && (
                 <div className="text-center py-8">
                   <p className="text-red-500 mb-4">{enhancedError.message}</p>
-                  <Button onClick={() => generateEnhancedPersonas(state.business_idea)}>
+                  <Button onClick={() => generateEnhancedPersonas(businessIdea)}>
                     Try Again
                   </Button>
                 </div>
@@ -196,8 +211,8 @@ export default function EnhancedAudienceStep() {
                       <AudienceCard
                         key={index}
                         audience={audience}
-                        onSelect={() => handleSelectRegularAudience(index)}
                         isSelected={selectedRegularAudience === index}
+                        onClick={() => handleSelectRegularAudience(index)}
                       />
                     ))}
                   </div>
@@ -220,7 +235,7 @@ export default function EnhancedAudienceStep() {
               {!regularLoading && audiences.length === 0 && regularError && (
                 <div className="text-center py-8">
                   <p className="text-red-500 mb-4">{regularError.message}</p>
-                  <Button onClick={() => generateAudiences(state.business_idea)}>
+                  <Button onClick={() => generateAudiences(businessIdea)}>
                     Try Again
                   </Button>
                 </div>

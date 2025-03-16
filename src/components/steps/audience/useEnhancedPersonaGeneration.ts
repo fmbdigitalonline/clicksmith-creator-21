@@ -28,13 +28,19 @@ export function useEnhancedPersonaGeneration({
       setError(null);
 
       // First check if the user has credits
-      const { data: creditCheck } = await supabase.rpc('check_credits_available', {
+      const { data: creditCheck, error: creditError } = await supabase.rpc('check_credits_available', {
         p_user_id: (await supabase.auth.getUser()).data.user?.id,
         required_credits: 1
       });
 
-      if (!creditCheck?.has_credits) {
-        throw new Error(creditCheck?.error_message || 'Insufficient credits');
+      if (creditError) {
+        throw new Error(`Credit check failed: ${creditError.message}`);
+      }
+
+      // Access the result directly since it's a scalar RPC result
+      if (!creditCheck || !creditCheck.has_credits) {
+        const errorMessage = creditCheck?.error_message || 'Insufficient credits';
+        throw new Error(errorMessage);
       }
 
       // Call the Supabase Edge Function
