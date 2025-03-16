@@ -626,6 +626,45 @@ export type Database = {
           },
         ]
       }
+      brand_archetypes: {
+        Row: {
+          brand_voice: string
+          communication_style: string
+          created_at: string | null
+          description: string
+          examples: Json
+          id: string
+          motivations: Json
+          name: string
+          updated_at: string | null
+          values: Json
+        }
+        Insert: {
+          brand_voice: string
+          communication_style: string
+          created_at?: string | null
+          description: string
+          examples: Json
+          id?: string
+          motivations: Json
+          name: string
+          updated_at?: string | null
+          values: Json
+        }
+        Update: {
+          brand_voice?: string
+          communication_style?: string
+          created_at?: string | null
+          description?: string
+          examples?: Json
+          id?: string
+          motivations?: Json
+          name?: string
+          updated_at?: string | null
+          values?: Json
+        }
+        Relationships: []
+      }
       contact_submissions: {
         Row: {
           attachments: Json | null
@@ -1431,13 +1470,17 @@ export type Database = {
           ad_dimensions: Json | null
           ad_format: string | null
           audience_analysis: Json | null
+          brand_archetype: Json | null
           business_idea: Json | null
           created_at: string
           current_step: number | null
           description: string | null
+          enhanced_audience_analysis: Json | null
+          enhanced_persona: Json | null
           generated_ads: Json | null
           id: string
           marketing_campaign: Json | null
+          psychological_driver: Json | null
           selected_hooks: Json | null
           status: string | null
           tags: string[] | null
@@ -1453,13 +1496,17 @@ export type Database = {
           ad_dimensions?: Json | null
           ad_format?: string | null
           audience_analysis?: Json | null
+          brand_archetype?: Json | null
           business_idea?: Json | null
           created_at?: string
           current_step?: number | null
           description?: string | null
+          enhanced_audience_analysis?: Json | null
+          enhanced_persona?: Json | null
           generated_ads?: Json | null
           id?: string
           marketing_campaign?: Json | null
+          psychological_driver?: Json | null
           selected_hooks?: Json | null
           status?: string | null
           tags?: string[] | null
@@ -1475,13 +1522,17 @@ export type Database = {
           ad_dimensions?: Json | null
           ad_format?: string | null
           audience_analysis?: Json | null
+          brand_archetype?: Json | null
           business_idea?: Json | null
           created_at?: string
           current_step?: number | null
           description?: string | null
+          enhanced_audience_analysis?: Json | null
+          enhanced_persona?: Json | null
           generated_ads?: Json | null
           id?: string
           marketing_campaign?: Json | null
+          psychological_driver?: Json | null
           selected_hooks?: Json | null
           status?: string | null
           tags?: string[] | null
@@ -1492,6 +1543,42 @@ export type Database = {
           video_ad_preferences?: Json | null
           video_ad_settings?: Json | null
           video_ads_enabled?: boolean | null
+        }
+        Relationships: []
+      }
+      psychological_drivers: {
+        Row: {
+          application_context: string
+          created_at: string | null
+          description: string
+          emotional_touchpoints: Json
+          id: string
+          name: string
+          persuasion_tactics: Json
+          triggers: Json
+          updated_at: string | null
+        }
+        Insert: {
+          application_context: string
+          created_at?: string | null
+          description: string
+          emotional_touchpoints: Json
+          id?: string
+          name: string
+          persuasion_tactics: Json
+          triggers: Json
+          updated_at?: string | null
+        }
+        Update: {
+          application_context?: string
+          created_at?: string | null
+          description?: string
+          emotional_touchpoints?: Json
+          id?: string
+          name?: string
+          persuasion_tactics?: Json
+          triggers?: Json
+          updated_at?: string | null
         }
         Relationships: []
       }
