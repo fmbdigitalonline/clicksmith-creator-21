@@ -81,7 +81,7 @@ export function useProjectCampaignData(projectId?: string) {
         if (error) throw error;
 
         // Cast the raw data to the expected type after proper validation
-        const rawData = projectData as any;
+        const rawData = projectData as unknown as ProjectDataResponse;
         
         // Apply data fallbacks for missing values
         const businessIdea = rawData.business_idea as BusinessIdea || createDefaultBusinessIdea();

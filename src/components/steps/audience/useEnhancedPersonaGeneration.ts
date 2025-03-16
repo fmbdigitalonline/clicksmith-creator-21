@@ -37,10 +37,9 @@ export function useEnhancedPersonaGeneration({
         throw new Error(`Credit check failed: ${creditError.message}`);
       }
 
-      // Access the result directly since it's a scalar RPC result
-      if (!creditCheck || !creditCheck.has_credits) {
-        const errorMessage = creditCheck?.error_message || 'Insufficient credits';
-        throw new Error(errorMessage);
+      // Handle the scalar result directly
+      if (!creditCheck) {
+        throw new Error('Insufficient credits');
       }
 
       // Call the Supabase Edge Function

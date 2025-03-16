@@ -28,6 +28,7 @@ function renderStep(step: number, adWizardState: ReturnType<typeof useAdWizardSt
     handleAudienceSelect,
     handleAnalysisComplete,
     handleBack,
+    handleStartOver,
     isLoading
   } = adWizardState;
 
@@ -88,9 +89,9 @@ function renderStep(step: number, adWizardState: ReturnType<typeof useAdWizardSt
           targetAudience={targetAudience}
           adHooks={selectedHooks}
           adFormat={{} as any} // Will be implemented in next phase
-          adSize={{} as any} // Will be implemented in next phase
           onBack={handleBack}
-          onStartOver={() => {}} // Will be implemented in next phase
+          onStartOver={handleStartOver}
+          onCreateProject={() => {}} // Placeholder function for now
         />
       );
     default:
@@ -100,7 +101,7 @@ function renderStep(step: number, adWizardState: ReturnType<typeof useAdWizardSt
 
 export default function EnhancedAdWizard() {
   const adWizardState = useAdWizardState();
-  const { currentStep, isLoading } = adWizardState;
+  const { currentStep, isLoading, canNavigateToStep } = adWizardState;
   const { user } = useUser();
   const navigate = useNavigate();
   
@@ -121,8 +122,8 @@ export default function EnhancedAdWizard() {
       <div className="mb-8 flex items-center justify-between">
         <WizardProgress 
           currentStep={currentStep} 
-          onStepClick={(step) => adWizardState.goToStep ? adWizardState.goToStep(step) : null}
-          canNavigateToStep={(step) => adWizardState.canNavigateToStep ? adWizardState.canNavigateToStep(step) : false}
+          onStepClick={(step) => adWizardState.setCurrentStep(step)}
+          canNavigateToStep={canNavigateToStep}
         />
         
         <Button variant="outline" size="sm" onClick={handleReturnHome}>

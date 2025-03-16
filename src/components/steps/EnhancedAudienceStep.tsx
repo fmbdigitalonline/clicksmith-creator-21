@@ -12,6 +12,7 @@ import EnhancedPersonaGrid from "./audience/EnhancedPersonaGrid";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAudienceGeneration } from "./audience/useAudienceGeneration";
 import AudienceCard from "./audience/AudienceCard";
+import ErrorDisplay from "./audience/ErrorDisplay";
 
 export default function EnhancedAudienceStep() {
   const { 
@@ -186,8 +187,8 @@ export default function EnhancedAudienceStep() {
 
               {!enhancedLoading && personas.length === 0 && enhancedError && (
                 <div className="text-center py-8">
-                  <p className="text-red-500 mb-4">{enhancedError.message}</p>
-                  <Button onClick={() => generateEnhancedPersonas(businessIdea)}>
+                  <ErrorDisplay message={enhancedError.message} />
+                  <Button onClick={() => generateEnhancedPersonas(businessIdea)} className="mt-4">
                     Try Again
                   </Button>
                 </div>
@@ -234,8 +235,8 @@ export default function EnhancedAudienceStep() {
 
               {!regularLoading && audiences.length === 0 && regularError && (
                 <div className="text-center py-8">
-                  <p className="text-red-500 mb-4">{regularError.message}</p>
-                  <Button onClick={() => generateAudiences(businessIdea)}>
+                  <ErrorDisplay message={regularError} />
+                  <Button onClick={() => generateAudiences(businessIdea)} className="mt-4">
                     Try Again
                   </Button>
                 </div>
