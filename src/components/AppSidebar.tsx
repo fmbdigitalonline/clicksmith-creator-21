@@ -2,7 +2,6 @@
 import { NavLink } from "react-router-dom";
 import { useSidebar } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 import {
   Briefcase,
   ImageIcon,
@@ -20,6 +19,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useTranslation } from "react-i18next";
 
 export default function AppSidebar() {
   const { isCollapsed } = useSidebar();
@@ -29,6 +29,7 @@ export default function AppSidebar() {
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const isMobile = useIsMobile();
+  const { t } = useTranslation('common');
 
   useEffect(() => {
     if (user) {
@@ -87,7 +88,7 @@ export default function AppSidebar() {
                   }
                 >
                   <LayoutDashboard size={18} className="flex-shrink-0" />
-                  {!isCollapsed && <span className="ml-2 truncate">Dashboard</span>}
+                  {!isCollapsed && <span className="ml-2 truncate">{t('navigation.dashboard')}</span>}
                 </NavLink>
                 
                 <NavLink 
@@ -99,7 +100,7 @@ export default function AppSidebar() {
                   }
                 >
                   <Briefcase size={18} className="flex-shrink-0" />
-                  {!isCollapsed && <span className="ml-2 truncate">Projects</span>}
+                  {!isCollapsed && <span className="ml-2 truncate">{t('navigation.projects')}</span>}
                 </NavLink>
                 
                 <NavLink 
@@ -111,7 +112,7 @@ export default function AppSidebar() {
                   }
                 >
                   <ImageIcon size={18} className="flex-shrink-0" />
-                  {!isCollapsed && <span className="ml-2 truncate">Saved Ads</span>}
+                  {!isCollapsed && <span className="ml-2 truncate">{t('navigation.gallery')}</span>}
                 </NavLink>
                 
                 <NavLink 
@@ -123,7 +124,7 @@ export default function AppSidebar() {
                   }
                 >
                   <LinkIcon size={18} className="flex-shrink-0" />
-                  {!isCollapsed && <span className="ml-2 truncate">Integrations</span>}
+                  {!isCollapsed && <span className="ml-2 truncate">{t('navigation.integrations')}</span>}
                 </NavLink>
                 
                 {isAdmin && (
@@ -136,7 +137,7 @@ export default function AppSidebar() {
                     }
                   >
                     <FileText size={18} className="flex-shrink-0" />
-                    {!isCollapsed && <span className="ml-2 truncate">Blog Admin</span>}
+                    {!isCollapsed && <span className="ml-2 truncate">{t('navigation.blog')}</span>}
                   </NavLink>
                 )}
               </div>
@@ -154,7 +155,7 @@ export default function AppSidebar() {
                 }
               >
                 <Settings size={18} className="flex-shrink-0" />
-                {!isCollapsed && <span className="ml-2 truncate">Settings</span>}
+                {!isCollapsed && <span className="ml-2 truncate">{t('navigation.settings')}</span>}
               </NavLink>
               
               <NavLink 
@@ -166,7 +167,7 @@ export default function AppSidebar() {
                 }
               >
                 <HelpCircle size={18} className="flex-shrink-0" />
-                {!isCollapsed && <span className="ml-2 truncate">Help</span>}
+                {!isCollapsed && <span className="ml-2 truncate">{t('navigation.help')}</span>}
               </NavLink>
               
               <button
@@ -175,7 +176,7 @@ export default function AppSidebar() {
                 disabled={isSigningOut}
               >
                 <LogOut size={18} className="flex-shrink-0" />
-                {!isCollapsed && <span className="ml-2 truncate">Sign Out</span>}
+                {!isCollapsed && <span className="ml-2 truncate">{t('auth.logout.button')}</span>}
               </button>
             </div>
           </div>

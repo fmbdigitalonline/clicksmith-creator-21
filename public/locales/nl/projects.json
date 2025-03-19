@@ -1,69 +1,35 @@
 
 {
   "title": "Projecten",
-  "subtitle": "Beheer je projecten voor het valideren van bedrijfsideeën",
-  "create": "Project Aanmaken",
-  "filters": {
-    "title": "Filters",
-    "status": "Status",
-    "all": "Alle",
-    "draft": "Concept",
-    "in_progress": "In Uitvoering",
-    "completed": "Voltooid",
-    "search": "Zoek projecten..."
-  },
-  "empty": {
-    "title": "Geen projecten gevonden",
-    "description": "Maak je eerste project aan om je bedrijfsideeën te gaan valideren.",
-    "button": "Nieuw Project Aanmaken"
-  },
-  "table": {
-    "project": "Project",
-    "status": "Status",
-    "progress": "Voortgang",
-    "last_updated": "Laatst Bijgewerkt",
-    "actions": "Acties",
-    "not_started": "Niet Gestart",
-    "complete": "Voltooid",
-    "step": "Stap {{step}} van {{total}}",
-    "validated": "Gevalideerd"
-  },
-  "form": {
-    "title": "Projecttitel",
-    "title_placeholder": "Voer een naam in voor je validatieproject",
-    "business_idea": "Bedrijfsidee",
-    "business_idea_placeholder": "Beschrijf je bedrijfsidee in detail...",
-    "notes": "Aanvullende Notities",
-    "notes_placeholder": "Eventuele aanvullende notities over je project",
-    "tags": "Tags",
-    "tags_placeholder": "Voer tags in gescheiden door komma's",
-    "cancel": "Annuleren",
-    "create": "Project Aanmaken",
-    "save": "Wijzigingen Opslaan"
-  },
+  "create": "Nieuw project",
+  "edit": "Project bewerken",
+  "delete": "Project verwijderen",
+  "name": "Projectnaam",
+  "description": "Projectbeschrijving",
+  "tags": "Tags",
+  "status": "Status",
+  "created": "Aangemaakt op",
+  "updated": "Laatst bijgewerkt",
+  "no_projects": "Geen projecten gevonden",
+  "create_first": "Maak je eerste project aan",
+  "search": "Zoek projecten",
+  "filter": "Filter projecten",
+  "sort": "Sorteer projecten",
+  "details": "Projectdetails",
+  "progress": "Projectvoortgang",
   "actions": {
-    "view": "Bekijken",
-    "edit": "Bewerken",
-    "delete": "Verwijderen",
-    "continue": "Doorgaan",
-    "start": "Starten",
-    "generate_ads": "Advertenties Genereren",
-    "back_to_projects": "Terug naar Projecten",
-    "what_next": "Wat wil je hierna doen?"
+    "title": "Acties",
+    "what_next": "Wat wil je met dit project doen?",
+    "generate_ads": "Advertenties genereren",
+    "edit": "Project bewerken",
+    "delete": "Project verwijderen",
+    "view": "Project bekijken",
+    "back_to_projects": "Terug naar projecten"
   },
-  "validation": {
-    "complete": "Gegevens Compleet",
-    "complete_description": "Alle vereiste projectinformatie is beschikbaar voor het maken van campagnes.",
-    "incomplete": "Onvolledige Gegevens",
-    "improvement_needed": "Gegevensverbetering Nodig",
-    "incomplete_description": "Sommige vereiste informatie ontbreekt. Vul deze aan om je resultaten te verbeteren.",
-    "completeness": "Volledigheid",
-    "missing_info": "Ontbrekende informatie"
-  },
-  "edit": {
-    "title": "Project Bewerken",
-    "description": "Werk je projectgegevens bij",
-    "success": "Project bijgewerkt",
-    "success_description": "Je project is succesvol bijgewerkt."
+  "filters": {
+    "all": "Alle Projecten",
+    "completed": "Voltooid",
+    "active": "Actief",
+    "not_started": "Niet gestart"
   }
 }
