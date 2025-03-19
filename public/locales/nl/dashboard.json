@@ -19,5 +19,67 @@
     "new_project": "Nieuw Project",
     "new_campaign": "Nieuwe Campagne",
     "explore": "Verken Functies"
+  },
+  "greeting": "Welkom terug, {{userName}}!",
+  "last_accessed": "Laatst geopend: {{projectTitle}} {{timeAgo}}",
+  "continue_wizard": "Ga Door Met Ideeënwizard",
+  "resume_journey": "Hervat je bedrijfsidee validatie reis",
+  "view_saved_ads": "Bekijk Opgeslagen Advertenties",
+  "access_generated_ads": "Bekijk al je eerder gegenereerde advertenties",
+  "create_new_project": "Maak Nieuw Project",
+  "start_new_project": "Start een nieuw bedrijfsidee validatie project",
+  "projects_card": {
+    "title": "Projecten",
+    "completed": "voltooid",
+    "in_progress": "in uitvoering"
+  },
+  "generated_content": {
+    "title": "Gegenereerde Content",
+    "images": "Afbeeldingen",
+    "ad_texts": "Advertentieteksten",
+    "total_ads": "Totaal Advertenties",
+    "avg_rating": "Gemiddelde beoordeling"
+  },
+  "credits_card": {
+    "title": "Resterende Credits",
+    "unlimited": "Onbeperkte credits beschikbaar",
+    "available": "Beschikbaar voor nieuwe campagnes"
+  },
+  "updates": {
+    "title": "Laatste Updates",
+    "view_all": "Bekijk Alles"
+  },
+  "recent_projects": {
+    "title": "Recente Projecten",
+    "view_all": "Bekijk Alles",
+    "updated": "Bijgewerkt {{timeAgo}}",
+    "actions": {
+      "edit": "Bewerken",
+      "view_ads": "Bekijk Advertenties"
+    }
+  },
+  "saved_ads": {
+    "title": "Recent Opgeslagen Advertenties",
+    "view_all": "Bekijk Alles",
+    "saved": "Opgeslagen {{timeAgo}}",
+    "untitled": "Naamloze Advertentie",
+    "view": "Bekijken"
+  },
+  "resources": {
+    "title": "Bronnen",
+    "getting_started": "Aan de slag met Advertentie Wizard",
+    "faq": "Veelgestelde Vragen en Ondersteuning",
+    "contact": "Contact Opnemen met Support"
+  },
+  "improve": {
+    "title": "Help Ons Verbeteren",
+    "feedback": "Deel je Feedback",
+    "rate": "Beoordeel Ons op Trustpilot"
+  },
+  "share": {
+    "title": "Delen & Verdienen",
+    "refer": "Verwijs een Vriend",
+    "affiliate": "Affiliate Programma",
+    "social": "Deel op Social Media"
   }
 }

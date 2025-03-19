@@ -19,5 +19,67 @@
     "new_project": "New Project",
     "new_campaign": "New Campaign",
     "explore": "Explore Features"
+  },
+  "greeting": "Welcome back, {{userName}}!",
+  "last_accessed": "Last accessed: {{projectTitle}} {{timeAgo}}",
+  "continue_wizard": "Continue Idea Wizard",
+  "resume_journey": "Resume your business idea validation journey",
+  "view_saved_ads": "View Saved Ads",
+  "access_generated_ads": "Access all your previously generated ads",
+  "create_new_project": "Create New Project",
+  "start_new_project": "Start a new business idea validation project",
+  "projects_card": {
+    "title": "Projects",
+    "completed": "completed",
+    "in_progress": "in progress"
+  },
+  "generated_content": {
+    "title": "Generated Content",
+    "images": "Images",
+    "ad_texts": "Ad Texts",
+    "total_ads": "Total Ads",
+    "avg_rating": "Average rating"
+  },
+  "credits_card": {
+    "title": "Credits Remaining",
+    "unlimited": "Unlimited credits available",
+    "available": "Available for new campaigns"
+  },
+  "updates": {
+    "title": "Latest Updates",
+    "view_all": "View All"
+  },
+  "recent_projects": {
+    "title": "Recent Projects",
+    "view_all": "View All",
+    "updated": "Updated {{timeAgo}}",
+    "actions": {
+      "edit": "Edit",
+      "view_ads": "View Ads"
+    }
+  },
+  "saved_ads": {
+    "title": "Recently Saved Ads",
+    "view_all": "View All",
+    "saved": "Saved {{timeAgo}}",
+    "untitled": "Untitled Ad",
+    "view": "View"
+  },
+  "resources": {
+    "title": "Resources",
+    "getting_started": "Getting Started with Ad Wizard",
+    "faq": "FAQs and Support",
+    "contact": "Contact Support"
+  },
+  "improve": {
+    "title": "Help Us Improve",
+    "feedback": "Share Your Feedback",
+    "rate": "Rate Us on Trustpilot"
+  },
+  "share": {
+    "title": "Share & Earn",
+    "refer": "Refer a Friend",
+    "affiliate": "Affiliate Program",
+    "social": "Share on Social Media"
   }
 }

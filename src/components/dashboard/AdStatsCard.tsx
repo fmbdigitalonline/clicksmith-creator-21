@@ -5,9 +5,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
+import { useTranslation } from "react-i18next";
 
 const AdStatsCard = () => {
   const { toast } = useToast();
+  const { t } = useTranslation('dashboard');
 
   const { data: adStats } = useQuery({
     queryKey: ["adStats"],
@@ -52,7 +54,7 @@ const AdStatsCard = () => {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">Generated Content</CardTitle>
+        <CardTitle className="text-sm font-medium">{t('generated_content.title')}</CardTitle>
         <Image className="h-4 w-4 text-muted-foreground" />
       </CardHeader>
       <CardContent>
@@ -60,7 +62,7 @@ const AdStatsCard = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <Image className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">Images</span>
+              <span className="text-sm text-muted-foreground">{t('generated_content.images')}</span>
             </div>
             <span className="text-2xl font-bold">{adStats?.totalImages || 0}</span>
           </div>
@@ -70,7 +72,7 @@ const AdStatsCard = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <Type className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">Ad Texts</span>
+              <span className="text-sm text-muted-foreground">{t('generated_content.ad_texts')}</span>
             </div>
             <span className="text-2xl font-bold">{adStats?.totalAdTexts || 0}</span>
           </div>
@@ -80,13 +82,13 @@ const AdStatsCard = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <Layout className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">Total Ads</span>
+              <span className="text-sm text-muted-foreground">{t('generated_content.total_ads')}</span>
             </div>
             <span className="text-2xl font-bold">{adStats?.totalAds || 0}</span>
           </div>
 
           <div className="text-xs text-muted-foreground mt-1">
-            Average rating: {adStats?.avgRating}
+            {t('generated_content.avg_rating')}: {adStats?.avgRating}
           </div>
         </div>
       </CardContent>

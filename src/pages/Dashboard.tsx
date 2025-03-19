@@ -14,11 +14,13 @@ import { formatDistanceToNow } from "date-fns";
 import { CheckCircle } from "lucide-react";
 import { Users, UsersRound, DollarSign, Share2 } from 'lucide-react';
 import CreateProjectDialog from "@/components/projects/CreateProjectDialog";
+import { useTranslation } from "react-i18next";
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
+  const { t } = useTranslation('dashboard');
 
   const { data: userData } = useQuery({
     queryKey: ["user-profile"],
@@ -93,7 +95,6 @@ const Dashboard = () => {
     enabled: !!userData?.user,
   });
 
-  // New query for admin updates
   const { data: updates } = useQuery({
     queryKey: ["admin-updates"],
     queryFn: async () => {
@@ -113,7 +114,6 @@ const Dashboard = () => {
     }
   });
 
-  // Helper function to get the appropriate icon based on update type
   const getUpdateIcon = (type: string) => {
     switch (type) {
       case 'feature':
@@ -132,7 +132,6 @@ const Dashboard = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Subscribe to projects changes
       const projectsChannel = supabase
         .channel('public:projects')
         .on(
@@ -149,7 +148,6 @@ const Dashboard = () => {
         )
         .subscribe();
 
-      // Subscribe to ad_image_variants changes
       const adImagesChannel = supabase
         .channel('public:ad_image_variants')
         .on(
@@ -166,7 +164,6 @@ const Dashboard = () => {
         )
         .subscribe();
 
-      // Subscribe to ad_feedback changes
       const feedbackChannel = supabase
         .channel('public:ad_feedback')
         .on(
@@ -183,7 +180,6 @@ const Dashboard = () => {
         )
         .subscribe();
 
-      // Subscribe to subscriptions changes
       const subscriptionsChannel = supabase
         .channel('public:subscriptions')
         .on(
@@ -200,7 +196,6 @@ const Dashboard = () => {
         )
         .subscribe();
 
-      // Cleanup subscriptions
       return () => {
         supabase.removeChannel(projectsChannel);
         supabase.removeChannel(adImagesChannel);
@@ -237,7 +232,6 @@ const Dashboard = () => {
     <>
       <OnboardingDialog />
       <div className="container mx-auto px-4 py-6">
-        {/* Welcome Section with Hero Image */}
         <div className="relative mb-8 rounded-lg overflow-hidden">
           <div className="absolute inset-0">
             <img 
@@ -248,264 +242,17 @@ const Dashboard = () => {
             <div className="absolute inset-0 bg-gradient-to-r from-primary/40 to-transparent" />
           </div>
           <div className="relative z-10 p-8">
-            <h1 className="text-4xl font-bold mb-2">Welcome back, {userName}!</h1>
+            <h1 className="text-4xl font-bold mb-2">{t('greeting', { userName })}</h1>
             {lastAccessedProject && (
               <p className="text-muted-foreground text-lg">
-                Last accessed: {lastAccessedProject.title} {formatDistanceToNow(new Date(lastAccessedProject.updated_at), { addSuffix: true })}
+                {t('last_accessed', { 
+                  projectTitle: lastAccessedProject.title,
+                  timeAgo: formatDistanceToNow(new Date(lastAccessedProject.updated_at), { addSuffix: true })
+                })}
               </p>
             )}
           </div>
         </div>
 
-        {/* Quick Actions with Enhanced Visual Design */}
-        <div className="grid gap-4 md:grid-cols-3 mb-8">
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer bg-gradient-to-br from-primary/5 to-primary/10" onClick={() => navigate("/ad-wizard/new")}>
-            <CardHeader>
-              <Lightbulb className="h-8 w-8 mb-2 text-primary" />
-              <CardTitle>Continue Idea Wizard</CardTitle>
-              <CardDescription>Resume your business idea validation journey</CardDescription>
-            </CardHeader>
-          </Card>
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer bg-gradient-to-br from-blue-500/5 to-blue-500/10" onClick={() => navigate("/saved-ads")}>
-            <CardHeader>
-              <FolderOpen className="h-8 w-8 mb-2 text-blue-500" />
-              <CardTitle>View Saved Ads</CardTitle>
-              <CardDescription>Access all your previously generated ads</CardDescription>
-            </CardHeader>
-          </Card>
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer bg-gradient-to-br from-green-500/5 to-green-500/10" onClick={() => setIsCreateProjectOpen(true)}>
-            <CardHeader>
-              <Plus className="h-8 w-8 mb-2 text-green-500" />
-              <CardTitle>Create New Project</CardTitle>
-              <CardDescription>Start a new business idea validation project</CardDescription>
-            </CardHeader>
-          </Card>
-        </div>
+        <
 
-        {/* Stats Cards with Enhanced Visual Design */}
-        <div className="grid gap-4 md:grid-cols-3 mb-8">
-          <div className="bg-gradient-to-br from-background to-muted rounded-lg p-[1px]">
-            <ProjectsCard />
-          </div>
-          <div className="bg-gradient-to-br from-background to-muted rounded-lg p-[1px]">
-            <AdStatsCard />
-          </div>
-          <div className="bg-gradient-to-br from-background to-muted rounded-lg p-[1px]">
-            <CreditsCard />
-          </div>
-        </div>
-
-        {/* Message Board - Now using dynamic data */}
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
-            <Bell className="h-5 w-5 text-primary" />
-            Latest Updates
-          </h2>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {updates?.map((update) => {
-              const UpdateIcon = update.icon;
-              return (
-                <Card key={update.id} className={`
-                  hover:shadow-md transition-shadow
-                  ${update.type === 'incident' ? 'border-destructive/20' : ''}
-                  ${update.type === 'feature' ? 'border-primary/20' : ''}
-                `}>
-                  <CardHeader>
-                    <div className="flex items-center gap-2">
-                      <UpdateIcon className={`
-                        h-5 w-5
-                        ${update.type === 'incident' ? 'text-destructive' : ''}
-                        ${update.type === 'feature' ? 'text-primary' : ''}
-                      `} />
-                      <CardTitle className="text-lg">{update.title}</CardTitle>
-                    </div>
-                    <CardDescription>
-                      {formatDistanceToNow(new Date(update.created_at), { addSuffix: true })}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-muted-foreground">{update.description}</p>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Recent Projects */}
-        <div className="grid gap-4 mb-8">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold flex items-center gap-2">
-              <FolderOpen className="h-6 w-6 text-primary" />
-              Recent Projects
-            </h2>
-            <Button variant="ghost" className="gap-2" onClick={() => navigate("/projects")}>
-              View All <ArrowRight className="h-4 w-4" />
-            </Button>
-          </div>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {recentProjects?.map((project) => (
-              <Card 
-                key={project.id} 
-                className="hover:shadow-md transition-shadow cursor-pointer"
-                onClick={() => {
-                  console.log('Card clicked for project:', project.id);
-                  handleProjectClick(project.id);
-                }}
-              >
-                <CardHeader>
-                  <CardTitle className="text-lg">{project.title}</CardTitle>
-                  <CardDescription>
-                    Updated {formatDistanceToNow(new Date(project.updated_at), { addSuffix: true })}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        console.log('Edit button clicked for project:', project.id);
-                        navigate(`/projects/${project.id}`);
-                      }}
-                    >
-                      <Pencil className="h-4 w-4 mr-1" /> Edit
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        console.log('View Ads button clicked for project:', project.id);
-                        navigate(`/ad-wizard/${project.id}`);
-                      }}
-                    >
-                      <Eye className="h-4 w-4 mr-1" /> View Ads
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-
-        {/* Recent Saved Ads */}
-        <div className="grid gap-4 mb-8">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold flex items-center gap-2">
-              <BookmarkCheck className="h-6 w-6 text-primary" />
-              Recently Saved Ads
-            </h2>
-            <Button variant="ghost" className="gap-2" onClick={() => navigate("/saved-ads")}>
-              View All <ArrowRight className="h-4 w-4" />
-            </Button>
-          </div>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {recentSavedAds?.map((ad) => (
-              <Card key={ad.id} className="hover:shadow-md transition-shadow">
-                <CardHeader>
-                  <CardTitle className="text-lg">{ad.headline || "Untitled Ad"}</CardTitle>
-                  <CardDescription>
-                    Saved {formatDistanceToNow(new Date(ad.created_at), { addSuffix: true })}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => navigate(`/saved-ads`)}
-                    >
-                      <Eye className="h-4 w-4 mr-1" /> View
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-
-        {/* Resources, Help & Share */}
-        <div className="grid gap-4 md:grid-cols-3">
-          <Card className="bg-gradient-to-br from-background to-muted/50">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BookOpen className="h-5 w-5 text-primary" />
-                Resources
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Button variant="link" className="w-full justify-start" onClick={() => navigate("/faq")}>
-                <BookOpen className="h-4 w-4 mr-2" />
-                Getting Started with Ad Wizard
-              </Button>
-              <Button variant="link" className="w-full justify-start" onClick={() => navigate("/faq")}>
-                <HelpCircle className="h-4 w-4 mr-2" />
-                FAQs and Support
-              </Button>
-              <Button variant="link" className="w-full justify-start" onClick={() => navigate("/contact")}>
-                <MessageSquare className="h-4 w-4 mr-2" />
-                Contact Support
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-background to-muted/50">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Star className="h-5 w-5 text-primary" />
-                Help Us Improve
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Button variant="link" className="w-full justify-start" onClick={() => navigate("/contact")}>
-                <MessageSquare className="h-4 w-4 mr-2" />
-                Share Your Feedback
-              </Button>
-              <Button asChild variant="link" className="w-full justify-start">
-                <a href="https://trustpilot.com" target="_blank" rel="noopener noreferrer">
-                  <Star className="h-4 w-4 mr-2" />
-                  Rate Us on Trustpilot
-                </a>
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-background to-muted/50">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5 text-primary" />
-                Share & Earn
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Button variant="link" className="w-full justify-start" onClick={() => navigate("/referral")}>
-                <UsersRound className="h-4 w-4 mr-2" />
-                Refer a Friend
-              </Button>
-              <Button variant="link" className="w-full justify-start" onClick={() => navigate("/affiliate")}>
-                <DollarSign className="h-4 w-4 mr-2" />
-                Affiliate Program
-              </Button>
-              <Button variant="link" className="w-full justify-start" onClick={() => navigate("/share")}>
-                <Share2 className="h-4 w-4 mr-2" />
-                Share on Social Media
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-
-      {/* Add CreateProjectDialog component */}
-      <CreateProjectDialog
-        open={isCreateProjectOpen}
-        onOpenChange={setIsCreateProjectOpen}
-        onSuccess={handleProjectSuccess}
-        onStartAdWizard={handleStartAdWizard}
-      />
-    </>
-  );
-};
-
-export default Dashboard;
