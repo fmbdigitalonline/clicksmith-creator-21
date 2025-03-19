@@ -3,11 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { Activity } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useTranslation } from "react-i18next";
 
 const CreditsCard = () => {
-  const { t } = useTranslation('dashboard');
-  
   const { data: credits, isLoading } = useQuery({
     queryKey: ["credits"],
     queryFn: async () => {
@@ -58,7 +55,7 @@ const CreditsCard = () => {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">{t('credits_card.title')}</CardTitle>
+        <CardTitle className="text-sm font-medium">Credits Remaining</CardTitle>
         <Activity className="h-4 w-4 text-muted-foreground" />
       </CardHeader>
       <CardContent>
@@ -66,7 +63,7 @@ const CreditsCard = () => {
           {isLoading ? "..." : credits === -1 ? "∞" : credits}
         </div>
         <div className="text-xs text-muted-foreground mt-1">
-          {credits === -1 ? t('credits_card.unlimited') : t('credits_card.available')}
+          {credits === -1 ? "Unlimited credits available" : "Available for new campaigns"}
         </div>
       </CardContent>
     </Card>
