@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -34,7 +33,6 @@ import {
   validatePlatformConnectionMetadata 
 } from "@/types/platformConnection";
 
-// URL redirecting to Facebook OAuth with environment variables and expanded permissions
 const generateFacebookAuthURL = () => {
   const facebookAppId = import.meta.env.VITE_FACEBOOK_APP_ID;
   
@@ -43,22 +41,18 @@ const generateFacebookAuthURL = () => {
     return "";
   }
   
-  // Get the current origin, handling both preview and production URLs
   const currentOrigin = window.location.origin;
   const redirectUri = `${currentOrigin}/integrations?connection=facebook`;
   const encodedRedirectUri = encodeURIComponent(redirectUri);
   
-  // Include enhanced permissions for Ads Manager access with image capabilities
   const scopes = encodeURIComponent("ads_management,ads_read,business_management,pages_read_engagement,pages_show_list,ads_images:read,ads_images:write");
   
-  // Generate a secure state parameter with timestamp and random value for CSRF protection
   const stateValue = JSON.stringify({
     timestamp: Date.now(),
     nonce: Math.random().toString(36).substring(2, 15),
     origin: currentOrigin
   });
   
-  // Store state in sessionStorage for verification when returning from OAuth
   sessionStorage.setItem('facebookOAuthState', stateValue);
   
   const encodedState = encodeURIComponent(stateValue);
@@ -86,10 +80,10 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
   const [selectedPageId, setSelectedPageId] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const { toast } = useToast();
   const session = useSession();
 
-  // Enhanced connection validation
   const fetchConnectionStatus = async () => {
     if (!session) {
       setIsLoading(false);
@@ -109,7 +103,6 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
         return false;
       }
       
-      // Check if token is expired
       if (data && data.token_expires_at) {
         const expiryDate = new Date(data.token_expires_at);
         if (expiryDate < new Date()) {
@@ -125,7 +118,6 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
       
       console.log("Facebook connection data:", data);
       if (data) {
-        // Safely process metadata
         let processedData = { ...data };
         
         if (data.metadata) {
@@ -134,7 +126,6 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
         
         setConnection(processedData as PlatformConnection);
         
-        // Set the selected account ID if available in metadata
         if (processedData.metadata) {
           const metadata = processedData.metadata as PlatformConnectionMetadata;
           if (metadata.selected_account_id) {
@@ -143,11 +134,9 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
             setSelectedAccountId(data.account_id);
           }
           
-          // Set the selected page ID if available in metadata
           if (metadata.selected_page_id) {
             setSelectedPageId(metadata.selected_page_id);
           } else if (metadata.pages && metadata.pages.length > 0) {
-            // Default to the first page if available
             setSelectedPageId(metadata.pages[0].id);
           }
         }
@@ -161,7 +150,6 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
     }
   };
 
-  // Check connection status
   useEffect(() => {
     async function checkConnectionStatus() {
       if (!session) {
@@ -181,7 +169,6 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
 
     checkConnectionStatus();
     
-    // Add session state change handler
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
       console.log("Auth state changed in Facebook connection:", event);
       if (event === 'SIGNED_IN') {
@@ -197,7 +184,6 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
     };
   }, [session, toast]);
 
-  // Handle OAuth callback in the URL - improved with state validation
   useEffect(() => {
     const handleOAuthCallback = async () => {
       const params = new URLSearchParams(window.location.search);
@@ -215,18 +201,15 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
         return;
       }
       
-      // Validate state parameter if present (CSRF protection)
       if (state) {
         try {
           const storedState = sessionStorage.getItem('facebookOAuthState');
           if (!storedState) {
             console.warn("No stored OAuth state found for validation");
           } else {
-            // Parse and validate state
             const parsedState = JSON.parse(decodeURIComponent(state));
             const parsedStoredState = JSON.parse(storedState);
             
-            // Check if state is valid (matches stored state)
             if (parsedState.nonce !== parsedStoredState.nonce) {
               setErrorMessage("Invalid OAuth state - possible CSRF attack");
               toast({
@@ -237,7 +220,6 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
               return;
             }
             
-            // Check if state is expired (older than 1 hour)
             const stateTime = new Date(parsedState.timestamp);
             const currentTime = new Date();
             const hourInMs = 60 * 60 * 1000;
@@ -252,7 +234,6 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
               return;
             }
             
-            // Clear the stored state after validation
             sessionStorage.removeItem('facebookOAuthState');
           }
         } catch (e) {
@@ -264,7 +245,6 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
     handleOAuthCallback();
   }, [toast]);
 
-  // Handle connection click with improved state management
   const handleConnect = () => {
     setErrorMessage(null);
     setIsProcessing(true);
@@ -282,14 +262,12 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
         return;
       }
       
-      // Enhanced logging for debugging
       console.log("Facebook connection details:", {
         appId: import.meta.env.VITE_FACEBOOK_APP_ID ? "configured" : "missing",
         redirectUri: import.meta.env.VITE_FACEBOOK_REDIRECT_URI,
         authUrl: authUrl
       });
       
-      // Navigate user to Facebook auth flow
       window.location.href = authUrl;
     } catch (error) {
       console.error("Error initiating Facebook connection:", error);
@@ -298,7 +276,6 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
     }
   };
 
-  // Handle disconnection
   const handleDisconnect = async () => {
     if (!session) return;
     
@@ -338,13 +315,11 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
     }
   };
 
-  // Refresh ad accounts and pages
   const handleRefreshAccounts = async () => {
     if (!session || !connection) return;
     
     setIsRefreshing(true);
     try {
-      // Call our OAuth endpoint with a special refresh parameter
       const response = await fetch('/api/facebook-oauth', {
         method: 'POST',
         headers: {
@@ -359,7 +334,6 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
         throw new Error(errorData.error || 'Failed to refresh accounts');
       }
       
-      // Refresh the connection data
       await fetchConnectionStatus();
       
       toast({
@@ -378,12 +352,10 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
     }
   };
 
-  // Handle account selection
   const handleAccountSelection = async (accountId: string) => {
     if (!session || !connection) return;
     
     try {
-      // Find the account details
       const metadata = connection.metadata as PlatformConnectionMetadata;
       const selectedAccount = metadata?.ad_accounts?.find(account => account.id === accountId);
       
@@ -391,7 +363,6 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
         throw new Error("Selected account not found");
       }
       
-      // Update the platform_connection in the database
       const { error } = await supabase
         .from('platform_connections')
         .update({
@@ -406,7 +377,6 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
       
       if (error) throw error;
       
-      // Update local state
       setSelectedAccountId(accountId);
       setConnection({
         ...connection,
@@ -435,13 +405,11 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
       });
     }
   };
-  
-  // Handle page selection
+
   const handlePageSelection = async (pageId: string) => {
     if (!session || !connection || !connection.metadata) return;
     
     try {
-      // Find the page details
       const metadata = connection.metadata as PlatformConnectionMetadata;
       const selectedPage = metadata?.pages?.find(page => page.id === pageId);
       
@@ -449,7 +417,6 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
         throw new Error("Selected page not found");
       }
       
-      // Update the platform_connection in the database
       const { error } = await supabase
         .from('platform_connections')
         .update({
@@ -462,7 +429,6 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
       
       if (error) throw error;
       
-      // Update local state
       setSelectedPageId(pageId);
       setConnection({
         ...connection,
@@ -490,18 +456,15 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
     }
   };
 
-  // Create campaign
   const handleCreateCampaign = async () => {
     toast({
       title: "Campaign Creation",
       description: "Campaign creation feature is under development",
     });
     
-    // This will be expanded in future phases
     setShowDetails(!showDetails);
   };
 
-  // Format account status
   const formatAccountStatus = (status: number) => {
     switch (status) {
       case 1: return { label: "Active", color: "bg-green-100 text-green-800" };
@@ -512,6 +475,23 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
       default: return { label: "Unknown", color: "bg-gray-100 text-gray-800" };
     }
   };
+
+  useEffect(() => {
+    if (session) {
+      const checkAdminStatus = async () => {
+        try {
+          const { data, error } = await supabase.rpc('is_admin');
+          if (!error && data) {
+            setIsAdmin(data);
+          }
+        } catch (error) {
+          console.error("Error checking admin status:", error);
+        }
+      };
+      
+      checkAdminStatus();
+    }
+  }, [session]);
 
   if (isLoading) {
     return (
@@ -630,7 +610,6 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
               </div>
             )}
             
-            {/* Pages Selector */}
             {connection.metadata && connection.metadata.pages && connection.metadata.pages.length > 0 ? (
               <div className="pt-2">
                 <label className="text-sm font-medium mb-1 block">
@@ -675,29 +654,29 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
               </Alert>
             )}
             
-            {/* Permission Warning */}
-            <Alert className="bg-yellow-50 border-yellow-200 mt-4">
-              <AlertCircle className="h-4 w-4 text-yellow-600" />
-              <AlertTitle className="text-yellow-800">Limited Permissions</AlertTitle>
-              <AlertDescription className="text-yellow-700">
-                <p className="mb-2">
-                  Your Facebook App has limited permissions until it passes Facebook App Review. 
-                  Some features like image uploads may be restricted.
-                </p>
-                <div className="flex items-center gap-1 mt-1">
-                  <a 
-                    href="https://developers.facebook.com/docs/app-review"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center text-xs text-blue-600 hover:underline"
-                  >
-                    <BookOpen className="h-3 w-3 mr-1" /> Learn about Facebook App Review
-                  </a>
-                </div>
-              </AlertDescription>
-            </Alert>
+            {isAdmin && (
+              <Alert className="bg-yellow-50 border-yellow-200 mt-4">
+                <AlertCircle className="h-4 w-4 text-yellow-600" />
+                <AlertTitle className="text-yellow-800">Limited Permissions</AlertTitle>
+                <AlertDescription className="text-yellow-700">
+                  <p className="mb-2">
+                    Your Facebook App has limited permissions until it passes Facebook App Review. 
+                    Some features like image uploads may be restricted.
+                  </p>
+                  <div className="flex items-center gap-1 mt-1">
+                    <a 
+                      href="https://developers.facebook.com/docs/app-review"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center text-xs text-blue-600 hover:underline"
+                    >
+                      <BookOpen className="h-3 w-3 mr-1" /> Learn about Facebook App Review
+                    </a>
+                  </div>
+                </AlertDescription>
+              </Alert>
+            )}
             
-            {/* Expanded details */}
             <Collapsible open={showDetails} onOpenChange={setShowDetails} className="mt-4">
               <CollapsibleTrigger asChild>
                 <Button variant="outline" className="flex items-center justify-between w-full mt-2">
@@ -733,13 +712,17 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
               <AlertTitle>Important Facebook Setup</AlertTitle>
               <AlertDescription className="space-y-2">
                 <p>Make sure your Facebook App settings include <strong>{window.location.origin}/integrations?connection=facebook</strong> as a valid OAuth redirect URI.</p>
-                <div className="flex items-center text-xs text-muted-foreground mt-2">
-                  <p>Current environment configuration:</p>
-                </div>
-                <div className="text-xs bg-muted p-2 rounded overflow-auto">
-                  <p>App ID: {import.meta.env.VITE_FACEBOOK_APP_ID ? import.meta.env.VITE_FACEBOOK_APP_ID : "Not configured"}</p>
-                  <p>Redirect URI: {import.meta.env.VITE_FACEBOOK_REDIRECT_URI || "Not configured"}</p>
-                </div>
+                {isAdmin && (
+                  <>
+                    <div className="flex items-center text-xs text-muted-foreground mt-2">
+                      <p>Current environment configuration:</p>
+                    </div>
+                    <div className="text-xs bg-muted p-2 rounded overflow-auto">
+                      <p>App ID: {import.meta.env.VITE_FACEBOOK_APP_ID ? import.meta.env.VITE_FACEBOOK_APP_ID : "Not configured"}</p>
+                      <p>Redirect URI: {import.meta.env.VITE_FACEBOOK_REDIRECT_URI || "Not configured"}</p>
+                    </div>
+                  </>
+                )}
                 <div className="flex items-center gap-1 mt-1">
                   <a 
                     href="https://developers.facebook.com/apps/"
