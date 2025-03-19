@@ -40,5 +40,15 @@
     "logout": {
       "button": "Uitloggen"
     }
-  }
+  },
+  "continue_with": "Of doorgaan met",
+  "email_placeholder": "naam@voorbeeld.com",
+  "password_placeholder": "Voer je wachtwoord in",
+  "terms_agreement": "Door je aan te melden, ga je akkoord met onze",
+  "terms": "Servicevoorwaarden",
+  "and": "en",
+  "privacy": "Privacybeleid",
+  "notifications_info": "We sturen je productupdates en aankondigingen. Je kunt je op elk moment uitschrijven.",
+  "credits_included": "Gratis Credits Inbegrepen!",
+  "start_validating": "Begin vandaag nog met het valideren van je ideeën met gratis credits. Geen creditcard vereist."
 }
