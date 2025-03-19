@@ -2,7 +2,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import MediaPreview from "./MediaPreview";
 import AdDetails from "./AdDetails";
-import AdFeedbackControls from "./AdFeedbackControls";
+import { AdFeedbackControls } from "./AdFeedbackControls";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useTranslation } from "react-i18next";
 
