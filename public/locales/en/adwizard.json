@@ -1,90 +1,62 @@
 
 {
-  "title": "Idea Wizard",
-  "description": "Quickly go from idea to ready-to-run ads by testing different audience segments with AI-powered Facebook ad campaigns.",
-  "loading_project": "Loading project data...",
+  "title": "Ad Wizard",
+  "description": "Create beautiful ads in a few simple steps",
+  "loading_project": "Loading project...",
   "image_ads": "Image Ads",
   "video_ads": "Video Ads",
+  "video_ads_tooltip": "Video ads will be available soon",
+  "coming_soon": "coming soon",
   "toggle_video_ads": "Toggle video ads",
-  "video_ads_tooltip": "Video Ads - Coming Soon!",
-  "coming_soon": "Coming Soon!",
-  "step": "Step",
   
   "steps": {
-    "idea": "Business Idea",
-    "audience": "Target Audience",
-    "analysis": "Audience Analysis",
-    "ads": "Ad Gallery"
+    "1": "Business Idea",
+    "2": "Target Audience",
+    "3": "Audience Analysis",
+    "4": "Ad Gallery"
   },
   
-  "idea_step": {
-    "title": "Describe Your Business Idea",
-    "description": "Share your vision and we'll help you validate it through targeted market testing.",
-    "idea_label": "Business Idea",
-    "idea_placeholder": "Describe your business idea, product, or service in detail...",
-    "value_label": "Value Proposition",
-    "value_placeholder": "What makes your offering unique? Why would customers choose you?",
-    "continue": "Continue",
-    "error": "Please fill in all required fields to continue",
-    "error_title": "Description too short",
-    "submission_error": "Failed to process your idea. Please try again.",
-    "analyze": "Analyze My Idea",
-    "review_title": "Review or Edit Your Idea",
-    "review_description": "You can edit your existing idea or continue with it as is.",
-    "tips_title": "Tips for effective validation:",
-    "tip_1": "Describe your unique value proposition",
-    "tip_2": "Highlight the problem you're solving",
-    "tip_3": "Mention your target market",
-    "tip_4": "Include any competitive advantages"
+  "business_idea": {
+    "title": "Business Idea",
+    "description": "Tell us about your business or product",
+    "form_label": "Describe your business, product, or service",
+    "placeholder": "E.g. An online yoga studio offering personalized yoga classes",
+    "examples": "Examples:",
+    "error": "Business idea is required",
+    "button_next": "Next"
   },
   
-  "audience_step": {
-    "title": "Choose Your Target Audience",
-    "description": "Select the audience that best matches your ideal customers.",
-    "previous": "Previous Step",
-    "regenerate": "Generate New Audiences",
-    "regenerating": "Regenerating...",
-    "no_audiences": "No audiences generated yet. Please try again."
+  "audience": {
+    "title": "Choose your target audience",
+    "description": "Select the audience that is most suitable for your business",
+    "loading": "Generating audiences...",
+    "regenerate": "Regenerate audiences",
+    "error_title": "Error generating audiences",
+    "error_description": "There was an error generating audiences. Please try again.",
+    "empty_title": "No audiences found",
+    "empty_description": "No audiences were found. Please try again.",
+    "button_back": "Back",
+    "button_next": "Next"
   },
   
-  "analysis_step": {
-    "title": "Audience Analysis",
-    "description": "Let's analyze your audience further to find the most effective hooks.",
-    "continue": "Continue to Ad Generation",
-    "previous": "Previous Step",
-    "regenerate": "Regenerate Analysis",
-    "regenerated_title": "New Analysis Generated!",
-    "regenerated_description": "New audience analysis has been successfully generated.",
-    "generation_failed": "Generation Failed",
-    "try_again": "Failed to generate audience analysis. Please try again.",
-    "processing": "Processing..."
-  },
-  
-  "gallery_step": {
-    "title": "Your Ad Variants",
-    "description": "Review your generated ad variants, provide feedback, and save or download them for use.",
-    "previous": "Previous Step",
+  "ad_gallery": {
+    "title": "Ad Gallery",
+    "no_ad_variants": "No ad variants available. Please try regenerating the ads.",
+    "back": "Back",
     "start_over": "Start Over",
-    "create_project": "Create Project",
-    "save_ad": "Save Ad",
-    "download": "Download",
-    "provide_feedback": "Provide Feedback",
-    "like": "Like",
-    "dislike": "Dislike",
-    "feedback_placeholder": "Share your thoughts about the generated ads..."
+    "regenerate": "Regenerate Ads",
+    "generating": "Generating ads...",
+    "facebook_processing_required": "Image Processing Required for Facebook Ads",
+    "facebook_processing_description": "To use these ads on Facebook, they need to be processed. This makes them compatible with Facebook's ad system.",
+    "process_facebook_images": "Process Facebook Images",
+    "processing": "Processing...",
+    "about_facebook_campaigns": "About Facebook Campaigns"
   },
   
-  "loading": {
-    "title": "Crafting Your Perfect Ad ✨",
-    "analyzing_audience": "Analyzing your target audience 🎯",
-    "crafting_hooks": "Crafting engaging hooks 🎣",
-    "designing_elements": "Designing visual elements 🎨",
-    "optimizing_copy": "Optimizing ad copy ✍️",
-    "generating_variations": "Generating creative variations 🔄",
-    "fine_tuning": "Fine-tuning messaging 💭",
-    "enhancing_engagement": "Enhancing engagement potential 📈",
-    "perfecting_magic": "Perfecting your ad magic ⚡",
-    "almost_ready": "Almost ready to amaze... 🌟",
-    "might_take_time": "This might take a minute or two..."
+  "platform_change": {
+    "title": "Change Platform?",
+    "description": "Switching platforms will replace your current ads with new ones for the selected platform.",
+    "confirm": "Confirm",
+    "cancel": "Cancel"
   }
 }

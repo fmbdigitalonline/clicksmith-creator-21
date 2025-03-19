@@ -179,7 +179,13 @@ serve(async (req) => {
             platforms
           );
           
-          responseData = sanitizeJson({ variants });
+          // Add language property to each variant for frontend usage
+          const variantsWithLanguage = variants.map(variant => ({
+            ...variant,
+            language: language // Add language to support translation in the frontend
+          }));
+          
+          responseData = sanitizeJson({ variants: variantsWithLanguage });
           console.log('Generated variants:', responseData);
           
         } catch (error) {

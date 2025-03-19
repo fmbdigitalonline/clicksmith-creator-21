@@ -1,3 +1,4 @@
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -8,6 +9,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useTranslation } from "react-i18next";
 
 interface PlatformChangeDialogProps {
   open: boolean;
@@ -22,18 +24,20 @@ const PlatformChangeDialog = ({
   onConfirm,
   onCancel,
 }: PlatformChangeDialogProps) => {
+  const { t } = useTranslation("adwizard");
+  
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Switch Platform?</AlertDialogTitle>
+          <AlertDialogTitle>{t('platform_change.title')}</AlertDialogTitle>
           <AlertDialogDescription>
-            Switching to a different platform will remove the current ads. Make sure to download or save any ads you want to keep before switching.
+            {t('platform_change.description')}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel onClick={onCancel}>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={onConfirm}>Continue</AlertDialogAction>
+          <AlertDialogCancel onClick={onCancel}>{t('platform_change.cancel')}</AlertDialogCancel>
+          <AlertDialogAction onClick={onConfirm}>{t('platform_change.confirm')}</AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

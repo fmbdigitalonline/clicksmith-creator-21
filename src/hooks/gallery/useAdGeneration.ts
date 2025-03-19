@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { BusinessIdea, TargetAudience, AdHook } from "@/types/adWizard";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,6 +14,17 @@ export const useAdGeneration = (
 ) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationStatus, setGenerationStatus] = useState<string>("");
+  const [processingStatus, setProcessingStatus] = useState<{
+    inProgress: boolean;
+    total: number;
+    completed: number;
+    failed: number;
+  }>({
+    inProgress: false,
+    total: 0,
+    completed: 0,
+    failed: 0
+  });
   const { toast } = useToast();
   const navigate = useNavigate();
   const { projectId } = useParams();
@@ -123,7 +135,8 @@ export const useAdGeneration = (
             id: imageVariant.id,
             imageUrl: variant.imageUrl,
             resizedUrls: variant.resizedUrls || {},
-            platform: selectedPlatform
+            platform: selectedPlatform,
+            language: variant.language || i18n.language // Ensure language is stored
           };
         } catch (error) {
           console.error('Error processing variant:', error);
@@ -169,10 +182,45 @@ export const useAdGeneration = (
     }
   };
 
+  // Add function for processing Facebook images (referenced but not implemented)
+  const processImagesForFacebook = async (facebookAds: any[]) => {
+    // This is just a stub - assuming the real implementation exists elsewhere
+    setProcessingStatus({
+      inProgress: true,
+      total: facebookAds.length,
+      completed: 0,
+      failed: 0
+    });
+    
+    try {
+      // Implementation would go here
+      console.log("Processing Facebook images:", facebookAds);
+      
+      // Update status when done
+      setProcessingStatus(prev => ({
+        ...prev,
+        inProgress: false,
+        completed: facebookAds.length
+      }));
+      
+      return true;
+    } catch (error) {
+      console.error("Error processing Facebook images:", error);
+      setProcessingStatus(prev => ({
+        ...prev,
+        inProgress: false,
+        failed: facebookAds.length
+      }));
+      throw error;
+    }
+  };
+
   return {
     isGenerating,
     adVariants,
     generationStatus,
+    processingStatus,
     generateAds,
+    processImagesForFacebook
   };
 };

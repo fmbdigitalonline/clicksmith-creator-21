@@ -1,90 +1,62 @@
 
 {
-  "title": "Ideeënwizard",
-  "description": "Ga snel van idee naar gebruiksklare advertenties door verschillende doelgroepsegmenten te testen met door AI aangedreven Facebook-advertentiecampagnes.",
-  "loading_project": "Project data laden...",
+  "title": "Advertentie Wizard",
+  "description": "Maak prachtige advertenties in een paar simpele stappen",
+  "loading_project": "Project laden...",
   "image_ads": "Afbeeldingsadvertenties",
   "video_ads": "Videoadvertenties",
-  "toggle_video_ads": "Schakel videoadvertenties",
-  "video_ads_tooltip": "Videoadvertenties - Binnenkort Beschikbaar!",
-  "coming_soon": "Binnenkort Beschikbaar!",
-  "step": "Stap",
+  "video_ads_tooltip": "Videoadvertenties komen binnenkort beschikbaar",
+  "coming_soon": "binnenkort beschikbaar",
+  "toggle_video_ads": "Schakel videoadvertenties in",
   
   "steps": {
-    "idea": "Bedrijfsidee",
-    "audience": "Doelgroep",
-    "analysis": "Analyse",
-    "ads": "Advertenties"
+    "1": "Bedrijfsidee",
+    "2": "Doelgroep",
+    "3": "Doelgroepanalyse",
+    "4": "Advertentiegalerij"
   },
   
-  "idea_step": {
-    "title": "Beschrijf Je Bedrijfsidee",
-    "description": "Deel je visie en wij helpen je om het te valideren via gerichte markttests.",
-    "idea_label": "Bedrijfsidee",
-    "idea_placeholder": "Beschrijf je bedrijfsidee, product of dienst in detail...",
-    "value_label": "Waardepropositie",
-    "value_placeholder": "Wat maakt jouw aanbod uniek? Waarom zouden klanten voor jou kiezen?",
-    "continue": "Doorgaan",
-    "error": "Vul alle verplichte velden in om door te gaan",
-    "error_title": "Beschrijving te kort",
-    "submission_error": "Kon je idee niet verwerken. Probeer het opnieuw.",
-    "analyze": "Mijn Idee Analyseren",
-    "review_title": "Bekijk of Bewerk Je Idee",
-    "review_description": "Je kunt je bestaande idee bewerken of ermee doorgaan zoals het is.",
-    "tips_title": "Tips voor effectieve validatie:",
-    "tip_1": "Beschrijf je unieke waardepropositie",
-    "tip_2": "Benadruk het probleem dat je oplost",
-    "tip_3": "Noem je doelmarkt",
-    "tip_4": "Beschrijf eventuele concurrentievoordelen"
+  "business_idea": {
+    "title": "Bedrijfsidee",
+    "description": "Vertel ons over je bedrijf of product",
+    "form_label": "Beschrijf je bedrijf, product of dienst",
+    "placeholder": "Bijv. Een online yogastudio die gepersonaliseerde yogalessen aanbiedt",
+    "examples": "Voorbeelden:",
+    "error": "Bedrijfsidee is verplicht",
+    "button_next": "Volgende"
   },
   
-  "audience_step": {
-    "title": "Kies Je Doelgroep",
-    "description": "Selecteer de doelgroep die het beste past bij je ideale klanten.",
-    "previous": "Vorige Stap",
-    "regenerate": "Genereer Nieuwe Doelgroepen",
-    "regenerating": "Opnieuw genereren...",
-    "no_audiences": "Nog geen doelgroepen gegenereerd. Probeer het opnieuw."
+  "audience": {
+    "title": "Kies je doelgroep",
+    "description": "Selecteer de doelgroep die het meest geschikt is voor jouw bedrijf",
+    "loading": "Doelgroepen genereren...",
+    "regenerate": "Regenereer doelgroepen",
+    "error_title": "Fout bij het genereren van doelgroepen",
+    "error_description": "Er is een fout opgetreden bij het genereren van doelgroepen. Probeer het opnieuw.",
+    "empty_title": "Geen doelgroepen gevonden",
+    "empty_description": "Er zijn geen doelgroepen gevonden. Probeer het opnieuw.",
+    "button_back": "Terug",
+    "button_next": "Volgende"
   },
   
-  "analysis_step": {
-    "title": "Doelgroepanalyse",
-    "description": "Laten we je doelgroep verder analyseren om de meest effectieve haakjes te vinden.",
-    "continue": "Doorgaan met Advertentiegeneratie",
-    "previous": "Vorige Stap",
-    "regenerate": "Analyse Opnieuw Genereren",
-    "regenerated_title": "Nieuwe Analyse Gegenereerd!",
-    "regenerated_description": "Nieuwe doelgroepanalyse is succesvol gegenereerd.",
-    "generation_failed": "Genereren Mislukt",
-    "try_again": "Genereren van doelgroepanalyse mislukt. Probeer het opnieuw.",
-    "processing": "Verwerken..."
+  "ad_gallery": {
+    "title": "Advertentiegalerij",
+    "no_ad_variants": "Geen advertentievarianten beschikbaar. Probeer de advertenties opnieuw te genereren.",
+    "back": "Terug",
+    "start_over": "Opnieuw beginnen",
+    "regenerate": "Regenereer advertenties",
+    "generating": "Advertenties genereren...",
+    "facebook_processing_required": "Beeldverwerking vereist voor Facebook-advertenties",
+    "facebook_processing_description": "Om deze advertenties op Facebook te gebruiken, moeten ze worden verwerkt. Dit maakt ze compatibel met Facebook's advertentiesysteem.",
+    "process_facebook_images": "Verwerk Facebook-afbeeldingen",
+    "processing": "Verwerken...",
+    "about_facebook_campaigns": "Over Facebook-campagnes"
   },
   
-  "gallery_step": {
-    "title": "Je Advertentievarianten",
-    "description": "Bekijk je gegenereerde advertentievarianten, geef feedback en sla ze op of download ze voor gebruik.",
-    "previous": "Vorige Stap",
-    "start_over": "Opnieuw Beginnen",
-    "create_project": "Project Aanmaken",
-    "save_ad": "Advertentie Opslaan",
-    "download": "Downloaden",
-    "provide_feedback": "Geef Feedback",
-    "like": "Vind ik leuk",
-    "dislike": "Vind ik niet leuk",
-    "feedback_placeholder": "Deel je gedachten over de gegenereerde advertenties..."
-  },
-  
-  "loading": {
-    "title": "Bezig met het maken van je perfecte advertentie ✨",
-    "analyzing_audience": "Doelgroep analyseren 🎯",
-    "crafting_hooks": "Aantrekkelijke haakjes maken 🎣",
-    "designing_elements": "Visuele elementen ontwerpen 🎨",
-    "optimizing_copy": "Advertentietekst optimaliseren ✍️",
-    "generating_variations": "Creatieve variaties genereren 🔄",
-    "fine_tuning": "Boodschap fijnafstemmen 💭",
-    "enhancing_engagement": "Verbeteringspotentieel verhogen 📈",
-    "perfecting_magic": "Je advertentie-magie perfectioneren ⚡",
-    "almost_ready": "Bijna klaar om te verrassen... 🌟",
-    "might_take_time": "Dit kan een minuut of twee duren..."
+  "platform_change": {
+    "title": "Wijzig platform?",
+    "description": "Als je van platform wisselt, worden je huidige advertenties vervangen door nieuwe voor het geselecteerde platform.",
+    "confirm": "Bevestigen",
+    "cancel": "Annuleren"
   }
 }
