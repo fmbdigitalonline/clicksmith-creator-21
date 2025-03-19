@@ -8,17 +8,28 @@ import { supabase } from "@/integrations/supabase/client";
 import { Textarea } from "@/components/ui/textarea";
 
 interface AdFeedbackControlsProps {
-  adId: string;
+  adId?: string;
   projectId?: string;
   onFeedbackSubmit?: () => void;
+  variant?: any;
+  onCreateProject?: () => void;
 }
 
-export const AdFeedbackControls = ({ adId, projectId, onFeedbackSubmit }: AdFeedbackControlsProps) => {
+export const AdFeedbackControls = ({ 
+  adId, 
+  projectId, 
+  onFeedbackSubmit,
+  variant,
+  onCreateProject
+}: AdFeedbackControlsProps) => {
   const [rating, setRating] = useState<number | null>(null);
   const [feedback, setFeedback] = useState<string>("");
   const [isSaving, setIsSaving] = useState(false);
   const [showFeedbackInput, setShowFeedbackInput] = useState(false);
   const { toast } = useToast();
+
+  // Get the adId from the variant if it's not directly provided
+  const effectiveAdId = adId || (variant?.id || '');
 
   const saveFeedbackToDatabase = async (rating: number, feedbackText: string | null) => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -29,7 +40,7 @@ export const AdFeedbackControls = ({ adId, projectId, onFeedbackSubmit }: AdFeed
     const feedbackData = {
       user_id: user.id,
       project_id: projectId,
-      ad_id: adId,
+      ad_id: effectiveAdId,
       rating: rating,
       feedback: feedbackText
     };
@@ -38,7 +49,7 @@ export const AdFeedbackControls = ({ adId, projectId, onFeedbackSubmit }: AdFeed
       .from('ad_feedback')
       .update(feedbackData)
       .eq('user_id', user.id)
-      .eq('ad_id', adId);
+      .eq('ad_id', effectiveAdId);
 
     if (updateError) {
       const { error: insertError } = await supabase
@@ -73,6 +84,12 @@ export const AdFeedbackControls = ({ adId, projectId, onFeedbackSubmit }: AdFeed
       await saveFeedbackToDatabase(newRating, null);
       setRating(newRating);
       onFeedbackSubmit?.();
+      // If specified from AdPreviewCard, we use onCreateProject
+      if (onFeedbackSubmit) {
+        onFeedbackSubmit();
+      } else if (onCreateProject) {
+        onCreateProject();
+      }
 
       toast({
         title: "Feedback saved",
@@ -98,7 +115,13 @@ export const AdFeedbackControls = ({ adId, projectId, onFeedbackSubmit }: AdFeed
       await saveFeedbackToDatabase(rating, feedback);
       setShowFeedbackInput(false);
       setFeedback("");
-      onFeedbackSubmit?.();
+      
+      // Call the appropriate callback
+      if (onFeedbackSubmit) {
+        onFeedbackSubmit();
+      } else if (onCreateProject) {
+        onCreateProject();
+      }
 
       toast({
         title: "Feedback saved",
