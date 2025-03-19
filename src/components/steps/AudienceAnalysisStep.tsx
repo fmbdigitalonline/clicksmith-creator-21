@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,6 +11,7 @@ import { BusinessIdea, TargetAudience, AudienceAnalysis } from "@/types/adWizard
 import { ArrowLeft, ArrowRight, Loader2, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
+import { useTranslation } from "react-i18next";
 
 interface AudienceAnalysisStepProps {
   businessIdea: BusinessIdea;
