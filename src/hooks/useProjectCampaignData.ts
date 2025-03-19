@@ -10,6 +10,7 @@ import {
   createDefaultAudienceAnalysis,
   createDefaultFormatPreferences
 } from "@/utils/dataValidationUtils";
+import { Json } from "@/integrations/supabase/types";
 
 interface ProjectData {
   businessIdea?: BusinessIdea;
@@ -32,19 +33,19 @@ interface ProjectDataResponse {
   description?: string;
   status?: string;
   current_step?: number;
-  business_idea?: any;
-  target_audience?: any;
-  audience_analysis?: any;
-  marketing_campaign?: any;
-  selected_hooks?: any[];
-  generated_ads?: any[];
+  business_idea?: Json;
+  target_audience?: Json;
+  audience_analysis?: Json;
+  marketing_campaign?: Json;
+  selected_hooks?: Json;
+  generated_ads?: Json;
   tags?: string[];
   ad_format?: string;
-  ad_dimensions?: { width: number; height: number };
-  format_preferences?: string[];
+  ad_dimensions?: Json; // Changed to match Json type from Supabase
+  format_preferences?: Json; // Changed to Json type to match Supabase
   video_ads_enabled?: boolean;
-  video_ad_settings?: { format: string; duration: number };
-  video_ad_preferences?: { format: string; duration: number };
+  video_ad_settings?: Json; // Changed to Json type
+  video_ad_preferences?: Json; // Changed to Json type
 }
 
 export function useProjectCampaignData(projectId?: string) {
@@ -80,17 +81,18 @@ export function useProjectCampaignData(projectId?: string) {
 
         if (error) throw error;
 
-        // Use our typed response to access the data
-        const typedProjectData = projectData as ProjectDataResponse;
+        // Explicitly cast the projectData to unknown first, then to our typed response
+        // This avoids TypeScript's type checking on the direct assignment
+        const typedProjectData = projectData as unknown as ProjectDataResponse;
         
         // Apply data fallbacks for missing values
-        const businessIdea = typedProjectData.business_idea as BusinessIdea || createDefaultBusinessIdea();
-        const targetAudience = typedProjectData.target_audience as TargetAudience || createDefaultTargetAudience();
-        const audienceAnalysis = typedProjectData.audience_analysis as AudienceAnalysis || createDefaultAudienceAnalysis();
+        const businessIdea = typedProjectData.business_idea as unknown as BusinessIdea || createDefaultBusinessIdea();
+        const targetAudience = typedProjectData.target_audience as unknown as TargetAudience || createDefaultTargetAudience();
+        const audienceAnalysis = typedProjectData.audience_analysis as unknown as AudienceAnalysis || createDefaultAudienceAnalysis();
         
         // Check if format_preferences exists and ensure it's an array
         const formatPreferences = Array.isArray(typedProjectData.format_preferences) 
-          ? typedProjectData.format_preferences 
+          ? typedProjectData.format_preferences as string[]
           : createDefaultFormatPreferences();
 
         // Validate project data completeness
