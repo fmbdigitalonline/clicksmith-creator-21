@@ -1,0 +1,42 @@
+
+{
+  "title": "Settings",
+  "sections": {
+    "profile": "Profile Settings",
+    "notifications": "Notification Settings",
+    "subscription": "Subscription Settings",
+    "security": "Security Settings",
+    "language": "Language Settings"
+  },
+  "profile": {
+    "full_name": "Full Name",
+    "username": "Username",
+    "email": "Email",
+    "save": "Save Profile"
+  },
+  "notifications": {
+    "email": "Email Notifications",
+    "marketing": "Marketing Emails",
+    "save": "Save Preferences"
+  },
+  "subscription": {
+    "current_plan": "Current Plan",
+    "credits": "Available Credits",
+    "upgrade": "Upgrade Plan",
+    "manage": "Manage Subscription"
+  },
+  "security": {
+    "password": "Change Password",
+    "two_factor": "Two-Factor Authentication",
+    "sessions": "Active Sessions",
+    "logout_all": "Log Out of All Devices"
+  },
+  "language": {
+    "title": "Language",
+    "choose": "Choose your preferred language",
+    "updated": "Language updated",
+    "preference_saved": "Your language preference has been saved.",
+    "error": "Update error",
+    "update_failed": "Failed to update language preference."
+  }
+}

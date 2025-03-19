@@ -5,6 +5,7 @@ import './index.css'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { SessionContextProvider } from '@supabase/auth-helpers-react'
 import { supabase } from "@/integrations/supabase/client"
+import './i18n' // Import i18n configuration
 
 // Create a client
 const queryClient = new QueryClient({

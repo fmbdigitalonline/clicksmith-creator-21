@@ -1,0 +1,23 @@
+
+{
+  "title": "Dashboard",
+  "welcome": "Welcome back",
+  "summary": {
+    "title": "Summary",
+    "projects": "Projects",
+    "campaigns": "Campaigns",
+    "credits": "Credits"
+  },
+  "recent": {
+    "title": "Recent Activity",
+    "projects": "Recent Projects",
+    "campaigns": "Recent Campaigns",
+    "no_data": "No recent activity"
+  },
+  "quick_actions": {
+    "title": "Quick Actions",
+    "new_project": "New Project",
+    "new_campaign": "New Campaign",
+    "explore": "Explore Features"
+  }
+}

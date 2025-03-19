@@ -1,0 +1,36 @@
+
+{
+  "title": "Platform Integrations",
+  "subtitle": "Connect your social media and advertising platforms to automate campaign management",
+  "platforms": {
+    "facebook": "Facebook",
+    "instagram": "Instagram",
+    "twitter": "Twitter"
+  },
+  "connection": {
+    "connected": "Connected",
+    "not_connected": "Not Connected",
+    "connect": "Connect",
+    "disconnect": "Disconnect",
+    "reconnect": "Reconnect"
+  },
+  "campaigns": {
+    "title": "Campaign Management",
+    "no_campaigns": "No active campaigns",
+    "create": "Create Campaign",
+    "view": "View Campaign",
+    "status": "Status",
+    "performance": "Performance",
+    "budget": "Budget",
+    "impressions": "Impressions",
+    "clicks": "Clicks",
+    "cost": "Cost"
+  },
+  "errors": {
+    "configuration": "Platform integration unavailable",
+    "try_again": "Please try again later or contact support"
+  },
+  "admin": {
+    "env_check": "Environment Configuration Check"
+  }
+}
