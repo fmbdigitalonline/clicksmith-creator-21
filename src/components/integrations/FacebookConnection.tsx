@@ -534,7 +534,7 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
             <AlertTitle>Connection Error</AlertTitle>
             <AlertDescription>
               {errorMessage}
-              {errorMessage.includes("Missing") && (
+              {isAdmin && errorMessage.includes("Missing") && (
                 <div className="mt-2">
                   <p className="text-sm">Please check if:</p>
                   <ul className="list-disc list-inside text-sm ml-2 mt-1">

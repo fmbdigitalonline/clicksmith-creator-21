@@ -19,8 +19,27 @@ export default function PlatformIntegrations() {
   const [isConfigLoading, setIsConfigLoading] = useState<boolean>(true);
   const [isConnectionLoading, setIsConnectionLoading] = useState<boolean>(true);
   const [hasConnections, setHasConnections] = useState<boolean>(false);
+  const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const { toast } = useToast();
   const session = useSession();
+
+  useEffect(() => {
+    // Check if the current user is an admin
+    const checkAdminStatus = async () => {
+      if (session) {
+        try {
+          const { data, error } = await supabase.rpc('is_admin');
+          if (!error && data) {
+            setIsAdmin(data);
+          }
+        } catch (error) {
+          console.error("Error checking admin status:", error);
+        }
+      }
+    };
+    
+    checkAdminStatus();
+  }, [session]);
 
   useEffect(() => {
     // Check if Facebook config exists
@@ -28,18 +47,20 @@ export default function PlatformIntegrations() {
       const facebookAppId = import.meta.env.VITE_FACEBOOK_APP_ID;
       const facebookRedirectUri = import.meta.env.VITE_FACEBOOK_REDIRECT_URI;
       
-      // Log environment variable availability for debugging
-      console.log("Facebook environment variables:", {
-        appId: !!facebookAppId,
-        redirectUri: !!facebookRedirectUri
-      });
+      // Only log environment variable availability for debugging if admin
+      if (isAdmin) {
+        console.log("Facebook environment variables:", {
+          appId: !!facebookAppId,
+          redirectUri: !!facebookRedirectUri
+        });
+      }
       
       setIsConfigured(!!facebookAppId && !!facebookRedirectUri);
       setIsConfigLoading(false);
     };
     
     checkConfig();
-  }, []);
+  }, [isAdmin]);
   
   // Check for existing connections
   useEffect(() => {
@@ -92,11 +113,24 @@ export default function PlatformIntegrations() {
     }
   };
 
-  // If URLs aren't properly configured, show a configuration warning
-  if (!isConfigLoading && !isConfigured) {
+  // If URLs aren't properly configured, show a configuration warning to admins only
+  if (!isConfigLoading && !isConfigured && isAdmin) {
     return (
       <div className="container max-w-6xl mx-auto py-10">
         <EnvConfigCheck />
+      </div>
+    );
+  } else if (!isConfigLoading && !isConfigured && !isAdmin) {
+    // For non-admins, show a simpler message
+    return (
+      <div className="container max-w-6xl mx-auto py-10">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Platform integration unavailable</AlertTitle>
+          <AlertDescription>
+            Facebook integration is currently unavailable. Please try again later or contact support.
+          </AlertDescription>
+        </Alert>
       </div>
     );
   }
