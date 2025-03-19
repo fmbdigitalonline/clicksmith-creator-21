@@ -24,19 +24,7 @@
     "value_label": "Waardepropositie",
     "value_placeholder": "Wat maakt jouw aanbod uniek? Waarom zouden klanten voor jou kiezen?",
     "continue": "Doorgaan",
-    "error": "Vul alle verplichte velden in om door te gaan",
-    "analyze_button": "Mijn Idee Analyseren",
-    "processing": "Verwerken...",
-    "review_edit_title": "Bekijk of Bewerk Je Idee",
-    "review_edit_description": "Je kunt je bestaande idee bewerken of ermee doorgaan zoals het is.",
-    "share_vision": "Deel je visie en we helpen je deze te valideren door gerichte marktonderzoek.",
-    "tips_title": "Tips voor effectieve validatie:",
-    "tips": {
-      "value_prop": "Beschrijf je unieke waardepropositie",
-      "problem": "Benadruk het probleem dat je oplost",
-      "market": "Noem je doelmarkt",
-      "advantages": "Vermeld eventuele concurrentievoordelen"
-    }
+    "error": "Vul alle verplichte velden in om door te gaan"
   },
   
   "audience_step": {
@@ -58,19 +46,7 @@
     "regenerated_description": "Nieuwe doelgroepanalyse is succesvol gegenereerd.",
     "generation_failed": "Genereren Mislukt",
     "try_again": "Genereren van doelgroepanalyse mislukt. Probeer het opnieuw.",
-    "processing": "Verwerken...",
-    "expanded_definition": "Uitgebreide Definitie",
-    "expanded_definition_description": "Een nauwkeurigere definitie van je gekozen doelgroep",
-    "market_analysis": "Marktanalyse",
-    "market_analysis_description": "Inzicht in de marktsituatie",
-    "market_desire": "Marktbehoefte",
-    "awareness_level": "Bewustzijnsniveau",
-    "sophistication_level": "Verfijningsniveau",
-    "deep_pain_points": "Diepe Pijnpunten",
-    "deep_pain_points_description": "Belangrijkste problemen waarmee je doelgroep wordt geconfronteerd",
-    "potential_objections": "Mogelijke Bezwaren",
-    "potential_objections_description": "Veelvoorkomende zorgen en aarzelingen",
-    "analyzing_audience": "Je doelgroep analyseren..."
+    "processing": "Verwerken..."
   },
   
   "gallery_step": {
@@ -99,13 +75,5 @@
     "perfecting_magic": "Je advertentie-magie perfectioneren ⚡",
     "almost_ready": "Bijna klaar om te verrassen... 🌟",
     "might_take_time": "Dit kan een minuut of twee duren..."
-  },
-  
-  "wizard_progress": {
-    "step": "Stap",
-    "business_idea": "Bedrijfsidee",
-    "target_audience": "Doelgroep",
-    "audience_analysis": "Doelgroepanalyse",
-    "ad_gallery": "Advertentiegalerij"
   }
 }

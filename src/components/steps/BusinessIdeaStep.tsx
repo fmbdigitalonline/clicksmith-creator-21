@@ -6,7 +6,6 @@ import { BusinessIdea } from "@/types/adWizard";
 import { useToast } from "@/components/ui/use-toast";
 import { Wand2, Lightbulb, ArrowRight, Loader2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import { useTranslation } from "react-i18next";
 
 interface BusinessIdeaStepProps {
   onNext: (idea: BusinessIdea) => void;
@@ -20,7 +19,6 @@ const BusinessIdeaStep = ({
   const [description, setDescription] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
-  const { t } = useTranslation('adwizard');
 
   // Set initial description when component mounts or initialBusinessIdea changes
   useEffect(() => {
@@ -83,11 +81,11 @@ const BusinessIdeaStep = ({
           {isSubmitting ? (
             <>
               <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-              {t('idea_step.processing')}
+              Processing...
             </>
           ) : (
             <>
-              {t('idea_step.analyze_button')}
+              Analyze My Idea
               <ArrowRight className="ml-2 h-5 w-5" />
             </>
           )}
@@ -96,19 +94,19 @@ const BusinessIdeaStep = ({
 
       <div>
         <h2 className="text-xl md:text-2xl font-semibold mb-2">
-          {initialBusinessIdea ? t('idea_step.review_edit_title') : t('idea_step.title')}
+          {initialBusinessIdea ? "Review or Edit Your Idea" : "Describe your Idea, Product, Concept or Service"}
         </h2>
         <p className="text-gray-600">
           {initialBusinessIdea 
-            ? t('idea_step.review_edit_description')
-            : t('idea_step.share_vision')
+            ? "You can edit your existing idea or continue with it as is."
+            : "Share your vision and we'll help you validate it through targeted market testing."
           }
         </p>
       </div>
 
       <div className="space-y-4">
         <Textarea
-          placeholder={t('idea_step.idea_placeholder')}
+          placeholder="e.g., I'm developing a mobile app that helps small business owners automate their social media marketing. It uses AI to generate content and schedule posts based on industry trends..."
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           className="min-h-[150px] text-base"
@@ -122,12 +120,12 @@ const BusinessIdeaStep = ({
             <Lightbulb className="w-6 h-6 text-facebook" />
           </div>
           <div>
-            <h3 className="font-medium mb-2">{t('idea_step.tips_title')}</h3>
+            <h3 className="font-medium mb-2">Tips for effective validation:</h3>
             <ul className="list-disc list-inside text-sm text-gray-600 space-y-1">
-              <li>{t('idea_step.tips.value_prop')}</li>
-              <li>{t('idea_step.tips.problem')}</li>
-              <li>{t('idea_step.tips.market')}</li>
-              <li>{t('idea_step.tips.advantages')}</li>
+              <li>Describe your unique value proposition</li>
+              <li>Highlight the problem you're solving</li>
+              <li>Mention your target market</li>
+              <li>Include any competitive advantages</li>
             </ul>
           </div>
         </div>

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -155,15 +154,15 @@ const AudienceAnalysisStep = ({
         <Card className="p-8">
           <div className="flex flex-col items-center justify-center space-y-4">
             <Loader2 className="w-8 h-8 animate-spin text-facebook" />
-            <p className="text-gray-600">{t("analysis_step.analyzing_audience")}</p>
+            <p className="text-gray-600">Analyzing your target audience...</p>
           </div>
         </Card>
       ) : analysis ? (
         <div className="grid gap-6">
           <Card>
             <CardHeader>
-              <CardTitle>{t("analysis_step.expanded_definition")}</CardTitle>
-              <CardDescription>{t("analysis_step.expanded_definition_description")}</CardDescription>
+              <CardTitle>Expanded Definition</CardTitle>
+              <CardDescription>A more accurate definition of your chosen audience</CardDescription>
             </CardHeader>
             <CardContent>
               <p className="text-gray-700">{analysis.expandedDefinition}</p>
@@ -172,20 +171,20 @@ const AudienceAnalysisStep = ({
 
           <Card>
             <CardHeader>
-              <CardTitle>{t("analysis_step.market_analysis")}</CardTitle>
-              <CardDescription>{t("analysis_step.market_analysis_description")}</CardDescription>
+              <CardTitle>Market Analysis</CardTitle>
+              <CardDescription>Understanding the market situation</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <h4 className="font-medium text-facebook mb-2">{t("analysis_step.market_desire")}</h4>
+                <h4 className="font-medium text-facebook mb-2">Market Desire</h4>
                 <p className="text-gray-700">{analysis.marketDesire}</p>
               </div>
               <div>
-                <h4 className="font-medium text-facebook mb-2">{t("analysis_step.awareness_level")}</h4>
+                <h4 className="font-medium text-facebook mb-2">Awareness Level</h4>
                 <p className="text-gray-700">{analysis.awarenessLevel}</p>
               </div>
               <div>
-                <h4 className="font-medium text-facebook mb-2">{t("analysis_step.sophistication_level")}</h4>
+                <h4 className="font-medium text-facebook mb-2">Sophistication Level</h4>
                 <p className="text-gray-700">{analysis.sophisticationLevel}</p>
               </div>
             </CardContent>
@@ -193,8 +192,8 @@ const AudienceAnalysisStep = ({
 
           <Card>
             <CardHeader>
-              <CardTitle>{t("analysis_step.deep_pain_points")}</CardTitle>
-              <CardDescription>{t("analysis_step.deep_pain_points_description")}</CardDescription>
+              <CardTitle>Deep Pain Points</CardTitle>
+              <CardDescription>Main problems your audience is facing</CardDescription>
             </CardHeader>
             <CardContent>
               <ul className="space-y-2">
@@ -210,8 +209,8 @@ const AudienceAnalysisStep = ({
 
           <Card>
             <CardHeader>
-              <CardTitle>{t("analysis_step.potential_objections")}</CardTitle>
-              <CardDescription>{t("analysis_step.potential_objections_description")}</CardDescription>
+              <CardTitle>Potential Objections</CardTitle>
+              <CardDescription>Common concerns and hesitations</CardDescription>
             </CardHeader>
             <CardContent>
               <ul className="space-y-2">
