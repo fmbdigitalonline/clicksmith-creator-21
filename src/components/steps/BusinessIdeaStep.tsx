@@ -6,6 +6,7 @@ import { BusinessIdea } from "@/types/adWizard";
 import { useToast } from "@/components/ui/use-toast";
 import { Wand2, Lightbulb, ArrowRight, Loader2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { useTranslation } from "react-i18next";
 
 interface BusinessIdeaStepProps {
   onNext: (idea: BusinessIdea) => void;
@@ -19,6 +20,7 @@ const BusinessIdeaStep = ({
   const [description, setDescription] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+  const { t } = useTranslation(['adwizard', 'common']);
 
   // Set initial description when component mounts or initialBusinessIdea changes
   useEffect(() => {
@@ -33,8 +35,8 @@ const BusinessIdeaStep = ({
     
     if (description.length < 10) {
       toast({
-        title: "Description too short",
-        description: "Please provide more details about your idea.",
+        title: t('idea_step.error_title', 'Description too short'),
+        description: t('idea_step.error', 'Please provide more details about your idea.'),
         variant: "destructive",
       });
       return;
@@ -60,8 +62,8 @@ const BusinessIdeaStep = ({
     } catch (error) {
       console.error('Error submitting business idea:', error);
       toast({
-        title: "Error",
-        description: "Failed to process your idea. Please try again.",
+        title: t('common:errors.general', 'Error'),
+        description: t('idea_step.submission_error', 'Failed to process your idea. Please try again.'),
         variant: "destructive",
       });
     } finally {
@@ -81,11 +83,11 @@ const BusinessIdeaStep = ({
           {isSubmitting ? (
             <>
               <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-              Processing...
+              {t('common:loading', 'Processing...')}
             </>
           ) : (
             <>
-              Analyze My Idea
+              {t('idea_step.analyze', 'Analyze My Idea')}
               <ArrowRight className="ml-2 h-5 w-5" />
             </>
           )}
@@ -94,19 +96,20 @@ const BusinessIdeaStep = ({
 
       <div>
         <h2 className="text-xl md:text-2xl font-semibold mb-2">
-          {initialBusinessIdea ? "Review or Edit Your Idea" : "Describe your Idea, Product, Concept or Service"}
+          {initialBusinessIdea 
+            ? t('idea_step.review_title', 'Review or Edit Your Idea') 
+            : t('idea_step.title', 'Describe your Idea, Product, Concept or Service')}
         </h2>
         <p className="text-gray-600">
           {initialBusinessIdea 
-            ? "You can edit your existing idea or continue with it as is."
-            : "Share your vision and we'll help you validate it through targeted market testing."
-          }
+            ? t('idea_step.review_description', 'You can edit your existing idea or continue with it as is.')
+            : t('idea_step.description', 'Share your vision and we\'ll help you validate it through targeted market testing.')}
         </p>
       </div>
 
       <div className="space-y-4">
         <Textarea
-          placeholder="e.g., I'm developing a mobile app that helps small business owners automate their social media marketing. It uses AI to generate content and schedule posts based on industry trends..."
+          placeholder={t('idea_step.idea_placeholder', 'e.g., I\'m developing a mobile app that helps small business owners automate their social media marketing. It uses AI to generate content and schedule posts based on industry trends...')}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           className="min-h-[150px] text-base"
@@ -120,12 +123,12 @@ const BusinessIdeaStep = ({
             <Lightbulb className="w-6 h-6 text-facebook" />
           </div>
           <div>
-            <h3 className="font-medium mb-2">Tips for effective validation:</h3>
+            <h3 className="font-medium mb-2">{t('idea_step.tips_title', 'Tips for effective validation:')}</h3>
             <ul className="list-disc list-inside text-sm text-gray-600 space-y-1">
-              <li>Describe your unique value proposition</li>
-              <li>Highlight the problem you're solving</li>
-              <li>Mention your target market</li>
-              <li>Include any competitive advantages</li>
+              <li>{t('idea_step.tip_1', 'Describe your unique value proposition')}</li>
+              <li>{t('idea_step.tip_2', 'Highlight the problem you\'re solving')}</li>
+              <li>{t('idea_step.tip_3', 'Mention your target market')}</li>
+              <li>{t('idea_step.tip_4', 'Include any competitive advantages')}</li>
             </ul>
           </div>
         </div>

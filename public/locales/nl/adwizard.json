@@ -8,9 +8,10 @@
   "toggle_video_ads": "Schakel videoadvertenties",
   "video_ads_tooltip": "Videoadvertenties - Binnenkort Beschikbaar!",
   "coming_soon": "Binnenkort Beschikbaar!",
+  "step": "Stap",
   
   "steps": {
-    "idea": "Idee",
+    "idea": "Bedrijfsidee",
     "audience": "Doelgroep",
     "analysis": "Analyse",
     "ads": "Advertenties"
@@ -18,13 +19,23 @@
   
   "idea_step": {
     "title": "Beschrijf Je Bedrijfsidee",
-    "description": "Vertel ons over je product of dienst en we helpen je met het maken van gerichte advertenties.",
+    "description": "Deel je visie en wij helpen je om het te valideren via gerichte markttests.",
     "idea_label": "Bedrijfsidee",
     "idea_placeholder": "Beschrijf je bedrijfsidee, product of dienst in detail...",
     "value_label": "Waardepropositie",
     "value_placeholder": "Wat maakt jouw aanbod uniek? Waarom zouden klanten voor jou kiezen?",
     "continue": "Doorgaan",
-    "error": "Vul alle verplichte velden in om door te gaan"
+    "error": "Vul alle verplichte velden in om door te gaan",
+    "error_title": "Beschrijving te kort",
+    "submission_error": "Kon je idee niet verwerken. Probeer het opnieuw.",
+    "analyze": "Mijn Idee Analyseren",
+    "review_title": "Bekijk of Bewerk Je Idee",
+    "review_description": "Je kunt je bestaande idee bewerken of ermee doorgaan zoals het is.",
+    "tips_title": "Tips voor effectieve validatie:",
+    "tip_1": "Beschrijf je unieke waardepropositie",
+    "tip_2": "Benadruk het probleem dat je oplost",
+    "tip_3": "Noem je doelmarkt",
+    "tip_4": "Beschrijf eventuele concurrentievoordelen"
   },
   
   "audience_step": {

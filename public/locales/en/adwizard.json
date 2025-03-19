@@ -8,23 +8,34 @@
   "toggle_video_ads": "Toggle video ads",
   "video_ads_tooltip": "Video Ads - Coming Soon!",
   "coming_soon": "Coming Soon!",
+  "step": "Step",
   
   "steps": {
-    "idea": "Idea",
-    "audience": "Audience",
-    "analysis": "Analysis",
-    "ads": "Ads"
+    "idea": "Business Idea",
+    "audience": "Target Audience",
+    "analysis": "Audience Analysis",
+    "ads": "Ad Gallery"
   },
   
   "idea_step": {
     "title": "Describe Your Business Idea",
-    "description": "Tell us about your product or service and we'll help you create targeted ads.",
+    "description": "Share your vision and we'll help you validate it through targeted market testing.",
     "idea_label": "Business Idea",
     "idea_placeholder": "Describe your business idea, product, or service in detail...",
     "value_label": "Value Proposition",
     "value_placeholder": "What makes your offering unique? Why would customers choose you?",
     "continue": "Continue",
-    "error": "Please fill in all required fields to continue"
+    "error": "Please fill in all required fields to continue",
+    "error_title": "Description too short",
+    "submission_error": "Failed to process your idea. Please try again.",
+    "analyze": "Analyze My Idea",
+    "review_title": "Review or Edit Your Idea",
+    "review_description": "You can edit your existing idea or continue with it as is.",
+    "tips_title": "Tips for effective validation:",
+    "tip_1": "Describe your unique value proposition",
+    "tip_2": "Highlight the problem you're solving",
+    "tip_3": "Mention your target market",
+    "tip_4": "Include any competitive advantages"
   },
   
   "audience_step": {
@@ -40,7 +51,13 @@
     "title": "Audience Analysis",
     "description": "Let's analyze your audience further to find the most effective hooks.",
     "continue": "Continue to Ad Generation",
-    "previous": "Previous Step"
+    "previous": "Previous Step",
+    "regenerate": "Regenerate Analysis",
+    "regenerated_title": "New Analysis Generated!",
+    "regenerated_description": "New audience analysis has been successfully generated.",
+    "generation_failed": "Generation Failed",
+    "try_again": "Failed to generate audience analysis. Please try again.",
+    "processing": "Processing..."
   },
   
   "gallery_step": {

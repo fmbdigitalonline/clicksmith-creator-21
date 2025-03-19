@@ -1,5 +1,7 @@
+
 import { cn } from "@/lib/utils";
 import { Check } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface WizardProgressProps {
   currentStep: number;
@@ -7,18 +9,20 @@ interface WizardProgressProps {
   canNavigateToStep: (step: number) => boolean;
 }
 
-const steps = [
-  { number: 1, title: "Business Idea" },
-  { number: 2, title: "Target Audience" },
-  { number: 3, title: "Audience Analysis" },
-  { number: 4, title: "Ad Gallery" },
-];
-
 const WizardProgress = ({
   currentStep,
   onStepClick,
   canNavigateToStep,
 }: WizardProgressProps) => {
+  const { t } = useTranslation('adwizard');
+
+  const steps = [
+    { number: 1, title: t('steps.idea') },
+    { number: 2, title: t('steps.audience') },
+    { number: 3, title: t('steps.analysis') },
+    { number: 4, title: t('steps.ads') },
+  ];
+
   return (
     <nav aria-label="Progress">
       <ol role="list" className="space-y-4 md:flex md:space-x-8 md:space-y-0">
@@ -49,7 +53,7 @@ const WizardProgress = ({
                         : "text-gray-500"
                     )}
                   >
-                    Step {step.number}
+                    {t('step')} {step.number}
                   </span>
                 )}
               </span>
