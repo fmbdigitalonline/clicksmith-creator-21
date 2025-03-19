@@ -1,13 +1,20 @@
 import { corsHeaders } from "./utils/corsHeaders.ts";
 import { BusinessIdea } from "../types.ts";
 
-export async function generateAudiences(businessIdea: BusinessIdea, regenerationCount = 0, forceRegenerate = false) {
+export async function generateAudiences(businessIdea: BusinessIdea, regenerationCount = 0, forceRegenerate = false, language = 'en') {
   const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
   if (!openAIApiKey) {
     throw new Error('OpenAI API key is not configured');
   }
 
-  console.log('Generating audiences with params:', { businessIdea, regenerationCount, forceRegenerate });
+  console.log('Generating audiences with params:', { businessIdea, regenerationCount, forceRegenerate, language });
+
+  let systemPrompt = 'You are an expert marketing strategist specializing in audience targeting and segmentation. Always respond with valid JSON array containing exactly 3 audience personas.';
+  
+  // Add language instructions to system prompt
+  if (language !== 'en') {
+    systemPrompt += ` Respond in ${language} language only. All text should be in ${language}, not in English.`;
+  }
 
   const prompt = `Generate 3 distinct target audience personas for a business idea: ${businessIdea.description}.
   ${forceRegenerate ? `Make these different from previous generations (variation ${regenerationCount}).` : ''}
@@ -31,7 +38,9 @@ export async function generateAudiences(businessIdea: BusinessIdea, regeneration
     "marketingAngle": "string",
     "messagingApproach": "string",
     "marketingChannels": ["string"]
-  }`;
+  }
+
+  ${language !== 'en' ? `IMPORTANT: All the responses must be in ${language} language only, not in English.` : ''}`;
 
   try {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -45,7 +54,7 @@ export async function generateAudiences(businessIdea: BusinessIdea, regeneration
         messages: [
           {
             role: 'system',
-            content: 'You are an expert marketing strategist specializing in audience targeting and segmentation. Always respond with valid JSON array containing exactly 3 audience personas.'
+            content: systemPrompt
           },
           {
             role: 'user',
@@ -72,19 +81,15 @@ export async function generateAudiences(businessIdea: BusinessIdea, regeneration
     const generatedText = data.choices[0].message.content;
     
     try {
-      // Clean up the response before parsing
       const cleanedText = generatedText.replace(/```json\n?|\n?```/g, '').trim();
       console.log('Cleaned text before parsing:', cleanedText);
       
-      // Try to parse the response as JSON
       const parsedAudiences = JSON.parse(cleanedText);
       
-      // Validate the structure of the parsed data
       if (!Array.isArray(parsedAudiences) || parsedAudiences.length !== 3) {
         throw new Error('Generated content is not an array of 3 audiences');
       }
 
-      // Validate each audience object has required fields
       parsedAudiences.forEach((audience, index) => {
         const requiredFields = [
           'name', 'description', 'demographics', 'painPoints',

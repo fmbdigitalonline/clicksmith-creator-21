@@ -40,7 +40,13 @@
     "title": "Doelgroepanalyse",
     "description": "Laten we je doelgroep verder analyseren om de meest effectieve haakjes te vinden.",
     "continue": "Doorgaan met Advertentiegeneratie",
-    "previous": "Vorige Stap"
+    "previous": "Vorige Stap",
+    "regenerate": "Analyse Opnieuw Genereren",
+    "regenerated_title": "Nieuwe Analyse Gegenereerd!",
+    "regenerated_description": "Nieuwe doelgroepanalyse is succesvol gegenereerd.",
+    "generation_failed": "Genereren Mislukt",
+    "try_again": "Genereren van doelgroepanalyse mislukt. Probeer het opnieuw.",
+    "processing": "Verwerken..."
   },
   
   "gallery_step": {

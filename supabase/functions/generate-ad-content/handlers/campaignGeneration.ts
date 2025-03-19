@@ -1,7 +1,13 @@
-
 import { BusinessIdea, TargetAudience } from "../types.ts";
 
-export async function generateCampaign(businessIdea: any, targetAudience: any) {
+export async function generateCampaign(businessIdea: any, targetAudience: any, language: string = 'en') {
+  let systemPrompt = 'You are an expert marketing copywriter specializing in creating diverse but cohesive ad campaigns. Create distinctly different versions while maintaining the core message and brand voice.';
+  
+  // Add language instructions to system prompt
+  if (language !== 'en') {
+    systemPrompt += ` Respond in ${language} language only. All text must be in ${language}, not in English.`;
+  }
+
   const prompt = `Create a marketing campaign for this business and target audience:
 
 Business:
@@ -45,7 +51,9 @@ Return ONLY a valid JSON object with these fields:
     }
   ],
   "headlines": ["string", "string", "string", "string", "string", "string"]
-}`;
+}
+
+${language !== 'en' ? `IMPORTANT: All text in the returned JSON must be in ${language} language only, not in English.` : ''}`;
 
   try {
     console.log('Sending request to OpenAI...');
@@ -65,7 +73,7 @@ Return ONLY a valid JSON object with these fields:
         messages: [
           {
             role: 'system',
-            content: 'You are an expert marketing copywriter specializing in creating diverse but cohesive ad campaigns. Create distinctly different versions while maintaining the core message and brand voice.'
+            content: systemPrompt
           },
           { role: 'user', content: prompt }
         ],
@@ -90,11 +98,9 @@ Return ONLY a valid JSON object with these fields:
     const content = data.choices[0].message.content;
     console.log('Content before parsing:', content);
 
-    // Clean the content string to ensure it's valid JSON
     const cleanContent = content.replace(/```json\n?|\n?```/g, '').trim();
     const campaign = JSON.parse(cleanContent);
     
-    // Validate the campaign object structure
     if (!campaign.adCopies || !Array.isArray(campaign.adCopies) || !campaign.headlines || !Array.isArray(campaign.headlines)) {
       throw new Error('Invalid campaign structure');
     }

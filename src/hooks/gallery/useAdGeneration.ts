@@ -1,10 +1,10 @@
-
 import { useState, useEffect } from "react";
 import { BusinessIdea, TargetAudience, AdHook } from "@/types/adWizard";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAdPersistence } from "./useAdPersistence";
+import { useTranslation } from "react-i18next";
 
 export const useAdGeneration = (
   businessIdea: BusinessIdea,
@@ -17,8 +17,8 @@ export const useAdGeneration = (
   const navigate = useNavigate();
   const { projectId } = useParams();
   const [adVariants, setAdVariants] = useState<any[]>([]);
+  const { i18n } = useTranslation();
 
-  // Load saved ads when component mounts
   useEffect(() => {
     const loadSavedAds = async () => {
       if (!projectId || projectId === 'new') return;
@@ -87,6 +87,7 @@ export const useAdGeneration = (
           businessIdea,
           targetAudience,
           adHooks,
+          language: i18n.language
         },
       });
 
@@ -132,7 +133,6 @@ export const useAdGeneration = (
 
       const validVariants = processedVariants.filter(Boolean);
       
-      // Save to project if we have a project ID
       if (projectId && projectId !== 'new') {
         const newVariants = [...adVariants, ...validVariants];
         const { error: updateError } = await supabase

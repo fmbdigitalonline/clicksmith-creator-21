@@ -1,5 +1,11 @@
+export async function generateHooks(businessIdea: any, targetAudience: any, language: string = 'en') {
+  let systemPrompt = 'You are an expert marketing strategist that creates compelling marketing angles and hooks based on deep audience analysis. Focus on creating angles that address specific pain points and hooks that make the target audience stop and read. Return ONLY raw JSON arrays without any markdown formatting.';
+  
+  // Add language instructions to system prompt
+  if (language !== 'en') {
+    systemPrompt += ` Respond in ${language} language only. All text must be in ${language}, not in English.`;
+  }
 
-export async function generateHooks(businessIdea: any, targetAudience: any) {
   const prompt = `Create marketing hooks for this business and target audience:
 
 Business:
@@ -23,7 +29,9 @@ Return ONLY a valid JSON array with exactly 10 items in this format:
     "text": "The actual hook text that will be shown in the ad",
     "description": "The marketing angle explanation"
   }
-]`;
+]
+
+${language !== 'en' ? `IMPORTANT: All text in the returned JSON must be in ${language} language only, not in English.` : ''}`;
 
   try {
     console.log('Generating hooks with prompt:', prompt);
@@ -39,7 +47,7 @@ Return ONLY a valid JSON array with exactly 10 items in this format:
         messages: [
           {
             role: 'system',
-            content: 'You are an expert marketing strategist that creates compelling marketing angles and hooks based on deep audience analysis. Focus on creating angles that address specific pain points and hooks that make the target audience stop and read. Return ONLY raw JSON arrays without any markdown formatting.'
+            content: systemPrompt
           },
           { role: 'user', content: prompt }
         ],

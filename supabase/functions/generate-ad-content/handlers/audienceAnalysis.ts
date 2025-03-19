@@ -1,12 +1,18 @@
-
 import { BusinessIdea, TargetAudience } from "../types.ts";
 
-export const analyzeAudience = async (businessIdea: BusinessIdea, targetAudience: TargetAudience, regenerationCount: number = 0) => {
-  console.log('Starting audience analysis...', { regenerationCount });
+export const analyzeAudience = async (businessIdea: BusinessIdea, targetAudience: TargetAudience, regenerationCount: number = 0, language: string = 'en') => {
+  console.log('Starting audience analysis...', { regenerationCount, language });
   
   const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
   if (!openAIApiKey) {
     throw new Error('OpenAI API key not configured');
+  }
+
+  let systemPrompt = 'You are an expert market researcher. Always respond with raw JSON only, no markdown.';
+  
+  // Add language instructions to system prompt
+  if (language !== 'en') {
+    systemPrompt += ` Respond in ${language} language only. All text fields in the JSON must be in ${language}, not in English.`;
   }
 
   const prompt = `Analyze the following target audience for a business 
@@ -37,7 +43,9 @@ export const analyzeAudience = async (businessIdea: BusinessIdea, targetAudience
     "sophisticationLevel": "string describing familiarity with competing solutions",
     "deepPainPoints": ["3 main problems as array of strings"],
     "potentialObjections": ["3 main objections as array of strings"]
-  }`;
+  }
+  
+  ${language !== 'en' ? `IMPORTANT: All text fields in the JSON must be in ${language} language only, not in English.` : ''}`;
 
   try {
     console.log('Sending request to OpenAI...');
@@ -52,7 +60,7 @@ export const analyzeAudience = async (businessIdea: BusinessIdea, targetAudience
         messages: [
           {
             role: 'system',
-            content: 'You are an expert market researcher. Always respond with raw JSON only, no markdown.'
+            content: systemPrompt
           },
           { role: 'user', content: prompt }
         ],
@@ -77,14 +85,12 @@ export const analyzeAudience = async (businessIdea: BusinessIdea, targetAudience
     const content = data.choices[0].message.content;
     console.log('Content before parsing:', content);
 
-    // Remove any potential markdown formatting
     const cleanContent = content.replace(/```json\n?|\n?```/g, '').trim();
     console.log('Cleaned content:', cleanContent);
 
     const analysis = JSON.parse(cleanContent);
     console.log('Parsed analysis:', analysis);
 
-    // Validate the required fields
     const requiredFields = [
       'expandedDefinition',
       'marketDesire',

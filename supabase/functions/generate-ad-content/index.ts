@@ -134,7 +134,7 @@ serve(async (req) => {
       throw new Error('Empty request body');
     }
 
-    const { type, businessIdea, targetAudience, regenerationCount = 0, timestamp, forceRegenerate = false, campaign } = body;
+    const { type, businessIdea, targetAudience, regenerationCount = 0, timestamp, forceRegenerate = false, campaign, language = 'en' } = body;
     
     if (!type) {
       throw new Error('type is required in request body');
@@ -144,24 +144,24 @@ serve(async (req) => {
       throw new Error(`Invalid generation type: ${type}. Valid types are: ${VALID_GENERATION_TYPES.join(', ')}`);
     }
 
-    console.log('Processing request:', { type, timestamp });
+    console.log('Processing request:', { type, timestamp, language });
 
     let responseData;
     switch (type) {
       case 'audience':
-        console.log('Generating audiences with params:', { businessIdea, regenerationCount, timestamp, forceRegenerate });
-        responseData = await generateAudiences(businessIdea, regenerationCount, forceRegenerate);
+        console.log('Generating audiences with params:', { businessIdea, regenerationCount, timestamp, forceRegenerate, language });
+        responseData = await generateAudiences(businessIdea, regenerationCount, forceRegenerate, language);
         break;
       case 'hooks':
-        console.log('Generating hooks with params:', { businessIdea, targetAudience });
-        responseData = await generateHooks(businessIdea, targetAudience);
+        console.log('Generating hooks with params:', { businessIdea, targetAudience, language });
+        responseData = await generateHooks(businessIdea, targetAudience, language);
         break;
       case 'complete_ads':
       case 'video_ads':
-        console.log('Generating complete ad campaign with params:', { businessIdea, targetAudience, campaign });
+        console.log('Generating complete ad campaign with params:', { businessIdea, targetAudience, campaign, language });
         try {
           // Generate campaign content (6 unique variations)
-          const campaignData = await generateCampaign(businessIdea, targetAudience);
+          const campaignData = await generateCampaign(businessIdea, targetAudience, language);
           console.log('Campaign data generated:', campaignData);
           
           // Generate image data
@@ -188,8 +188,8 @@ serve(async (req) => {
         }
         break;
       case 'audience_analysis':
-        console.log('Analyzing audience with params:', { businessIdea, targetAudience, regenerationCount });
-        responseData = await analyzeAudience(businessIdea, targetAudience, regenerationCount);
+        console.log('Analyzing audience with params:', { businessIdea, targetAudience, regenerationCount, language });
+        responseData = await analyzeAudience(businessIdea, targetAudience, regenerationCount, language);
         break;
       case 'images':
         console.log('Generating images with params:', { businessIdea, targetAudience, campaign });

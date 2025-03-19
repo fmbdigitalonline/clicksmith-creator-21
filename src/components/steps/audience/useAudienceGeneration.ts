@@ -1,7 +1,9 @@
+
 import { useState } from "react";
 import { BusinessIdea, TargetAudience } from "@/types/adWizard";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
+import { useTranslation } from "react-i18next";
 
 export const useAudienceGeneration = () => {
   const [audiences, setAudiences] = useState<TargetAudience[]>([]);
@@ -9,6 +11,7 @@ export const useAudienceGeneration = () => {
   const [regenerationCount, setRegenerationCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
+  const { i18n } = useTranslation();
 
   const generateAudiences = async (businessIdea: BusinessIdea, forceRegenerate: boolean = false) => {
     setIsGenerating(true);
@@ -20,7 +23,8 @@ export const useAudienceGeneration = () => {
         businessIdea,
         regenerationCount: forceRegenerate ? regenerationCount + 1 : regenerationCount,
         timestamp: new Date().getTime(),
-        forceRegenerate
+        forceRegenerate,
+        language: i18n.language // Pass the current language
       };
 
       console.log('Generating audiences with params:', requestBody);

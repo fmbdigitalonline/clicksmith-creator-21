@@ -1,0 +1,79 @@
+
+{
+  "title": "Assistant d'idées",
+  "description": "Passez rapidement de l'idée aux publicités prêtes à l'emploi en testant différents segments d'audience avec des campagnes publicitaires Facebook alimentées par l'IA.",
+  "loading_project": "Chargement des données du projet...",
+  "image_ads": "Publicités Image",
+  "video_ads": "Publicités Vidéo",
+  "toggle_video_ads": "Activer les publicités vidéo",
+  "video_ads_tooltip": "Publicités Vidéo - Bientôt Disponible !",
+  "coming_soon": "Bientôt Disponible !",
+  
+  "steps": {
+    "idea": "Idée",
+    "audience": "Audience",
+    "analysis": "Analyse",
+    "ads": "Publicités"
+  },
+  
+  "idea_step": {
+    "title": "Décrivez Votre Idée d'Entreprise",
+    "description": "Parlez-nous de votre produit ou service et nous vous aiderons à créer des publicités ciblées.",
+    "idea_label": "Idée d'entreprise",
+    "idea_placeholder": "Décrivez votre idée d'entreprise, produit ou service en détail...",
+    "value_label": "Proposition de valeur",
+    "value_placeholder": "Qu'est-ce qui rend votre offre unique ? Pourquoi les clients vous choisiraient-ils ?",
+    "continue": "Continuer",
+    "error": "Veuillez remplir tous les champs obligatoires pour continuer"
+  },
+  
+  "audience_step": {
+    "title": "Choisissez Votre Audience Cible",
+    "description": "Sélectionnez l'audience qui correspond le mieux à vos clients idéaux.",
+    "previous": "Étape Précédente",
+    "regenerate": "Générer de Nouvelles Audiences",
+    "regenerating": "Régénération...",
+    "no_audiences": "Aucune audience n'a encore été générée. Veuillez réessayer."
+  },
+  
+  "analysis_step": {
+    "title": "Analyse d'Audience",
+    "description": "Analysons davantage votre audience pour trouver les accrochages les plus efficaces.",
+    "continue": "Continuer vers la Génération de Publicités",
+    "previous": "Étape Précédente",
+    "regenerate": "Régénérer l'Analyse",
+    "regenerated_title": "Nouvelle Analyse Générée !",
+    "regenerated_description": "Une nouvelle analyse d'audience a été générée avec succès.",
+    "generation_failed": "Échec de la Génération",
+    "try_again": "Échec de la génération de l'analyse d'audience. Veuillez réessayer.",
+    "processing": "Traitement en cours..."
+  },
+  
+  "gallery_step": {
+    "title": "Vos Variantes de Publicités",
+    "description": "Examinez vos variantes de publicités générées, fournissez des commentaires et enregistrez-les ou téléchargez-les pour les utiliser.",
+    "previous": "Étape Précédente",
+    "start_over": "Recommencer",
+    "create_project": "Créer un Projet",
+    "save_ad": "Enregistrer la Publicité",
+    "download": "Télécharger",
+    "provide_feedback": "Fournir des Commentaires",
+    "like": "J'aime",
+    "dislike": "Je n'aime pas",
+    "feedback_placeholder": "Partagez vos réflexions sur les publicités générées..."
+  },
+  
+  "loading": {
+    "title": "Création de votre publicité parfaite ✨",
+    "analyzing_audience": "Analyse de votre audience cible 🎯",
+    "crafting_hooks": "Création d'accrochages engageants 🎣",
+    "designing_elements": "Conception d'éléments visuels 🎨",
+    "optimizing_copy": "Optimisation du texte publicitaire ✍️",
+    "generating_variations": "Génération de variations créatives 🔄",
+    "fine_tuning": "Peaufinage des messages 💭",
+    "enhancing_engagement": "Amélioration du potentiel d'engagement 📈",
+    "perfecting_magic": "Perfectionnement de la magie publicitaire ⚡",
+    "almost_ready": "Presque prêt à surprendre... 🌟",
+    "might_take_time": "Cela peut prendre une minute ou deux..."
+  }
+}

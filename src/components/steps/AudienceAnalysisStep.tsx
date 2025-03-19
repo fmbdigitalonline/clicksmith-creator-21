@@ -32,6 +32,7 @@ const AudienceAnalysisStep = ({
   const [regenerationCount, setRegenerationCount] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
+  const { t, i18n } = useTranslation("adwizard");
 
   const generateAnalysis = async () => {
     if (isLoading || isProcessing) return;
@@ -43,7 +44,8 @@ const AudienceAnalysisStep = ({
           businessIdea,
           targetAudience,
           regenerationCount: regenerationCount,
-          timestamp: new Date().getTime()
+          timestamp: new Date().getTime(),
+          language: i18n.language // Pass the current language
         }
       });
 
@@ -53,14 +55,14 @@ const AudienceAnalysisStep = ({
       setRegenerationCount(prev => prev + 1);
       
       toast({
-        title: "Fresh Analysis Generated!",
-        description: "New deep audience analysis has been generated successfully.",
+        title: t("analysis_step.regenerated_title"),
+        description: t("analysis_step.regenerated_description"),
       });
     } catch (error) {
       console.error('Error generating analysis:', error);
       toast({
-        title: "Generation Failed",
-        description: "Failed to generate audience analysis. Please try again.",
+        title: t("analysis_step.generation_failed"),
+        description: t("analysis_step.try_again"),
         variant: "destructive",
       });
     } finally {
@@ -105,7 +107,7 @@ const AudienceAnalysisStep = ({
           className="space-x-2 w-full md:w-auto"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>Previous Step</span>
+          <span>{t("analysis_step.previous")}</span>
         </Button>
         <div className="flex gap-2">
           <Button
@@ -119,7 +121,7 @@ const AudienceAnalysisStep = ({
             ) : (
               <RefreshCw className="w-4 h-4 mr-2" />
             )}
-            <span>Regenerate Analysis</span>
+            <span>{t("analysis_step.regenerate")}</span>
           </Button>
           <Button
             onClick={handleNext}
@@ -129,11 +131,11 @@ const AudienceAnalysisStep = ({
             {(isProcessing || isTransitioning) ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                <span>Processing...</span>
+                <span>{t("analysis_step.processing")}</span>
               </>
             ) : (
               <>
-                <span>Next Step</span>
+                <span>{t("analysis_step.continue")}</span>
                 <ArrowRight className="w-4 h-4 ml-2" />
               </>
             )}
@@ -142,9 +144,9 @@ const AudienceAnalysisStep = ({
       </div>
 
       <div>
-        <h2 className="text-xl md:text-2xl font-semibold mb-2">Deep Audience Analysis</h2>
+        <h2 className="text-xl md:text-2xl font-semibold mb-2">{t("analysis_step.title")}</h2>
         <p className="text-gray-600">
-          Understanding your audience's needs, desires, and objections.
+          {t("analysis_step.description")}
         </p>
       </div>
 
