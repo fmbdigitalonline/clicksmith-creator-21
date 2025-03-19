@@ -1433,6 +1433,7 @@ export type Database = {
           is_active: boolean | null
           is_admin: boolean | null
           is_business_owner: boolean | null
+          language_preference: string | null
           payment_status: string | null
           updated_at: string
           username: string | null
@@ -1446,6 +1447,7 @@ export type Database = {
           is_active?: boolean | null
           is_admin?: boolean | null
           is_business_owner?: boolean | null
+          language_preference?: string | null
           payment_status?: string | null
           updated_at?: string
           username?: string | null
@@ -1459,6 +1461,7 @@ export type Database = {
           is_active?: boolean | null
           is_admin?: boolean | null
           is_business_owner?: boolean | null
+          language_preference?: string | null
           payment_status?: string | null
           updated_at?: string
           username?: string | null

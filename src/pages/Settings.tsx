@@ -1,4 +1,3 @@
-
 import { Settings2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -75,7 +74,7 @@ const Settings = () => {
         `)
         .eq('user_id', user.id)
         .eq('active', true)
-        .maybeSingle();  // Changed from .single() to .maybeSingle()
+        .maybeSingle();
 
       if (error && error.code !== "PGRST116") {
         console.error("Error fetching subscription:", error);
