@@ -24,7 +24,19 @@
     "value_label": "Value Proposition",
     "value_placeholder": "What makes your offering unique? Why would customers choose you?",
     "continue": "Continue",
-    "error": "Please fill in all required fields to continue"
+    "error": "Please fill in all required fields to continue",
+    "analyze_button": "Analyze My Idea",
+    "processing": "Processing...",
+    "review_edit_title": "Review or Edit Your Idea",
+    "review_edit_description": "You can edit your existing idea or continue with it as is.",
+    "share_vision": "Share your vision and we'll help you validate it through targeted market testing.",
+    "tips_title": "Tips for effective validation:",
+    "tips": {
+      "value_prop": "Describe your unique value proposition",
+      "problem": "Highlight the problem you're solving",
+      "market": "Mention your target market",
+      "advantages": "Include any competitive advantages"
+    }
   },
   
   "audience_step": {
@@ -40,7 +52,25 @@
     "title": "Audience Analysis",
     "description": "Let's analyze your audience further to find the most effective hooks.",
     "continue": "Continue to Ad Generation",
-    "previous": "Previous Step"
+    "previous": "Previous Step",
+    "regenerate": "Regenerate Analysis",
+    "regenerated_title": "New Analysis Generated!",
+    "regenerated_description": "New audience analysis has been successfully generated.",
+    "generation_failed": "Generation Failed",
+    "try_again": "Failed to generate audience analysis. Please try again.",
+    "processing": "Processing...",
+    "expanded_definition": "Expanded Definition",
+    "expanded_definition_description": "A more accurate definition of your chosen audience",
+    "market_analysis": "Market Analysis",
+    "market_analysis_description": "Understanding the market situation",
+    "market_desire": "Market Desire",
+    "awareness_level": "Awareness Level",
+    "sophistication_level": "Sophistication Level",
+    "deep_pain_points": "Deep Pain Points",
+    "deep_pain_points_description": "Main problems your audience is facing",
+    "potential_objections": "Potential Objections",
+    "potential_objections_description": "Common concerns and hesitations",
+    "analyzing_audience": "Analyzing your target audience..."
   },
   
   "gallery_step": {
@@ -69,5 +99,13 @@
     "perfecting_magic": "Perfecting your ad magic ⚡",
     "almost_ready": "Almost ready to amaze... 🌟",
     "might_take_time": "This might take a minute or two..."
+  },
+  
+  "wizard_progress": {
+    "step": "Step",
+    "business_idea": "Business Idea",
+    "target_audience": "Target Audience",
+    "audience_analysis": "Audience Analysis",
+    "ad_gallery": "Ad Gallery"
   }
 }

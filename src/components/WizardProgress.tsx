@@ -1,5 +1,6 @@
+
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
-import { Check } from "lucide-react";
 
 interface WizardProgressProps {
   currentStep: number;
@@ -7,67 +8,75 @@ interface WizardProgressProps {
   canNavigateToStep: (step: number) => boolean;
 }
 
-const steps = [
-  { number: 1, title: "Business Idea" },
-  { number: 2, title: "Target Audience" },
-  { number: 3, title: "Audience Analysis" },
-  { number: 4, title: "Ad Gallery" },
-];
-
 const WizardProgress = ({
   currentStep,
   onStepClick,
   canNavigateToStep,
 }: WizardProgressProps) => {
+  const { t } = useTranslation('adwizard');
+  
+  const steps = [
+    { number: 1, label: t('wizard_progress.business_idea') },
+    { number: 2, label: t('wizard_progress.target_audience') },
+    { number: 3, label: t('wizard_progress.audience_analysis') },
+    { number: 4, label: t('wizard_progress.ad_gallery') },
+  ];
+
   return (
-    <nav aria-label="Progress">
-      <ol role="list" className="space-y-4 md:flex md:space-x-8 md:space-y-0">
-        {steps.map((step, index) => (
-          <li key={step.title} className="md:flex-1">
+    <div className="w-full">
+      <div className="grid grid-cols-4 gap-2">
+        {steps.map((step) => {
+          const isActive = currentStep === step.number;
+          const isCompleted = currentStep > step.number;
+          const canNavigate = canNavigateToStep(step.number);
+
+          return (
             <button
+              key={step.number}
               className={cn(
-                "group flex w-full flex-col border-l-4 py-2 pl-4 md:border-l-0 md:border-t-4 md:pb-0 md:pl-0 md:pt-4",
-                step.number < currentStep
-                  ? "border-facebook hover:border-facebook/80"
-                  : step.number === currentStep
-                  ? "border-facebook"
-                  : "border-gray-200",
-                !canNavigateToStep(step.number) && "cursor-not-allowed opacity-50"
+                "flex flex-col items-center text-center transition-all",
+                canNavigate ? "cursor-pointer" : "cursor-not-allowed opacity-60",
               )}
-              onClick={() => canNavigateToStep(step.number) && onStepClick(step.number)}
-              disabled={!canNavigateToStep(step.number)}
+              onClick={() => canNavigate && onStepClick(step.number)}
+              disabled={!canNavigate}
             >
-              <span className="text-sm font-medium">
-                {step.number < currentStep ? (
-                  <Check className="h-4 w-4 text-facebook" />
-                ) : (
-                  <span
-                    className={cn(
-                      "text-sm font-medium",
-                      step.number === currentStep
-                        ? "text-facebook"
-                        : "text-gray-500"
-                    )}
-                  >
-                    Step {step.number}
-                  </span>
-                )}
-              </span>
-              <span
+              <div
                 className={cn(
-                  "text-sm font-medium",
-                  step.number === currentStep
-                    ? "text-facebook"
-                    : "text-gray-500"
+                  "w-full h-2 mb-2 rounded-full",
+                  isActive || isCompleted
+                    ? "bg-facebook"
+                    : "bg-gray-200"
                 )}
-              >
-                {step.title}
-              </span>
+              />
+              <div className="flex items-center justify-center">
+                <div
+                  className={cn(
+                    "flex items-center justify-center w-6 h-6 rounded-full text-xs font-medium mr-2",
+                    isActive || isCompleted
+                      ? "bg-facebook text-white"
+                      : "bg-gray-200 text-gray-600"
+                  )}
+                >
+                  {step.number}
+                </div>
+                <span
+                  className={cn(
+                    "text-sm font-medium",
+                    isActive
+                      ? "text-facebook"
+                      : isCompleted
+                      ? "text-facebook"
+                      : "text-gray-500"
+                  )}
+                >
+                  {t('wizard_progress.step')} {step.number}: {step.label}
+                </span>
+              </div>
             </button>
-          </li>
-        ))}
-      </ol>
-    </nav>
+          );
+        })}
+      </div>
+    </div>
   );
 };
 
