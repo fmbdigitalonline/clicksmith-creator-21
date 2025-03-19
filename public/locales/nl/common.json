@@ -35,5 +35,10 @@
     "unauthorized": "Je moet ingelogd zijn om toegang te krijgen tot deze pagina",
     "forbidden": "Je hebt geen toestemming om toegang te krijgen tot deze bron"
   },
-  "loading": "Laden..."
+  "loading": "Laden...",
+  "auth": {
+    "logout": {
+      "button": "Uitloggen"
+    }
+  }
 }

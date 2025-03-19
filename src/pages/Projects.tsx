@@ -15,6 +15,7 @@ import ProjectViewSwitcher from "@/components/projects/ProjectViewSwitcher";
 import ProjectTable from "@/components/projects/ProjectTable";
 import ProjectFilters from "@/components/projects/ProjectFilters";
 import { Json } from "@/integrations/supabase/types"; 
+import { useTranslation } from "react-i18next";
 
 // Use a generic ProjectData interface that's compatible with the Supabase response
 interface ProjectData {
@@ -53,6 +54,7 @@ const Projects = () => {
   const [view, setView] = useState<"grid" | "table">("grid");
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const { t } = useTranslation('projects');
 
   // Query for all projects when on the main projects page
   const { data: projects, isError, isLoading: isProjectLoading } = useQuery({
@@ -123,11 +125,11 @@ const Projects = () => {
     return (
       <div className="container mx-auto px-4 py-4">
         <div className="flex flex-col items-center justify-center py-12">
-          <h1 className="text-2xl font-bold mb-4">Project Not Found</h1>
-          <p className="text-muted-foreground mb-6">The project you're looking for doesn't exist or you don't have permission to view it.</p>
+          <h1 className="text-2xl font-bold mb-4">{t('not_found.title')}</h1>
+          <p className="text-muted-foreground mb-6">{t('not_found.description')}</p>
           <Button onClick={() => navigate("/projects")} variant="outline">
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Projects
+            {t('actions.back_to_projects')}
           </Button>
         </div>
       </div>
@@ -138,7 +140,7 @@ const Projects = () => {
     return (
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-center h-64">
-          <p className="text-lg text-muted-foreground">Loading project...</p>
+          <p className="text-lg text-muted-foreground">{t('loading')}</p>
         </div>
       </div>
     );
@@ -151,17 +153,17 @@ const Projects = () => {
           <div className="flex items-center gap-4 mb-6">
             <Button onClick={() => navigate("/projects")} variant="outline" size="sm">
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Back
+              {t('actions.back')}
             </Button>
             <h1 className="text-2xl font-bold">{singleProject.title}</h1>
           </div>
           
           <Tabs defaultValue="details" className="space-y-6">
             <TabsList>
-              <TabsTrigger value="details">Project Details</TabsTrigger>
+              <TabsTrigger value="details">{t('details')}</TabsTrigger>
               <TabsTrigger value="ads" className="flex items-center">
                 <FileImage className="w-4 h-4 mr-2" />
-                Saved Ads
+                {t('saved_ads')}
               </TabsTrigger>
             </TabsList>
             
@@ -171,7 +173,7 @@ const Projects = () => {
                   onClick={() => handleStartAdWizard(singleProject.id)}
                   className="w-full sm:w-auto"
                 >
-                  {singleProject.business_idea ? 'Continue Idea Wizard' : 'Start Idea Wizard'}
+                  {singleProject.business_idea ? t('continue_wizard') : t('start_wizard')}
                 </Button>
               </div>
               <ProjectProgressDetails
@@ -184,13 +186,13 @@ const Projects = () => {
             <TabsContent value="ads">
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-xl font-semibold">Project Ads</h2>
+                  <h2 className="text-xl font-semibold">{t('project_ads')}</h2>
                   <Button 
                     variant="outline" 
                     size="sm"
                     onClick={() => navigate("/gallery/saved")}
                   >
-                    View All Saved Ads
+                    {t('view_all_saved')}
                   </Button>
                 </div>
                 <Separator />
@@ -202,7 +204,7 @@ const Projects = () => {
       ) : (
         <div className="space-y-6">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <h1 className="text-2xl font-bold">Projects</h1>
+            <h1 className="text-2xl font-bold">{t('title')}</h1>
             <ProjectViewSwitcher view={view} onChange={setView} />
           </div>
           
@@ -246,6 +248,7 @@ const Projects = () => {
 
 // Component to display ads for a specific project
 const ProjectAdsGallery = ({ projectId }: { projectId: string }) => {
+  const { t } = useTranslation('projects');
   const { data: projectAds, isLoading, error } = useQuery({
     queryKey: ["projectAds", projectId],
     queryFn: async () => {
@@ -266,23 +269,23 @@ const ProjectAdsGallery = ({ projectId }: { projectId: string }) => {
   });
 
   if (isLoading) {
-    return <div className="py-8 text-center">Loading project ads...</div>;
+    return <div className="py-8 text-center">{t('loading_ads')}</div>;
   }
 
   if (error) {
-    return <div className="py-8 text-center text-red-500">Error loading ads. Please try again.</div>;
+    return <div className="py-8 text-center text-red-500">{t('error_loading')}</div>;
   }
 
   if (!projectAds || projectAds.length === 0) {
     return (
       <div className="py-8 text-center">
-        <p className="text-muted-foreground">No ads have been assigned to this project yet.</p>
+        <p className="text-muted-foreground">{t('no_ads')}</p>
         <p className="mt-2">
           <Button 
             variant="link" 
             onClick={() => window.location.href = "/gallery/saved"}
           >
-            Go to your saved ads gallery to assign ads to this project
+            {t('go_to_gallery')}
           </Button>
         </p>
       </div>
