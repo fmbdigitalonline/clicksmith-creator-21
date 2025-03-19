@@ -7,7 +7,7 @@ import {
   Briefcase,
   ImageIcon,
   LayoutDashboard,
-  Link,
+  Link as LinkIcon,
   Settings,
   HelpCircle,
   LogOut,
@@ -19,6 +19,7 @@ import { useSignOut } from "@/hooks/useSignOut";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export default function AppSidebar() {
   const { isCollapsed } = useSidebar();
@@ -27,6 +28,7 @@ export default function AppSidebar() {
   const { toast } = useToast();
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (user) {
@@ -55,19 +57,13 @@ export default function AppSidebar() {
       setIsSigningOut(false);
     }
   };
-
-  const getLinkClass = ({ isActive }: { isActive: boolean }) => {
-    return isActive
-      ? "bg-secondary text-foreground hover:bg-secondary/80"
-      : "text-muted-foreground hover:bg-secondary/50";
-  };
   
   return (
-    <Sidebar.Sidebar className="bg-background border-r overflow-hidden">
-      <div className="flex flex-col h-full p-2 pt-16">
+    <Sidebar.Sidebar className="bg-background border-r">
+      <div className="flex flex-col h-full p-1 pt-16">
         <Sidebar.SidebarContent>
           <div className="flex items-center gap-2 mb-4 px-2">
-            <Avatar className="h-8 w-8">
+            <Avatar className="h-8 w-8 flex-shrink-0">
               <AvatarImage src={user?.user_metadata?.avatar_url} />
               <AvatarFallback>{user?.email?.charAt(0).toUpperCase()}</AvatarFallback>
             </Avatar>
@@ -81,81 +77,107 @@ export default function AppSidebar() {
           
           <div className="space-y-1">
             <Sidebar.SidebarMenu>
-              <Sidebar.SidebarMenuItem>
-                <NavLink to="/dashboard" className={getLinkClass}>
-                  <Sidebar.SidebarMenuButton>
-                    <LayoutDashboard size={18} className="shrink-0" />
-                    <span className="truncate">Dashboard</span>
-                  </Sidebar.SidebarMenuButton>
+              <div className="space-y-1">
+                <NavLink 
+                  to="/dashboard" 
+                  className={({ isActive }) => 
+                    `flex items-center w-full h-10 rounded-md text-sm font-medium px-2 transition-colors ${isActive 
+                      ? "bg-secondary text-foreground" 
+                      : "text-muted-foreground hover:bg-muted"}`
+                  }
+                >
+                  <LayoutDashboard size={18} className="flex-shrink-0" />
+                  {!isCollapsed && <span className="ml-2 truncate">Dashboard</span>}
                 </NavLink>
-              </Sidebar.SidebarMenuItem>
-              <Sidebar.SidebarMenuItem>
-                <NavLink to="/projects" className={getLinkClass}>
-                  <Sidebar.SidebarMenuButton>
-                    <Briefcase size={18} className="shrink-0" />
-                    <span className="truncate">Projects</span>
-                  </Sidebar.SidebarMenuButton>
+                
+                <NavLink 
+                  to="/projects" 
+                  className={({ isActive }) => 
+                    `flex items-center w-full h-10 rounded-md text-sm font-medium px-2 transition-colors ${isActive 
+                      ? "bg-secondary text-foreground" 
+                      : "text-muted-foreground hover:bg-muted"}`
+                  }
+                >
+                  <Briefcase size={18} className="flex-shrink-0" />
+                  {!isCollapsed && <span className="ml-2 truncate">Projects</span>}
                 </NavLink>
-              </Sidebar.SidebarMenuItem>
-              <Sidebar.SidebarMenuItem>
-                <NavLink to="/saved-ads" className={getLinkClass}>
-                  <Sidebar.SidebarMenuButton>
-                    <ImageIcon size={18} className="shrink-0" />
-                    <span className="truncate">Saved Ads</span>
-                  </Sidebar.SidebarMenuButton>
+                
+                <NavLink 
+                  to="/saved-ads" 
+                  className={({ isActive }) => 
+                    `flex items-center w-full h-10 rounded-md text-sm font-medium px-2 transition-colors ${isActive 
+                      ? "bg-secondary text-foreground" 
+                      : "text-muted-foreground hover:bg-muted"}`
+                  }
+                >
+                  <ImageIcon size={18} className="flex-shrink-0" />
+                  {!isCollapsed && <span className="ml-2 truncate">Saved Ads</span>}
                 </NavLink>
-              </Sidebar.SidebarMenuItem>
-              <Sidebar.SidebarMenuItem>
-                <NavLink to="/integrations" className={getLinkClass}>
-                  <Sidebar.SidebarMenuButton>
-                    <Link size={18} className="shrink-0" />
-                    <span className="truncate">Integrations</span>
-                  </Sidebar.SidebarMenuButton>
+                
+                <NavLink 
+                  to="/integrations" 
+                  className={({ isActive }) => 
+                    `flex items-center w-full h-10 rounded-md text-sm font-medium px-2 transition-colors ${isActive 
+                      ? "bg-secondary text-foreground" 
+                      : "text-muted-foreground hover:bg-muted"}`
+                  }
+                >
+                  <LinkIcon size={18} className="flex-shrink-0" />
+                  {!isCollapsed && <span className="ml-2 truncate">Integrations</span>}
                 </NavLink>
-              </Sidebar.SidebarMenuItem>
-              
-              {isAdmin && (
-                <Sidebar.SidebarMenuItem>
-                  <NavLink to="/blog-admin" className={getLinkClass}>
-                    <Sidebar.SidebarMenuButton>
-                      <FileText size={18} className="shrink-0" />
-                      <span className="truncate">Blog Admin</span>
-                    </Sidebar.SidebarMenuButton>
+                
+                {isAdmin && (
+                  <NavLink 
+                    to="/blog-admin" 
+                    className={({ isActive }) => 
+                      `flex items-center w-full h-10 rounded-md text-sm font-medium px-2 transition-colors ${isActive 
+                        ? "bg-secondary text-foreground" 
+                        : "text-muted-foreground hover:bg-muted"}`
+                    }
+                  >
+                    <FileText size={18} className="flex-shrink-0" />
+                    {!isCollapsed && <span className="ml-2 truncate">Blog Admin</span>}
                   </NavLink>
-                </Sidebar.SidebarMenuItem>
-              )}
+                )}
+              </div>
             </Sidebar.SidebarMenu>
           </div>
           
           <div className="mt-auto pt-4">
-            <Sidebar.SidebarMenu>
-              <Sidebar.SidebarMenuItem>
-                <NavLink to="/settings" className={getLinkClass}>
-                  <Sidebar.SidebarMenuButton>
-                    <Settings size={18} className="shrink-0" />
-                    <span className="truncate">Settings</span>
-                  </Sidebar.SidebarMenuButton>
-                </NavLink>
-              </Sidebar.SidebarMenuItem>
-              <Sidebar.SidebarMenuItem>
-                <NavLink to="/help" className={getLinkClass}>
-                  <Sidebar.SidebarMenuButton>
-                    <HelpCircle size={18} className="shrink-0" />
-                    <span className="truncate">Help</span>
-                  </Sidebar.SidebarMenuButton>
-                </NavLink>
-              </Sidebar.SidebarMenuItem>
-            </Sidebar.SidebarMenu>
-            
-            <Button
-              variant="ghost"
-              className="w-full justify-start text-muted-foreground hover:bg-secondary/50 mt-2"
-              onClick={handleSignOut}
-              disabled={isSigningOut}
-            >
-              <LogOut size={18} className="mr-2 shrink-0" />
-              <span className="truncate">Sign Out</span>
-            </Button>
+            <div className="space-y-1">
+              <NavLink 
+                to="/settings" 
+                className={({ isActive }) => 
+                  `flex items-center w-full h-10 rounded-md text-sm font-medium px-2 transition-colors ${isActive 
+                    ? "bg-secondary text-foreground" 
+                    : "text-muted-foreground hover:bg-muted"}`
+                }
+              >
+                <Settings size={18} className="flex-shrink-0" />
+                {!isCollapsed && <span className="ml-2 truncate">Settings</span>}
+              </NavLink>
+              
+              <NavLink 
+                to="/help" 
+                className={({ isActive }) => 
+                  `flex items-center w-full h-10 rounded-md text-sm font-medium px-2 transition-colors ${isActive 
+                    ? "bg-secondary text-foreground" 
+                    : "text-muted-foreground hover:bg-muted"}`
+                }
+              >
+                <HelpCircle size={18} className="flex-shrink-0" />
+                {!isCollapsed && <span className="ml-2 truncate">Help</span>}
+              </NavLink>
+              
+              <button
+                className="flex items-center w-full h-10 rounded-md text-sm font-medium px-2 transition-colors text-muted-foreground hover:bg-muted"
+                onClick={handleSignOut}
+                disabled={isSigningOut}
+              >
+                <LogOut size={18} className="flex-shrink-0" />
+                {!isCollapsed && <span className="ml-2 truncate">Sign Out</span>}
+              </button>
+            </div>
           </div>
         </Sidebar.SidebarContent>
       </div>

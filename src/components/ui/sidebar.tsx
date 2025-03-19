@@ -90,9 +90,9 @@ export function Sidebar({ children, className }: SidebarProps) {
   return (
     <aside
       className={cn(
-        "group/sidebar fixed md:relative h-screen border-r bg-background will-change-transform transition-all duration-300 overflow-hidden z-30",
+        "group/sidebar fixed md:relative h-screen border-r bg-background transition-all duration-300 z-30",
         isCollapsed || isMobile
-          ? "w-[3rem]" 
+          ? "w-[3.5rem]" 
           : "w-[16rem]",
         className
       )}
@@ -118,7 +118,7 @@ export function SidebarContent({ children }: { children: React.ReactNode }) {
   const { isCollapsed } = useSidebar()
   return (
     <div className={cn(
-      "h-full overflow-hidden flex flex-col",
+      "h-full flex flex-col",
       isCollapsed ? "px-1" : "px-2"
     )}>
       {children}
@@ -127,7 +127,7 @@ export function SidebarContent({ children }: { children: React.ReactNode }) {
 }
 
 export function SidebarGroup({ children }: { children: React.ReactNode }) {
-  return <div className="px-1 overflow-hidden">{children}</div>
+  return <div className="px-1">{children}</div>
 }
 
 interface SidebarGroupLabelProps {
@@ -149,11 +149,11 @@ export function SidebarGroupLabel({ children, className }: SidebarGroupLabelProp
 }
 
 export function SidebarGroupContent({ children }: { children: React.ReactNode }) {
-  return <div className="space-y-1 overflow-hidden">{children}</div>
+  return <div className="space-y-1">{children}</div>
 }
 
 export function SidebarMenu({ children }: { children: React.ReactNode }) {
-  return <nav className="overflow-hidden">{children}</nav>
+  return <nav>{children}</nav>
 }
 
 interface SidebarMenuItemProps {
@@ -162,7 +162,7 @@ interface SidebarMenuItemProps {
 }
 
 export function SidebarMenuItem({ children, className }: SidebarMenuItemProps) {
-  return <div className={cn("px-1 overflow-hidden", className)}>{children}</div>
+  return <div className={cn("px-1", className)}>{children}</div>
 }
 
 interface SidebarMenuButtonProps extends React.ComponentPropsWithoutRef<typeof Button> {
@@ -184,7 +184,7 @@ export function SidebarMenuButton({
     <Button
       variant={isActive ? "secondary" : "ghost"}
       className={cn(
-        "w-full justify-start truncate",
+        "w-full justify-start",
         isCollapsed ? "px-2" : "px-3",
         className
       )}
