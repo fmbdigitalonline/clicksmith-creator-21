@@ -447,7 +447,7 @@ const Dashboard = () => {
                           <BookmarkCheck className="h-5 w-5 text-green-500" />
                         </div>
                         <div>
-                          <h4 className="text-sm font-medium">{ad.title || t('saved_ads.untitled')}</h4>
+                          <h4 className="text-sm font-medium">{ad.headline || t('saved_ads.untitled')}</h4>
                           <p className="text-xs text-muted-foreground mt-1">
                             {t('saved_ads.saved', { 
                               timeAgo: formatDistanceToNow(new Date(ad.created_at), { addSuffix: true }) 
