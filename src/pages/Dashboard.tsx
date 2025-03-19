@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Lightbulb, FolderOpen, Eye, Pencil, Bell, BookOpen, MessageSquare, HelpCircle, Star, Info, AlertOctagon, ArrowRight, Globe, BookmarkCheck } from "lucide-react";
@@ -254,5 +255,242 @@ const Dashboard = () => {
           </div>
         </div>
 
-        <
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <ProjectsCard />
+          <AdStatsCard />
+          <CreditsCard />
+        </div>
 
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle>{t('quick_actions.title')}</CardTitle>
+            </CardHeader>
+            <CardContent className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <Button 
+                className="h-auto flex flex-col items-center justify-center py-6 space-y-2"
+                variant="outline"
+                onClick={() => setIsCreateProjectOpen(true)}
+              >
+                <Plus className="h-8 w-8 mb-2 text-primary" />
+                <div className="text-center">
+                  <h3 className="font-medium">{t('quick_actions.new_project')}</h3>
+                  <p className="text-xs text-muted-foreground mt-1">{t('create_new_project')}</p>
+                </div>
+              </Button>
+              
+              <Button 
+                className="h-auto flex flex-col items-center justify-center py-6 space-y-2"
+                variant="outline"
+                onClick={() => handleStartAdWizard()}
+              >
+                <Lightbulb className="h-8 w-8 mb-2 text-amber-500" />
+                <div className="text-center">
+                  <h3 className="font-medium">{t('continue_wizard')}</h3>
+                  <p className="text-xs text-muted-foreground mt-1">{t('resume_journey')}</p>
+                </div>
+              </Button>
+              
+              <Button 
+                className="h-auto flex flex-col items-center justify-center py-6 space-y-2"
+                variant="outline"
+                onClick={() => navigate('/gallery')}
+              >
+                <Eye className="h-8 w-8 mb-2 text-blue-500" />
+                <div className="text-center">
+                  <h3 className="font-medium">{t('view_saved_ads')}</h3>
+                  <p className="text-xs text-muted-foreground mt-1">{t('access_generated_ads')}</p>
+                </div>
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>{t('updates.title')}</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {updates && updates.length > 0 ? (
+                updates.map((update, index) => {
+                  const Icon = update.icon;
+                  return (
+                    <div key={update.id} className="flex space-x-3">
+                      <div className="flex-shrink-0 mt-1">
+                        <Icon className="h-5 w-5 text-muted-foreground" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-medium">{update.title}</h4>
+                        <p className="text-xs text-muted-foreground mt-1">{update.description}</p>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="text-center py-4">
+                  <p className="text-sm text-muted-foreground">{t('no_updates')}</p>
+                </div>
+              )}
+              {updates && updates.length > 0 && (
+                <Button 
+                  variant="link" 
+                  className="w-full mt-2"
+                  onClick={() => navigate('/updates')}
+                >
+                  {t('updates.view_all')}
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <Card className="lg:col-span-2">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>{t('recent_projects.title')}</CardTitle>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => navigate('/projects')}
+              >
+                {t('recent_projects.view_all')}
+              </Button>
+            </CardHeader>
+            <CardContent>
+              {recentProjects && recentProjects.length > 0 ? (
+                <div className="space-y-4">
+                  {recentProjects.map((project) => (
+                    <div 
+                      key={project.id} 
+                      className="flex items-start justify-between p-3 rounded-lg border hover:bg-accent/50 transition-colors cursor-pointer"
+                      onClick={() => handleProjectClick(project.id)}
+                    >
+                      <div className="flex space-x-3">
+                        <div className="flex-shrink-0 mt-1">
+                          <FolderOpen className="h-5 w-5 text-blue-500" />
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-medium">{project.title}</h4>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {t('recent_projects.updated', { 
+                              timeAgo: formatDistanceToNow(new Date(project.updated_at), { addSuffix: true }) 
+                            })}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex space-x-1">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/projects/${project.id}`);
+                          }}
+                        >
+                          <Pencil className="h-4 w-4" />
+                          <span className="sr-only">{t('recent_projects.actions.edit')}</span>
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/gallery?project=${project.id}`);
+                          }}
+                        >
+                          <Eye className="h-4 w-4" />
+                          <span className="sr-only">{t('recent_projects.actions.view_ads')}</span>
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">{t('recent.no_data')}</p>
+                  <Button 
+                    variant="outline" 
+                    className="mt-4"
+                    onClick={() => setIsCreateProjectOpen(true)}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    {t('create_new_project')}
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>{t('saved_ads.title')}</CardTitle>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => navigate('/gallery')}
+              >
+                {t('saved_ads.view_all')}
+              </Button>
+            </CardHeader>
+            <CardContent>
+              {recentSavedAds && recentSavedAds.length > 0 ? (
+                <div className="space-y-4">
+                  {recentSavedAds.map((ad) => (
+                    <div 
+                      key={ad.id} 
+                      className="flex items-start justify-between p-3 rounded-lg border hover:bg-accent/50 transition-colors cursor-pointer"
+                      onClick={() => navigate(`/gallery?ad=${ad.id}`)}
+                    >
+                      <div className="flex space-x-3">
+                        <div className="flex-shrink-0 mt-1">
+                          <BookmarkCheck className="h-5 w-5 text-green-500" />
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-medium">{ad.title || t('saved_ads.untitled')}</h4>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {t('saved_ads.saved', { 
+                              timeAgo: formatDistanceToNow(new Date(ad.created_at), { addSuffix: true }) 
+                            })}
+                          </p>
+                        </div>
+                      </div>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8"
+                      >
+                        <Eye className="h-4 w-4" />
+                        <span className="sr-only">{t('saved_ads.view')}</span>
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">{t('recent.no_data')}</p>
+                  <Button 
+                    variant="outline" 
+                    className="mt-4"
+                    onClick={() => handleStartAdWizard()}
+                  >
+                    <Lightbulb className="h-4 w-4 mr-2" />
+                    {t('continue_wizard')}
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      <CreateProjectDialog 
+        open={isCreateProjectOpen} 
+        onOpenChange={setIsCreateProjectOpen}
+        onSuccess={handleProjectSuccess}
+      />
+    </>
+  );
+};
+
+export default Dashboard;
