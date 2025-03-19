@@ -1,0 +1,73 @@
+
+{
+  "title": "Ideeënwizard",
+  "description": "Ga snel van idee naar gebruiksklare advertenties door verschillende doelgroepsegmenten te testen met door AI aangedreven Facebook-advertentiecampagnes.",
+  "loading_project": "Project data laden...",
+  "image_ads": "Afbeeldingsadvertenties",
+  "video_ads": "Videoadvertenties",
+  "toggle_video_ads": "Schakel videoadvertenties",
+  "video_ads_tooltip": "Videoadvertenties - Binnenkort Beschikbaar!",
+  "coming_soon": "Binnenkort Beschikbaar!",
+  
+  "steps": {
+    "idea": "Idee",
+    "audience": "Doelgroep",
+    "analysis": "Analyse",
+    "ads": "Advertenties"
+  },
+  
+  "idea_step": {
+    "title": "Beschrijf Je Bedrijfsidee",
+    "description": "Vertel ons over je product of dienst en we helpen je met het maken van gerichte advertenties.",
+    "idea_label": "Bedrijfsidee",
+    "idea_placeholder": "Beschrijf je bedrijfsidee, product of dienst in detail...",
+    "value_label": "Waardepropositie",
+    "value_placeholder": "Wat maakt jouw aanbod uniek? Waarom zouden klanten voor jou kiezen?",
+    "continue": "Doorgaan",
+    "error": "Vul alle verplichte velden in om door te gaan"
+  },
+  
+  "audience_step": {
+    "title": "Kies Je Doelgroep",
+    "description": "Selecteer de doelgroep die het beste past bij je ideale klanten.",
+    "previous": "Vorige Stap",
+    "regenerate": "Genereer Nieuwe Doelgroepen",
+    "regenerating": "Opnieuw genereren...",
+    "no_audiences": "Nog geen doelgroepen gegenereerd. Probeer het opnieuw."
+  },
+  
+  "analysis_step": {
+    "title": "Doelgroepanalyse",
+    "description": "Laten we je doelgroep verder analyseren om de meest effectieve haakjes te vinden.",
+    "continue": "Doorgaan met Advertentiegeneratie",
+    "previous": "Vorige Stap"
+  },
+  
+  "gallery_step": {
+    "title": "Je Advertentievarianten",
+    "description": "Bekijk je gegenereerde advertentievarianten, geef feedback en sla ze op of download ze voor gebruik.",
+    "previous": "Vorige Stap",
+    "start_over": "Opnieuw Beginnen",
+    "create_project": "Project Aanmaken",
+    "save_ad": "Advertentie Opslaan",
+    "download": "Downloaden",
+    "provide_feedback": "Geef Feedback",
+    "like": "Vind ik leuk",
+    "dislike": "Vind ik niet leuk",
+    "feedback_placeholder": "Deel je gedachten over de gegenereerde advertenties..."
+  },
+  
+  "loading": {
+    "title": "Bezig met het maken van je perfecte advertentie ✨",
+    "analyzing_audience": "Doelgroep analyseren 🎯",
+    "crafting_hooks": "Aantrekkelijke haakjes maken 🎣",
+    "designing_elements": "Visuele elementen ontwerpen 🎨",
+    "optimizing_copy": "Advertentietekst optimaliseren ✍️",
+    "generating_variations": "Creatieve variaties genereren 🔄",
+    "fine_tuning": "Boodschap fijnafstemmen 💭",
+    "enhancing_engagement": "Verbeteringspotentieel verhogen 📈",
+    "perfecting_magic": "Je advertentie-magie perfectioneren ⚡",
+    "almost_ready": "Bijna klaar om te verrassen... 🌟",
+    "might_take_time": "Dit kan een minuut of twee duren..."
+  }
+}

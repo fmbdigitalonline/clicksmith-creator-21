@@ -24,7 +24,7 @@ i18n
       caches: ['localStorage', 'cookie'],
     },
     // Namespaces
-    ns: ['common', 'auth', 'dashboard', 'settings', 'integrations', 'projects'],
+    ns: ['common', 'auth', 'dashboard', 'settings', 'integrations', 'projects', 'adwizard'],
     defaultNS: 'common',
     // React settings
     interpolation: {

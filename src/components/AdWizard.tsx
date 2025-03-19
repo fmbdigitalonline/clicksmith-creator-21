@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 import { Loader2 } from "lucide-react";
 import StepLoadingState from "./steps/LoadingState";
+import { useTranslation } from "react-i18next";
 
 const AdWizard = () => {
   const [showCreateProject, setShowCreateProject] = useState(false);
@@ -22,6 +23,7 @@ const AdWizard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
   const { projectId } = useParams();
+  const { t } = useTranslation('adwizard');
   
   const {
     currentStep,
@@ -92,7 +94,7 @@ const AdWizard = () => {
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-facebook" />
-          <p className="text-gray-600">Loading project data...</p>
+          <p className="text-gray-600">{t('loading_project')}</p>
         </div>
       </div>
     );
@@ -148,8 +150,8 @@ const AdWizard = () => {
   return (
     <div className="container max-w-6xl mx-auto px-4 py-8">
       <WizardHeader
-        title="Idea Wizard"
-        description="Quickly go from idea to ready-to-run ads by testing different audience segments with AI-powered Facebook ad campaigns."
+        title={t('title')}
+        description={t('description')}
       />
 
       <div className="mb-8">
@@ -161,7 +163,7 @@ const AdWizard = () => {
       </div>
 
       <div className="flex items-center justify-end mb-6 space-x-2">
-        <span className="text-sm text-gray-600 font-bold">Image Ads</span>
+        <span className="text-sm text-gray-600 font-bold">{t('image_ads')}</span>
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -169,7 +171,7 @@ const AdWizard = () => {
                 <Toggle
                   pressed={videoAdsEnabled}
                   onPressedChange={handleVideoAdsToggle}
-                  aria-label="Toggle video ads"
+                  aria-label={t('toggle_video_ads')}
                   className="data-[state=on]:bg-gray-300 cursor-not-allowed opacity-50"
                   disabled
                 >
@@ -182,12 +184,12 @@ const AdWizard = () => {
               </div>
             </TooltipTrigger>
             <TooltipContent>
-              <p>Video Ads - Coming Soon!</p>
+              <p>{t('video_ads_tooltip')}</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
-        <span className="text-sm text-gray-600">Video Ads</span>
-        <span className="text-xs text-gray-500 italic ml-1">Coming Soon!</span>
+        <span className="text-sm text-gray-600">{t('video_ads')}</span>
+        <span className="text-xs text-gray-500 italic ml-1">{t('coming_soon')}</span>
       </div>
 
       {renderStep()}

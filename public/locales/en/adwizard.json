@@ -1,0 +1,73 @@
+
+{
+  "title": "Idea Wizard",
+  "description": "Quickly go from idea to ready-to-run ads by testing different audience segments with AI-powered Facebook ad campaigns.",
+  "loading_project": "Loading project data...",
+  "image_ads": "Image Ads",
+  "video_ads": "Video Ads",
+  "toggle_video_ads": "Toggle video ads",
+  "video_ads_tooltip": "Video Ads - Coming Soon!",
+  "coming_soon": "Coming Soon!",
+  
+  "steps": {
+    "idea": "Idea",
+    "audience": "Audience",
+    "analysis": "Analysis",
+    "ads": "Ads"
+  },
+  
+  "idea_step": {
+    "title": "Describe Your Business Idea",
+    "description": "Tell us about your product or service and we'll help you create targeted ads.",
+    "idea_label": "Business Idea",
+    "idea_placeholder": "Describe your business idea, product, or service in detail...",
+    "value_label": "Value Proposition",
+    "value_placeholder": "What makes your offering unique? Why would customers choose you?",
+    "continue": "Continue",
+    "error": "Please fill in all required fields to continue"
+  },
+  
+  "audience_step": {
+    "title": "Choose Your Target Audience",
+    "description": "Select the audience that best matches your ideal customers.",
+    "previous": "Previous Step",
+    "regenerate": "Generate New Audiences",
+    "regenerating": "Regenerating...",
+    "no_audiences": "No audiences generated yet. Please try again."
+  },
+  
+  "analysis_step": {
+    "title": "Audience Analysis",
+    "description": "Let's analyze your audience further to find the most effective hooks.",
+    "continue": "Continue to Ad Generation",
+    "previous": "Previous Step"
+  },
+  
+  "gallery_step": {
+    "title": "Your Ad Variants",
+    "description": "Review your generated ad variants, provide feedback, and save or download them for use.",
+    "previous": "Previous Step",
+    "start_over": "Start Over",
+    "create_project": "Create Project",
+    "save_ad": "Save Ad",
+    "download": "Download",
+    "provide_feedback": "Provide Feedback",
+    "like": "Like",
+    "dislike": "Dislike",
+    "feedback_placeholder": "Share your thoughts about the generated ads..."
+  },
+  
+  "loading": {
+    "title": "Crafting Your Perfect Ad ✨",
+    "analyzing_audience": "Analyzing your target audience 🎯",
+    "crafting_hooks": "Crafting engaging hooks 🎣",
+    "designing_elements": "Designing visual elements 🎨",
+    "optimizing_copy": "Optimizing ad copy ✍️",
+    "generating_variations": "Generating creative variations 🔄",
+    "fine_tuning": "Fine-tuning messaging 💭",
+    "enhancing_engagement": "Enhancing engagement potential 📈",
+    "perfecting_magic": "Perfecting your ad magic ⚡",
+    "almost_ready": "Almost ready to amaze... 🌟",
+    "might_take_time": "This might take a minute or two..."
+  }
+}
