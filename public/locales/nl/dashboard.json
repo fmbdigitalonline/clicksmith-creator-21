@@ -1,0 +1,23 @@
+
+{
+  "title": "Dashboard",
+  "welcome": "Welkom terug",
+  "summary": {
+    "title": "Samenvatting",
+    "projects": "Projecten",
+    "campaigns": "Campagnes",
+    "credits": "Credits"
+  },
+  "recent": {
+    "title": "Recente Activiteit",
+    "projects": "Recente Projecten",
+    "campaigns": "Recente Campagnes",
+    "no_data": "Geen recente activiteit"
+  },
+  "quick_actions": {
+    "title": "Snelle Acties",
+    "new_project": "Nieuw Project",
+    "new_campaign": "Nieuwe Campagne",
+    "explore": "Verken Functies"
+  }
+}

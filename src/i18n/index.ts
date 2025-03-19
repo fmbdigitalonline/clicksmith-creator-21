@@ -34,6 +34,10 @@ i18n
     backend: {
       loadPath: '/locales/{{lng}}/{{ns}}.json',
     },
+    // Language configuration
+    supportedLngs: ['en', 'es', 'nl', 'fr', 'de'],
+    // RTL languages support
+    preload: ['en', 'es', 'nl'],
   });
 
 export default i18n;

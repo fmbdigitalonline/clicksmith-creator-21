@@ -1,0 +1,69 @@
+
+{
+  "title": "Proyectos",
+  "subtitle": "Gestiona tus proyectos de validación de ideas de negocio",
+  "create": "Crear Proyecto",
+  "filters": {
+    "title": "Filtros",
+    "status": "Estado",
+    "all": "Todos",
+    "draft": "Borrador",
+    "in_progress": "En Progreso",
+    "completed": "Completado",
+    "search": "Buscar proyectos..."
+  },
+  "empty": {
+    "title": "No se encontraron proyectos",
+    "description": "Crea tu primer proyecto para comenzar a validar tus ideas de negocio.",
+    "button": "Crear Nuevo Proyecto"
+  },
+  "table": {
+    "project": "Proyecto",
+    "status": "Estado",
+    "progress": "Progreso",
+    "last_updated": "Última Actualización",
+    "actions": "Acciones",
+    "not_started": "No Iniciado",
+    "complete": "Completo",
+    "step": "Paso {{step}} de {{total}}",
+    "validated": "Validado"
+  },
+  "form": {
+    "title": "Título del Proyecto",
+    "title_placeholder": "Introduce un nombre para tu proyecto de validación",
+    "business_idea": "Idea de Negocio",
+    "business_idea_placeholder": "Describe tu idea de negocio en detalle...",
+    "notes": "Notas Adicionales",
+    "notes_placeholder": "Cualquier nota adicional sobre tu proyecto",
+    "tags": "Etiquetas",
+    "tags_placeholder": "Introduce etiquetas separadas por comas",
+    "cancel": "Cancelar",
+    "create": "Crear Proyecto",
+    "save": "Guardar Cambios"
+  },
+  "actions": {
+    "view": "Ver",
+    "edit": "Editar",
+    "delete": "Eliminar",
+    "continue": "Continuar",
+    "start": "Comenzar",
+    "generate_ads": "Generar Anuncios",
+    "back_to_projects": "Volver a Proyectos",
+    "what_next": "¿Qué te gustaría hacer a continuación?"
+  },
+  "validation": {
+    "complete": "Datos Completos",
+    "complete_description": "Toda la información requerida del proyecto está disponible para la creación de campañas.",
+    "incomplete": "Datos Incompletos",
+    "improvement_needed": "Mejora de Datos Necesaria",
+    "incomplete_description": "Falta alguna información requerida. Complétala para mejorar tus resultados.",
+    "completeness": "Completitud",
+    "missing_info": "Información faltante"
+  },
+  "edit": {
+    "title": "Editar Proyecto",
+    "description": "Actualiza los detalles de tu proyecto",
+    "success": "Proyecto actualizado",
+    "success_description": "Tu proyecto ha sido actualizado con éxito."
+  }
+}

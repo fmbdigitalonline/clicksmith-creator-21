@@ -1,0 +1,42 @@
+
+{
+  "title": "Instellingen",
+  "sections": {
+    "profile": "Profielinstellingen",
+    "notifications": "Notificatie-instellingen",
+    "subscription": "Abonnementsinstellingen",
+    "security": "Beveiligingsinstellingen",
+    "language": "Taalinstellingen"
+  },
+  "profile": {
+    "full_name": "Volledige naam",
+    "username": "Gebruikersnaam",
+    "email": "E-mail",
+    "save": "Profiel opslaan"
+  },
+  "notifications": {
+    "email": "E-mailnotificaties",
+    "marketing": "Marketinge-mails",
+    "save": "Voorkeuren opslaan"
+  },
+  "subscription": {
+    "current_plan": "Huidige plan",
+    "credits": "Beschikbare credits",
+    "upgrade": "Plan upgraden",
+    "manage": "Abonnement beheren"
+  },
+  "security": {
+    "password": "Wachtwoord wijzigen",
+    "two_factor": "Tweefactorauthenticatie",
+    "sessions": "Actieve sessies",
+    "logout_all": "Uitloggen op alle apparaten"
+  },
+  "language": {
+    "title": "Taal",
+    "choose": "Kies je voorkeurstaal",
+    "updated": "Taal bijgewerkt",
+    "preference_saved": "Je taalvoorkeur is opgeslagen.",
+    "error": "Update fout",
+    "update_failed": "Taalvoorkeur bijwerken mislukt."
+  }
+}

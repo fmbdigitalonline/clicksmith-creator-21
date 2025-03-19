@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { useTranslation } from "react-i18next";
 
 const projectSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -31,6 +32,8 @@ interface ProjectFormProps {
 }
 
 const ProjectForm = ({ onSubmit, onCancel, initialBusinessIdea, disabled }: ProjectFormProps) => {
+  const { t } = useTranslation('projects');
+  
   const form = useForm<ProjectFormData>({
     resolver: zodResolver(projectSchema),
     defaultValues: {
@@ -49,10 +52,10 @@ const ProjectForm = ({ onSubmit, onCancel, initialBusinessIdea, disabled }: Proj
           name="title"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Project Title</FormLabel>
+              <FormLabel>{t('form.title')}</FormLabel>
               <FormControl>
                 <Input 
-                  placeholder="Enter a name for your validation project" 
+                  placeholder={t('form.title_placeholder')} 
                   {...field} 
                   disabled={disabled}
                 />
@@ -66,10 +69,10 @@ const ProjectForm = ({ onSubmit, onCancel, initialBusinessIdea, disabled }: Proj
           name="businessIdea"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Business Idea</FormLabel>
+              <FormLabel>{t('form.business_idea')}</FormLabel>
               <FormControl>
                 <Textarea
-                  placeholder="Describe your business idea in detail..."
+                  placeholder={t('form.business_idea_placeholder')}
                   {...field}
                   rows={4}
                   disabled={disabled}
@@ -84,10 +87,10 @@ const ProjectForm = ({ onSubmit, onCancel, initialBusinessIdea, disabled }: Proj
           name="description"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Additional Notes</FormLabel>
+              <FormLabel>{t('form.notes')}</FormLabel>
               <FormControl>
                 <Textarea
-                  placeholder="Any additional notes about your project"
+                  placeholder={t('form.notes_placeholder')}
                   {...field}
                   rows={3}
                   disabled={disabled}
@@ -102,10 +105,10 @@ const ProjectForm = ({ onSubmit, onCancel, initialBusinessIdea, disabled }: Proj
           name="tags"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Tags</FormLabel>
+              <FormLabel>{t('form.tags')}</FormLabel>
               <FormControl>
                 <Input
-                  placeholder="Enter tags separated by commas"
+                  placeholder={t('form.tags_placeholder')}
                   {...field}
                   disabled={disabled}
                 />
@@ -121,9 +124,9 @@ const ProjectForm = ({ onSubmit, onCancel, initialBusinessIdea, disabled }: Proj
             onClick={onCancel}
             disabled={disabled}
           >
-            Cancel
+            {t('form.cancel')}
           </Button>
-          <Button type="submit" disabled={disabled}>Create Project</Button>
+          <Button type="submit" disabled={disabled}>{t('form.create')}</Button>
         </div>
       </form>
     </Form>

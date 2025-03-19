@@ -13,7 +13,8 @@
     "pricing": "Pricing",
     "help": "Help",
     "login": "Login",
-    "settings": "Settings"
+    "settings": "Settings",
+    "contact": "Contact Support"
   },
   "actions": {
     "create": "Create",
@@ -34,5 +35,15 @@
     "unauthorized": "You need to be logged in to access this page",
     "forbidden": "You don't have permission to access this resource"
   },
-  "loading": "Loading..."
+  "loading": "Loading...",
+  "continue_with": "Or continue with",
+  "email_placeholder": "name@example.com",
+  "password_placeholder": "Enter your password",
+  "terms_agreement": "By signing up, you agree to our",
+  "terms": "Terms of Service",
+  "and": "and",
+  "privacy": "Privacy Policy",
+  "notifications_info": "We'll send you product updates and announcements. You can unsubscribe at any time.",
+  "credits_included": "Free Credits Included!",
+  "start_validating": "Start validating your ideas today with free credits. No credit card required."
 }

@@ -3,6 +3,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle, Info, CheckCircle2 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { ValidationResult } from "@/utils/dataValidationUtils";
+import { useTranslation } from "react-i18next";
 
 interface DataCompletionWarningProps {
   validation: ValidationResult;
@@ -15,13 +16,15 @@ const DataCompletionWarning = ({
   completenessPercentage,
   showDetails = false 
 }: DataCompletionWarningProps) => {
+  const { t } = useTranslation('projects');
+  
   if (validation.isComplete) {
     return (
       <Alert className="bg-green-50 border-green-200 mb-4">
         <CheckCircle2 className="h-4 w-4 text-green-600" />
-        <AlertTitle className="text-green-800">Data Complete</AlertTitle>
+        <AlertTitle className="text-green-800">{t('validation.complete')}</AlertTitle>
         <AlertDescription className="text-green-700">
-          All required project information is available for campaign creation.
+          {t('validation.complete_description')}
         </AlertDescription>
       </Alert>
     );
@@ -61,19 +64,19 @@ const DataCompletionWarning = ({
     <Alert className={`${getAlertStyle()} mb-4`}>
       {getIcon()}
       <AlertTitle className={textStyle.title}>
-        {completenessPercentage < 50 ? "Incomplete Data" : "Data Improvement Needed"}
+        {completenessPercentage < 50 ? t('validation.incomplete') : t('validation.improvement_needed')}
       </AlertTitle>
       <AlertDescription className={textStyle.description}>
         <div className="mb-2">{validation.warningMessage}</div>
         <div className="flex items-center gap-2 mb-2">
-          <span className="text-sm font-medium">Completeness:</span>
+          <span className="text-sm font-medium">{t('validation.completeness')}:</span>
           <Progress value={completenessPercentage} className="h-2 flex-1" />
           <span className="text-sm font-medium">{completenessPercentage}%</span>
         </div>
         
         {showDetails && validation.missingFields.length > 0 && (
           <div className="mt-2 text-sm">
-            <p className="font-medium mb-1">Missing information:</p>
+            <p className="font-medium mb-1">{t('validation.missing_info')}:</p>
             <ul className="list-disc pl-5">
               {validation.missingFields.map((field, index) => (
                 <li key={index}>{field}</li>

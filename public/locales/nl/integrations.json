@@ -1,0 +1,36 @@
+
+{
+  "title": "Platform Integraties",
+  "subtitle": "Verbind je sociale media en advertentieplatforms om campagnebeheer te automatiseren",
+  "platforms": {
+    "facebook": "Facebook",
+    "instagram": "Instagram",
+    "twitter": "Twitter"
+  },
+  "connection": {
+    "connected": "Verbonden",
+    "not_connected": "Niet verbonden",
+    "connect": "Verbinden",
+    "disconnect": "Verbinding verbreken",
+    "reconnect": "Opnieuw verbinden"
+  },
+  "campaigns": {
+    "title": "Campagnebeheer",
+    "no_campaigns": "Geen actieve campagnes",
+    "create": "Campagne aanmaken",
+    "view": "Campagne bekijken",
+    "status": "Status",
+    "performance": "Prestatie",
+    "budget": "Budget",
+    "impressions": "Weergaven",
+    "clicks": "Klikken",
+    "cost": "Kosten"
+  },
+  "errors": {
+    "configuration": "Platform integratie niet beschikbaar",
+    "try_again": "Probeer het later opnieuw of neem contact op met ondersteuning"
+  },
+  "admin": {
+    "env_check": "Omgevingsconfiguratie controle"
+  }
+}

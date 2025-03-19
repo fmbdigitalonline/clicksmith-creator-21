@@ -1,5 +1,7 @@
+
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Rocket } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface ProjectActionsProps {
   onGenerateAds: () => void;
@@ -7,10 +9,12 @@ interface ProjectActionsProps {
 }
 
 const ProjectActions = ({ onGenerateAds, onBackToProjects }: ProjectActionsProps) => {
+  const { t } = useTranslation('projects');
+  
   return (
     <div className="space-y-4">
       <p className="text-center text-muted-foreground">
-        What would you like to do next?
+        {t('actions.what_next')}
       </p>
       <div className="flex flex-col gap-3">
         <Button
@@ -19,7 +23,7 @@ const ProjectActions = ({ onGenerateAds, onBackToProjects }: ProjectActionsProps
           size="lg"
         >
           <Rocket className="mr-2" />
-          Generate Ads
+          {t('actions.generate_ads')}
         </Button>
         <Button
           onClick={onBackToProjects}
@@ -28,7 +32,7 @@ const ProjectActions = ({ onGenerateAds, onBackToProjects }: ProjectActionsProps
           size="lg"
         >
           <ArrowLeft className="mr-2" />
-          Back to Projects
+          {t('actions.back_to_projects')}
         </Button>
       </div>
     </div>

@@ -1,0 +1,39 @@
+
+{
+  "app": {
+    "name": "Viable",
+    "tagline": "Verbeter je marketing met AI"
+  },
+  "navigation": {
+    "dashboard": "Dashboard",
+    "projects": "Projecten",
+    "integrations": "Integraties",
+    "gallery": "Galerij",
+    "blog": "Blog",
+    "pricing": "Prijzen",
+    "help": "Hulp",
+    "login": "Inloggen",
+    "settings": "Instellingen",
+    "contact": "Contact Ondersteuning"
+  },
+  "actions": {
+    "create": "Aanmaken",
+    "edit": "Bewerken",
+    "delete": "Verwijderen",
+    "save": "Opslaan",
+    "cancel": "Annuleren",
+    "confirm": "Bevestigen",
+    "back": "Terug",
+    "next": "Volgende",
+    "apply": "Toepassen",
+    "view": "Bekijken",
+    "continue": "Doorgaan"
+  },
+  "errors": {
+    "general": "Er is een fout opgetreden. Probeer het opnieuw.",
+    "not_found": "Pagina niet gevonden",
+    "unauthorized": "Je moet ingelogd zijn om toegang te krijgen tot deze pagina",
+    "forbidden": "Je hebt geen toestemming om toegang te krijgen tot deze bron"
+  },
+  "loading": "Laden..."
+}

@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -27,6 +28,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "react-i18next";
 
 const projectSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -57,6 +59,7 @@ const EditProjectDialog = ({
   onSuccess,
 }: EditProjectDialogProps) => {
   const { toast } = useToast();
+  const { t } = useTranslation(['projects', 'common']);
 
   const form = useForm<z.infer<typeof projectSchema>>({
     resolver: zodResolver(projectSchema),
@@ -85,7 +88,7 @@ const EditProjectDialog = ({
 
     if (error) {
       toast({
-        title: "Error updating project",
+        title: t('errors.general', 'Error updating project', { ns: 'common' }),
         description: error.message,
         variant: "destructive",
       });
@@ -93,8 +96,8 @@ const EditProjectDialog = ({
     }
 
     toast({
-      title: "Project updated",
-      description: "Your project has been updated successfully.",
+      title: t('edit.success'),
+      description: t('edit.success_description'),
     });
     onSuccess();
   };
@@ -103,7 +106,7 @@ const EditProjectDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Edit Project</DialogTitle>
+          <DialogTitle>{t('edit.title')}</DialogTitle>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -112,9 +115,9 @@ const EditProjectDialog = ({
               name="title"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Title</FormLabel>
+                  <FormLabel>{t('form.title')}</FormLabel>
                   <FormControl>
-                    <Input placeholder="Project title" {...field} />
+                    <Input placeholder={t('form.title_placeholder')} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -125,10 +128,10 @@ const EditProjectDialog = ({
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Description</FormLabel>
+                  <FormLabel>{t('form.notes')}</FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder="Project description"
+                      placeholder={t('form.notes_placeholder')}
                       {...field}
                       rows={3}
                     />
@@ -142,10 +145,10 @@ const EditProjectDialog = ({
               name="tags"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Tags</FormLabel>
+                  <FormLabel>{t('form.tags')}</FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="Enter tags separated by commas"
+                      placeholder={t('form.tags_placeholder')}
                       {...field}
                     />
                   </FormControl>
@@ -158,20 +161,20 @@ const EditProjectDialog = ({
               name="status"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Status</FormLabel>
+                  <FormLabel>{t('filters.status')}</FormLabel>
                   <Select
                     onValueChange={field.onChange}
                     defaultValue={field.value}
                   >
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select a status" />
+                        <SelectValue placeholder={t('filters.status')} />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="draft">Draft</SelectItem>
-                      <SelectItem value="in_progress">In Progress</SelectItem>
-                      <SelectItem value="completed">Completed</SelectItem>
+                      <SelectItem value="draft">{t('filters.draft')}</SelectItem>
+                      <SelectItem value="in_progress">{t('filters.in_progress')}</SelectItem>
+                      <SelectItem value="completed">{t('filters.completed')}</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -184,9 +187,9 @@ const EditProjectDialog = ({
                 variant="outline"
                 onClick={() => onOpenChange(false)}
               >
-                Cancel
+                {t('actions.cancel', 'Cancel', { ns: 'common' })}
               </Button>
-              <Button type="submit">Save Changes</Button>
+              <Button type="submit">{t('actions.save', 'Save Changes', { ns: 'common' })}</Button>
             </div>
           </form>
         </Form>

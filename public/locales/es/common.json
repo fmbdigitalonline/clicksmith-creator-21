@@ -13,7 +13,8 @@
     "pricing": "Precios",
     "help": "Ayuda",
     "login": "Iniciar sesión",
-    "settings": "Configuración"
+    "settings": "Configuración",
+    "contact": "Contactar Soporte"
   },
   "actions": {
     "create": "Crear",
@@ -34,5 +35,15 @@
     "unauthorized": "Debe iniciar sesión para acceder a esta página",
     "forbidden": "No tiene permiso para acceder a este recurso"
   },
-  "loading": "Cargando..."
+  "loading": "Cargando...",
+  "continue_with": "O continuar con",
+  "email_placeholder": "nombre@ejemplo.com",
+  "password_placeholder": "Introduce tu contraseña",
+  "terms_agreement": "Al registrarte, aceptas nuestros",
+  "terms": "Términos de Servicio",
+  "and": "y",
+  "privacy": "Política de Privacidad",
+  "notifications_info": "Te enviaremos actualizaciones y anuncios del producto. Puedes cancelar la suscripción en cualquier momento.",
+  "credits_included": "¡Créditos Gratuitos Incluidos!",
+  "start_validating": "Comienza a validar tus ideas hoy con créditos gratuitos. No se requiere tarjeta de crédito."
 }

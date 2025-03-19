@@ -1,0 +1,69 @@
+
+{
+  "title": "Projects",
+  "subtitle": "Manage your business idea validation projects",
+  "create": "Create Project",
+  "filters": {
+    "title": "Filters",
+    "status": "Status",
+    "all": "All",
+    "draft": "Draft",
+    "in_progress": "In Progress",
+    "completed": "Completed",
+    "search": "Search projects..."
+  },
+  "empty": {
+    "title": "No projects found",
+    "description": "Create your first project to start validating your business ideas.",
+    "button": "Create New Project"
+  },
+  "table": {
+    "project": "Project",
+    "status": "Status",
+    "progress": "Progress",
+    "last_updated": "Last Updated",
+    "actions": "Actions",
+    "not_started": "Not Started",
+    "complete": "Complete",
+    "step": "Step {{step}} of {{total}}",
+    "validated": "Validated"
+  },
+  "form": {
+    "title": "Project Title",
+    "title_placeholder": "Enter a name for your validation project",
+    "business_idea": "Business Idea",
+    "business_idea_placeholder": "Describe your business idea in detail...",
+    "notes": "Additional Notes",
+    "notes_placeholder": "Any additional notes about your project",
+    "tags": "Tags",
+    "tags_placeholder": "Enter tags separated by commas",
+    "cancel": "Cancel",
+    "create": "Create Project",
+    "save": "Save Changes"
+  },
+  "actions": {
+    "view": "View",
+    "edit": "Edit",
+    "delete": "Delete",
+    "continue": "Continue",
+    "start": "Start",
+    "generate_ads": "Generate Ads",
+    "back_to_projects": "Back to Projects",
+    "what_next": "What would you like to do next?"
+  },
+  "validation": {
+    "complete": "Data Complete",
+    "complete_description": "All required project information is available for campaign creation.",
+    "incomplete": "Incomplete Data",
+    "improvement_needed": "Data Improvement Needed",
+    "incomplete_description": "Some required information is missing. Complete it to improve your results.",
+    "completeness": "Completeness",
+    "missing_info": "Missing information"
+  },
+  "edit": {
+    "title": "Edit Project",
+    "description": "Update your project details",
+    "success": "Project updated",
+    "success_description": "Your project has been updated successfully."
+  }
+}

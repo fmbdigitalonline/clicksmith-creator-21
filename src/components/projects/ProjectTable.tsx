@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Play, CheckCircle, Clock } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { useTranslation } from "react-i18next";
 
 interface ProjectTableProps {
   projects: Array<{
@@ -25,6 +26,8 @@ interface ProjectTableProps {
 }
 
 const ProjectTable = ({ projects, onProjectClick, onStartAdWizard }: ProjectTableProps) => {
+  const { t } = useTranslation('projects');
+  
   const getValidationProgress = (project: any) => {
     let progress = 0;
     if (project.business_idea) progress += 25;
@@ -48,11 +51,11 @@ const ProjectTable = ({ projects, onProjectClick, onStartAdWizard }: ProjectTabl
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>Project</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead>Progress</TableHead>
-          <TableHead>Last Updated</TableHead>
-          <TableHead>Actions</TableHead>
+          <TableHead>{t('table.project')}</TableHead>
+          <TableHead>{t('table.status')}</TableHead>
+          <TableHead>{t('table.progress')}</TableHead>
+          <TableHead>{t('table.last_updated')}</TableHead>
+          <TableHead>{t('table.actions')}</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -77,10 +80,10 @@ const ProjectTable = ({ projects, onProjectClick, onStartAdWizard }: ProjectTabl
                 {getStepStatusIcon(project)}
                 <span className="text-sm text-muted-foreground">
                   {Array.isArray(project.generated_ads) && project.generated_ads.length > 0
-                    ? "Complete"
+                    ? t('table.complete')
                     : project.current_step > 1
-                    ? `Step ${project.current_step} of 4`
-                    : "Not Started"}
+                    ? t('table.step', { step: project.current_step, total: 4 })
+                    : t('table.not_started')}
                 </span>
               </div>
             </TableCell>
@@ -88,7 +91,7 @@ const ProjectTable = ({ projects, onProjectClick, onStartAdWizard }: ProjectTabl
               <div className="w-[160px] space-y-2">
                 <Progress value={getValidationProgress(project)} className="h-2" />
                 <div className="text-[10px] text-muted-foreground">
-                  {getValidationProgress(project)}% Validated
+                  {getValidationProgress(project)}% {t('table.validated')}
                 </div>
               </div>
             </TableCell>
@@ -104,13 +107,13 @@ const ProjectTable = ({ projects, onProjectClick, onStartAdWizard }: ProjectTabl
                   variant="outline"
                   onClick={() => onProjectClick(project.id)}
                 >
-                  View <ArrowRight className="ml-2 h-4 w-4" />
+                  {t('actions.view')} <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
                 <Button
                   size="sm"
                   onClick={() => onStartAdWizard(project.id)}
                 >
-                  {project.business_idea ? 'Continue' : 'Start'}
+                  {project.business_idea ? t('actions.continue') : t('actions.start')}
                 </Button>
               </div>
             </TableCell>

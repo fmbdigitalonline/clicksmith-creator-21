@@ -20,6 +20,7 @@ import {
   FormMessage
 } from "@/components/ui/form";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useTranslation } from "react-i18next";
 
 type FormData = {
   email: string;
@@ -32,6 +33,7 @@ const Login = () => {
   const { toast } = useToast();
   const [isSignUp, setIsSignUp] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const { t } = useTranslation(['auth', 'common']);
 
   const form = useForm<FormData>({
     defaultValues: {
@@ -54,8 +56,8 @@ const Login = () => {
         
         if (signUpData.user) {
           toast({
-            title: "Welcome!",
-            description: "Your account has been created successfully.",
+            title: t('register.success', 'Welcome!'),
+            description: t('register.success_description', 'Your account has been created successfully.'),
           });
           navigate('/dashboard');
         }
@@ -68,14 +70,14 @@ const Login = () => {
         if (error) throw error;
         
         toast({
-          title: "Welcome back!",
-          description: "You have successfully logged in.",
+          title: t('login.success', 'Welcome back!'),
+          description: t('login.success_description', 'You have successfully logged in.'),
         });
         navigate('/dashboard');
       }
     } catch (error: any) {
       toast({
-        title: "Authentication error",
+        title: t('errors.auth', 'Authentication error'),
         description: error.message,
         variant: "destructive",
       });
@@ -92,24 +94,24 @@ const Login = () => {
           <Card className="w-full max-w-md p-8 space-y-6">
             <div className="space-y-2 text-center">
               <h1 className="text-2xl font-semibold tracking-tight">
-                {isSignUp ? "Create an account" : "Welcome back"}
+                {isSignUp ? t('register.title', 'Create an account') : t('login.title', 'Welcome back')}
               </h1>
               <p className="text-sm text-muted-foreground">
                 {isSignUp 
-                  ? "Enter your email to create your account" 
-                  : "Enter your email to sign in to your account"
+                  ? t('register.subtitle', 'Enter your email to create your account') 
+                  : t('login.subtitle', 'Enter your email to sign in to your account')
                 }
               </p>
             </div>
 
             <div className="flex items-center gap-2 justify-center text-primary">
               <BadgeCheck className="h-6 w-6" />
-              <span className="font-semibold">Free Credits Included!</span>
+              <span className="font-semibold">{t('credits_included', 'Free Credits Included!', { ns: 'common' })}</span>
             </div>
             
             <Alert className="bg-primary/5 border-primary/10">
               <AlertDescription className="text-sm text-center">
-                Start validating your ideas today with free credits. No credit card required.
+                {t('start_validating', 'Start validating your ideas today with free credits. No credit card required.', { ns: 'common' })}
               </AlertDescription>
             </Alert>
 
@@ -120,12 +122,12 @@ const Login = () => {
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Email</FormLabel>
+                      <FormLabel>{t('login.email', 'Email')}</FormLabel>
                       <FormControl>
                         <div className="relative">
                           <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                           <Input 
-                            placeholder="name@example.com" 
+                            placeholder={t('email_placeholder', 'name@example.com', { ns: 'common' })} 
                             {...field}
                             className="pl-10"
                           />
@@ -141,13 +143,13 @@ const Login = () => {
                   name="password"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Password</FormLabel>
+                      <FormLabel>{t('login.password', 'Password')}</FormLabel>
                       <FormControl>
                         <div className="relative">
                           <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                           <Input 
                             type="password" 
-                            placeholder="Enter your password"
+                            placeholder={t('password_placeholder', 'Enter your password', { ns: 'common' })}
                             {...field}
                             className="pl-10"
                           />
@@ -173,7 +175,7 @@ const Login = () => {
                           htmlFor="rememberMe"
                           className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                         >
-                          Remember me
+                          {t('remember_me', 'Remember me', { ns: 'auth' })}
                         </label>
                       </div>
                     )}
@@ -184,7 +186,7 @@ const Login = () => {
                       to="/reset-password"
                       className="text-sm font-medium text-primary hover:underline"
                     >
-                      Forgot password?
+                      {t('login.forgot_password', 'Forgot password?')}
                     </Link>
                   )}
                 </div>
@@ -197,10 +199,10 @@ const Login = () => {
                   {isLoading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      {isSignUp ? "Creating account..." : "Signing in..."}
+                      {isSignUp ? t('register.loading', 'Creating account...') : t('login.loading', 'Signing in...')}
                     </>
                   ) : (
-                    <>{isSignUp ? "Create account" : "Sign in"}</>
+                    <>{isSignUp ? t('register.button', 'Create account') : t('login.button', 'Sign in')}</>
                   )}
                 </Button>
               </form>
@@ -212,7 +214,7 @@ const Login = () => {
               </div>
               <div className="relative flex justify-center text-xs uppercase">
                 <span className="bg-background px-2 text-muted-foreground">
-                  Or continue with
+                  {t('continue_with', 'Or continue with', { ns: 'common' })}
                 </span>
               </div>
             </div>
@@ -225,15 +227,15 @@ const Login = () => {
                 onClick={() => setIsSignUp(!isSignUp)}
               >
                 {isSignUp 
-                  ? "Already have an account? Sign in" 
-                  : "Don't have an account? Sign up"}
+                  ? t('register.has_account', 'Already have an account? Sign in') 
+                  : t('login.no_account', "Don't have an account? Sign up")}
               </Button>
             </div>
 
             <Alert className="bg-accent/5 border-accent/10">
               <AlertDescription className="text-[11px] text-center text-muted-foreground leading-relaxed">
-                By signing up, you agree to our <Link to="/terms" className="text-primary hover:underline">Terms of Service</Link> and{' '}
-                <Link to="/privacy" className="text-primary hover:underline">Privacy Policy</Link>. We'll send you product updates and announcements. You can unsubscribe at any time.
+                {t('terms_agreement', 'By signing up, you agree to our', { ns: 'common' })} <Link to="/terms" className="text-primary hover:underline">{t('terms', 'Terms of Service', { ns: 'common' })}</Link> {t('and', 'and', { ns: 'common' })}{' '}
+                <Link to="/privacy" className="text-primary hover:underline">{t('privacy', 'Privacy Policy', { ns: 'common' })}</Link>. {t('notifications_info', "We'll send you product updates and announcements. You can unsubscribe at any time.", { ns: 'common' })}
               </AlertDescription>
             </Alert>
           </Card>
