@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react"
 import { useCookies } from "react-cookie"
 import { cn } from "@/lib/utils"
@@ -57,6 +58,22 @@ interface SidebarProps {
 
 export function Sidebar({ children, className }: SidebarProps) {
   const { isCollapsed, toggleSidebar } = useSidebar()
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768)
+    }
+    
+    // Initial check
+    checkMobile()
+    
+    // Add resize listener
+    window.addEventListener('resize', checkMobile)
+    
+    // Cleanup
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -73,10 +90,10 @@ export function Sidebar({ children, className }: SidebarProps) {
   return (
     <aside
       className={cn(
-        "group/sidebar relative h-screen border-r bg-background pt-16 will-change-transform transition-all duration-300",
-        isCollapsed || window.innerWidth < 768
+        "group/sidebar fixed md:relative h-screen border-r bg-background will-change-transform transition-all duration-300 overflow-hidden z-30",
+        isCollapsed || isMobile
           ? "w-[3rem]" 
-          : "max-w-[16rem] w-[6rem] sm:w-[8rem] md:w-[16rem]",
+          : "w-[16rem]",
         className
       )}
     >
@@ -84,7 +101,7 @@ export function Sidebar({ children, className }: SidebarProps) {
         variant="ghost"
         size="icon"
         className={cn(
-          "absolute -right-3 top-20 z-20 h-6 w-6 rounded-lg border bg-background p-0 shadow-sm opacity-0 group-hover/sidebar:opacity-100 transition-opacity hidden md:flex",
+          "absolute -right-3 top-20 z-40 h-6 w-6 rounded-lg border bg-background p-0 shadow-sm opacity-0 group-hover/sidebar:opacity-100 transition-opacity hidden md:flex",
           isCollapsed && "rotate-180"
         )}
         onClick={toggleSidebar}
@@ -101,8 +118,8 @@ export function SidebarContent({ children }: { children: React.ReactNode }) {
   const { isCollapsed } = useSidebar()
   return (
     <div className={cn(
-      "space-y-4",
-      isCollapsed ? "px-2" : "px-3"
+      "h-full overflow-hidden flex flex-col",
+      isCollapsed ? "px-1" : "px-2"
     )}>
       {children}
     </div>
@@ -110,7 +127,7 @@ export function SidebarContent({ children }: { children: React.ReactNode }) {
 }
 
 export function SidebarGroup({ children }: { children: React.ReactNode }) {
-  return <div className="px-2">{children}</div>
+  return <div className="px-1 overflow-hidden">{children}</div>
 }
 
 interface SidebarGroupLabelProps {
@@ -122,7 +139,7 @@ export function SidebarGroupLabel({ children, className }: SidebarGroupLabelProp
   const { isCollapsed } = useSidebar()
   return (
     <div className={cn(
-      "mb-2 px-2 text-xs font-semibold uppercase text-muted-foreground",
+      "mb-2 px-2 text-xs font-semibold uppercase text-muted-foreground truncate",
       isCollapsed && "sr-only",
       className
     )}>
@@ -132,11 +149,11 @@ export function SidebarGroupLabel({ children, className }: SidebarGroupLabelProp
 }
 
 export function SidebarGroupContent({ children }: { children: React.ReactNode }) {
-  return <div className="space-y-1">{children}</div>
+  return <div className="space-y-1 overflow-hidden">{children}</div>
 }
 
 export function SidebarMenu({ children }: { children: React.ReactNode }) {
-  return <nav>{children}</nav>
+  return <nav className="overflow-hidden">{children}</nav>
 }
 
 interface SidebarMenuItemProps {
@@ -145,7 +162,7 @@ interface SidebarMenuItemProps {
 }
 
 export function SidebarMenuItem({ children, className }: SidebarMenuItemProps) {
-  return <div className={cn("px-2", className)}>{children}</div>
+  return <div className={cn("px-1 overflow-hidden", className)}>{children}</div>
 }
 
 interface SidebarMenuButtonProps extends React.ComponentPropsWithoutRef<typeof Button> {
@@ -167,7 +184,7 @@ export function SidebarMenuButton({
     <Button
       variant={isActive ? "secondary" : "ghost"}
       className={cn(
-        "w-full justify-start",
+        "w-full justify-start truncate",
         isCollapsed ? "px-2" : "px-3",
         className
       )}

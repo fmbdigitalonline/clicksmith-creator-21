@@ -10,9 +10,9 @@ export const AppLayout = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
 
   return (
-    <div className="flex h-screen">
+    <div className="flex h-screen overflow-hidden">
       <AppSidebar />
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 relative">
         <Navigation />
         <main className="flex-1 overflow-auto p-3 md:p-6 mt-16">
           <div className="flex items-center gap-2 mb-4">
