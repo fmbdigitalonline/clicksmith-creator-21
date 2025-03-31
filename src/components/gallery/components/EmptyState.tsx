@@ -3,10 +3,16 @@ import { Button } from "@/components/ui/button";
 import { Image, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { useCallback } from "react";
 
 export const EmptyState = () => {
   const navigate = useNavigate();
   const { t } = useTranslation('gallery');
+
+  // Wrap the navigation in useCallback to avoid recreating the function on each render
+  const handleCreateNewAds = useCallback(() => {
+    navigate('/ad-wizard/new');
+  }, [navigate]);
 
   return (
     <div className="flex flex-col items-center justify-center py-12 px-4 bg-gray-50 rounded-xl border border-dashed border-gray-300">
@@ -18,7 +24,7 @@ export const EmptyState = () => {
         {t('empty.subtitle')}
       </p>
       <Button 
-        onClick={() => navigate('/ad-wizard/new')} 
+        onClick={handleCreateNewAds} 
         className="flex items-center"
       >
         <Plus className="w-4 h-4 mr-2" /> 
