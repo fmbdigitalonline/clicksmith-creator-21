@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import ProjectList from "@/components/projects/ProjectList";
 import { useNavigate, useParams } from "react-router-dom";
@@ -17,7 +16,6 @@ import ProjectFilters from "@/components/projects/ProjectFilters";
 import { Json } from "@/integrations/supabase/types"; 
 import { useTranslation } from "react-i18next";
 
-// Use a generic ProjectData interface that's compatible with the Supabase response
 interface ProjectData {
   id: string;
   title: string;
@@ -33,7 +31,6 @@ interface ProjectData {
   generated_ads?: Json | null;
 }
 
-// Interface for the ProjectTable component
 interface ProjectForTable {
   id: string;
   title: string;
@@ -56,7 +53,6 @@ const Projects = () => {
   const [statusFilter, setStatusFilter] = useState("all");
   const { t } = useTranslation('projects');
 
-  // Query for all projects when on the main projects page
   const { data: projects, isError, isLoading: isProjectLoading } = useQuery({
     queryKey: ["projects"],
     queryFn: async () => {
@@ -72,8 +68,7 @@ const Projects = () => {
       return null;
     },
   });
-  
-  // Query for a single project when on a project detail page
+
   const { data: singleProject } = useQuery({
     queryKey: ["project", projectId],
     queryFn: async () => {
@@ -246,7 +241,6 @@ const Projects = () => {
   );
 };
 
-// Component to display ads for a specific project
 const ProjectAdsGallery = ({ projectId }: { projectId: string }) => {
   const { t } = useTranslation('projects');
   const { data: projectAds, isLoading, error } = useQuery({
