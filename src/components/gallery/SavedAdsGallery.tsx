@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SavedAdsTable } from "./components/SavedAdsTable";
 import { Pagination } from "@/components/ui/pagination";
+import { useTranslation } from "react-i18next";
 
 interface SavedAd {
   id: string;
@@ -23,8 +24,8 @@ interface SavedAd {
   rating: number;
   feedback: string;
   created_at: string;
-  imageurl?: string;  // Keep lowercase for database compatibility
-  imageUrl?: string;  // Add camelCase version
+  imageurl?: string;
+  imageUrl?: string;
   platform?: string;
   project_id?: string;
   size?: {
@@ -42,8 +43,8 @@ interface AdFeedbackRow {
   rating: number;
   feedback: string;
   created_at: string;
-  imageurl?: string;  // Keep lowercase for database compatibility
-  imageUrl?: string;  // Add camelCase version
+  imageurl?: string;
+  imageUrl?: string;
   platform?: string;
   project_id?: string;
   size?: Json;
@@ -68,6 +69,7 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps) => {
   const [totalPages, setTotalPages] = useState(1);
   const itemsPerPage = 12;
   const { toast } = useToast();
+  const { t } = useTranslation('gallery');
 
   const fetchSavedAds = async () => {
     try {
@@ -82,7 +84,6 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps) => {
         .select('id, saved_images, headline, primary_text, rating, feedback, created_at, imageurl, imageUrl, platform, project_id, size')
         .eq('user_id', user.id);
       
-      // If projectFilter is provided, filter ads by that project
       if (projectFilter) {
         query = query.eq('project_id', projectFilter);
         console.log("Filtering ads for project:", projectFilter);
@@ -94,7 +95,6 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps) => {
         throw error;
       }
 
-      // Find the default format (square 1:1)
       const defaultFormat = AD_FORMATS.find(format => format.width === 1080 && format.height === 1080) || AD_FORMATS[0];
 
       const convertedAds: SavedAd[] = (data as AdFeedbackRow[]).map(ad => ({
@@ -172,7 +172,6 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps) => {
 
       console.log("Assigning ads to project:", selectedProjectId, "Ads:", selectedAdIds);
 
-      // For each selected ad, update it with the new project ID
       for (const adId of selectedAdIds) {
         const { error } = await supabase
           .from('ad_feedback')
@@ -180,8 +179,8 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps) => {
             project_id: selectedProjectId 
           })
           .eq('id', adId)
-          .is('project_id', null); // Only update if project_id is null
-          
+          .is('project_id', null);
+
         if (error) {
           console.error("Error assigning to project:", error);
           throw error;
@@ -246,7 +245,6 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps) => {
     }
   };
 
-  // Filter and sort ads based on search query, platform filter, and sort option
   const filteredAds = savedAds.filter(ad => {
     const matchesSearch = 
       (ad.headline?.toLowerCase().includes(searchQuery.toLowerCase()) || false) ||
@@ -268,7 +266,6 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps) => {
     return 0;
   });
 
-  // Calculate paginated ads
   const paginatedAds = filteredAds.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
@@ -276,15 +273,15 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps) => {
 
   useEffect(() => {
     setTotalPages(Math.max(1, Math.ceil(filteredAds.length / itemsPerPage)));
-    setCurrentPage(1); // Reset to first page when filters change
+    setCurrentPage(1);
   }, [filteredAds.length, itemsPerPage]);
 
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-12">
         <Loader2 className="w-8 h-8 animate-spin text-facebook mb-4" />
-        <p className="text-gray-600">Loading your saved ads...</p>
-        <p className="text-sm text-gray-500">We're retrieving your saved ad content</p>
+        <p className="text-gray-600">{t('loading')}</p>
+        <p className="text-sm text-gray-500">{t('loading_subtitle')}</p>
       </div>
     );
   }
@@ -293,13 +290,13 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps) => {
     if (projectFilter) {
       return (
         <div className="py-8 text-center">
-          <p className="text-muted-foreground">No ads have been assigned to this project yet.</p>
+          <p className="text-muted-foreground">{t('no_project_ads')}</p>
           <p className="mt-2">
             <Button 
               variant="link" 
               onClick={() => window.location.href = "/gallery/saved"}
             >
-              Go to your saved ads gallery to assign ads to this project
+              {t('go_to_gallery')}
             </Button>
           </p>
         </div>
@@ -312,14 +309,11 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps) => {
     savedAds.find(ad => ad.id === id)?.project_id !== undefined
   );
 
-  // Only show action bar when not filtering by project
   const showActionBar = !projectFilter;
 
   return (
     <div className="space-y-6">
-      {/* Controls and Filters */}
       <div className="flex flex-col gap-4 bg-gray-50 p-4 rounded-lg shadow-sm">
-        {/* View Controls */}
         <div className="flex flex-col sm:flex-row gap-4 justify-between">
           <div className="flex items-center space-x-2">
             <Button
@@ -329,7 +323,7 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps) => {
               className="flex items-center"
             >
               <Grid className="h-4 w-4 mr-2" />
-              Grid
+              {t('view.grid')}
             </Button>
             <Button
               variant={view === "table" ? "default" : "outline"}
@@ -338,31 +332,30 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps) => {
               className="flex items-center"
             >
               <TableIcon className="h-4 w-4 mr-2" />
-              Table
+              {t('view.table')}
             </Button>
           </div>
           
           <div className="flex items-center space-x-2">
             <Select value={sortBy} onValueChange={setSortBy}>
               <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Sort by" />
+                <SelectValue placeholder={t('sort.placeholder')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="newest">Newest First</SelectItem>
-                <SelectItem value="oldest">Oldest First</SelectItem>
-                <SelectItem value="rating-high">Highest Rating</SelectItem>
-                <SelectItem value="rating-low">Lowest Rating</SelectItem>
+                <SelectItem value="newest">{t('sort.newest')}</SelectItem>
+                <SelectItem value="oldest">{t('sort.oldest')}</SelectItem>
+                <SelectItem value="rating-high">{t('sort.highest_rating')}</SelectItem>
+                <SelectItem value="rating-low">{t('sort.lowest_rating')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
         </div>
         
-        {/* Search and Filters */}
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex-1 relative">
             <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input
-              placeholder="Search ads by text..."
+              placeholder={t('search.placeholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-8"
@@ -371,122 +364,118 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps) => {
           
           <Select value={platformFilter} onValueChange={setPlatformFilter}>
             <SelectTrigger className="w-[160px]">
-              <SelectValue placeholder="Platform" />
+              <SelectValue placeholder={t('filter.platform')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Platforms</SelectItem>
-              <SelectItem value="facebook">Facebook</SelectItem>
-              <SelectItem value="instagram">Instagram</SelectItem>
-              <SelectItem value="google">Google</SelectItem>
+              <SelectItem value="all">{t('filter.all_platforms')}</SelectItem>
+              <SelectItem value="facebook">{t('filter.facebook')}</SelectItem>
+              <SelectItem value="instagram">{t('filter.instagram')}</SelectItem>
+              <SelectItem value="google">{t('filter.google')}</SelectItem>
             </SelectContent>
           </Select>
         </div>
       </div>
 
-      {/* Selection Stats & Actions Bar */}
-      {showActionBar && (
-        <div className="bg-gray-50 p-4 rounded-lg shadow-sm">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleSelectAll}
-                className="flex items-center"
-              >
-                {selectedAdIds.length === filteredAds.length ? (
-                  <>
-                    <CheckSquare className="h-4 w-4 mr-2" />
-                    Deselect All
-                  </>
-                ) : (
-                  <>
-                    <SquareCheckIcon className="h-4 w-4 mr-2" />
-                    Select All
-                  </>
-                )}
-              </Button>
-              {selectedAdIds.length > 0 && (
-                <Badge variant="secondary">
-                  {selectedAdIds.length} selected
-                </Badge>
+      <div className="bg-gray-50 p-4 rounded-lg shadow-sm">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSelectAll}
+              className="flex items-center"
+            >
+              {selectedAdIds.length === filteredAds.length ? (
+                <>
+                  <CheckSquare className="h-4 w-4 mr-2" />
+                  {t('actions.deselect_all')}
+                </>
+              ) : (
+                <>
+                  <SquareCheckIcon className="h-4 w-4 mr-2" />
+                  {t('actions.select_all')}
+                </>
               )}
+            </Button>
+            {selectedAdIds.length > 0 && (
+              <Badge variant="secondary">
+                {t('selected', { count: selectedAdIds.length })}
+              </Badge>
+            )}
+          </div>
+          
+          <div className="flex items-center gap-3 flex-wrap sm:flex-nowrap">
+            <div className="w-full sm:w-64 relative" style={{ zIndex: 60 }}>
+              <ProjectSelector
+                selectedProjectId={selectedProjectId}
+                onSelect={handleProjectSelect}
+              />
             </div>
             
-            <div className="flex items-center gap-3 flex-wrap sm:flex-nowrap">
-              <div className="w-full sm:w-64 relative" style={{ zIndex: 60 }}>
-                <ProjectSelector
-                  selectedProjectId={selectedProjectId}
-                  onSelect={handleProjectSelect}
-                />
-              </div>
-              
-              <AlertDialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
+            <AlertDialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
+              <AlertDialogTrigger asChild>
+                <Button 
+                  variant="default" 
+                  disabled={selectedAdIds.length === 0 || !selectedProjectId || isAssigning}
+                  className="whitespace-nowrap"
+                  onClick={() => {
+                    if (selectedAdIds.length > 0 && selectedProjectId) {
+                      setIsConfirmDialogOpen(true);
+                    }
+                  }}
+                >
+                  {isAssigning ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : null}
+                  {t('actions.add_to_project')}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>{t('confirm.assign_title')}</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    {t('confirm.assign_description', { count: selectedAdIds.length })}
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>{t('actions.cancel')}</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleAssignToProject}>{t('actions.continue')}</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+            
+            {hasProjectAssigned && (
+              <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button 
-                    variant="default" 
-                    disabled={selectedAdIds.length === 0 || !selectedProjectId || isAssigning}
+                    variant="outline" 
+                    disabled={selectedAdIds.length === 0 || isAssigning}
                     className="whitespace-nowrap"
-                    onClick={() => {
-                      if (selectedAdIds.length > 0 && selectedProjectId) {
-                        setIsConfirmDialogOpen(true);
-                      }
-                    }}
                   >
-                    {isAssigning ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : null}
-                    Add to Project
+                    {t('actions.remove_from_project')}
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Assign Ads to Project</AlertDialogTitle>
+                    <AlertDialogTitle>{t('confirm.remove_title')}</AlertDialogTitle>
                     <AlertDialogDescription>
-                      Are you sure you want to add {selectedAdIds.length} ad(s) to the selected project?
+                      {t('confirm.remove_description', { count: selectedAdIds.length })}
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleAssignToProject}>Continue</AlertDialogAction>
+                    <AlertDialogCancel>{t('actions.cancel')}</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleRemoveFromProject}>{t('actions.continue')}</AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
-            
-              {hasProjectAssigned && (
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button 
-                      variant="outline" 
-                      disabled={selectedAdIds.length === 0 || isAssigning}
-                      className="whitespace-nowrap"
-                    >
-                      Remove from Project
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Remove Ads from Project</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Are you sure you want to remove these {selectedAdIds.length} ad(s) from their projects?
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={handleRemoveFromProject}>Continue</AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              )}
-            </div>
+            )}
           </div>
         </div>
-      )}
+      </div>
 
-      {/* Filter Stats & Current Filters Display */}
       <div className="flex flex-wrap gap-2 items-center">
         <Badge variant="outline" className="bg-gray-50">
-          {filteredAds.length} ads found
+          {t('count', { count: filteredAds.length })}
         </Badge>
         
         {searchQuery && (
@@ -494,7 +483,7 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps) => {
             variant="secondary" 
             className="flex items-center gap-1"
           >
-            Search: {searchQuery}
+            {t('search.label')}: {searchQuery}
             <Button 
               variant="ghost" 
               size="sm" 
@@ -511,7 +500,7 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps) => {
             variant="secondary" 
             className="flex items-center gap-1"
           >
-            Platform: {platformFilter}
+            {t('filter.platform')}: {platformFilter}
             <Button 
               variant="ghost" 
               size="sm" 
@@ -524,22 +513,20 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps) => {
         )}
       </div>
 
-      {/* Project Filter Info - Show when filtering by project */}
       {projectFilter && (
         <div className="mb-4">
           <Badge variant="outline" className="text-sm font-normal">
-            Showing ads for selected project
+            {t('project_filter_info')}
           </Badge>
         </div>
       )}
 
-      {/* No results message */}
       {filteredAds.length === 0 && (
         <div className="text-center py-8 bg-gray-50 rounded-lg">
           <AlertCircle className="mx-auto h-8 w-8 text-gray-400 mb-2" />
-          <h3 className="text-lg font-medium text-gray-900">No ads found</h3>
+          <h3 className="text-lg font-medium text-gray-900">{t('no_results.title')}</h3>
           <p className="mt-1 text-sm text-gray-500">
-            Try adjusting your search or filter criteria
+            {t('no_results.subtitle')}
           </p>
           <Button 
             variant="outline" 
@@ -551,12 +538,11 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps) => {
               setSortBy("newest");
             }}
           >
-            Clear all filters
+            {t('actions.clear_filters')}
           </Button>
         </div>
       )}
 
-      {/* Content View: Grid or Table */}
       {filteredAds.length > 0 && (
         <>
           {view === "grid" ? (
@@ -589,7 +575,6 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps) => {
             />
           )}
 
-          {/* Pagination */}
           {totalPages > 1 && (
             <div className="flex justify-center mt-8">
               <Pagination

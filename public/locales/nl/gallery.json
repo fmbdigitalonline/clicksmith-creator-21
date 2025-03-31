@@ -1,0 +1,67 @@
+
+{
+  "title": "Opgeslagen Advertentie Galerij",
+  "subtitle": "Bekijk en beheer je opgeslagen advertentiecreaties",
+  "loading": "Opgeslagen advertenties laden...",
+  "loading_subtitle": "We halen je opgeslagen advertentie-inhoud op",
+  "no_project_ads": "Er zijn nog geen advertenties aan dit project toegewezen.",
+  "go_to_gallery": "Ga naar je galerij met opgeslagen advertenties om advertenties toe te wijzen aan dit project",
+  "empty": {
+    "title": "Nog geen opgeslagen advertenties",
+    "subtitle": "Like of favoriteer advertenties om ze hier te zien!",
+    "action": "Nieuwe advertenties maken"
+  },
+  "view": {
+    "grid": "Raster",
+    "table": "Tabel"
+  },
+  "sort": {
+    "placeholder": "Sorteren op",
+    "newest": "Nieuwste eerst",
+    "oldest": "Oudste eerst",
+    "highest_rating": "Hoogste beoordeling",
+    "lowest_rating": "Laagste beoordeling"
+  },
+  "search": {
+    "placeholder": "Zoek advertenties op tekst...",
+    "label": "Zoeken"
+  },
+  "filter": {
+    "platform": "Platform",
+    "all_platforms": "Alle platforms",
+    "facebook": "Facebook",
+    "instagram": "Instagram",
+    "google": "Google"
+  },
+  "actions": {
+    "select_all": "Alles selecteren",
+    "deselect_all": "Alles deselecteren",
+    "add_to_project": "Toevoegen aan project",
+    "remove_from_project": "Verwijderen uit project",
+    "cancel": "Annuleren",
+    "continue": "Doorgaan",
+    "clear_filters": "Alle filters wissen"
+  },
+  "selected": "{{count}} geselecteerd",
+  "count": "{{count}} advertenties gevonden",
+  "project_filter_info": "Advertenties voor geselecteerd project worden getoond",
+  "no_results": {
+    "title": "Geen advertenties gevonden",
+    "subtitle": "Probeer je zoek- of filtercriteria aan te passen"
+  },
+  "confirm": {
+    "assign_title": "Advertenties toewijzen aan project",
+    "assign_description": "Weet je zeker dat je {{count}} advertentie(s) wilt toevoegen aan het geselecteerde project?",
+    "remove_title": "Advertenties verwijderen uit project",
+    "remove_description": "Weet je zeker dat je deze {{count}} advertentie(s) wilt verwijderen uit hun projecten?"
+  },
+  "ad_details": {
+    "primary_text": "Primaire Tekst",
+    "headline": "Koptekst",
+    "platform": "Platform",
+    "format": "Formaat",
+    "project": "Project",
+    "created": "Gemaakt",
+    "actions": "Acties" 
+  }
+}

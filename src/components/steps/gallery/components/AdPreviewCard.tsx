@@ -25,7 +25,7 @@ const AdPreviewCard = ({
   selected = false,
   onSelect
 }: AdPreviewCardProps) => {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation(['gallery', 'common']);
   
   const handleSelect = () => {
     if (onSelect && variant.id) {
@@ -80,6 +80,7 @@ const AdPreviewCard = ({
         
         <div className="mt-4">
           <AdFeedbackControls
+            adId={variant.id}
             variant={variant}
             onCreateProject={onCreateProject}
           />

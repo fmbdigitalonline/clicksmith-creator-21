@@ -1,0 +1,25 @@
+
+{
+  "feedback": {
+    "like_default": "I like this ad",
+    "dislike_default": "I dislike this ad",
+    "like_success": "Thanks for your feedback!",
+    "dislike_success": "Thanks for your feedback!",
+    "like_description": "We appreciate your positive feedback.",
+    "dislike_description": "Your feedback helps us improve.",
+    "error": "Error",
+    "error_description": "Failed to submit feedback. Please try again.",
+    "rating_required": "Rating Required",
+    "rating_description": "Please select a star rating before submitting.",
+    "default": "Custom feedback provided",
+    "success": "Feedback Submitted",
+    "success_description": "Thank you for your detailed feedback!",
+    "placeholder": "Share your thoughts on this ad (optional)"
+  },
+  "actions": {
+    "like": "Like",
+    "dislike": "Dislike",
+    "submitting": "Submitting...",
+    "submit_feedback": "Submit Feedback"
+  }
+}

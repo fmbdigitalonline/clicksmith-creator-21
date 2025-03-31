@@ -1,0 +1,67 @@
+
+{
+  "title": "Saved Ads Gallery",
+  "subtitle": "View and manage your saved ad creatives",
+  "loading": "Loading saved ads...",
+  "loading_subtitle": "We're retrieving your saved ad content",
+  "no_project_ads": "No ads have been assigned to this project yet.",
+  "go_to_gallery": "Go to your saved ads gallery to assign ads to this project",
+  "empty": {
+    "title": "No saved ads yet",
+    "subtitle": "Like or favorite ads to see them here!",
+    "action": "Create new ads"
+  },
+  "view": {
+    "grid": "Grid",
+    "table": "Table"
+  },
+  "sort": {
+    "placeholder": "Sort by",
+    "newest": "Newest First",
+    "oldest": "Oldest First",
+    "highest_rating": "Highest Rating",
+    "lowest_rating": "Lowest Rating"
+  },
+  "search": {
+    "placeholder": "Search ads by text...",
+    "label": "Search"
+  },
+  "filter": {
+    "platform": "Platform",
+    "all_platforms": "All Platforms",
+    "facebook": "Facebook",
+    "instagram": "Instagram",
+    "google": "Google"
+  },
+  "actions": {
+    "select_all": "Select All",
+    "deselect_all": "Deselect All",
+    "add_to_project": "Add to Project",
+    "remove_from_project": "Remove from Project",
+    "cancel": "Cancel",
+    "continue": "Continue",
+    "clear_filters": "Clear all filters"
+  },
+  "selected": "{{count}} selected",
+  "count": "{{count}} ads found",
+  "project_filter_info": "Showing ads for selected project",
+  "no_results": {
+    "title": "No ads found",
+    "subtitle": "Try adjusting your search or filter criteria"
+  },
+  "confirm": {
+    "assign_title": "Assign Ads to Project",
+    "assign_description": "Are you sure you want to add {{count}} ad(s) to the selected project?",
+    "remove_title": "Remove Ads from Project",
+    "remove_description": "Are you sure you want to remove these {{count}} ad(s) from their projects?"
+  },
+  "ad_details": {
+    "primary_text": "Primary Text",
+    "headline": "Headline",
+    "platform": "Platform",
+    "format": "Format",
+    "project": "Project",
+    "created": "Created",
+    "actions": "Actions" 
+  }
+}
