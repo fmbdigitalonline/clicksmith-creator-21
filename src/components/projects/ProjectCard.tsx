@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -23,7 +24,6 @@ import { Progress } from "@/components/ui/progress";
 import { ArrowRight, Play, CheckCircle, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatDistanceToNow } from "date-fns";
-import { useTranslation } from "react-i18next";
 
 interface Project {
   id: string;
@@ -57,7 +57,6 @@ const ProjectCard = ({ project, onUpdate, onStartAdWizard, showProgress = false,
   const [showDetails, setShowDetails] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { t } = useTranslation('projects');
 
   const handleDelete = async () => {
     const { error } = await supabase
@@ -67,7 +66,7 @@ const ProjectCard = ({ project, onUpdate, onStartAdWizard, showProgress = false,
 
     if (error) {
       toast({
-        title: t('errors.delete', 'Error deleting project'),
+        title: "Error deleting project",
         description: error.message,
         variant: "destructive",
       });
@@ -75,8 +74,8 @@ const ProjectCard = ({ project, onUpdate, onStartAdWizard, showProgress = false,
     }
 
     toast({
-      title: t('success.delete', 'Project deleted'),
-      description: t('success.delete_description', 'Your project has been deleted successfully.'),
+      title: "Project deleted",
+      description: "Your project has been deleted successfully.",
     });
     onUpdate();
   };
@@ -102,12 +101,12 @@ const ProjectCard = ({ project, onUpdate, onStartAdWizard, showProgress = false,
 
   const getStatusText = () => {
     if (project.generated_ads?.length > 0) {
-      return t('table.complete');
+      return "Complete";
     }
     if (project.current_step > 1) {
-      return t('table.step', { step: project.current_step, total: 4 });
+      return `Step ${project.current_step} of 4`;
     }
-    return t('table.not_started');
+    return "Not Started";
   };
 
   const progressValue = getValidationProgress();
@@ -131,7 +130,7 @@ const ProjectCard = ({ project, onUpdate, onStartAdWizard, showProgress = false,
                   <span className="text-muted-foreground">{getStatusText()}</span>
                 </div>
                 <span className="text-xs text-muted-foreground">
-                  {t('table.last_updated')}: {formatDistanceToNow(new Date(project.updated_at), { addSuffix: true })}
+                  Updated {formatDistanceToNow(new Date(project.updated_at), { addSuffix: true })}
                 </span>
               </div>
               <Progress value={progressValue} className="h-1" />
@@ -139,7 +138,7 @@ const ProjectCard = ({ project, onUpdate, onStartAdWizard, showProgress = false,
           )}
           
           <p className="text-sm text-muted-foreground line-clamp-2">
-            {project.business_idea?.description || project.description || t('no_description', 'No description provided')}
+            {project.business_idea?.description || project.description || "No description provided"}
           </p>
 
           {project.tags && project.tags.length > 0 && (
@@ -159,7 +158,7 @@ const ProjectCard = ({ project, onUpdate, onStartAdWizard, showProgress = false,
             }}
             className="w-full mt-2 gap-2"
           >
-            {t('actions.view')} <ArrowRight className="h-4 w-4" />
+            View Project <ArrowRight className="h-4 w-4" />
           </Button>
         </CardContent>
 
@@ -191,14 +190,15 @@ const ProjectCard = ({ project, onUpdate, onStartAdWizard, showProgress = false,
       <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{t('confirm.delete', 'Are you sure?')}</AlertDialogTitle>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              {t('confirm.delete_description', 'This action cannot be undone. This will permanently delete your validation project and remove all associated data.')}
+              This action cannot be undone. This will permanently delete your
+              validation project and remove all associated data.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>{t('actions.cancel', 'Cancel', { ns: 'common' })}</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete}>{t('actions.delete', 'Delete')}</AlertDialogAction>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

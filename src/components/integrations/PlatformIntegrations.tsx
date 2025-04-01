@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useSession } from "@supabase/auth-helpers-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -11,7 +12,6 @@ import FacebookConnection from "@/components/integrations/FacebookConnection";
 import FacebookCampaignOverview from "@/components/integrations/FacebookCampaignOverview";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useTranslation } from "react-i18next";
 
 export default function PlatformIntegrations() {
   const [platform, setPlatform] = useState<string>("facebook");
@@ -22,9 +22,9 @@ export default function PlatformIntegrations() {
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const { toast } = useToast();
   const session = useSession();
-  const { t } = useTranslation('integrations');
 
   useEffect(() => {
+    // Check if the current user is an admin
     const checkAdminStatus = async () => {
       if (session) {
         try {
@@ -42,10 +42,12 @@ export default function PlatformIntegrations() {
   }, [session]);
 
   useEffect(() => {
+    // Check if Facebook config exists
     const checkConfig = () => {
       const facebookAppId = import.meta.env.VITE_FACEBOOK_APP_ID;
       const facebookRedirectUri = import.meta.env.VITE_FACEBOOK_REDIRECT_URI;
       
+      // Only log environment variable availability for debugging if admin
       if (isAdmin) {
         console.log("Facebook environment variables:", {
           appId: !!facebookAppId,
@@ -60,6 +62,7 @@ export default function PlatformIntegrations() {
     checkConfig();
   }, [isAdmin]);
   
+  // Check for existing connections
   useEffect(() => {
     async function checkConnections() {
       if (!session?.user?.id) {
@@ -92,6 +95,7 @@ export default function PlatformIntegrations() {
     checkConnections();
   }, [session, toast]);
   
+  // When connections change, refresh the state
   const handleConnectionChange = async () => {
     if (!session?.user?.id) return;
     
@@ -109,6 +113,7 @@ export default function PlatformIntegrations() {
     }
   };
 
+  // If URLs aren't properly configured, show a configuration warning to admins only
   if (!isConfigLoading && !isConfigured && isAdmin) {
     return (
       <div className="container max-w-6xl mx-auto py-10">
@@ -116,19 +121,21 @@ export default function PlatformIntegrations() {
       </div>
     );
   } else if (!isConfigLoading && !isConfigured && !isAdmin) {
+    // For non-admins, show a simpler message
     return (
       <div className="container max-w-6xl mx-auto py-10">
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
-          <AlertTitle>{t('errors.configuration')}</AlertTitle>
+          <AlertTitle>Platform integration unavailable</AlertTitle>
           <AlertDescription>
-            {t('errors.try_again')}
+            Facebook integration is currently unavailable. Please try again later or contact support.
           </AlertDescription>
         </Alert>
       </div>
     );
   }
   
+  // If we're still loading, show a spinner
   if (isConfigLoading || isConnectionLoading) {
     return (
       <div className="flex justify-center items-center p-12">
@@ -140,32 +147,34 @@ export default function PlatformIntegrations() {
   return (
     <div className="container max-w-6xl mx-auto py-8">
       <div className="space-y-2">
-        <h1 className="text-3xl font-bold">{t('title')}</h1>
+        <h1 className="text-3xl font-bold">Platform Integrations</h1>
         <p className="text-muted-foreground">
-          {t('subtitle')}
+          Connect your social media and advertising platforms to automate campaign management
         </p>
       </div>
 
       <Separator className="my-6" />
       
+      {/* Main content */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-1">
+          {/* Platform selection and connections */}
           <div className="space-y-4">
-            <h2 className="text-xl font-semibold mb-4">{t('title')}</h2>
+            <h2 className="text-xl font-semibold mb-4">Connect Platforms</h2>
             
             <Tabs defaultValue="facebook" onValueChange={setPlatform} className="w-full">
               <TabsList className="w-full">
                 <TabsTrigger value="facebook" className="flex-1">
                   <Facebook className="w-4 h-4 mr-2" />
-                  {t('platforms.facebook')}
+                  Facebook
                 </TabsTrigger>
                 <TabsTrigger value="instagram" className="flex-1" disabled>
                   <Instagram className="w-4 h-4 mr-2" />
-                  {t('platforms.instagram')}
+                  Instagram
                 </TabsTrigger>
                 <TabsTrigger value="twitter" className="flex-1" disabled>
                   <Twitter className="w-4 h-4 mr-2" />
-                  {t('platforms.twitter')}
+                  Twitter
                 </TabsTrigger>
               </TabsList>
               
@@ -177,21 +186,21 @@ export default function PlatformIntegrations() {
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center">
-                      <Instagram className="w-5 h-5 mr-2" /> {t('platforms.instagram')}
+                      <Instagram className="w-5 h-5 mr-2" /> Instagram
                     </CardTitle>
-                    <CardDescription>{t('connection.connect')}</CardDescription>
+                    <CardDescription>Connect your Instagram account</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <Alert variant="default">
                       <AlertTriangle className="h-4 w-4" />
-                      <AlertTitle>{t('coming_soon', 'Coming Soon')}</AlertTitle>
+                      <AlertTitle>Coming Soon</AlertTitle>
                       <AlertDescription>
-                        {t('instagram_development', 'Instagram integration is currently in development')}
+                        Instagram integration is currently in development
                       </AlertDescription>
                     </Alert>
                   </CardContent>
                   <CardFooter>
-                    <Button className="w-full" disabled>{t('connection.connect')} {t('platforms.instagram')}</Button>
+                    <Button className="w-full" disabled>Connect Instagram</Button>
                   </CardFooter>
                 </Card>
               </TabsContent>
@@ -200,21 +209,21 @@ export default function PlatformIntegrations() {
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center">
-                      <Twitter className="w-5 h-5 mr-2" /> {t('platforms.twitter')}
+                      <Twitter className="w-5 h-5 mr-2" /> Twitter
                     </CardTitle>
-                    <CardDescription>{t('connection.connect')}</CardDescription>
+                    <CardDescription>Connect your Twitter account</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <Alert variant="default">
                       <AlertTriangle className="h-4 w-4" />
-                      <AlertTitle>{t('coming_soon', 'Coming Soon')}</AlertTitle>
+                      <AlertTitle>Coming Soon</AlertTitle>
                       <AlertDescription>
-                        {t('twitter_development', 'Twitter integration is currently in development')}
+                        Twitter integration is currently in development
                       </AlertDescription>
                     </Alert>
                   </CardContent>
                   <CardFooter>
-                    <Button className="w-full" disabled>{t('connection.connect')} {t('platforms.twitter')}</Button>
+                    <Button className="w-full" disabled>Connect Twitter</Button>
                   </CardFooter>
                 </Card>
               </TabsContent>
@@ -223,23 +232,24 @@ export default function PlatformIntegrations() {
         </div>
         
         <div className="lg:col-span-2">
+          {/* Platform-specific campaign overview */}
           <div className="space-y-4">
-            <h2 className="text-xl font-semibold mb-4">{t('campaigns.title')}</h2>
+            <h2 className="text-xl font-semibold mb-4">Campaign Management</h2>
             
             {!session ? (
               <Alert>
                 <AlertCircle className="h-4 w-4" />
-                <AlertTitle>{t('auth_required', 'Authentication Required')}</AlertTitle>
+                <AlertTitle>Authentication Required</AlertTitle>
                 <AlertDescription>
-                  {t('sign_in_required', 'Please sign in to manage your platform campaigns')}
+                  Please sign in to manage your platform campaigns
                 </AlertDescription>
               </Alert>
             ) : !hasConnections ? (
               <Alert>
                 <MessageSquare className="h-4 w-4" />
-                <AlertTitle>{t('no_connections', 'No Connected Platforms')}</AlertTitle>
+                <AlertTitle>No Connected Platforms</AlertTitle>
                 <AlertDescription>
-                  {t('connect_platform', 'Connect a platform on the left to start managing your campaigns')}
+                  Connect a platform on the left to start managing your campaigns
                 </AlertDescription>
               </Alert>
             ) : (
@@ -248,18 +258,18 @@ export default function PlatformIntegrations() {
                 {platform === 'instagram' && (
                   <Alert>
                     <AlertTriangle className="h-4 w-4" />
-                    <AlertTitle>{t('coming_soon', 'Coming Soon')}</AlertTitle>
+                    <AlertTitle>Coming Soon</AlertTitle>
                     <AlertDescription>
-                      {t('instagram_campaign_dev', 'Instagram campaign management is under development')}
+                      Instagram campaign management is under development
                     </AlertDescription>
                   </Alert>
                 )}
                 {platform === 'twitter' && (
                   <Alert>
                     <AlertTriangle className="h-4 w-4" />
-                    <AlertTitle>{t('coming_soon', 'Coming Soon')}</AlertTitle>
+                    <AlertTitle>Coming Soon</AlertTitle>
                     <AlertDescription>
-                      {t('twitter_campaign_dev', 'Twitter campaign management is under development')}
+                      Twitter campaign management is under development
                     </AlertDescription>
                   </Alert>
                 )}

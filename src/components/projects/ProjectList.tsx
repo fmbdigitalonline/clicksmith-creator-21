@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -14,7 +13,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useTranslation } from "react-i18next";
 
 type DatabaseProject = Database['public']['Tables']['projects']['Row'];
 type Project = Omit<DatabaseProject, 'business_idea' | 'target_audience' | 'audience_analysis' | 'marketing_campaign' | 'generated_ads'> & {
@@ -37,7 +35,6 @@ interface ProjectListProps {
 const ProjectList = ({ onStartAdWizard, searchQuery = "", statusFilter = "all" }: ProjectListProps) => {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const { toast } = useToast();
-  const { t } = useTranslation('projects');
 
   const { data: projects, refetch, error, isLoading } = useQuery({
     queryKey: ["projects"],
@@ -117,7 +114,7 @@ const ProjectList = ({ onStartAdWizard, searchQuery = "", statusFilter = "all" }
   if (error) {
     return (
       <div className="text-center py-8">
-        <p className="text-red-500">{t('error_loading', 'Error loading projects. Please try again later.')}</p>
+        <p className="text-red-500">Error loading projects. Please try again later.</p>
       </div>
     );
   }
@@ -125,7 +122,7 @@ const ProjectList = ({ onStartAdWizard, searchQuery = "", statusFilter = "all" }
   if (isLoading) {
     return (
       <div className="text-center py-8">
-        <p>{t('loading')}</p>
+        <p>Loading projects...</p>
       </div>
     );
   }
@@ -137,7 +134,7 @@ const ProjectList = ({ onStartAdWizard, searchQuery = "", statusFilter = "all" }
     <div className="space-y-8">
       {recentProjects.length > 0 && (
         <div className="space-y-4">
-          <h2 className="text-2xl font-bold tracking-tight">{t('recent.projects')}</h2>
+          <h2 className="text-2xl font-bold tracking-tight">Recent Projects</h2>
           <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
             {recentProjects.map((project) => (
               <ProjectCard 
@@ -155,23 +152,23 @@ const ProjectList = ({ onStartAdWizard, searchQuery = "", statusFilter = "all" }
 
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <h2 className="text-2xl font-bold tracking-tight">{t('title')}</h2>
+          <h2 className="text-2xl font-bold tracking-tight">All Projects</h2>
           <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
             {mostRecentInProgress ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button className="w-full sm:w-auto">
-                    <Plus className="mr-2 h-4 w-4" /> {t('create')}
+                    <Plus className="mr-2 h-4 w-4" /> Start Ad Campaign
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-[200px]">
                   <DropdownMenuItem onClick={() => onStartAdWizard(mostRecentInProgress.id)}>
                     <History className="mr-2 h-4 w-4" />
-                    <span>{t('continue_wizard', 'Continue')} "{mostRecentInProgress.title}"</span>
+                    <span>Continue "{mostRecentInProgress.title}"</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => onStartAdWizard()}>
                     <Plus className="mr-2 h-4 w-4" />
-                    <span>{t('start_wizard', 'Start New Campaign')}</span>
+                    <span>Start New Campaign</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -180,7 +177,7 @@ const ProjectList = ({ onStartAdWizard, searchQuery = "", statusFilter = "all" }
                 onClick={() => onStartAdWizard()} 
                 className="w-full sm:w-auto whitespace-nowrap"
               >
-                <Plus className="mr-2 h-4 w-4" /> {t('actions.generate_ads')}
+                <Plus className="mr-2 h-4 w-4" /> New Ad Campaign
               </Button>
             )}
             <Button 
@@ -188,7 +185,7 @@ const ProjectList = ({ onStartAdWizard, searchQuery = "", statusFilter = "all" }
               variant="outline"
               className="w-full sm:w-auto whitespace-nowrap"
             >
-              <Plus className="mr-2 h-4 w-4" /> {t('create')}
+              <Plus className="mr-2 h-4 w-4" /> New Project
             </Button>
           </div>
         </div>

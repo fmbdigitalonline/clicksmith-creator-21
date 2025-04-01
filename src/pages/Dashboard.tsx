@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Lightbulb, FolderOpen, Eye, Pencil, Bell, BookOpen, MessageSquare, HelpCircle, Star, Info, AlertOctagon, ArrowRight, Globe, BookmarkCheck } from "lucide-react";
@@ -15,10 +14,8 @@ import { formatDistanceToNow } from "date-fns";
 import { CheckCircle } from "lucide-react";
 import { Users, UsersRound, DollarSign, Share2 } from 'lucide-react';
 import CreateProjectDialog from "@/components/projects/CreateProjectDialog";
-import { useTranslation } from "react-i18next";
 
 const Dashboard = () => {
-  const { t } = useTranslation("dashboard");
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
@@ -251,10 +248,10 @@ const Dashboard = () => {
             <div className="absolute inset-0 bg-gradient-to-r from-primary/40 to-transparent" />
           </div>
           <div className="relative z-10 p-8">
-            <h1 className="text-4xl font-bold mb-2">{t('welcome')}, {userName}!</h1>
+            <h1 className="text-4xl font-bold mb-2">Welcome back, {userName}!</h1>
             {lastAccessedProject && (
               <p className="text-muted-foreground text-lg">
-                {t('recent.title')}: {lastAccessedProject.title} {formatDistanceToNow(new Date(lastAccessedProject.updated_at), { addSuffix: true })}
+                Last accessed: {lastAccessedProject.title} {formatDistanceToNow(new Date(lastAccessedProject.updated_at), { addSuffix: true })}
               </p>
             )}
           </div>
@@ -265,22 +262,22 @@ const Dashboard = () => {
           <Card className="hover:shadow-lg transition-shadow cursor-pointer bg-gradient-to-br from-primary/5 to-primary/10" onClick={() => navigate("/ad-wizard/new")}>
             <CardHeader>
               <Lightbulb className="h-8 w-8 mb-2 text-primary" />
-              <CardTitle>{t('quick_actions.title')}</CardTitle>
-              <CardDescription>{t('quick_actions.explore')}</CardDescription>
+              <CardTitle>Continue Idea Wizard</CardTitle>
+              <CardDescription>Resume your business idea validation journey</CardDescription>
             </CardHeader>
           </Card>
           <Card className="hover:shadow-lg transition-shadow cursor-pointer bg-gradient-to-br from-blue-500/5 to-blue-500/10" onClick={() => navigate("/saved-ads")}>
             <CardHeader>
               <FolderOpen className="h-8 w-8 mb-2 text-blue-500" />
-              <CardTitle>{t('recent.projects')}</CardTitle>
-              <CardDescription>{t('quick_actions.explore')}</CardDescription>
+              <CardTitle>View Saved Ads</CardTitle>
+              <CardDescription>Access all your previously generated ads</CardDescription>
             </CardHeader>
           </Card>
           <Card className="hover:shadow-lg transition-shadow cursor-pointer bg-gradient-to-br from-green-500/5 to-green-500/10" onClick={() => setIsCreateProjectOpen(true)}>
             <CardHeader>
               <Plus className="h-8 w-8 mb-2 text-green-500" />
-              <CardTitle>{t('quick_actions.new_project')}</CardTitle>
-              <CardDescription>{t('quick_actions.explore')}</CardDescription>
+              <CardTitle>Create New Project</CardTitle>
+              <CardDescription>Start a new business idea validation project</CardDescription>
             </CardHeader>
           </Card>
         </div>
@@ -302,7 +299,7 @@ const Dashboard = () => {
         <div className="mb-8">
           <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
             <Bell className="h-5 w-5 text-primary" />
-            {t('recent.title')}
+            Latest Updates
           </h2>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {updates?.map((update) => {
@@ -340,10 +337,10 @@ const Dashboard = () => {
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-bold flex items-center gap-2">
               <FolderOpen className="h-6 w-6 text-primary" />
-              {t('recent.projects')}
+              Recent Projects
             </h2>
             <Button variant="ghost" className="gap-2" onClick={() => navigate("/projects")}>
-              {t('view_all')} <ArrowRight className="h-4 w-4" />
+              View All <ArrowRight className="h-4 w-4" />
             </Button>
           </div>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -359,7 +356,7 @@ const Dashboard = () => {
                 <CardHeader>
                   <CardTitle className="text-lg">{project.title}</CardTitle>
                   <CardDescription>
-                    {t('updated')} {formatDistanceToNow(new Date(project.updated_at), { addSuffix: true })}
+                    Updated {formatDistanceToNow(new Date(project.updated_at), { addSuffix: true })}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -373,7 +370,7 @@ const Dashboard = () => {
                         navigate(`/projects/${project.id}`);
                       }}
                     >
-                      <Pencil className="h-4 w-4 mr-1" /> {t('edit')}
+                      <Pencil className="h-4 w-4 mr-1" /> Edit
                     </Button>
                     <Button
                       variant="outline"
@@ -384,7 +381,7 @@ const Dashboard = () => {
                         navigate(`/ad-wizard/${project.id}`);
                       }}
                     >
-                      <Eye className="h-4 w-4 mr-1" /> {t('view')}
+                      <Eye className="h-4 w-4 mr-1" /> View Ads
                     </Button>
                   </div>
                 </CardContent>
@@ -398,19 +395,19 @@ const Dashboard = () => {
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-bold flex items-center gap-2">
               <BookmarkCheck className="h-6 w-6 text-primary" />
-              {t('recent.saved_ads')}
+              Recently Saved Ads
             </h2>
             <Button variant="ghost" className="gap-2" onClick={() => navigate("/saved-ads")}>
-              {t('view_all')} <ArrowRight className="h-4 w-4" />
+              View All <ArrowRight className="h-4 w-4" />
             </Button>
           </div>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {recentSavedAds?.map((ad) => (
               <Card key={ad.id} className="hover:shadow-md transition-shadow">
                 <CardHeader>
-                  <CardTitle className="text-lg">{ad.headline || t('untitled_ad')}</CardTitle>
+                  <CardTitle className="text-lg">{ad.headline || "Untitled Ad"}</CardTitle>
                   <CardDescription>
-                    {t('saved')} {formatDistanceToNow(new Date(ad.created_at), { addSuffix: true })}
+                    Saved {formatDistanceToNow(new Date(ad.created_at), { addSuffix: true })}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -420,7 +417,7 @@ const Dashboard = () => {
                       size="sm"
                       onClick={() => navigate(`/saved-ads`)}
                     >
-                      <Eye className="h-4 w-4 mr-1" /> {t('view')}
+                      <Eye className="h-4 w-4 mr-1" /> View
                     </Button>
                   </div>
                 </CardContent>
@@ -435,21 +432,21 @@ const Dashboard = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <BookOpen className="h-5 w-5 text-primary" />
-                {t('resources')}
+                Resources
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <Button variant="link" className="w-full justify-start" onClick={() => navigate("/faq")}>
                 <BookOpen className="h-4 w-4 mr-2" />
-                {t('getting_started')}
+                Getting Started with Ad Wizard
               </Button>
               <Button variant="link" className="w-full justify-start" onClick={() => navigate("/faq")}>
                 <HelpCircle className="h-4 w-4 mr-2" />
-                {t('faq')}
+                FAQs and Support
               </Button>
               <Button variant="link" className="w-full justify-start" onClick={() => navigate("/contact")}>
                 <MessageSquare className="h-4 w-4 mr-2" />
-                {t('contact_support')}
+                Contact Support
               </Button>
             </CardContent>
           </Card>
@@ -458,18 +455,18 @@ const Dashboard = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Star className="h-5 w-5 text-primary" />
-                {t('help_improve')}
+                Help Us Improve
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <Button variant="link" className="w-full justify-start" onClick={() => navigate("/contact")}>
                 <MessageSquare className="h-4 w-4 mr-2" />
-                {t('share_feedback')}
+                Share Your Feedback
               </Button>
               <Button asChild variant="link" className="w-full justify-start">
                 <a href="https://trustpilot.com" target="_blank" rel="noopener noreferrer">
                   <Star className="h-4 w-4 mr-2" />
-                  {t('rate_us')}
+                  Rate Us on Trustpilot
                 </a>
               </Button>
             </CardContent>
@@ -479,21 +476,21 @@ const Dashboard = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Users className="h-5 w-5 text-primary" />
-                {t('share_earn')}
+                Share & Earn
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <Button variant="link" className="w-full justify-start" onClick={() => navigate("/referral")}>
                 <UsersRound className="h-4 w-4 mr-2" />
-                {t('refer_friend')}
+                Refer a Friend
               </Button>
               <Button variant="link" className="w-full justify-start" onClick={() => navigate("/affiliate")}>
                 <DollarSign className="h-4 w-4 mr-2" />
-                {t('affiliate_program')}
+                Affiliate Program
               </Button>
               <Button variant="link" className="w-full justify-start" onClick={() => navigate("/share")}>
                 <Share2 className="h-4 w-4 mr-2" />
-                {t('share_social')}
+                Share on Social Media
               </Button>
             </CardContent>
           </Card>

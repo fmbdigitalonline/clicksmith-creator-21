@@ -1,188 +1,167 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Loader2, Star, ThumbsUp, ThumbsDown } from "lucide-react";
-import { Textarea } from "@/components/ui/textarea";
+import { ThumbsUp, ThumbsDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { useTranslation } from "react-i18next";
+import { Textarea } from "@/components/ui/textarea";
 
-export interface AdFeedbackControlsProps {
-  adId?: string;
+interface AdFeedbackControlsProps {
+  adId: string;
   projectId?: string;
   onFeedbackSubmit?: () => void;
-  variant?: any;
-  onCreateProject?: () => void;
 }
 
-export const AdFeedbackControls = ({
-  adId,
-  projectId,
-  onFeedbackSubmit,
-  variant,
-  onCreateProject
-}: AdFeedbackControlsProps) => {
+export const AdFeedbackControls = ({ adId, projectId, onFeedbackSubmit }: AdFeedbackControlsProps) => {
   const [rating, setRating] = useState<number | null>(null);
-  const [feedback, setFeedback] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [feedback, setFeedback] = useState<string>("");
+  const [isSaving, setIsSaving] = useState(false);
+  const [showFeedbackInput, setShowFeedbackInput] = useState(false);
   const { toast } = useToast();
-  const { t } = useTranslation(['ad-feedback']);
 
-  const effectiveAdId = adId || (variant?.id ? variant.id : undefined);
-
-  const handleStarClick = (value: number) => {
-    setRating(value === rating ? null : value);
-  };
-
-  const handleFeedbackChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setFeedback(event.target.value);
-  };
-
-  const handleLikeDislike = async (isLike: boolean) => {
-    if (!effectiveAdId) {
-      if (onCreateProject) {
-        onCreateProject();
-      }
-      return;
+  const saveFeedbackToDatabase = async (rating: number, feedbackText: string | null) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      throw new Error('User must be authenticated');
     }
 
-    setIsSubmitting(true);
-    try {
-      const { data, error } = await supabase
+    const feedbackData = {
+      user_id: user.id,
+      project_id: projectId,
+      ad_id: adId,
+      rating: rating,
+      feedback: feedbackText
+    };
+
+    const { error: updateError } = await supabase
+      .from('ad_feedback')
+      .update(feedbackData)
+      .eq('user_id', user.id)
+      .eq('ad_id', adId);
+
+    if (updateError) {
+      const { error: insertError } = await supabase
         .from('ad_feedback')
-        .update({
-          rating: isLike ? 5 : 1,
-          feedback: feedback || (isLike ? t('feedback.like_default') : t('feedback.dislike_default')),
-        })
-        .eq('id', effectiveAdId);
+        .insert(feedbackData);
 
-      if (error) throw error;
+      if (insertError) throw insertError;
+    }
+  };
 
-      toast({
-        title: isLike ? t('feedback.like_success') : t('feedback.dislike_success'),
-        description: isLike ? t('feedback.like_description') : t('feedback.dislike_description'),
-      });
-
-      if (onFeedbackSubmit) {
-        onFeedbackSubmit();
+  const handleFeedback = async (newRating: number) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({
+          title: "Authentication required",
+          description: "Please sign in to provide feedback",
+          variant: "destructive",
+        });
+        return;
       }
-    } catch (error) {
-      console.error('Error submitting feedback:', error);
+
+      // If dislike is clicked, show feedback input
+      if (newRating === 0) {
+        setRating(newRating);
+        setShowFeedbackInput(true);
+        return;
+      }
+
+      // For likes, save immediately
+      setIsSaving(true);
+      await saveFeedbackToDatabase(newRating, null);
+      setRating(newRating);
+      onFeedbackSubmit?.();
+
       toast({
-        title: t('feedback.error'),
-        description: t('feedback.error_description'),
+        title: "Feedback saved",
+        description: "Thank you for your feedback!",
+      });
+    } catch (error) {
+      console.error('Error saving feedback:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save feedback. Please try again.",
         variant: "destructive",
       });
     } finally {
-      setIsSubmitting(false);
+      setIsSaving(false);
     }
   };
 
-  const handleCustomFeedback = async () => {
-    if (!effectiveAdId || !rating) {
-      toast({
-        title: t('feedback.rating_required'),
-        description: t('feedback.rating_description'),
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsSubmitting(true);
+  const handleFeedbackSubmit = async () => {
+    if (rating === null) return;
+    
     try {
-      const { data, error } = await supabase
-        .from('ad_feedback')
-        .update({
-          rating,
-          feedback: feedback || t('feedback.default'),
-        })
-        .eq('id', effectiveAdId);
-
-      if (error) throw error;
-
-      toast({
-        title: t('feedback.success'),
-        description: t('feedback.success_description'),
-      });
-
-      // Reset form
-      setRating(null);
+      setIsSaving(true);
+      await saveFeedbackToDatabase(rating, feedback);
+      setShowFeedbackInput(false);
       setFeedback("");
+      onFeedbackSubmit?.();
 
-      if (onFeedbackSubmit) {
-        onFeedbackSubmit();
-      }
-    } catch (error) {
-      console.error('Error submitting feedback:', error);
       toast({
-        title: t('feedback.error'),
-        description: t('feedback.error_description'),
+        title: "Feedback saved",
+        description: "Thank you for your detailed feedback!",
+      });
+    } catch (error) {
+      console.error('Error saving feedback:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save feedback. Please try again.",
         variant: "destructive",
       });
     } finally {
-      setIsSubmitting(false);
+      setIsSaving(false);
     }
   };
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex space-x-1">
-          {[1, 2, 3, 4, 5].map((value) => (
-            <Star
-              key={value}
-              className={`h-5 w-5 cursor-pointer ${
-                value <= (rating || 0) ? "fill-yellow-400 text-yellow-400" : "text-gray-300"
-              }`}
-              onClick={() => handleStarClick(value)}
-            />
-          ))}
-        </div>
+      <div className="flex items-center justify-between space-x-2">
         <div className="flex space-x-2">
           <Button
             variant="outline"
             size="sm"
-            className="text-green-600 border-green-200 hover:bg-green-50"
-            disabled={isSubmitting}
-            onClick={() => handleLikeDislike(true)}
+            onClick={() => handleFeedback(1)}
+            className={cn(rating === 1 && "bg-green-100")}
+            disabled={isSaving}
           >
-            <ThumbsUp className="h-4 w-4 mr-1" />
-            {t('actions.like')}
+            <ThumbsUp className="w-4 h-4 mr-2" />
+            Like
           </Button>
           <Button
             variant="outline"
             size="sm"
-            className="text-red-600 border-red-200 hover:bg-red-50"
-            disabled={isSubmitting}
-            onClick={() => handleLikeDislike(false)}
+            onClick={() => handleFeedback(0)}
+            className={cn(rating === 0 && "bg-red-100")}
+            disabled={isSaving}
           >
-            <ThumbsDown className="h-4 w-4 mr-1" />
-            {t('actions.dislike')}
+            <ThumbsDown className="w-4 h-4 mr-2" />
+            Dislike
           </Button>
         </div>
       </div>
-      
-      <Textarea
-        placeholder={t('feedback.placeholder')}
-        value={feedback}
-        onChange={handleFeedbackChange}
-        className="h-20 resize-none"
-      />
-      
-      <Button
-        className="w-full"
-        disabled={isSubmitting}
-        onClick={handleCustomFeedback}
-      >
-        {isSubmitting ? (
-          <>
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            {t('actions.submitting')}
-          </>
-        ) : (
-          t('actions.submit_feedback')
-        )}
-      </Button>
+
+      {showFeedbackInput && (
+        <div className="space-y-2">
+          <Textarea
+            placeholder="Please tell us why you didn't like this ad..."
+            value={feedback}
+            onChange={(e) => setFeedback(e.target.value)}
+            className="min-h-[80px]"
+          />
+          <div className="flex justify-end">
+            <Button
+              size="sm"
+              onClick={handleFeedbackSubmit}
+              disabled={isSaving || !feedback.trim()}
+            >
+              Submit Feedback
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
