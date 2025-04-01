@@ -26,7 +26,7 @@ export const AdFeedbackControls = ({
   const [feedback, setFeedback] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
-  const { t } = useTranslation('gallery');
+  const { t } = useTranslation(['ad-feedback']);
 
   const effectiveAdId = adId || (variant?.id ? variant.id : undefined);
 
@@ -52,15 +52,15 @@ export const AdFeedbackControls = ({
         .from('ad_feedback')
         .update({
           rating: isLike ? 5 : 1,
-          feedback: feedback || (isLike ? t('feedback.like_default', 'I like this ad') : t('feedback.dislike_default', 'I dislike this ad')),
+          feedback: feedback || (isLike ? t('feedback.like_default') : t('feedback.dislike_default')),
         })
         .eq('id', effectiveAdId);
 
       if (error) throw error;
 
       toast({
-        title: isLike ? t('feedback.like_success', 'Thanks for your feedback!') : t('feedback.dislike_success', 'Thanks for your feedback!'),
-        description: isLike ? t('feedback.like_description', 'We appreciate your positive feedback.') : t('feedback.dislike_description', 'Your feedback helps us improve.'),
+        title: isLike ? t('feedback.like_success') : t('feedback.dislike_success'),
+        description: isLike ? t('feedback.like_description') : t('feedback.dislike_description'),
       });
 
       if (onFeedbackSubmit) {
@@ -69,8 +69,8 @@ export const AdFeedbackControls = ({
     } catch (error) {
       console.error('Error submitting feedback:', error);
       toast({
-        title: t('feedback.error', 'Error'),
-        description: t('feedback.error_description', 'Failed to submit feedback. Please try again.'),
+        title: t('feedback.error'),
+        description: t('feedback.error_description'),
         variant: "destructive",
       });
     } finally {
@@ -81,8 +81,8 @@ export const AdFeedbackControls = ({
   const handleCustomFeedback = async () => {
     if (!effectiveAdId || !rating) {
       toast({
-        title: t('feedback.rating_required', 'Rating Required'),
-        description: t('feedback.rating_description', 'Please select a star rating before submitting.'),
+        title: t('feedback.rating_required'),
+        description: t('feedback.rating_description'),
         variant: "destructive",
       });
       return;
@@ -94,15 +94,15 @@ export const AdFeedbackControls = ({
         .from('ad_feedback')
         .update({
           rating,
-          feedback: feedback || t('feedback.default', 'Custom feedback provided'),
+          feedback: feedback || t('feedback.default'),
         })
         .eq('id', effectiveAdId);
 
       if (error) throw error;
 
       toast({
-        title: t('feedback.success', 'Feedback Submitted'),
-        description: t('feedback.success_description', 'Thank you for your detailed feedback!'),
+        title: t('feedback.success'),
+        description: t('feedback.success_description'),
       });
 
       // Reset form
@@ -115,8 +115,8 @@ export const AdFeedbackControls = ({
     } catch (error) {
       console.error('Error submitting feedback:', error);
       toast({
-        title: t('feedback.error', 'Error'),
-        description: t('feedback.error_description', 'Failed to submit feedback. Please try again.'),
+        title: t('feedback.error'),
+        description: t('feedback.error_description'),
         variant: "destructive",
       });
     } finally {
@@ -147,7 +147,7 @@ export const AdFeedbackControls = ({
             onClick={() => handleLikeDislike(true)}
           >
             <ThumbsUp className="h-4 w-4 mr-1" />
-            {t('actions.like', 'Like')}
+            {t('actions.like')}
           </Button>
           <Button
             variant="outline"
@@ -157,13 +157,13 @@ export const AdFeedbackControls = ({
             onClick={() => handleLikeDislike(false)}
           >
             <ThumbsDown className="h-4 w-4 mr-1" />
-            {t('actions.dislike', 'Dislike')}
+            {t('actions.dislike')}
           </Button>
         </div>
       </div>
       
       <Textarea
-        placeholder={t('feedback.placeholder', 'Share your thoughts on this ad (optional)')}
+        placeholder={t('feedback.placeholder')}
         value={feedback}
         onChange={handleFeedbackChange}
         className="h-20 resize-none"
@@ -177,10 +177,10 @@ export const AdFeedbackControls = ({
         {isSubmitting ? (
           <>
             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            {t('actions.submitting', 'Submitting...')}
+            {t('actions.submitting')}
           </>
         ) : (
-          t('actions.submit_feedback', 'Submit Feedback')
+          t('actions.submit_feedback')
         )}
       </Button>
     </div>
