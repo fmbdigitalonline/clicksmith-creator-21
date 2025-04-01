@@ -47,9 +47,32 @@ export const SaveAdButton = ({
         throw new Error('User must be logged in to save feedback');
       }
 
+      // Check if this image is already saved for this user+project
+      const { data: existingAds, error: checkError } = await supabase
+        .from('ad_feedback')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('project_id', window.location.pathname.split('/').pop())
+        .eq('imageurl', image.url);
+      
+      if (checkError) {
+        console.error('Error checking existing ads:', checkError);
+      }
+      
+      // If the ad is already saved, don't save it again
+      if (existingAds && existingAds.length > 0) {
+        toast({
+          title: "Ad Already Saved",
+          description: "This ad has already been saved to your gallery.",
+        });
+        setSaving(false);
+        return;
+      }
+
       const feedbackData = {
         id: uuidv4(),
         user_id: user.id,
+        project_id: window.location.pathname.split('/').pop(),
         rating: parseInt(rating, 10),
         feedback,
         primary_text: primaryText || hook.text || null,

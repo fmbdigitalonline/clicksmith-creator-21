@@ -1,4 +1,6 @@
+
 import { Card } from "@/components/ui/card";
+import { useCallback } from "react";
 
 export const EmptyState = () => {
   return (

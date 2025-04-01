@@ -5,6 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { AdFeedbackControls } from "@/components/steps/gallery/components/AdFeedbackControls";
 import { Json } from "@/integrations/supabase/types";
+import { EmptyState } from "@/components/gallery/components/EmptyState";
 
 interface SavedAd {
   id: string;
@@ -34,7 +35,11 @@ interface AdFeedbackRow {
   size?: Json;
 }
 
-export const SavedAdsGallery = () => {
+interface SavedAdsGalleryProps {
+  projectFilter?: string;
+}
+
+export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps = {}) => {
   const [savedAds, setSavedAds] = useState<SavedAd[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
@@ -48,22 +53,41 @@ export const SavedAdsGallery = () => {
           return;
         }
 
-        console.log('Fetching saved ads for user:', user.id);
+        console.log('Fetching saved ads for user:', user.id, projectFilter ? `with project filter: ${projectFilter}` : 'without project filter');
 
-        const { data, error } = await supabase
+        let query = supabase
           .from('ad_feedback')
           .select('id, headline, primary_text, rating, feedback, created_at, imageurl, platform, size')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false });
+          
+        // Apply project filter if provided
+        if (projectFilter) {
+          query = query.eq('project_id', projectFilter);
+        }
+
+        const { data, error } = await query;
 
         if (error) {
           throw error;
         }
 
-        console.log('Retrieved ads:', data);
+        console.log('Retrieved ads count:', data?.length);
+
+        // Deduplicate ads by imageurl
+        const uniqueImageUrls = new Set();
+        const uniqueAds = (data as AdFeedbackRow[] || []).filter(ad => {
+          if (!ad.imageurl || uniqueImageUrls.has(ad.imageurl)) {
+            return false;
+          }
+          uniqueImageUrls.add(ad.imageurl);
+          return true;
+        });
+
+        console.log('Unique ads count:', uniqueAds.length);
 
         // Convert the data to match SavedAd interface
-        const convertedAds: SavedAd[] = (data as AdFeedbackRow[]).map(ad => ({
+        const convertedAds: SavedAd[] = uniqueAds.map(ad => ({
           ...ad,
           size: ad.size as { width: number; height: number; label: string }
         }));
@@ -82,20 +106,14 @@ export const SavedAdsGallery = () => {
     };
 
     fetchSavedAds();
-  }, [toast]);
+  }, [toast, projectFilter]);
 
   if (isLoading) {
     return <div>Loading saved ads...</div>;
   }
 
   if (savedAds.length === 0) {
-    return (
-      <Card className="p-6">
-        <p className="text-center text-gray-500">
-          No saved ads yet. Like or favorite ads to see them here!
-        </p>
-      </Card>
-    );
+    return <EmptyState />;
   }
 
   return (
