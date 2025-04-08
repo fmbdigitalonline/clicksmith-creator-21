@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useSession } from "@supabase/auth-helpers-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -24,7 +23,6 @@ export default function PlatformIntegrations() {
   const session = useSession();
 
   useEffect(() => {
-    // Check if the current user is an admin
     const checkAdminStatus = async () => {
       if (session) {
         try {
@@ -42,12 +40,10 @@ export default function PlatformIntegrations() {
   }, [session]);
 
   useEffect(() => {
-    // Check if Facebook config exists
     const checkConfig = () => {
       const facebookAppId = import.meta.env.VITE_FACEBOOK_APP_ID;
       const facebookRedirectUri = import.meta.env.VITE_FACEBOOK_REDIRECT_URI;
       
-      // Only log environment variable availability for debugging if admin
       if (isAdmin) {
         console.log("Facebook environment variables:", {
           appId: !!facebookAppId,
@@ -62,7 +58,6 @@ export default function PlatformIntegrations() {
     checkConfig();
   }, [isAdmin]);
   
-  // Check for existing connections
   useEffect(() => {
     async function checkConnections() {
       if (!session?.user?.id) {
@@ -95,7 +90,6 @@ export default function PlatformIntegrations() {
     checkConnections();
   }, [session, toast]);
   
-  // When connections change, refresh the state
   const handleConnectionChange = async () => {
     if (!session?.user?.id) return;
     
@@ -113,7 +107,6 @@ export default function PlatformIntegrations() {
     }
   };
 
-  // If URLs aren't properly configured, show a configuration warning to admins only
   if (!isConfigLoading && !isConfigured && isAdmin) {
     return (
       <div className="container max-w-6xl mx-auto py-10">
@@ -121,7 +114,6 @@ export default function PlatformIntegrations() {
       </div>
     );
   } else if (!isConfigLoading && !isConfigured && !isAdmin) {
-    // For non-admins, show a simpler message
     return (
       <div className="container max-w-6xl mx-auto py-10">
         <Alert variant="destructive">
@@ -135,7 +127,6 @@ export default function PlatformIntegrations() {
     );
   }
   
-  // If we're still loading, show a spinner
   if (isConfigLoading || isConnectionLoading) {
     return (
       <div className="flex justify-center items-center p-12">
@@ -155,26 +146,24 @@ export default function PlatformIntegrations() {
 
       <Separator className="my-6" />
       
-      {/* Main content */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-1">
-          {/* Platform selection and connections */}
           <div className="space-y-4">
             <h2 className="text-xl font-semibold mb-4">Connect Platforms</h2>
             
             <Tabs defaultValue="facebook" onValueChange={setPlatform} className="w-full">
-              <TabsList className="w-full">
-                <TabsTrigger value="facebook" className="flex-1">
+              <TabsList className="w-full flex">
+                <TabsTrigger value="facebook" className="flex items-center flex-1">
                   <Facebook className="w-4 h-4 mr-2" />
-                  Facebook
+                  <span className="truncate">Facebook</span>
                 </TabsTrigger>
-                <TabsTrigger value="instagram" className="flex-1" disabled>
+                <TabsTrigger value="instagram" className="flex items-center flex-1" disabled>
                   <Instagram className="w-4 h-4 mr-2" />
-                  Instagram
+                  <span className="truncate">Instagram</span>
                 </TabsTrigger>
-                <TabsTrigger value="twitter" className="flex-1" disabled>
+                <TabsTrigger value="twitter" className="flex items-center flex-1" disabled>
                   <Twitter className="w-4 h-4 mr-2" />
-                  Twitter
+                  <span className="truncate">Twitter</span>
                 </TabsTrigger>
               </TabsList>
               
@@ -232,7 +221,6 @@ export default function PlatformIntegrations() {
         </div>
         
         <div className="lg:col-span-2">
-          {/* Platform-specific campaign overview */}
           <div className="space-y-4">
             <h2 className="text-xl font-semibold mb-4">Campaign Management</h2>
             
