@@ -1,6 +1,7 @@
 
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface StepNavigationProps {
   onBack?: () => void;
@@ -17,6 +18,8 @@ const StepNavigation = ({
   loading = false,
   showBack = true,
 }: StepNavigationProps) => {
+  const { t } = useTranslation();
+  
   return (
     <div className="flex flex-col md:flex-row justify-between gap-4 mb-4">
       {showBack && onBack && (
@@ -27,7 +30,7 @@ const StepNavigation = ({
           disabled={loading}
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>Previous Step</span>
+          <span>{t("navigation.previous_step", "Previous Step")}</span>
         </Button>
       )}
       {onNext && (
@@ -39,11 +42,11 @@ const StepNavigation = ({
           {loading ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              <span>Processing...</span>
+              <span>{t("loading", "Processing...")}</span>
             </>
           ) : (
             <>
-              <span>Next Step</span>
+              <span>{t("navigation.next_step", "Next Step")}</span>
               <ArrowRight className="w-4 h-4 ml-2" />
             </>
           )}

@@ -1,9 +1,14 @@
+
+import { useTranslation } from "react-i18next";
+
 interface WizardHeaderProps {
   title: string;
   description: string;
 }
 
 const WizardHeader = ({ title, description }: WizardHeaderProps) => {
+  const { t } = useTranslation();
+  
   return (
     <div className="mb-8">
       <h1 className="text-3xl md:text-4xl font-bold mb-4">{title}</h1>
