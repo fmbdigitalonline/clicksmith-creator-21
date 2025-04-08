@@ -22,11 +22,11 @@ export interface SavedAd {
 
 export interface FacebookAdSettings extends Record<string, Json> {
   website_url: string;
-  visible_link?: string;
-  call_to_action?: string;
-  ad_language?: string;
-  url_parameters?: string;
-  browser_addon?: string;
+  visible_link: string;
+  call_to_action: string;
+  ad_language: string;
+  url_parameters: string;
+  browser_addon: string;
 }
 
 export interface AdSize {
@@ -92,30 +92,6 @@ export interface AdCampaignData {
   updated_at: string;
 }
 
-export interface CampaignFormData {
-  name: string;
-  objective: string;
-  budget: number;
-  bid_amount?: number;
-  bid_strategy: string;
-  end_date?: Date;
-  start_date: Date;
-  targeting?: {
-    age_min: number;
-    age_max: number;
-    gender: string;
-    interests?: string[];
-    locations?: string[];
-  };
-  additional_notes?: string;
-  page_id?: string;
-}
-
 export interface FacebookCampaignOverviewProps {
   onConnectionChange?: () => Promise<void>;
-}
-
-export interface CampaignFormRef {
-  submitForm: () => Promise<boolean>;
-  _formValues?: Record<string, any>;
 }
