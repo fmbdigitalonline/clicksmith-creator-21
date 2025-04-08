@@ -15,12 +15,29 @@ import {
 } from "@/components/ui/popover"
 
 interface DatePickerProps {
-  date?: Date
-  setDate: (date: Date | undefined) => void
-  className?: string
+  date?: Date | undefined;
+  setDate: (date: Date | undefined) => void;
+  className?: string;
 }
 
 export function DatePicker({ date, setDate, className }: DatePickerProps) {
+  // Handle different date formats properly
+  const normalizedDate = date instanceof Date ? date : undefined;
+  
+  // Ensure the component re-renders when date changes
+  const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(normalizedDate);
+  
+  React.useEffect(() => {
+    if (date !== selectedDate) {
+      setSelectedDate(date instanceof Date ? date : undefined);
+    }
+  }, [date]);
+  
+  const handleDateChange = (newDate: Date | undefined) => {
+    setSelectedDate(newDate);
+    setDate(newDate);
+  };
+
   return (
     <div className={cn("grid gap-2", className)}>
       <Popover>
@@ -31,18 +48,18 @@ export function DatePicker({ date, setDate, className }: DatePickerProps) {
             variant={"outline"}
             className={cn(
               "w-full justify-start text-left font-normal",
-              !date && "text-muted-foreground"
+              !selectedDate && "text-muted-foreground"
             )}
           >
             <CalendarIcon className="mr-2 h-4 w-4" />
-            {date ? format(date, "PPP") : <span>Pick a date</span>}
+            {selectedDate ? format(selectedDate, "PPP") : <span>Pick a date</span>}
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0" align="start">
           <Calendar
             mode="single"
-            selected={date}
-            onSelect={setDate}
+            selected={selectedDate}
+            onSelect={handleDateChange}
             initialFocus
           />
         </PopoverContent>

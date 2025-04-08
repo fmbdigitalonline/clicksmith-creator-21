@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import CreateCampaignForm from "@/components/integrations/CreateCampaignForm";
@@ -14,6 +15,7 @@ import DataCompletionWarning from "@/components/projects/DataCompletionWarning";
 import CampaignStatusCard from "@/components/integrations/CampaignStatusCard";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { CampaignFormRef } from "@/types/campaignTypes";
 
 interface FacebookCampaignFormProps {
   open: boolean;
@@ -40,7 +42,7 @@ export default function FacebookCampaignForm({
   const { toast } = useToast();
   
   // Create form ref with explicit type
-  const campaignFormRef = useRef<{ submitForm: () => Promise<boolean> } | null>(null);
+  const campaignFormRef = useRef<CampaignFormRef | null>(null);
   
   // Fetch project data for targeting suggestions and validation
   const projectData = useProjectCampaignData(selectedProjectId);
@@ -50,6 +52,7 @@ export default function FacebookCampaignForm({
   const [imageCheckError, setImageCheckError] = useState<string | null>(null);
   const [isProcessingSelected, setIsProcessingSelected] = useState(false);
   const [formValidated, setFormValidated] = useState<boolean>(false);
+  const [submissionError, setSubmissionError] = useState<string | null>(null);
   
   // Log any changes to selectedProjectId
   useEffect(() => {
@@ -73,6 +76,11 @@ export default function FacebookCampaignForm({
   // Extract targeting data if available
   const targetingData = projectData.targetAudience ? 
     extractTargetingData(projectData.targetAudience, projectData.audienceAnalysis) : null;
+
+  // Reset error when tab changes or form is resubmitted
+  useEffect(() => {
+    setSubmissionError(null);
+  }, [formTab, isSubmitting]);
 
   const handleModeSelect = (mode: "manual" | "semi-automatic" | "automatic") => {
     setSelectedMode(mode);
@@ -136,6 +144,7 @@ export default function FacebookCampaignForm({
       setProjectError(null);
       setInitialProjectSet(false);
       setFormValidated(false);
+      setSubmissionError(null);
     }, 300); // Small delay to avoid seeing the reset during close animation
     onOpenChange(false);
   };
@@ -198,6 +207,8 @@ export default function FacebookCampaignForm({
       return;
     }
     
+    setSubmissionError(null);
+    
     // Check for selected ads first
     if (selectedAdIds.length === 0) {
       toast({
@@ -205,6 +216,7 @@ export default function FacebookCampaignForm({
         description: "Please select at least one ad for your campaign",
         variant: "destructive"
       });
+      setSubmissionError("Please select at least one ad for your campaign");
       return;
     }
     
@@ -215,6 +227,7 @@ export default function FacebookCampaignForm({
         description: "Some of your selected images are still being processed for Facebook. Please wait or select different ads.",
         variant: "destructive"
       });
+      setSubmissionError("Images not ready for Facebook. Please wait or choose different ads.");
       return;
     }
     
@@ -231,6 +244,7 @@ export default function FacebookCampaignForm({
           description: "Could not access the campaign form. Please try refreshing the page.",
           variant: "destructive"
         });
+        setSubmissionError("Technical error: Could not access the form");
         return;
       }
       
@@ -243,12 +257,37 @@ export default function FacebookCampaignForm({
           description: "Could not submit the form. Please try again or refresh the page.",
           variant: "destructive"
         });
+        setSubmissionError("Technical error: Could not submit the form");
         return;
       }
       
       // Debug the targeting data and selected ads before submission
       console.log("Targeting data before submission:", targetingData);
       console.log("Selected ads before submission:", selectedAdIds);
+      
+      // Check if a campaign with the same name already exists
+      const { data: existingCampaignData, error: existingCampaignError } = await supabase
+        .from('ad_campaigns')
+        .select('id, name')
+        .eq('name', campaignFormRef.current['_formValues']?.name || '')
+        .maybeSingle();
+        
+      if (existingCampaignError) {
+        console.warn("Error checking for existing campaign:", existingCampaignError);
+      }
+      
+      if (existingCampaignData) {
+        console.warn("Campaign with same name exists:", existingCampaignData);
+        toast({
+          title: "Campaign Name Already Exists",
+          description: "A campaign with this name already exists. Please choose a different name.",
+          variant: "destructive"
+        });
+        setSubmissionError("A campaign with this name already exists. Please choose a different name.");
+        setIsSubmitting(false);
+        setFormTab("details");
+        return;
+      }
       
       const result = await campaignFormRef.current.submitForm();
       console.log("Form submission result:", result);
@@ -261,6 +300,7 @@ export default function FacebookCampaignForm({
           description: "There was an error creating your campaign. Please check your form values and try again.",
           variant: "destructive"
         });
+        setSubmissionError("Campaign creation failed. Please check your form values.");
       }
     } catch (error) {
       console.error("Error submitting form:", error);
@@ -270,11 +310,15 @@ export default function FacebookCampaignForm({
         description: error instanceof Error ? error.message : "Failed to create campaign. Please check the console for details.",
         variant: "destructive"
       });
+      setSubmissionError(error instanceof Error ? error.message : "Failed to create campaign");
     }
   };
 
   // Function to ensure form validation is triggered when switching tabs
   const handleSwitchToAdsTab = async () => {
+    // Clear any previous errors
+    setSubmissionError(null);
+    
     // Validate the form first before switching tabs
     const isValid = await validateFormBeforeSubmit();
     
@@ -624,6 +668,14 @@ export default function FacebookCampaignForm({
                       maxSelection={5}
                     />
                     
+                    {submissionError && (
+                      <Alert variant="destructive" className="mt-4">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertTitle>Submission Error</AlertTitle>
+                        <AlertDescription>{submissionError}</AlertDescription>
+                      </Alert>
+                    )}
+                    
                     <div className="flex items-center justify-between pt-4 border-t">
                       <Button variant="outline" onClick={() => setFormTab("details")}>
                         Back to Campaign Details
@@ -633,7 +685,14 @@ export default function FacebookCampaignForm({
                         disabled={!canSubmitCampaign()}
                         variant="facebook"
                       >
-                        {isSubmitting ? "Creating Campaign..." : `Create Campaign with ${selectedAdIds.length} ad${selectedAdIds.length !== 1 ? 's' : ''}`}
+                        {isSubmitting ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Creating Campaign...
+                          </>
+                        ) : (
+                          `Create Campaign with ${selectedAdIds.length} ad${selectedAdIds.length !== 1 ? 's' : ''}`
+                        )}
                       </Button>
                     </div>
                     
