@@ -96,11 +96,12 @@ export interface FacebookCampaignOverviewProps {
   onConnectionChange?: () => Promise<void>;
 }
 
-// New interfaces to ensure type safety in form handling
+// Interface for form reference
 export interface CampaignFormForwardRef {
   submitForm: () => Promise<boolean>;
 }
 
+// Interface for campaign targeting
 export interface CampaignTargeting {
   age_min: number;
   age_max: number;
@@ -109,6 +110,7 @@ export interface CampaignTargeting {
   locations?: string[];
 }
 
+// Interface for campaign form values
 export interface CampaignFormValues {
   name: string;
   objective: string;

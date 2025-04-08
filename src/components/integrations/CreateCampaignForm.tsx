@@ -183,7 +183,7 @@ const CreateCampaignForm = forwardRef<CampaignFormForwardRef, CreateCampaignForm
             .from('projects')
             .select('title')
             .eq('id', projectId)
-            .single();
+            .maybeSingle();
             
           if (error) {
             console.error('Error fetching project title:', error);
@@ -270,6 +270,7 @@ const CreateCampaignForm = forwardRef<CampaignFormForwardRef, CreateCampaignForm
           description: error.message || "There was an error creating your campaign",
           variant: "destructive",
         });
+        setIsSubmitting(false);
         return false;
       }
 
@@ -292,9 +293,8 @@ const CreateCampaignForm = forwardRef<CampaignFormForwardRef, CreateCampaignForm
         description: error instanceof Error ? error.message : "Failed to create campaign",
         variant: "destructive",
       });
-      return false;
-    } finally {
       setIsSubmitting(false);
+      return false;
     }
   };
 

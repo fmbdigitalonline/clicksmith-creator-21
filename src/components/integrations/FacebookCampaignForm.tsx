@@ -591,7 +591,12 @@ export default function FacebookCampaignForm({
                         disabled={!canSubmitCampaign()}
                         variant="facebook"
                       >
-                        {isSubmitting ? "Creating Campaign..." : `Create Campaign with ${selectedAdIds.length} ad${selectedAdIds.length !== 1 ? 's' : ''}`}
+                        {isSubmitting ? (
+                          <div className="flex items-center">
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Creating Campaign...
+                          </div>
+                        ) : `Create Campaign with ${selectedAdIds.length} ad${selectedAdIds.length !== 1 ? 's' : ''}`}
                       </Button>
                     </div>
                     
