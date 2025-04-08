@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import CreateCampaignForm from "@/components/integrations/CreateCampaignForm";
@@ -174,6 +173,7 @@ export default function FacebookCampaignForm({
       return;
     }
     
+    // Fix: Check for selected ads first
     if (selectedAdIds.length === 0) {
       toast({
         title: "No ads selected",
@@ -248,6 +248,29 @@ export default function FacebookCampaignForm({
     }
   };
 
+  // Fix: Add function to ensure form validation is triggered when switching tabs
+  const handleSwitchToAdsTab = () => {
+    if (canContinueToAds()) {
+      // Ensure form values are retained when switching tabs
+      setFormTab("ads");
+    } else {
+      if (!selectedProjectId) {
+        setProjectError("Please select a project before continuing");
+        toast({
+          title: "Project Required",
+          description: "You must select a project before proceeding to ad selection.",
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Please complete all required fields",
+          description: "Make sure you've filled in all the campaign details before continuing.",
+          variant: "destructive"
+        });
+      }
+    }
+  };
+
   // Validate if user can proceed to ad selection
   const canContinueToAds = () => {
     // Make sure we have a project selected before continuing
@@ -255,26 +278,13 @@ export default function FacebookCampaignForm({
       setProjectError("Please select a project before continuing");
       return false;
     }
-    return formTab === "details";
+    return true; // Fix: Remove formTab check as it's not relevant for validation
   };
 
   // Validate if form is ready for submission
   const canSubmitCampaign = () => {
-    return selectedAdIds.length > 0 && !isSubmitting;
+    return selectedAdIds.length > 0 && !isSubmitting && imagesReady;
   };
-
-  // Log state for debugging
-  console.log("Form state:", {
-    open,
-    step,
-    selectedMode,
-    selectedProjectId,
-    initialProjectId,
-    formTab,
-    selectedAdIds,
-    projectDataLoaded: !!projectData,
-    projectError
-  });
 
   // Function to check image status and process if needed
   const checkImagesStatus = async (adIds = selectedAdIds) => {
@@ -520,26 +530,7 @@ export default function FacebookCampaignForm({
                   onCancel={handleClose}
                   onBack={handleBack}
                   selectedAdIds={selectedAdIds}
-                  onContinue={() => {
-                    if (canContinueToAds()) {
-                      setFormTab("ads");
-                    } else {
-                      if (!selectedProjectId) {
-                        setProjectError("Please select a project before continuing");
-                        toast({
-                          title: "Project Required",
-                          description: "You must select a project before proceeding to ad selection.",
-                          variant: "destructive"
-                        });
-                      } else {
-                        toast({
-                          title: "Please complete all required fields",
-                          description: "Make sure you've filled in all the campaign details before continuing.",
-                          variant: "destructive"
-                        });
-                      }
-                    }
-                  }}
+                  onContinue={handleSwitchToAdsTab} // Fix: Use the new function
                   projectDataCompleteness={projectData.dataCompleteness}
                   targetingData={targetingData}
                   formRef={campaignFormRef}
@@ -610,7 +601,7 @@ export default function FacebookCampaignForm({
                       </Button>
                       <Button 
                         onClick={handleFormSubmit}
-                        disabled={!canSubmitCampaign() || !imagesReady}
+                        disabled={!canSubmitCampaign()}
                         variant="facebook"
                       >
                         {isSubmitting ? "Creating Campaign..." : `Create Campaign with ${selectedAdIds.length} ad${selectedAdIds.length !== 1 ? 's' : ''}`}

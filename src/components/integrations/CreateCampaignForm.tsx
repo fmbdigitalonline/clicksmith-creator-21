@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, DollarSign, BrainCircuit, User, Target, Calendar } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DatePicker } from "@/components/ui/date-picker";
 import { extractTargetingData, callFacebookCampaignManager } from "@/utils/campaignDataUtils";
@@ -101,7 +101,14 @@ const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, Cr
       },
       additional_notes: "",
     },
+    mode: "onSubmit",
+    reValidateMode: "onChange"
   });
+
+  const validateForm = async (): Promise<boolean> => {
+    const result = await form.trigger();
+    return result;
+  };
 
   useEffect(() => {
     const fetchProjectTitle = async () => {
@@ -137,15 +144,46 @@ const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, Cr
   }, [projectId, form]);
 
   useImperativeHandle(ref, () => ({
-    submitForm: handleSubmit,
+    submitForm: async () => {
+      const isValid = await form.trigger();
+      console.log("Form validation result before submission:", isValid);
+      console.log("Form errors:", form.formState.errors);
+      
+      if (!isValid) {
+        toast({
+          title: "Validation Error",
+          description: "Please fix the form errors before submitting",
+          variant: "destructive"
+        });
+        return false;
+      }
+      
+      const values = form.getValues();
+      return handleFormSubmit(values);
+    }
   }));
 
   useEffect(() => {
     if (formRef) {
       console.log("Setting form ref");
-      formRef.current = { submitForm: handleSubmit };
+      formRef.current = { submitForm: async () => {
+        const isValid = await form.trigger();
+        console.log("Form validation result before submission:", isValid);
+        
+        if (!isValid) {
+          toast({
+            title: "Validation Error",
+            description: "Please fix the form errors before submitting",
+            variant: "destructive"
+          });
+          return false;
+        }
+        
+        const values = form.getValues();
+        return handleFormSubmit(values);
+      }};
     }
-  }, [formRef]);
+  }, [formRef, form, toast]);
 
   useEffect(() => {
     if (targetingData && (creationMode === "semi-automatic" || creationMode === "automatic")) {
@@ -241,21 +279,20 @@ const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, Cr
   const handleSubmit = async (): Promise<boolean> => {
     console.log("submitForm called, checking form validity");
     
-    const isValid = await form.trigger();
-    console.log("Form validation result:", isValid);
-    console.log("Current errors:", form.formState.errors);
-    
-    if (!isValid) {
-      toast({
-        title: "Validation Error",
-        description: "Please fix the form errors before submitting",
-        variant: "destructive",
-      });
-      return false;
-    }
-    
-    console.log("Form is valid, submitting values");
     try {
+      const isValid = await form.trigger();
+      console.log("Form validation result:", isValid);
+      console.log("Current errors:", form.formState.errors);
+      
+      if (!isValid) {
+        toast({
+          title: "Validation Error",
+          description: "Please fix the form errors before submitting",
+          variant: "destructive"
+        });
+        return false;
+      }
+      
       const values = form.getValues();
       return await handleFormSubmit(values);
     } catch (error) {
@@ -263,7 +300,7 @@ const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, Cr
       toast({
         title: "Submission Error",
         description: error instanceof Error ? error.message : "An unknown error occurred",
-        variant: "destructive",
+        variant: "destructive"
       });
       return false;
     }
@@ -326,6 +363,24 @@ const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, Cr
   };
 
   const shouldShowBidAmount = form.watch('bid_strategy') !== 'LOWEST_COST_WITHOUT_CAP';
+
+  const handleContinueClick = async () => {
+    const isValid = await validateForm();
+    
+    if (isValid) {
+      onContinue();
+    } else {
+      toast({
+        title: "Please complete all required fields",
+        description: "Fix the form errors before continuing to ad selection",
+        variant: "destructive"
+      });
+      const errorFields = Object.keys(form.formState.errors);
+      if (errorFields.length > 0) {
+        form.setFocus(errorFields[0] as keyof CampaignFormValues);
+      }
+    }
+  };
 
   return (
     <Form {...form}>
@@ -630,7 +685,7 @@ const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, Cr
           
           <Button 
             type="button" 
-            onClick={onContinue}
+            onClick={handleContinueClick}
             disabled={isSubmitting}
           >
             Continue to Ad Selection
