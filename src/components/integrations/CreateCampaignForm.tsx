@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -14,7 +13,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DatePicker } from "@/components/ui/date-picker";
 import { extractTargetingData, callFacebookCampaignManager } from "@/utils/campaignDataUtils";
 
-// Define the schema for campaign creation with updated Facebook objective values
 const campaignFormSchema = z.object({
   name: z.string().min(3, "Campaign name must be at least 3 characters"),
   objective: z.enum([
@@ -84,15 +82,14 @@ const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, Cr
   const [projectTitle, setProjectTitle] = useState<string>("");
   const { toast } = useToast();
   
-  // Initialize form with default values
   const form = useForm<CampaignFormValues>({
     resolver: zodResolver(campaignFormSchema),
     defaultValues: {
       name: "",
       objective: "OUTCOME_AWARENESS",
       budget: 50,
-      bid_amount: 0, // Default bid amount
-      bid_strategy: "LOWEST_COST_WITHOUT_CAP", // Default bid strategy
+      bid_amount: 0,
+      bid_strategy: "LOWEST_COST_WITHOUT_CAP",
       start_date: new Date(),
       end_date: undefined,
       targeting: {
@@ -106,7 +103,6 @@ const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, Cr
     },
   });
 
-  // Get project title to auto-fill campaign name
   useEffect(() => {
     const fetchProjectTitle = async () => {
       if (projectId && projectId !== 'new') {
@@ -127,7 +123,6 @@ const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, Cr
             console.log('Project title found:', data.title);
             setProjectTitle(data.title);
             
-            // Set campaign name to project title + "Campaign"
             const campaignName = `${data.title} Campaign`;
             console.log('Setting campaign name to:', campaignName);
             form.setValue('name', campaignName);
@@ -141,12 +136,10 @@ const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, Cr
     fetchProjectTitle();
   }, [projectId, form]);
 
-  // FIX: Properly expose the submitForm function through both ref AND formRef
   useImperativeHandle(ref, () => ({
     submitForm: handleSubmit,
   }));
 
-  // FIX: Sync the external formRef with the local ref
   useEffect(() => {
     if (formRef) {
       console.log("Setting form ref");
@@ -154,7 +147,6 @@ const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, Cr
     }
   }, [formRef]);
 
-  // Update targeting when project data changes or creation mode changes
   useEffect(() => {
     if (targetingData && (creationMode === "semi-automatic" || creationMode === "automatic")) {
       console.log("Setting form targeting data from project:", targetingData);
@@ -169,7 +161,6 @@ const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, Cr
     }
   }, [targetingData, creationMode, form]);
 
-  // Handle form submission
   const handleFormSubmit = async (values: CampaignFormValues) => {
     console.log("Form values to submit:", values);
     
@@ -191,7 +182,6 @@ const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, Cr
     setIsSubmitting(true);
     
     try {
-      // Load detailed ad information for the selected ads
       const adDetails = await loadAdDataForIds(selectedAdIds);
       console.log("Loaded ad details:", adDetails);
       
@@ -199,12 +189,11 @@ const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, Cr
         throw new Error("Could not load details for the selected ads");
       }
       
-      // Prepare campaign data with selected ads and their details
       const campaignData = {
         ...values,
         project_id: projectId,
         ads: selectedAdIds,
-        ad_details: adDetails, // Include detailed ad information
+        ad_details: adDetails,
         creation_mode: creationMode,
         type: "facebook",
         status: "draft",
@@ -212,7 +201,6 @@ const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, Cr
       
       console.log("Submitting campaign data:", campaignData);
 
-      // Use the utility function instead of direct supabase call
       const { data, error } = await callFacebookCampaignManager('create_campaign', { campaign_data: campaignData });
 
       if (error) {
@@ -235,7 +223,6 @@ const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, Cr
         description: "Your campaign has been created successfully",
       });
 
-      // Call the onSuccess callback with the campaign ID
       onSuccess(data.campaign_id);
       return true;
     } catch (error) {
@@ -250,12 +237,10 @@ const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, Cr
       setIsSubmitting(false);
     }
   };
-  
-  // Handle submission specifically for the parent component to call
+
   const handleSubmit = async (): Promise<boolean> => {
     console.log("submitForm called, checking form validity");
     
-    // Validate form
     const isValid = await form.trigger();
     console.log("Form validation result:", isValid);
     console.log("Current errors:", form.formState.errors);
@@ -284,12 +269,10 @@ const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, Cr
     }
   };
 
-  // Load ad data for selected ads
   const loadAdDataForIds = async (adIds: string[]): Promise<any[]> => {
     if (!adIds.length) return [];
     
     try {
-      // First, try to load from ad_feedback table
       const { data: adFeedbackData, error: adFeedbackError } = await supabase
         .from('ad_feedback')
         .select('id, headline, primary_text, imageUrl, imageurl, size, platform, fb_ad_settings, storage_url')
@@ -297,7 +280,6 @@ const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, Cr
       
       if (adFeedbackError) throw adFeedbackError;
       
-      // If we got data, format and return it
       if (adFeedbackData && adFeedbackData.length > 0) {
         return adFeedbackData.map(ad => ({
           id: ad.id,
@@ -310,7 +292,6 @@ const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, Cr
         }));
       }
       
-      // If we couldn't find in ad_feedback, try from project's generated_ads array
       if (projectId) {
         const { data: project, error: projectError } = await supabase
           .from('projects')
@@ -321,7 +302,6 @@ const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, Cr
         if (projectError) throw projectError;
         
         if (project?.generated_ads && Array.isArray(project.generated_ads)) {
-          // Filter to only include ads with matching IDs
           const matchingAds = project.generated_ads.filter((ad: any) => 
             adIds.includes(ad.id)
           );
@@ -345,13 +325,11 @@ const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, Cr
     }
   };
 
-  // Determine if bid amount should be shown based on bid strategy
   const shouldShowBidAmount = form.watch('bid_strategy') !== 'LOWEST_COST_WITHOUT_CAP';
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
-        {/* Basic Campaign Information */}
         <div className="space-y-4">
           <FormField
             control={form.control}
@@ -482,7 +460,7 @@ const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, Cr
                   <FormLabel>Start Date</FormLabel>
                   <DatePicker
                     date={field.value}
-                    setDate={field.onChange}
+                    setDate={(newDate) => field.onChange(newDate)}
                     className="w-full"
                   />
                   <FormMessage />
@@ -498,7 +476,7 @@ const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, Cr
                   <FormLabel>End Date (Optional)</FormLabel>
                   <DatePicker
                     date={field.value}
-                    setDate={field.onChange}
+                    setDate={(newDate) => field.onChange(newDate)}
                     className="w-full"
                   />
                   <FormDescription>
@@ -511,7 +489,6 @@ const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, Cr
           </div>
         </div>
 
-        {/* Targeting Options (only displayed in manual mode) */}
         {creationMode === "manual" && (
           <div className="space-y-4 border p-4 rounded-md bg-slate-50">
             <h3 className="text-lg font-medium flex items-center">
@@ -579,7 +556,6 @@ const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, Cr
           </div>
         )}
 
-        {/* AI Targeting Info */}
         {creationMode !== "manual" && (
           <div className="border p-4 rounded-md bg-blue-50">
             <h3 className="text-lg font-medium flex items-center text-blue-800">
@@ -621,7 +597,6 @@ const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, Cr
           </div>
         )}
 
-        {/* Additional Notes */}
         <FormField
           control={form.control}
           name="additional_notes"
@@ -643,7 +618,6 @@ const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, Cr
           )}
         />
 
-        {/* Button row */}
         <div className="flex justify-between pt-4 border-t">
           <div className="flex gap-2">
             <Button type="button" onClick={onBack} variant="outline">
