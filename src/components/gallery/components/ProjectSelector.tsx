@@ -15,6 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useTranslation } from "react-i18next";
 
 interface Project {
   id: string;
@@ -39,6 +40,7 @@ export function ProjectSelector({
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   const { title: selectedProjectTitle } = useProjectTitle(selectedProjectId || null);
+  const { t } = useTranslation(["gallery", "common"]);
 
   // Fetch projects when component mounts
   useEffect(() => {
@@ -71,8 +73,8 @@ export function ProjectSelector({
         console.error('Error fetching projects:', error);
         setError('Failed to load projects');
         toast({
-          title: "Error",
-          description: "Failed to load projects. Please try again.",
+          title: t("error", { ns: "common" }),
+          description: t("errors.occurred", { ns: "common" }),
           variant: "destructive",
         });
         setProjects([]);
@@ -82,7 +84,7 @@ export function ProjectSelector({
     };
 
     fetchProjects();
-  }, [toast]);
+  }, [toast, t]);
 
   // Handle selection
   const handleSelectProject = (currentValue: string) => {
@@ -93,8 +95,8 @@ export function ProjectSelector({
       
       // Show success toast
       toast({
-        title: "Project Selected",
-        description: `"${project.title}" has been selected`,
+        title: t("project.selected", "Project Selected", { ns: "projects" }),
+        description: `"${project.title}" ${t("has_been_selected", "has been selected", { ns: "common" })}`,
         variant: "default",
       });
     }
@@ -106,12 +108,12 @@ export function ProjectSelector({
   // Determine what text to show on the button
   const getButtonText = () => {
     if (loading) {
-      return "Loading projects...";
+      return t("project_selector.loading");
     }
     
     return required 
-      ? "Select a project (required)" 
-      : "Select project...";
+      ? t("project_selector.select_required")
+      : t("project_selector.select_project");
   };
 
   return (
@@ -147,8 +149,8 @@ export function ProjectSelector({
           <SelectGroup>
             {projects.length === 0 ? (
               <div className="py-6 text-center px-4">
-                <p className="text-sm text-slate-500 mb-2">No projects available</p>
-                <p className="text-xs text-slate-400">Create a project first</p>
+                <p className="text-sm text-slate-500 mb-2">{t("project_selector.no_projects")}</p>
+                <p className="text-xs text-slate-400">{t("project_selector.create_first")}</p>
               </div>
             ) : (
               projects.map((project) => (

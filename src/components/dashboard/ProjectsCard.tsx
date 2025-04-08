@@ -8,7 +8,7 @@ import { useTranslation } from "react-i18next";
 
 const ProjectsCard = () => {
   const { toast } = useToast();
-  const { t } = useTranslation(["dashboard", "common"]);
+  const { t } = useTranslation(["dashboard", "common", "projects"]);
 
   const { data: projectStats } = useQuery({
     queryKey: ["projectStats"],

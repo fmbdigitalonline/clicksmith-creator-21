@@ -1,6 +1,6 @@
 
 {
-  "title": "Advertentie Galerij",
+  "title": "Ad Galerij",
   "saved_ads": "Opgeslagen Advertenties",
   "empty_state": "Nog geen opgeslagen advertenties. Like of markeer advertenties als favoriet om ze hier te zien!",
   "primary_text": "Primaire Tekst",
@@ -53,7 +53,38 @@
     "description": "Pas je zoek- of filtercriteria aan",
     "clear_filters": "Alle filters wissen"
   },
+  "actions": {
+    "view": "Bekijken",
+    "download": "Downloaden",
+    "edit": "Bewerken",
+    "assign": "Toewijzen",
+    "settings": "Instellingen"
+  },
+  "table": {
+    "ad_preview": "Advertentie Voorbeeld",
+    "headline": "Kop",
+    "text": "Tekst",
+    "platform_size": "Platform/Grootte",
+    "rating": "Waardering",
+    "created": "Gemaakt",
+    "actions": "Acties",
+    "no_headline": "Geen kop",
+    "no_text": "Geen tekst"
+  },
+  "project_selector": {
+    "loading": "Projecten laden...",
+    "select_required": "Selecteer een project (verplicht)",
+    "select_project": "Selecteer project...",
+    "no_projects": "Geen projecten beschikbaar",
+    "create_first": "Maak eerst een project"
+  },
   "recently_saved_ads": "Recent Opgeslagen Advertenties",
   "untitled_ad": "Naamloze Advertentie",
-  "error": "Fout"
+  "error": "Fout",
+  "pagination": {
+    "previous": "Vorige",
+    "next": "Volgende",
+    "page": "Pagina {page}",
+    "of": "van {total}"
+  }
 }

@@ -99,7 +99,7 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps = {}) =>
       } catch (error) {
         console.error('Error fetching saved ads:', error);
         toast({
-          title: t("error"),
+          title: t("error", { ns: "common" }),
           description: t("load_error"),
           variant: "destructive",
         });

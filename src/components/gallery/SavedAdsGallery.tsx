@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SavedAdsTable } from "./components/SavedAdsTable";
 import { Pagination } from "@/components/ui/pagination";
+import { useTranslation } from "react-i18next";
 
 interface SavedAd {
   id: string;
@@ -68,6 +70,7 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps) => {
   const [totalPages, setTotalPages] = useState(1);
   const itemsPerPage = 12;
   const { toast } = useToast();
+  const { t } = useTranslation(["gallery", "common", "dashboard"]);
 
   const fetchSavedAds = async () => {
     try {
@@ -131,8 +134,8 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps) => {
     } catch (error) {
       console.error('Error fetching saved ads:', error);
       toast({
-        title: "Error",
-        description: "Failed to load saved ads. Please try again.",
+        title: t("error"),
+        description: t("load_error"),
         variant: "destructive",
       });
     } finally {
@@ -166,8 +169,8 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps) => {
     
     if (projectId) {
       toast({
-        title: "Project Selected",
-        description: "Project has been selected successfully",
+        title: t("project.selected", { ns: "projects" }),
+        description: t("project.selected_success", "Project has been selected successfully", { ns: "projects" }),
         variant: "default",
       });
     }
@@ -178,8 +181,8 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps) => {
     try {
       if (!selectedProjectId || selectedAdIds.length === 0) {
         toast({
-          title: "Selection required",
-          description: "Please select both ads and a project.",
+          title: t("errors.title", { ns: "common" }),
+          description: t("errors.required_field", { ns: "common" }),
           variant: "destructive",
         });
         return;
@@ -203,8 +206,8 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps) => {
       }
 
       toast({
-        title: "Ads assigned",
-        description: `${selectedAdIds.length} ad(s) assigned to project successfully.`,
+        title: t("saved", { ns: "common" }),
+        description: t("confirm_add.success", "{count} ad(s) assigned to project successfully", { count: selectedAdIds.length }),
       });
       
       await fetchSavedAds();
@@ -213,8 +216,8 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps) => {
     } catch (error) {
       console.error('Error assigning ads to project:', error);
       toast({
-        title: "Error",
-        description: "Failed to assign ads to project. Please try again.",
+        title: t("error"),
+        description: t("errors.occurred", { ns: "common" }),
         variant: "destructive",
       });
     } finally {
@@ -227,8 +230,8 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps) => {
     try {
       if (selectedAdIds.length === 0) {
         toast({
-          title: "Selection required",
-          description: "Please select ads to remove from project.",
+          title: t("errors.title", { ns: "common" }),
+          description: t("errors.required_field", { ns: "common" }),
           variant: "destructive",
         });
         return;
@@ -242,8 +245,8 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps) => {
       if (error) throw error;
 
       toast({
-        title: "Ads removed",
-        description: `${selectedAdIds.length} ad(s) removed from project successfully.`,
+        title: t("saved", { ns: "common" }),
+        description: t("confirm_remove.success", "{count} ad(s) removed from project successfully", { count: selectedAdIds.length }),
       });
       fetchSavedAds();
       setSelectedAdIds([]);
@@ -251,8 +254,8 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps) => {
     } catch (error) {
       console.error('Error removing ads from project:', error);
       toast({
-        title: "Error",
-        description: "Failed to remove ads from project. Please try again.",
+        title: t("error"),
+        description: t("errors.occurred", { ns: "common" }),
         variant: "destructive",
       });
     } finally {
@@ -295,8 +298,8 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps) => {
     return (
       <div className="flex flex-col items-center justify-center py-12">
         <Loader2 className="w-8 h-8 animate-spin text-facebook mb-4" />
-        <p className="text-gray-600">Loading your saved ads...</p>
-        <p className="text-sm text-gray-500">We're retrieving your saved ad content</p>
+        <p className="text-gray-600">{t("loading.saved_ads", { ns: "dashboard" })}</p>
+        <p className="text-sm text-gray-500">{t("loading.please_wait", { ns: "common" })}</p>
       </div>
     );
   }
@@ -305,13 +308,13 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps) => {
     if (projectFilter) {
       return (
         <div className="py-8 text-center">
-          <p className="text-muted-foreground">No ads have been assigned to this project yet.</p>
+          <p className="text-muted-foreground">{t("project.not_assigned")}</p>
           <p className="mt-2">
             <Button 
               variant="link" 
               onClick={() => window.location.href = "/gallery/saved"}
             >
-              Go to your saved ads gallery to assign ads to this project
+              {t("project.go_to_gallery")}
             </Button>
           </p>
         </div>
@@ -338,7 +341,7 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps) => {
               className="flex items-center"
             >
               <Grid className="h-4 w-4 mr-2" />
-              Grid
+              {t("view.grid")}
             </Button>
             <Button
               variant={view === "table" ? "default" : "outline"}
@@ -347,20 +350,20 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps) => {
               className="flex items-center"
             >
               <TableIcon className="h-4 w-4 mr-2" />
-              Table
+              {t("view.table")}
             </Button>
           </div>
           
           <div className="flex items-center space-x-2">
             <Select value={sortBy} onValueChange={setSortBy}>
               <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Sort by" />
+                <SelectValue placeholder={t("sort.newest")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="newest">Newest First</SelectItem>
-                <SelectItem value="oldest">Oldest First</SelectItem>
-                <SelectItem value="rating-high">Highest Rating</SelectItem>
-                <SelectItem value="rating-low">Lowest Rating</SelectItem>
+                <SelectItem value="newest">{t("sort.newest")}</SelectItem>
+                <SelectItem value="oldest">{t("sort.oldest")}</SelectItem>
+                <SelectItem value="rating-high">{t("sort.rating_high")}</SelectItem>
+                <SelectItem value="rating-low">{t("sort.rating_low")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -370,7 +373,7 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps) => {
           <div className="flex-1 relative">
             <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input
-              placeholder="Search ads by text..."
+              placeholder={t("filters.search")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-8"
@@ -379,13 +382,13 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps) => {
           
           <Select value={platformFilter} onValueChange={setPlatformFilter}>
             <SelectTrigger className="w-[160px]">
-              <SelectValue placeholder="Platform" />
+              <SelectValue placeholder={t("filters.platform")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Platforms</SelectItem>
-              <SelectItem value="facebook">Facebook</SelectItem>
-              <SelectItem value="instagram">Instagram</SelectItem>
-              <SelectItem value="google">Google</SelectItem>
+              <SelectItem value="all">{t("filters.all_platforms")}</SelectItem>
+              <SelectItem value="facebook">{t("filters.facebook")}</SelectItem>
+              <SelectItem value="instagram">{t("filters.instagram")}</SelectItem>
+              <SelectItem value="google">{t("filters.google")}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -403,18 +406,18 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps) => {
               {selectedAdIds.length === filteredAds.length ? (
                 <>
                   <CheckSquare className="h-4 w-4 mr-2" />
-                  Deselect All
+                  {t("deselect_all")}
                 </>
               ) : (
                 <>
                   <SquareCheckIcon className="h-4 w-4 mr-2" />
-                  Select All
+                  {t("select_all")}
                 </>
               )}
             </Button>
             {selectedAdIds.length > 0 && (
               <Badge variant="secondary">
-                {selectedAdIds.length} selected
+                {t("selected", { count: selectedAdIds.length })}
               </Badge>
             )}
           </div>
@@ -442,19 +445,19 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps) => {
                   {isAssigning ? (
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   ) : null}
-                  Add to Project
+                  {t("add_to_project")}
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Assign Ads to Project</AlertDialogTitle>
+                  <AlertDialogTitle>{t("confirm_add.title")}</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Are you sure you want to add {selectedAdIds.length} ad(s) to the selected project?
+                    {t("confirm_add.description", { count: selectedAdIds.length })}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleAssignToProject}>Continue</AlertDialogAction>
+                  <AlertDialogCancel>{t("cancel", { ns: "common" })}</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleAssignToProject}>{t("continue", { ns: "common" })}</AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
@@ -467,19 +470,19 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps) => {
                     disabled={selectedAdIds.length === 0 || isAssigning}
                     className="whitespace-nowrap"
                   >
-                    Remove from Project
+                    {t("remove_from_project")}
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Remove Ads from Project</AlertDialogTitle>
+                    <AlertDialogTitle>{t("confirm_remove.title")}</AlertDialogTitle>
                     <AlertDialogDescription>
-                      Are you sure you want to remove these {selectedAdIds.length} ad(s) from their projects?
+                      {t("confirm_remove.description", { count: selectedAdIds.length })}
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleRemoveFromProject}>Continue</AlertDialogAction>
+                    <AlertDialogCancel>{t("cancel", { ns: "common" })}</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleRemoveFromProject}>{t("continue", { ns: "common" })}</AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
@@ -490,7 +493,7 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps) => {
 
       <div className="flex flex-wrap gap-2 items-center">
         <Badge variant="outline" className="bg-gray-50">
-          {filteredAds.length} ads found
+          {t("stats.ads_found", { count: filteredAds.length })}
         </Badge>
         
         {searchQuery && (
@@ -498,7 +501,7 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps) => {
             variant="secondary" 
             className="flex items-center gap-1"
           >
-            Search: {searchQuery}
+            {t("stats.search", { query: searchQuery })}
             <Button 
               variant="ghost" 
               size="sm" 
@@ -515,7 +518,7 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps) => {
             variant="secondary" 
             className="flex items-center gap-1"
           >
-            Platform: {platformFilter}
+            {t("stats.platform", { platform: platformFilter })}
             <Button 
               variant="ghost" 
               size="sm" 
@@ -531,7 +534,7 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps) => {
       {projectFilter && (
         <div className="mb-4">
           <Badge variant="outline" className="text-sm font-normal">
-            Showing ads for selected project
+            {t("project.selected")}
           </Badge>
         </div>
       )}
@@ -539,9 +542,9 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps) => {
       {filteredAds.length === 0 && (
         <div className="text-center py-8 bg-gray-50 rounded-lg">
           <AlertCircle className="mx-auto h-8 w-8 text-gray-400 mb-2" />
-          <h3 className="text-lg font-medium text-gray-900">No ads found</h3>
+          <h3 className="text-lg font-medium text-gray-900">{t("no_results.title")}</h3>
           <p className="mt-1 text-sm text-gray-500">
-            Try adjusting your search or filter criteria
+            {t("no_results.description")}
           </p>
           <Button 
             variant="outline" 
@@ -553,7 +556,7 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps) => {
               setSortBy("newest");
             }}
           >
-            Clear all filters
+            {t("no_results.clear_filters")}
           </Button>
         </div>
       )}

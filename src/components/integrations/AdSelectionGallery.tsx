@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,6 +20,7 @@ import {
 } from "@/components/ui/select";
 import { SavedAd, AdSelectionGalleryProps, AdSize, FacebookAdSettings } from "@/types/campaignTypes";
 import { AD_FORMATS } from "@/components/steps/gallery/components/AdSizeSelector";
+import { useTranslation } from "react-i18next";
 
 export default function AdSelectionGallery({ 
   projectId, 
@@ -34,6 +36,7 @@ export default function AdSelectionGallery({
   const [formatFilter, setFormatFilter] = useState<string>("all");
   const [projectUrl, setProjectUrl] = useState<string>("");
   const { toast } = useToast();
+  const { t } = useTranslation(["gallery", "common", "integrations"]);
 
   useEffect(() => {
     fetchSavedAds();
@@ -150,8 +153,8 @@ export default function AdSelectionGallery({
     } catch (error) {
       console.error('Error fetching saved ads:', error);
       toast({
-        title: "Error",
-        description: "Failed to load saved ads. Please try again.",
+        title: t("error", { ns: "common" }),
+        description: t("load_error"),
         variant: "destructive",
       });
     } finally {
@@ -164,8 +167,8 @@ export default function AdSelectionGallery({
       // Check if we've hit the selection limit
       if (selectedAds.length >= maxSelection) {
         toast({
-          title: "Selection limit reached",
-          description: `You can select a maximum of ${maxSelection} ads.`,
+          title: t("selection_limit_title", "Selection limit reached", { ns: "integrations" }),
+          description: t("selection_limit_description", "You can select a maximum of {count} ads.", { count: maxSelection, ns: "integrations" }),
         });
         return;
       }
@@ -199,8 +202,8 @@ export default function AdSelectionGallery({
         );
         
         toast({
-          title: "Settings Applied",
-          description: `Facebook ad settings applied to ${adsToUpdate.length} ads.`,
+          title: t("settings_applied_title", "Settings Applied", { ns: "integrations" }),
+          description: t("settings_applied_description", "Facebook ad settings applied to {count} ads.", { count: adsToUpdate.length, ns: "integrations" }),
         });
       } else {
         // Update just this ad
@@ -223,8 +226,8 @@ export default function AdSelectionGallery({
     } catch (error) {
       console.error('Error saving ad settings:', error);
       toast({
-        title: "Error",
-        description: "Failed to save ad settings. Please try again.",
+        title: t("error", { ns: "common" }),
+        description: t("settings_save_error", "Failed to save ad settings. Please try again.", { ns: "integrations" }),
         variant: "destructive",
       });
     }
@@ -246,8 +249,8 @@ export default function AdSelectionGallery({
       
       if (filteredAds.length > maxSelection) {
         toast({
-          title: "Selection limit applied",
-          description: `Selected first ${maxSelection} ads (maximum allowed).`,
+          title: t("selection_limit_applied", "Selection limit applied", { ns: "integrations" }),
+          description: t("selection_limit_applied_desc", "Selected first {max} ads (maximum allowed).", { max: maxSelection, ns: "integrations" }),
         });
       }
     }
@@ -304,7 +307,7 @@ export default function AdSelectionGallery({
     return (
       <div className="flex flex-col items-center justify-center py-8">
         <Loader2 className="w-8 h-8 animate-spin text-primary mb-4" />
-        <p className="text-muted-foreground">Loading your saved ads...</p>
+        <p className="text-muted-foreground">{t("loading.saved_ads", { ns: "dashboard" })}</p>
       </div>
     );
   }
@@ -312,15 +315,15 @@ export default function AdSelectionGallery({
   if (savedAds.length === 0) {
     return (
       <div className="text-center py-8 border rounded-lg bg-gray-50">
-        <p className="text-lg font-medium mb-2">No saved ads found</p>
+        <p className="text-lg font-medium mb-2">{t("no_saved_ads", "No saved ads found", { ns: "integrations" })}</p>
         <p className="text-muted-foreground mb-4">
-          You need to create and save some ads before you can use them in campaigns.
+          {t("create_save_first", "You need to create and save some ads before you can use them in campaigns.", { ns: "integrations" })}
         </p>
         <Button 
           variant="outline"
           onClick={() => window.location.href = "/gallery/saved"}
         >
-          Go to Saved Ads Gallery
+          {t("go_to_gallery", "Go to Saved Ads Gallery", { ns: "integrations" })}
         </Button>
       </div>
     );
@@ -340,19 +343,19 @@ export default function AdSelectionGallery({
             {selectedAds.length > 0 ? (
               <>
                 <CheckSquare className="h-4 w-4 mr-2" />
-                Deselect All
+                {t("deselect_all")}
               </>
             ) : (
               <>
                 <Square className="h-4 w-4 mr-2" />
-                Select All
+                {t("select_all")}
               </>
             )}
           </Button>
           
           {selectedAds.length > 0 && (
             <Badge variant="secondary" className="px-2 py-1">
-              {selectedAds.length} of {maxSelection} selected
+              {selectedAds.length} {t("of", "of", { ns: "common" })} {maxSelection} {t("selected").replace("{count}", "")}
             </Badge>
           )}
         </div>
@@ -360,7 +363,7 @@ export default function AdSelectionGallery({
         <div className="flex flex-wrap gap-3 items-center">
           <div className="w-full sm:w-auto">
             <Input
-              placeholder="Search ads..."
+              placeholder={t("filters.search")}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="h-9"
@@ -369,17 +372,17 @@ export default function AdSelectionGallery({
           
           <div className="flex items-center gap-2">
             <Label htmlFor="rating-filter" className="whitespace-nowrap text-sm">
-              Min Rating:
+              {t("min_rating", "Min Rating:", { ns: "integrations" })}
             </Label>
             <Select
               value={ratingFilter}
               onValueChange={setRatingFilter}
             >
               <SelectTrigger id="rating-filter" className="w-24 h-9">
-                <SelectValue placeholder="Any" />
+                <SelectValue placeholder={t("any", "Any", { ns: "integrations" })} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Any</SelectItem>
+                <SelectItem value="all">{t("any", "Any", { ns: "integrations" })}</SelectItem>
                 <SelectItem value="3">★★★+</SelectItem>
                 <SelectItem value="4">★★★★+</SelectItem>
                 <SelectItem value="5">★★★★★</SelectItem>
@@ -390,17 +393,17 @@ export default function AdSelectionGallery({
           {/* Format/Size Filter */}
           <div className="flex items-center gap-2">
             <Label htmlFor="format-filter" className="whitespace-nowrap text-sm">
-              Format:
+              {t("format", "Format:", { ns: "integrations" })}
             </Label>
             <Select
               value={formatFilter}
               onValueChange={setFormatFilter}
             >
               <SelectTrigger id="format-filter" className="w-40 h-9">
-                <SelectValue placeholder="Any format" />
+                <SelectValue placeholder={t("any_format", "Any format", { ns: "integrations" })} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Formats</SelectItem>
+                <SelectItem value="all">{t("all_formats", "All Formats", { ns: "integrations" })}</SelectItem>
                 {uniqueFormats.map(format => (
                   <SelectItem key={format.value} value={format.value}>
                     {format.label}
@@ -417,7 +420,7 @@ export default function AdSelectionGallery({
       {/* No results after filtering */}
       {filteredAds.length === 0 && (
         <div className="text-center py-6 border rounded-lg">
-          <p className="text-muted-foreground">No ads match your filters</p>
+          <p className="text-muted-foreground">{t("no_results.title")}</p>
         </div>
       )}
       
@@ -426,7 +429,7 @@ export default function AdSelectionGallery({
         <div className="border rounded-lg p-4 bg-blue-50/50">
           <h3 className="text-lg font-medium mb-3 flex items-center">
             <CheckSquare className="mr-2 h-5 w-5" />
-            Selected Ads Preview
+            {t("selected_ads_preview", "Selected Ads Preview", { ns: "integrations" })}
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
             {selectedAds.map(adId => {
@@ -448,7 +451,7 @@ export default function AdSelectionGallery({
                   >
                     <img
                       src={ad.imageUrl || ad.imageurl || (ad.saved_images && ad.saved_images[0])}
-                      alt={ad.headline || "Ad creative"}
+                      alt={ad.headline || t("ad_creative_alt")}
                       className="object-cover w-full h-full"
                     />
                   </div>
