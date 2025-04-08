@@ -1,0 +1,56 @@
+
+{
+  "title": "Ad Gallery",
+  "saved_ads": "Saved Ads",
+  "empty_state": "No saved ads yet. Like or favorite ads to see them here!",
+  "primary_text": "Primary Text",
+  "headline": "Headline",
+  "ad_creative_alt": "Ad creative",
+  "load_error": "Failed to load saved ads. Please try again.",
+  "select_all": "Select All",
+  "deselect_all": "Deselect All",
+  "selected": "{count} selected",
+  "add_to_project": "Add to Project",
+  "remove_from_project": "Remove from Project",
+  "confirm_add": {
+    "title": "Assign Ads to Project",
+    "description": "Are you sure you want to add {count} ad(s) to the selected project?"
+  },
+  "confirm_remove": {
+    "title": "Remove Ads from Project",
+    "description": "Are you sure you want to remove these {count} ad(s) from their projects?"
+  },
+  "view": {
+    "grid": "Grid",
+    "table": "Table"
+  },
+  "sort": {
+    "newest": "Newest First",
+    "oldest": "Oldest First",
+    "rating_high": "Highest Rating",
+    "rating_low": "Lowest Rating"
+  },
+  "filters": {
+    "search": "Search ads by text...",
+    "platform": "Platform",
+    "all_platforms": "All Platforms",
+    "facebook": "Facebook",
+    "instagram": "Instagram",
+    "google": "Google"
+  },
+  "stats": {
+    "ads_found": "{count} ads found",
+    "search": "Search: {query}",
+    "platform": "Platform: {platform}"
+  },
+  "project": {
+    "selected": "Showing ads for selected project",
+    "not_assigned": "No ads have been assigned to this project yet.",
+    "go_to_gallery": "Go to your saved ads gallery to assign ads to this project"
+  },
+  "no_results": {
+    "title": "No ads found",
+    "description": "Try adjusting your search or filter criteria",
+    "clear_filters": "Clear all filters"
+  }
+}

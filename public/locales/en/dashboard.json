@@ -19,5 +19,21 @@
     "new_project": "New Project",
     "new_campaign": "New Campaign",
     "explore": "Explore Features"
+  },
+  "cards": {
+    "continue_wizard": "Continue Idea Wizard",
+    "resume_journey": "Resume your business idea validation journey",
+    "view_saved_ads": "View Saved Ads",
+    "access_ads": "Access all your previously generated ads",
+    "create_project": "Create New Project",
+    "start_validation": "Start a new business idea validation project"
+  },
+  "updates": {
+    "latest": "Latest Updates"
+  },
+  "loading": {
+    "saved_ads": "Loading saved ads...",
+    "projects": "Loading projects...",
+    "dashboard": "Loading dashboard data..."
   }
 }

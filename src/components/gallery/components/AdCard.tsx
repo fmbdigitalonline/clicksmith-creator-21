@@ -1,6 +1,8 @@
+
 import { Card } from "@/components/ui/card";
 import { AdContent } from "./AdContent";
 import { AdFeedbackControls } from "@/components/steps/gallery/components/AdFeedbackControls";
+import { useTranslation } from "react-i18next";
 
 interface AdCardProps {
   id: string;
@@ -11,6 +13,8 @@ interface AdCardProps {
 }
 
 export const AdCard = ({ id, primaryText, headline, imageUrl, onFeedbackSubmit }: AdCardProps) => {
+  const { t } = useTranslation();
+  
   return (
     <Card className="overflow-hidden">
       <AdContent
