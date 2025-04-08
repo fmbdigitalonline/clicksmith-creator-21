@@ -57,8 +57,13 @@ interface AdDetail {
 }
 
 serve(async (req) => {
+  // Detailed request logging
+  console.log(`Request received: ${req.method} ${new URL(req.url).pathname}`);
+  console.log(`Headers: ${JSON.stringify(Object.fromEntries(req.headers.entries()))}`);
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
+    console.log("Handling CORS preflight request");
     return new Response(null, { 
       headers: corsHeaders,
       status: 204 
@@ -69,11 +74,15 @@ serve(async (req) => {
     // Create Supabase client
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
+      console.error("Missing Authorization header");
       throw new Error('Authorization header is required');
     }
     
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+    
+    console.log(`Using Supabase URL: ${supabaseUrl}`);
+    console.log("Creating Supabase client");
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey, {
       global: { headers: { Authorization: authHeader } },
@@ -81,24 +90,30 @@ serve(async (req) => {
     });
     
     // Get user ID from auth header
+    console.log("Getting user from auth header");
     const { data: { user }, error: userError } = await supabase.auth.getUser(
       authHeader.replace('Bearer ', '')
     );
     
     if (userError || !user) {
+      console.error("User authentication error:", userError);
       throw new Error('Unauthorized: ' + (userError?.message || 'Invalid user token'));
     }
     
     const userId = user.id;
+    console.log(`Authenticated user: ${userId}`);
     
     // Parse request body
+    console.log("Parsing request body");
     const body = await req.json();
     const { operation, campaignId, adSetId, recordId, campaign_data } = body;
     
     console.log('Operation requested:', operation);
     console.log('User ID:', userId);
+    console.log('Campaign data:', JSON.stringify(campaign_data, null, 2));
     
     // Check Facebook integration is set up
+    console.log("Checking Facebook connection");
     const { data: connections, error: connectionsError } = await supabase
       .from('platform_connections')
       .select('*')
@@ -107,29 +122,39 @@ serve(async (req) => {
       .maybeSingle();
     
     if (connectionsError) {
+      console.error("Error fetching Facebook connection:", connectionsError);
       throw new Error(`Error fetching Facebook connection: ${connectionsError.message}`);
     }
     
     if (!connections || !connections.access_token) {
+      console.error("No Facebook connection found");
       throw new Error('Facebook connection not found. Please connect your Facebook account first.');
     }
+    
+    console.log("Facebook connection found");
     
     // Get access token and account ID
     const { access_token, account_id } = connections;
     
     if (!access_token || !account_id) {
+      console.error("Missing access_token or account_id:", { access_token: !!access_token, account_id: !!account_id });
       throw new Error('Facebook access token or account ID not found');
     }
+    
+    console.log(`Facebook account ID: ${account_id}`);
     
     // Handle different operations
     let result;
     
     switch (operation) {
       case 'create_campaign':
+        console.log("Starting create_campaign operation");
         // First check if all images are ready
         if (campaign_data?.ads && campaign_data.ads.length > 0) {
+          console.log("Validating images for ads:", campaign_data.ads);
           const imagesReady = await validateAdImages(campaign_data.ads, supabase);
           if (!imagesReady.success) {
+            console.error("Images not ready:", imagesReady);
             return new Response(JSON.stringify({
               success: false,
               error: 'Images not ready',
@@ -140,8 +165,10 @@ serve(async (req) => {
               status: 422
             });
           }
+          console.log("All images are ready");
         }
         
+        console.log("Creating campaign");
         result = await createCampaign(campaign_data, access_token, account_id, userId, supabase, connections);
         break;
         
@@ -161,9 +188,11 @@ serve(async (req) => {
         break;
         
       default:
+        console.error(`Unknown operation: ${operation}`);
         throw new Error(`Unknown operation: ${operation}`);
     }
     
+    console.log("Operation completed successfully:", result);
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200
@@ -175,6 +204,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({
       error: {
         message: `Failed to process request: ${error.message}`,
+        stack: error.stack
       }
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -242,6 +272,7 @@ async function createCampaign(
   
   // Cast the budget to an integer in cents
   const dailyBudget = Math.round(campaignData.budget * 100);
+  console.log(`Daily budget: ${dailyBudget} cents`);
   
   try {
     // Fix: Remove account_id prefix if it already exists
@@ -250,6 +281,7 @@ async function createCampaign(
     
     // Get the Facebook page ID
     let pageId = campaignData.page_id;
+    console.log('Initial page ID from campaign data:', pageId);
     
     // If no page_id provided, try to get it from the connection metadata
     if (!pageId && connections.metadata && connections.metadata.pages && connections.metadata.pages.length > 0) {
@@ -263,10 +295,12 @@ async function createCampaign(
     }
     
     if (!pageId) {
+      console.error('No Facebook Page ID available');
       throw new Error('No Facebook Page ID provided or available in connection. Please connect a Facebook Page.');
     }
     
     // Step 1: Create the campaign
+    console.log('Creating Facebook campaign...');
     const campaign = await createFacebookCampaign(
       campaignData.name,
       campaignData.objective,
@@ -275,19 +309,23 @@ async function createCampaign(
     );
     
     if (!campaign.id) {
+      console.error('Failed to create campaign, no ID returned:', campaign);
       throw new Error('Failed to create Facebook campaign');
     }
     
     console.log('Campaign created:', campaign);
     
     // Step 2: Create the Ad Set with targeting
+    console.log('Creating ad set...');
     const startDate = new Date(campaignData.start_date);
     let endDate = undefined;
     
     if (campaignData.end_date) {
       endDate = new Date(campaignData.end_date);
+      console.log(`End date: ${endDate.toISOString()}`);
     }
     
+    console.log('Creating Facebook ad set...');
     const adSet = await createFacebookAdSet(
       campaign.id,
       campaignData.name + ' Ad Set',
@@ -303,12 +341,14 @@ async function createCampaign(
     );
     
     if (!adSet.id) {
+      console.error('Failed to create ad set, no ID returned:', adSet);
       throw new Error('Failed to create Facebook ad set');
     }
     
     console.log('Ad Set created:', adSet);
     
     // Step 3: Create ads for each creative
+    console.log('Creating ads...');
     const adCreatives = [];
     const ads = [];
     
@@ -318,12 +358,17 @@ async function createCampaign(
     if (adDetails.length === 0 && campaignData.ads.length > 0) {
       // Attempt to fetch ad details from database if not provided
       console.log('Ad details not provided, fetching from database...');
-      const { data: adFeedbackData } = await supabase
+      const { data: adFeedbackData, error: adFeedbackError } = await supabase
         .from('ad_feedback')
         .select('id, headline, primary_text, imageUrl, imageurl, storage_url, image_status, fb_ad_settings')
         .in('id', campaignData.ads);
       
+      if (adFeedbackError) {
+        console.error('Error fetching ad details:', adFeedbackError);
+      }
+      
       if (adFeedbackData && adFeedbackData.length > 0) {
+        console.log(`Found ${adFeedbackData.length} ads in database`);
         adDetails = adFeedbackData.map(ad => ({
           id: ad.id,
           headline: ad.headline,
@@ -332,6 +377,8 @@ async function createCampaign(
           image_status: ad.image_status,
           fb_ad_settings: ad.fb_ad_settings // Include FB ad settings
         }));
+      } else {
+        console.error('No ad data found in database for the provided ad IDs');
       }
     }
     
@@ -339,7 +386,7 @@ async function createCampaign(
       throw new Error('No ad details found for the selected ads');
     }
     
-    console.log('Creating ads with details:', adDetails);
+    console.log('Creating ads with details:', JSON.stringify(adDetails, null, 2));
     
     // Create ad creative and ad for each selected ad
     for (const adDetail of adDetails) {
@@ -490,7 +537,6 @@ async function createCampaign(
     
   } catch (error) {
     console.error('Failed to create Facebook campaign:', error);
-    
     throw new Error(`Failed to create Facebook campaign: ${error.message}`);
   }
 }

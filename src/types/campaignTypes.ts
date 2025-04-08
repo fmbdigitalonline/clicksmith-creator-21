@@ -22,11 +22,11 @@ export interface SavedAd {
 
 export interface FacebookAdSettings extends Record<string, Json> {
   website_url: string;
-  visible_link: string;
-  call_to_action: string;
-  ad_language: string;
-  url_parameters: string;
-  browser_addon: string;
+  visible_link?: string;
+  call_to_action?: string;
+  ad_language?: string;
+  url_parameters?: string;
+  browser_addon?: string;
 }
 
 export interface AdSize {
@@ -108,6 +108,7 @@ export interface CampaignFormData {
     locations?: string[];
   };
   additional_notes?: string;
+  page_id?: string;
 }
 
 export interface FacebookCampaignOverviewProps {
@@ -116,4 +117,5 @@ export interface FacebookCampaignOverviewProps {
 
 export interface CampaignFormRef {
   submitForm: () => Promise<boolean>;
+  _formValues?: Record<string, any>;
 }

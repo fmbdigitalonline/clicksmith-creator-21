@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import CreateCampaignForm from "@/components/integrations/CreateCampaignForm";
@@ -41,10 +40,8 @@ export default function FacebookCampaignForm({
   const [initialProjectSet, setInitialProjectSet] = useState<boolean>(false);
   const { toast } = useToast();
   
-  // Create form ref with explicit type
   const campaignFormRef = useRef<CampaignFormRef | null>(null);
   
-  // Fetch project data for targeting suggestions and validation
   const projectData = useProjectCampaignData(selectedProjectId);
 
   const [imagesReady, setImagesReady] = useState<boolean>(true);
@@ -54,16 +51,13 @@ export default function FacebookCampaignForm({
   const [formValidated, setFormValidated] = useState<boolean>(false);
   const [submissionError, setSubmissionError] = useState<string | null>(null);
   
-  // Log any changes to selectedProjectId
   useEffect(() => {
     console.log("Selected project ID changed in FacebookCampaignForm:", selectedProjectId);
-    // Clear project error when a project is selected
     if (selectedProjectId) {
       setProjectError(null);
     }
   }, [selectedProjectId]);
 
-  // This useEffect ensures the project ID is properly set from props once, but allows it to be changed by user
   useEffect(() => {
     if (initialProjectId && !selectedProjectId && !initialProjectSet) {
       console.log("Setting initial project ID:", initialProjectId);
@@ -73,11 +67,9 @@ export default function FacebookCampaignForm({
     }
   }, [initialProjectId, selectedProjectId, initialProjectSet]);
   
-  // Extract targeting data if available
   const targetingData = projectData.targetAudience ? 
     extractTargetingData(projectData.targetAudience, projectData.audienceAnalysis) : null;
 
-  // Reset error when tab changes or form is resubmitted
   useEffect(() => {
     setSubmissionError(null);
   }, [formTab, isSubmitting]);
@@ -89,20 +81,16 @@ export default function FacebookCampaignForm({
   const handleProjectSelect = (projectId: string) => {
     console.log("Project selected in Facebook form:", projectId);
     
-    // Make sure we properly update the state
     setSelectedProjectId(projectId);
     
-    // Clear project error when a project is selected
     setProjectError(null);
     
-    // If they select a project and were in a disabled mode, switch to semi-automatic
     if (selectedMode !== "manual" && !selectedProjectId) {
       setSelectedMode("semi-automatic");
     }
   };
 
   const validateProjectSelection = (): boolean => {
-    // For non-manual modes, a project is required
     if ((selectedMode === "semi-automatic" || selectedMode === "automatic") && !selectedProjectId) {
       setProjectError("A project is required for semi-automatic or automatic mode");
       return false;
@@ -112,7 +100,6 @@ export default function FacebookCampaignForm({
   };
 
   const handleContinue = () => {
-    // Check project selection
     if (!validateProjectSelection()) {
       return;
     }
@@ -130,7 +117,6 @@ export default function FacebookCampaignForm({
   };
 
   const handleClose = () => {
-    // Reset state when dialog is closed
     setTimeout(() => {
       setStep("mode-selection");
       if (!initialProjectId) {
@@ -145,14 +131,13 @@ export default function FacebookCampaignForm({
       setInitialProjectSet(false);
       setFormValidated(false);
       setSubmissionError(null);
-    }, 300); // Small delay to avoid seeing the reset during close animation
+    }, 300);
     onOpenChange(false);
   };
 
   const handleAdsSelected = (adIds: string[]) => {
     setSelectedAdIds(adIds);
     
-    // When ads are selected, trigger checking their status
     if (adIds.length > 0) {
       checkImagesStatus(adIds);
     }
@@ -164,7 +149,6 @@ export default function FacebookCampaignForm({
     setStep("status");
     setIsSubmitting(false);
     
-    // Call onSuccess if provided
     if (onSuccess) {
       onSuccess();
     }
@@ -178,7 +162,6 @@ export default function FacebookCampaignForm({
   };
 
   const validateFormBeforeSubmit = async (): Promise<boolean> => {
-    // If we don't have a form reference, we can't validate
     if (!campaignFormRef.current) {
       toast({
         title: "Error",
@@ -189,7 +172,6 @@ export default function FacebookCampaignForm({
     }
 
     try {
-      // This will trigger validation on the form
       const isValid = await campaignFormRef.current.submitForm();
       console.log("Form validation result:", isValid);
       setFormValidated(isValid);
@@ -200,7 +182,6 @@ export default function FacebookCampaignForm({
     }
   };
 
-  // Function to handle form submission directly
   const handleFormSubmit = async () => {
     if (isSubmitting) {
       console.log("Already submitting, ignoring duplicate submission");
@@ -209,7 +190,6 @@ export default function FacebookCampaignForm({
     
     setSubmissionError(null);
     
-    // Check for selected ads first
     if (selectedAdIds.length === 0) {
       toast({
         title: "No ads selected",
@@ -220,7 +200,6 @@ export default function FacebookCampaignForm({
       return;
     }
     
-    // Add image validation before submission
     if (!imagesReady) {
       toast({
         title: "Images Not Ready",
@@ -235,7 +214,6 @@ export default function FacebookCampaignForm({
       setIsSubmitting(true);
       console.log("Submitting campaign with selected ads:", selectedAdIds);
       
-      // Check if campaignFormRef.current exists BEFORE trying to access submitForm
       if (!campaignFormRef.current) {
         console.error("Campaign form ref is null");
         setIsSubmitting(false);
@@ -248,7 +226,6 @@ export default function FacebookCampaignForm({
         return;
       }
       
-      // Now we know campaignFormRef.current exists
       if (typeof campaignFormRef.current.submitForm !== 'function') {
         console.error("submitForm method not found on campaign form ref");
         setIsSubmitting(false);
@@ -261,15 +238,16 @@ export default function FacebookCampaignForm({
         return;
       }
       
-      // Debug the targeting data and selected ads before submission
       console.log("Targeting data before submission:", targetingData);
       console.log("Selected ads before submission:", selectedAdIds);
       
-      // Check if a campaign with the same name already exists
+      const campaignName = campaignFormRef.current['_formValues']?.name || '';
+      console.log("Checking for existing campaign with name:", campaignName);
+      
       const { data: existingCampaignData, error: existingCampaignError } = await supabase
         .from('ad_campaigns')
         .select('id, name')
-        .eq('name', campaignFormRef.current['_formValues']?.name || '')
+        .eq('name', campaignName)
         .maybeSingle();
         
       if (existingCampaignError) {
@@ -289,11 +267,11 @@ export default function FacebookCampaignForm({
         return;
       }
       
+      console.log("About to submit form");
       const result = await campaignFormRef.current.submitForm();
       console.log("Form submission result:", result);
       
       if (!result) {
-        // If the form submission fails, reset the submitting state
         setIsSubmitting(false);
         toast({
           title: "Campaign creation failed",
@@ -314,16 +292,12 @@ export default function FacebookCampaignForm({
     }
   };
 
-  // Function to ensure form validation is triggered when switching tabs
   const handleSwitchToAdsTab = async () => {
-    // Clear any previous errors
     setSubmissionError(null);
     
-    // Validate the form first before switching tabs
     const isValid = await validateFormBeforeSubmit();
     
     if (isValid) {
-      console.log("Form validated successfully, switching to ads tab");
       setFormTab("ads");
       setFormValidated(true);
     } else {
@@ -344,12 +318,10 @@ export default function FacebookCampaignForm({
     }
   };
 
-  // Validate if form is ready for submission
   const canSubmitCampaign = () => {
     return selectedAdIds.length > 0 && !isSubmitting && imagesReady;
   };
 
-  // Function to check image status and process if needed
   const checkImagesStatus = async (adIds = selectedAdIds) => {
     if (!adIds.length) {
       setImagesReady(true);
@@ -380,7 +352,6 @@ export default function FacebookCampaignForm({
         setProcessingImages(allProcessingIds);
         setImagesReady(allProcessingIds.length === 0);
         
-        // If we have pending images that need processing, show a warning with a button
         if (pendingIds.length > 0) {
           setImageCheckError(`${pendingIds.length} image(s) need to be processed for Facebook. Click the "Process Images" button.`);
         } else if (processingIds.length > 0) {
@@ -399,13 +370,11 @@ export default function FacebookCampaignForm({
       return { pendingIds: [], processingIds: [] };
     }
   };
-  
-  // Function to process pending images
+
   const processSelectedImages = async () => {
     setIsProcessingSelected(true);
     
     try {
-      // Check current status
       const { pendingIds } = await checkImagesStatus();
       
       if (pendingIds.length === 0) {
@@ -419,7 +388,6 @@ export default function FacebookCampaignForm({
       
       console.log("Processing images:", pendingIds);
       
-      // Call the edge function with batch processing
       const { data, error } = await supabase.functions.invoke('migrate-images', {
         body: { adIds: pendingIds }
       });
@@ -437,10 +405,8 @@ export default function FacebookCampaignForm({
           description: `Processing ${data.processed.length} images for Facebook. This may take a moment.`,
         });
         
-        // Refresh status after a short delay
         setTimeout(() => checkImagesStatus(), 2000);
         
-        // Start monitoring status
         const interval = setInterval(async () => {
           const { processingIds } = await checkImagesStatus();
           if (processingIds.length === 0) {
@@ -460,12 +426,10 @@ export default function FacebookCampaignForm({
     }
   };
 
-  // Add a new effect to check if all selected ad images are ready for Facebook
   useEffect(() => {
     if (selectedAdIds.length > 0 && formTab === 'ads') {
       checkImagesStatus();
       
-      // Check status periodically if there are processing images
       const interval = setInterval(() => {
         if (processingImages.length > 0) {
           checkImagesStatus();
@@ -486,7 +450,6 @@ export default function FacebookCampaignForm({
           </DialogDescription>
         </DialogHeader>
         
-        {/* Mode selection step */}
         {step === "mode-selection" && (
           <>
             <div className="mb-6 bg-white p-4 rounded-lg border border-slate-200">
@@ -534,10 +497,8 @@ export default function FacebookCampaignForm({
           </>
         )}
         
-        {/* Form step */}
         {step === "form" && (
           <div className="space-y-6">
-            {/* Show project selector at the top if not already selected */}
             {!selectedProjectId && (
               <div className="mb-6 relative" style={{ zIndex: 90 }}>
                 <h3 className="text-lg font-medium mb-2">Select Project</h3>
@@ -559,14 +520,11 @@ export default function FacebookCampaignForm({
             )}
             
             <Tabs value={formTab} onValueChange={(value) => {
-              // Only allow direct tab switching to details, not to ads
               if (value === "details") {
                 setFormTab("details");
               } else if (value === "ads" && formValidated) {
-                // Only allow switching to ads tab if form is validated
                 setFormTab("ads");
               } else {
-                // Otherwise trigger validation
                 handleSwitchToAdsTab();
               }
             }} className="relative z-10">
@@ -629,7 +587,6 @@ export default function FacebookCampaignForm({
                       </AlertDescription>
                     </Alert>
                     
-                    {/* Now using the warning variant */}
                     {imageCheckError && (
                       <Alert variant="warning" className="flex justify-between items-center">
                         <div className="flex items-start">
@@ -709,7 +666,6 @@ export default function FacebookCampaignForm({
           </div>
         )}
         
-        {/* Status step */}
         {step === "status" && createdCampaignId && (
           <div className="space-y-6">
             <Alert className="bg-green-50 border-green-200 mb-6">

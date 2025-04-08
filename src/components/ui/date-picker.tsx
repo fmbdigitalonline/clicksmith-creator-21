@@ -22,18 +22,42 @@ interface DatePickerProps {
 
 export function DatePicker({ date, setDate, className }: DatePickerProps) {
   // Handle different date formats properly
-  const normalizedDate = date instanceof Date ? date : undefined;
+  let normalizedDate: Date | undefined;
+  
+  if (date instanceof Date && !isNaN(date.getTime())) {
+    normalizedDate = date;
+  } else if (typeof date === 'string' && date.trim() !== '') {
+    const parsedDate = new Date(date);
+    normalizedDate = isNaN(parsedDate.getTime()) ? undefined : parsedDate;
+  } else {
+    normalizedDate = undefined;
+  }
   
   // Ensure the component re-renders when date changes
   const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(normalizedDate);
   
   React.useEffect(() => {
-    if (date !== selectedDate) {
-      setSelectedDate(date instanceof Date ? date : undefined);
+    // Check if the incoming date is different from the current state
+    const incomingDate = date instanceof Date && !isNaN(date.getTime()) 
+      ? date 
+      : typeof date === 'string' && date.trim() !== '' 
+        ? new Date(date)
+        : undefined;
+    
+    const incomingTime = incomingDate?.getTime();
+    const selectedTime = selectedDate?.getTime();
+    
+    if (
+      (incomingTime && selectedTime && incomingTime !== selectedTime) || 
+      (incomingDate === undefined && selectedDate !== undefined) ||
+      (incomingDate !== undefined && selectedDate === undefined)
+    ) {
+      setSelectedDate(incomingDate);
     }
   }, [date]);
   
   const handleDateChange = (newDate: Date | undefined) => {
+    console.log("Date selected:", newDate);
     setSelectedDate(newDate);
     setDate(newDate);
   };
