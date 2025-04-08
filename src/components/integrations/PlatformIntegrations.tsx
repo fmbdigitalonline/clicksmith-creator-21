@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useSession } from "@supabase/auth-helpers-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -152,17 +153,17 @@ export default function PlatformIntegrations() {
             <h2 className="text-xl font-semibold mb-4">Connect Platforms</h2>
             
             <Tabs defaultValue="facebook" onValueChange={setPlatform} className="w-full">
-              <TabsList className="w-full flex">
-                <TabsTrigger value="facebook" className="flex items-center flex-1">
-                  <Facebook className="w-4 h-4 mr-2" />
+              <TabsList className="w-full grid grid-cols-3">
+                <TabsTrigger value="facebook" className="flex items-center justify-center">
+                  <Facebook className="w-4 h-4 mr-2 flex-shrink-0" />
                   <span className="truncate">Facebook</span>
                 </TabsTrigger>
-                <TabsTrigger value="instagram" className="flex items-center flex-1" disabled>
-                  <Instagram className="w-4 h-4 mr-2" />
+                <TabsTrigger value="instagram" className="flex items-center justify-center" disabled>
+                  <Instagram className="w-4 h-4 mr-2 flex-shrink-0" />
                   <span className="truncate">Instagram</span>
                 </TabsTrigger>
-                <TabsTrigger value="twitter" className="flex items-center flex-1" disabled>
-                  <Twitter className="w-4 h-4 mr-2" />
+                <TabsTrigger value="twitter" className="flex items-center justify-center" disabled>
+                  <Twitter className="w-4 h-4 mr-2 flex-shrink-0" />
                   <span className="truncate">Twitter</span>
                 </TabsTrigger>
               </TabsList>
@@ -269,3 +270,4 @@ export default function PlatformIntegrations() {
     </div>
   );
 }
+
