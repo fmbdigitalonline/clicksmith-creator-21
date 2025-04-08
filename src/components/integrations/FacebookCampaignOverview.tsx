@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useSession } from "@supabase/auth-helpers-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -279,6 +278,9 @@ export default function FacebookCampaignOverview({ onConnectionChange }: Faceboo
         title: "Success",
         description: "Campaign paused successfully",
       });
+      
+      // Force a refresh to ensure UI is in sync with the database
+      await fetchCampaigns();
     } catch (error) {
       console.error("Error deactivating campaign:", error);
       toast({
@@ -314,17 +316,17 @@ export default function FacebookCampaignOverview({ onConnectionChange }: Faceboo
           console.error("Facebook deletion error:", response.error);
           throw new Error(response.error.message || "Failed to delete campaign from Facebook");
         }
-      } else {
-        // If no platform_campaign_id exists, just delete the record from our database
-        const { error } = await supabase
-          .from("ad_campaigns")
-          .delete()
-          .eq("id", campaign.id);
-          
-        if (error) {
-          console.error("Database deletion error:", error);
-          throw new Error(error.message || "Failed to delete campaign record");
-        }
+      } 
+      
+      // Always delete from our database, whether the Facebook deletion succeeded or not
+      const { error: dbError } = await supabase
+        .from("ad_campaigns")
+        .delete()
+        .eq("id", campaign.id);
+        
+      if (dbError) {
+        console.error("Database deletion error:", dbError);
+        throw new Error(dbError.message || "Failed to delete campaign record");
       }
       
       // Update local state to remove the campaign
@@ -334,6 +336,10 @@ export default function FacebookCampaignOverview({ onConnectionChange }: Faceboo
         title: "Success",
         description: "Campaign deleted successfully",
       });
+      
+      // Force a refresh to ensure UI is in sync with the database
+      await fetchCampaigns();
+      
     } catch (error) {
       console.error("Error deleting campaign:", error);
       
@@ -363,6 +369,9 @@ export default function FacebookCampaignOverview({ onConnectionChange }: Faceboo
             title: "Partial Success",
             description: "Campaign removed from database, but Facebook deletion may have failed",
           });
+          
+          // Force a refresh to ensure UI is in sync with the database
+          await fetchCampaigns();
         }
       } catch (fallbackError) {
         console.error("Fallback deletion error:", fallbackError);
@@ -374,7 +383,6 @@ export default function FacebookCampaignOverview({ onConnectionChange }: Faceboo
     }
   };
 
-  // Confirmation dialog handlers
   const handleDeleteConfirm = (campaign: Campaign) => {
     setCampaignToDelete(campaign);
     setDeleteConfirmOpen(true);

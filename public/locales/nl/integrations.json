@@ -32,5 +32,6 @@
   },
   "admin": {
     "env_check": "Omgevingsconfiguratie controle"
-  }
+  },
+  "no_ads_for_project": "Er zijn nog geen advertenties opgeslagen voor dit project."
 }
