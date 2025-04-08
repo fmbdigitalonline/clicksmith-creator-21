@@ -1,4 +1,5 @@
-import { corsHeaders } from "./utils/corsHeaders.ts";
+
+import { corsHeaders } from "../../_shared/cors.ts";
 import { BusinessIdea } from "../types.ts";
 
 export async function generateAudiences(businessIdea: BusinessIdea, regenerationCount = 0, forceRegenerate = false, language = 'en') {

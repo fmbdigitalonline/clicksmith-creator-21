@@ -11,7 +11,7 @@ export const useAudienceGeneration = () => {
   const [regenerationCount, setRegenerationCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
 
   const generateAudiences = async (businessIdea: BusinessIdea, forceRegenerate: boolean = false) => {
     setIsGenerating(true);
@@ -42,7 +42,7 @@ export const useAudienceGeneration = () => {
 
       if (!data || !Array.isArray(data.audiences)) {
         console.error('Invalid response format:', data);
-        throw new Error('Invalid response format from server');
+        throw new Error(t('errors.invalid_response', 'Invalid response format from server'));
       }
 
       if (forceRegenerate) {
@@ -53,16 +53,16 @@ export const useAudienceGeneration = () => {
       
       if (forceRegenerate) {
         toast({
-          title: "Fresh Audiences Generated!",
-          description: "New target audiences have been generated based on your business idea.",
+          title: t('audiences.fresh_generated', "Fresh Audiences Generated!"),
+          description: t('audiences.new_generated', "New target audiences have been generated based on your business idea."),
         });
       }
     } catch (error) {
       console.error('Error generating audiences:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to generate audiences';
+      const errorMessage = error instanceof Error ? error.message : t('errors.failed_generate', 'Failed to generate audiences');
       setError(errorMessage);
       toast({
-        title: "Generation Failed",
+        title: t('errors.generation_failed', "Generation Failed"),
         description: errorMessage,
         variant: "destructive",
       });

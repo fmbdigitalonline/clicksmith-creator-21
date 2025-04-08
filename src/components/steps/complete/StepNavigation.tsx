@@ -6,11 +6,13 @@ import { useTranslation } from "react-i18next";
 interface StepNavigationProps {
   onBack: () => void;
   onStartOver: () => void;
+  isDisabled?: boolean;
 }
 
 const StepNavigation = ({
   onBack,
   onStartOver,
+  isDisabled = false
 }: StepNavigationProps) => {
   const { t } = useTranslation('common');
   
@@ -19,6 +21,7 @@ const StepNavigation = ({
       <Button
         variant="outline"
         onClick={onBack}
+        disabled={isDisabled}
         className="space-x-2 w-full md:w-auto"
       >
         <ArrowLeft className="w-4 h-4" />
@@ -27,6 +30,7 @@ const StepNavigation = ({
       <Button
         onClick={onStartOver}
         variant="outline"
+        disabled={isDisabled}
         className="space-x-2 w-full md:w-auto"
       >
         {t("navigation.start_over")}
