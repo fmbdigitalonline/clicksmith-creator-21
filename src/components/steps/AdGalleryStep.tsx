@@ -195,6 +195,7 @@ const AdGalleryStep = ({
       const selectedAds = adVariants.filter(ad => selectedAdIds.includes(ad.id));
       const savedAds = [];
       const facebookAds = [];
+      let duplicates = 0;
       
       // Check for existing ads first to prevent duplicates
       const { data: { user } } = await supabase.auth.getUser();
@@ -232,6 +233,7 @@ const AdGalleryStep = ({
         // Skip if this image already exists for this project
         if (existingImageUrls.has(imageUrl)) {
           console.log("Skipping duplicate ad:", imageUrl);
+          duplicates++;
           continue;
         }
 
@@ -274,9 +276,13 @@ const AdGalleryStep = ({
         await saveGeneratedAds(savedAds);
       }
 
+      const messageText = duplicates > 0 
+        ? `${savedAds.length} ad(s) saved to project. ${duplicates} duplicate(s) were skipped.`
+        : `${savedAds.length} ad(s) saved to project successfully.`;
+
       toast({
         title: "Ads saved to project",
-        description: `${savedAds.length} ad(s) saved to project successfully.`,
+        description: messageText,
       });
       
       // Auto-process Facebook images if there are any
