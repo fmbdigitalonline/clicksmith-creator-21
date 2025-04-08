@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -36,7 +37,7 @@ const campaignFormSchema = z.object({
     "LOWEST_COST_WITH_BID_CAP",
     "COST_CAP"
   ]).default("LOWEST_COST_WITHOUT_CAP"),
-  end_date: z.date().optional(),
+  end_date: z.date().optional().nullable(),
   start_date: z.date().default(() => new Date()),
   targeting: z.object({
     age_min: z.number().min(13).max(65).default(18),
@@ -91,7 +92,7 @@ const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, Cr
       bid_amount: 0,
       bid_strategy: "LOWEST_COST_WITHOUT_CAP",
       start_date: new Date(),
-      end_date: undefined,
+      end_date: null,
       targeting: {
         age_min: 18,
         age_max: 65,
@@ -105,10 +106,81 @@ const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, Cr
     reValidateMode: "onChange"
   });
 
+  // Add a validate form function that ensures validation happens without submission
   const validateForm = async (): Promise<boolean> => {
+    console.log("Validating form...");
     const result = await form.trigger();
+    console.log("Form validation result:", result);
+    console.log("Current form errors:", form.formState.errors);
     return result;
   };
+
+  // Improved use of useImperativeHandle to ensure form ref works correctly
+  useImperativeHandle(ref, () => ({
+    submitForm: async () => {
+      console.log("submitForm called via ref");
+      const isValid = await validateForm();
+      
+      if (!isValid) {
+        console.log("Form validation failed, stopping submission");
+        toast({
+          title: "Validation Error",
+          description: "Please fix the form errors before submitting",
+          variant: "destructive"
+        });
+        return false;
+      }
+      
+      if (!projectId) {
+        console.log("No project ID provided");
+        toast({
+          title: "Project Required",
+          description: "Please select a project for this campaign",
+          variant: "destructive"
+        });
+        return false;
+      }
+      
+      const values = form.getValues();
+      return handleFormSubmit(values);
+    }
+  }), [form, projectId, toast, selectedAdIds]);
+
+  // Updated useEffect to ensure formRef is properly set
+  useEffect(() => {
+    if (formRef) {
+      console.log("Setting form ref in CreateCampaignForm");
+      formRef.current = {
+        submitForm: async () => {
+          console.log("submitForm called via formRef");
+          const isValid = await validateForm();
+          
+          if (!isValid) {
+            console.log("Form validation failed via formRef");
+            toast({
+              title: "Validation Error",
+              description: "Please fix the form errors before submitting",
+              variant: "destructive"
+            });
+            return false;
+          }
+          
+          if (!projectId) {
+            console.log("No project ID provided");
+            toast({
+              title: "Project Required",
+              description: "Please select a project for this campaign",
+              variant: "destructive"
+            });
+            return false;
+          }
+          
+          const values = form.getValues();
+          return handleFormSubmit(values);
+        }
+      };
+    }
+  }, [formRef, form, toast, projectId, selectedAdIds]);
 
   useEffect(() => {
     const fetchProjectTitle = async () => {
@@ -142,48 +214,6 @@ const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, Cr
     
     fetchProjectTitle();
   }, [projectId, form]);
-
-  useImperativeHandle(ref, () => ({
-    submitForm: async () => {
-      const isValid = await form.trigger();
-      console.log("Form validation result before submission:", isValid);
-      console.log("Form errors:", form.formState.errors);
-      
-      if (!isValid) {
-        toast({
-          title: "Validation Error",
-          description: "Please fix the form errors before submitting",
-          variant: "destructive"
-        });
-        return false;
-      }
-      
-      const values = form.getValues();
-      return handleFormSubmit(values);
-    }
-  }));
-
-  useEffect(() => {
-    if (formRef) {
-      console.log("Setting form ref");
-      formRef.current = { submitForm: async () => {
-        const isValid = await form.trigger();
-        console.log("Form validation result before submission:", isValid);
-        
-        if (!isValid) {
-          toast({
-            title: "Validation Error",
-            description: "Please fix the form errors before submitting",
-            variant: "destructive"
-          });
-          return false;
-        }
-        
-        const values = form.getValues();
-        return handleFormSubmit(values);
-      }};
-    }
-  }, [formRef, form, toast]);
 
   useEffect(() => {
     if (targetingData && (creationMode === "semi-automatic" || creationMode === "automatic")) {
@@ -276,13 +306,12 @@ const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, Cr
     }
   };
 
+  // We're now using this function directly from the parent component
   const handleSubmit = async (): Promise<boolean> => {
-    console.log("submitForm called, checking form validity");
+    console.log("handleSubmit called directly in CreateCampaignForm");
     
     try {
-      const isValid = await form.trigger();
-      console.log("Form validation result:", isValid);
-      console.log("Current errors:", form.formState.errors);
+      const isValid = await validateForm();
       
       if (!isValid) {
         toast({
