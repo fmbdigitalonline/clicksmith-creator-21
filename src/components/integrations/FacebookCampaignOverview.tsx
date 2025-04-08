@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useSession } from "@supabase/auth-helpers-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -296,20 +297,37 @@ export default function FacebookCampaignOverview({ onConnectionChange }: Faceboo
     try {
       setIsDeleting(prev => ({ ...prev, [campaign.id]: true }));
       
-      // Use the consolidated facebook-campaign-manager function
-      const response = await supabase.functions.invoke('facebook-campaign-manager', {
-        body: {
-          operation: 'delete',
-          campaignId: campaign.platform_campaign_id,
-          recordId: campaign.id
+      // First check if the campaign exists on Facebook or just in our database
+      const shouldDeleteFromFacebook = !!campaign.platform_campaign_id;
+      
+      if (shouldDeleteFromFacebook) {
+        // Delete from Facebook using the edge function
+        const response = await supabase.functions.invoke('facebook-campaign-manager', {
+          body: {
+            operation: 'delete',
+            campaignId: campaign.platform_campaign_id,
+            recordId: campaign.id
+          }
+        });
+        
+        if (response.error) {
+          console.error("Facebook deletion error:", response.error);
+          throw new Error(response.error.message || "Failed to delete campaign from Facebook");
         }
-      });
-
-      if (response.error) {
-        throw new Error(response.error.message || "Failed to delete campaign");
+      } else {
+        // If no platform_campaign_id exists, just delete the record from our database
+        const { error } = await supabase
+          .from("ad_campaigns")
+          .delete()
+          .eq("id", campaign.id);
+          
+        if (error) {
+          console.error("Database deletion error:", error);
+          throw new Error(error.message || "Failed to delete campaign record");
+        }
       }
       
-      // Remove the campaign from the local state
+      // Update local state to remove the campaign
       setCampaigns(prev => prev.filter(c => c.id !== campaign.id));
 
       toast({
@@ -318,11 +336,37 @@ export default function FacebookCampaignOverview({ onConnectionChange }: Faceboo
       });
     } catch (error) {
       console.error("Error deleting campaign:", error);
+      
+      // More descriptive error message
+      let errorMessage = "Failed to delete campaign";
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to delete campaign",
+        description: errorMessage,
         variant: "destructive"
       });
+      
+      // Even if Facebook deletion fails, try to remove from our database as fallback
+      try {
+        const { error: dbError } = await supabase
+          .from("ad_campaigns")
+          .delete()
+          .eq("id", campaign.id);
+          
+        if (!dbError) {
+          // Update local state if database deletion succeeded
+          setCampaigns(prev => prev.filter(c => c.id !== campaign.id));
+          toast({
+            title: "Partial Success",
+            description: "Campaign removed from database, but Facebook deletion may have failed",
+          });
+        }
+      } catch (fallbackError) {
+        console.error("Fallback deletion error:", fallbackError);
+      }
     } finally {
       setIsDeleting(prev => ({ ...prev, [campaign.id]: false }));
       setCampaignToDelete(null);
