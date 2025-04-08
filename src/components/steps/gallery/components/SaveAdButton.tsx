@@ -4,8 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { AdHook, AdImage } from "@/types/adWizard";
-import { supabase } from "@/integrations/supabase/client";
-import { v4 as uuidv4 } from 'uuid';
+import { saveAd } from "@/utils/adSaving";
 
 interface SaveAdButtonProps {
   image: AdImage;
@@ -14,6 +13,8 @@ interface SaveAdButtonProps {
   headline?: string;
   rating: string;
   feedback: string;
+  projectId?: string;
+  onCreateProject?: () => void;
   onSaveSuccess: () => void;
 }
 
@@ -24,88 +25,60 @@ export const SaveAdButton = ({
   headline,
   rating,
   feedback,
+  projectId,
+  onCreateProject,
   onSaveSuccess,
 }: SaveAdButtonProps) => {
   const [isSaving, setSaving] = useState(false);
   const { toast } = useToast();
 
   const handleSave = async () => {
-    if (!rating) {
-      toast({
-        title: "Rating Required",
-        description: "Please provide a rating before saving.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setSaving(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      console.log("Saving ad with projectId:", projectId);
       
-      if (!user) {
-        throw new Error('User must be logged in to save feedback');
-      }
-
-      // Check if this image is already saved for this user+project
-      const { data: existingAds, error: checkError } = await supabase
-        .from('ad_feedback')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('project_id', window.location.pathname.split('/').pop())
-        .eq('imageurl', image.url);
-      
-      if (checkError) {
-        console.error('Error checking existing ads:', checkError);
-      }
-      
-      // If the ad is already saved, don't save it again
-      if (existingAds && existingAds.length > 0) {
-        toast({
-          title: "Ad Already Saved",
-          description: "This ad has already been saved to your gallery.",
-        });
-        setSaving(false);
-        return;
-      }
-
-      const feedbackData = {
-        id: uuidv4(),
-        user_id: user.id,
-        project_id: window.location.pathname.split('/').pop(),
-        rating: parseInt(rating, 10),
+      const result = await saveAd({
+        image,
+        hook,
+        rating,
         feedback,
-        primary_text: primaryText || hook.text || null,
-        headline: headline || hook.description || null,
-        imageurl: image.url,
-        platform: 'facebook',
-        size: {
-          width: 1200,
-          height: 628,
-          label: "Landscape (1.91:1)"
-        }
-      };
-
-      console.log('Saving feedback data:', feedbackData);
-
-      const { error: feedbackError } = await supabase
-        .from('ad_feedback')
-        .insert(feedbackData);
-
-      if (feedbackError) {
-        throw feedbackError;
-      }
-
-      onSaveSuccess();
-      toast({
-        title: "Success!",
-        description: "Your ad has been saved to your gallery.",
+        projectId,
+        primaryText,
+        headline
       });
+
+      if (result.success) {
+        onSaveSuccess();
+        toast({
+          title: "Success!",
+          description: result.message,
+        });
+      } else {
+        console.log("Save failed:", result.message, "shouldCreateProject:", result.shouldCreateProject);
+        
+        if (result.shouldCreateProject && onCreateProject) {
+          toast({
+            title: result.message,
+            description: "Please create a project to save your ad.",
+            action: (
+              <Button variant="outline" onClick={onCreateProject}>
+                Create Project
+              </Button>
+            ),
+          });
+        } else {
+          toast({
+            title: "Error",
+            description: result.message,
+            variant: "destructive",
+          });
+        }
+      }
     } catch (error) {
-      console.error('Error saving ad:', error);
+      console.error("Error in handleSave:", error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to save ad.",
+        description: error instanceof Error ? error.message : "An unexpected error occurred",
         variant: "destructive",
       });
     } finally {

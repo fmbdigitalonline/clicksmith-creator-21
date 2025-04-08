@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
@@ -76,10 +75,19 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps = {}) =>
 
         console.log('Retrieved ads count:', data?.length);
 
-        // Deduplicate ads by imageurl
+        // Deduplicate ads by imageurl but check for null imageurl values
         const uniqueImageUrls = new Set();
         const uniqueAds = (data as AdFeedbackRow[] || []).filter(ad => {
-          if (!ad.imageurl || uniqueImageUrls.has(ad.imageurl)) {
+          if (!ad.imageurl) {
+            // If no imageurl, use the ad id as a fallback key
+            if (uniqueImageUrls.has(ad.id)) {
+              return false;
+            }
+            uniqueImageUrls.add(ad.id);
+            return true;
+          }
+          
+          if (uniqueImageUrls.has(ad.imageurl)) {
             return false;
           }
           uniqueImageUrls.add(ad.imageurl);

@@ -92,6 +92,14 @@ export const saveAd = async ({
       }
     };
 
+    // Log what we're attempting to save
+    console.log('Attempting to save ad with data:', {
+      project_id: projectId,
+      imageurl: image.url,
+      primary_text: primaryText || hook.text || null,
+      headline: headline || hook.description || null
+    });
+
     const { data, error: feedbackError } = await supabase
       .from('ad_feedback')
       .insert(feedbackData)
@@ -102,6 +110,9 @@ export const saveAd = async ({
       console.error('Error saving ad:', feedbackError);
       throw feedbackError;
     }
+
+    // Log successful save
+    console.log('Successfully saved ad with ID:', data.id);
 
     return {
       success: true,

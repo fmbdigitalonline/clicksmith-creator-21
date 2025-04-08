@@ -1,4 +1,3 @@
-
 import { BusinessIdea, TargetAudience, AdHook } from "@/types/adWizard";
 import { TabsContent } from "@/components/ui/tabs";
 import LoadingState from "./complete/LoadingState";
@@ -40,7 +39,6 @@ const AdGalleryStep = ({
   onCreateProject,
   videoAdsEnabled = false,
 }: AdGalleryStepProps) => {
-  // Find the square format (1:1) and use it as default, fallback to first format if not found
   const defaultFormat = AD_FORMATS.find(format => format.width === 1080 && format.height === 1080) || AD_FORMATS[0];
   const [selectedFormat, setSelectedFormat] = useState(defaultFormat);
   const [selectedAdIds, setSelectedAdIds] = useState<string[]>([]);
@@ -91,7 +89,6 @@ const AdGalleryStep = ({
     initializeAds();
   }, [platform, videoAdsEnabled]);
 
-  // Check if there are Facebook ads that need manual processing
   useEffect(() => {
     if (platform === 'facebook' && adVariants.length > 0) {
       const needsProcessing = adVariants.some(ad => 
@@ -134,7 +131,6 @@ const AdGalleryStep = ({
 
   const onCancelPlatformChange = () => {
     const currentPlatform = cancelPlatformChange();
-    // Force update the PlatformTabs to stay on the current platform
     const tabsElement = document.querySelector(`[data-state="active"][value="${currentPlatform}"]`);
     if (tabsElement) {
       (tabsElement as HTMLElement).click();
@@ -196,14 +192,13 @@ const AdGalleryStep = ({
       const savedAds = [];
       const facebookAds = [];
       let duplicates = 0;
-      
-      // Check for existing ads first to prevent duplicates
+      let actualSaved = 0;
+
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         throw new Error('User must be logged in to save ads');
       }
 
-      // Get existing ads for this project
       const { data: existingAds, error: fetchError } = await supabase
         .from('ad_feedback')
         .select('imageurl, imageUrl')
@@ -214,7 +209,6 @@ const AdGalleryStep = ({
         console.error("Error fetching existing ads:", fetchError);
       }
       
-      // Create a set of existing image URLs for O(1) lookup
       const existingImageUrls = new Set();
       if (existingAds) {
         existingAds.forEach(ad => {
@@ -230,7 +224,6 @@ const AdGalleryStep = ({
           continue;
         }
         
-        // Skip if this image already exists for this project
         if (existingImageUrls.has(imageUrl)) {
           console.log("Skipping duplicate ad:", imageUrl);
           duplicates++;
@@ -260,32 +253,30 @@ const AdGalleryStep = ({
         }
         
         savedAds.push(data);
+        actualSaved++;
         
-        // Collect Facebook ads for processing
         if (ad.platform === 'facebook' && (!ad.image_status || ad.image_status === 'pending')) {
           facebookAds.push({
             ...ad,
-            id: data.id,  // Use the newly created ad_feedback id
+            id: data.id,
             imageUrl: imageUrl
           });
         }
       }
 
-      // Save to project's generated_ads array using useAdPersistence
       if (savedAds.length > 0) {
         await saveGeneratedAds(savedAds);
       }
 
       const messageText = duplicates > 0 
-        ? `${savedAds.length} ad(s) saved to project. ${duplicates} duplicate(s) were skipped.`
-        : `${savedAds.length} ad(s) saved to project successfully.`;
+        ? `${actualSaved} ad(s) saved to project. ${duplicates} duplicate(s) were skipped.`
+        : `${actualSaved} ad(s) saved to project successfully.`;
 
       toast({
         title: "Ads saved to project",
         description: messageText,
       });
       
-      // Auto-process Facebook images if there are any
       if (facebookAds.length > 0) {
         toast({
           title: "Processing Facebook images",
@@ -322,13 +313,11 @@ const AdGalleryStep = ({
     }
   };
 
-  // Handle processing of Facebook images
   const handleProcessFacebookImages = async () => {
     if (platform !== 'facebook') return;
     
     setIsProcessingImages(true);
     try {
-      // Get all Facebook ads that need processing
       const facebookAds = adVariants.filter(ad => 
         ad.platform === 'facebook' && 
         (!ad.image_status || ad.image_status === 'pending')
@@ -342,7 +331,6 @@ const AdGalleryStep = ({
         return;
       }
       
-      // Process the Facebook images
       await processImagesForFacebook(facebookAds);
       
       toast({
@@ -350,7 +338,6 @@ const AdGalleryStep = ({
         description: `Started processing ${facebookAds.length} images for Facebook ads. This may take a moment.`,
       });
       
-      // Update UI to show no manual processing is needed
       setManualProcessingNeeded(false);
     } catch (error) {
       console.error("Error processing Facebook images:", error);
@@ -385,7 +372,6 @@ const AdGalleryStep = ({
     </TabsContent>
   );
 
-  // Calculate progress percentage for the processing status bar
   const progressPercentage = processingStatus.inProgress 
     ? Math.round(((processingStatus.completed + processingStatus.failed) / processingStatus.total) * 100)
     : 0;
@@ -400,7 +386,6 @@ const AdGalleryStep = ({
         generationStatus={generationStatus}
       />
 
-      {/* Processing Status Bar */}
       {processingStatus.inProgress && (
         <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 space-y-2">
           <div className="flex items-center justify-between">
@@ -424,7 +409,6 @@ const AdGalleryStep = ({
         </div>
       )}
 
-      {/* Facebook Campaign Help Dialog */}
       <AlertDialog open={showCampaignHelp} onOpenChange={setShowCampaignHelp}>
         <AlertDialogContent className="max-w-3xl">
           <AlertDialogHeader>
@@ -473,7 +457,6 @@ const AdGalleryStep = ({
         </AlertDialogContent>
       </AlertDialog>
       
-      {/* Facebook Processing Button + Help Button */}
       {platform === 'facebook' && (
         <div className="flex items-start gap-4">
           {manualProcessingNeeded && (
@@ -515,7 +498,6 @@ const AdGalleryStep = ({
         </div>
       )}
 
-      {/* Project Assignment Controls */}
       <div className="bg-slate-50 p-4 rounded-lg shadow-sm border border-slate-200">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2">
