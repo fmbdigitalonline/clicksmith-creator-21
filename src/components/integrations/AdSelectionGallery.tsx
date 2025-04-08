@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -79,20 +78,23 @@ export default function AdSelectionGallery({
         return;
       }
 
+      console.log('Fetching saved ads for user:', user.id, projectId ? `with project filter: ${projectId}` : 'without project filter');
+
       let query = supabase
         .from('ad_feedback')
-        .select('id, saved_images, headline, primary_text, rating, feedback, created_at, imageurl, imageUrl, platform, project_id, size, fb_ad_settings, storage_url');
+        .select('id, saved_images, headline, primary_text, rating, feedback, created_at, imageurl, imageUrl, platform, project_id, size, fb_ad_settings, storage_url')
+        .eq('user_id', user.id);
       
-      // If projectId is provided, only show ads for that project
+      // IMPORTANT: Always filter by project_id if it's provided
       if (projectId) {
         query = query.eq('project_id', projectId);
       }
       
-      const { data, error } = await query
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+      const { data, error } = await query.order('created_at', { ascending: false });
 
       if (error) throw error;
+
+      console.log(`Retrieved ${data?.length || 0} ads ${projectId ? 'for this project' : 'total'}`);
 
       // Convert database response to SavedAd type with proper type handling
       const formattedAds: SavedAd[] = (data || []).map(ad => {
@@ -149,7 +151,23 @@ export default function AdSelectionGallery({
         };
       });
 
-      setSavedAds(formattedAds);
+      // Additional deduplication by image URL to ensure we don't show duplicate ads
+      const uniqueImageUrls = new Set<string>();
+      const uniqueAds = formattedAds.filter(ad => {
+        // Get the image URL from any available source
+        const imageUrl = ad.imageUrl || ad.imageurl || (ad.saved_images && ad.saved_images[0]) || ad.storage_url;
+        
+        // Skip if no image or already seen
+        if (!imageUrl || uniqueImageUrls.has(imageUrl)) {
+          return false;
+        }
+        
+        uniqueImageUrls.add(imageUrl);
+        return true;
+      });
+
+      console.log(`After deduplication: ${uniqueAds.length} unique ads to show`);
+      setSavedAds(uniqueAds);
     } catch (error) {
       console.error('Error fetching saved ads:', error);
       toast({
@@ -317,7 +335,9 @@ export default function AdSelectionGallery({
       <div className="text-center py-8 border rounded-lg bg-gray-50">
         <p className="text-lg font-medium mb-2">{t("no_saved_ads", "No saved ads found", { ns: "integrations" })}</p>
         <p className="text-muted-foreground mb-4">
-          {t("create_save_first", "You need to create and save some ads before you can use them in campaigns.", { ns: "integrations" })}
+          {projectId 
+            ? t("no_ads_for_project", "No ads have been saved for this project yet.", { ns: "integrations" })
+            : t("create_save_first", "You need to create and save some ads before you can use them in campaigns.", { ns: "integrations" })}
         </p>
         <Button 
           variant="outline"
@@ -414,8 +434,6 @@ export default function AdSelectionGallery({
           </div>
         </div>
       </div>
-      
-      {/* Removed FacebookAdSettingsPanel from here */}
       
       {/* No results after filtering */}
       {filteredAds.length === 0 && (
