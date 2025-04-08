@@ -1,12 +1,12 @@
 
 {
-  "title": "Idea Wizard",
-  "description": "Quickly go from idea to ready-to-run ads by testing different audience segments with AI-powered Facebook ad campaigns.",
+  "title": "Customer Discovery Wizard",
+  "description": "Find your perfect audience and test different customer segments with compelling messages that resonate with them.",
   "loading_project": "Loading project data...",
-  "image_ads": "Image Ads",
-  "video_ads": "Video Ads",
-  "toggle_video_ads": "Toggle video ads",
-  "video_ads_tooltip": "Video Ads - Coming Soon!",
+  "image_ads": "Image Messages",
+  "video_ads": "Video Messages",
+  "toggle_video_ads": "Toggle video messages",
+  "video_ads_tooltip": "Video Messages - Coming Soon!",
   "coming_soon": "Coming Soon!",
   "step": "Step",
   
@@ -14,12 +14,12 @@
     "idea": "Business Idea",
     "audience": "Target Audience",
     "analysis": "Audience Analysis",
-    "ads": "Ad Gallery"
+    "ads": "Message Gallery"
   },
   
   "idea_step": {
     "title": "Describe Your Business Idea",
-    "description": "Share your vision and we'll help you validate it through targeted market testing.",
+    "description": "Share your vision and we'll help you find the perfect audience through targeted market testing.",
     "idea_label": "Business Idea",
     "idea_placeholder": "Describe your business idea, product, or service in detail...",
     "value_label": "Value Proposition",
@@ -31,7 +31,7 @@
     "analyze": "Analyze My Idea",
     "review_title": "Review or Edit Your Idea",
     "review_description": "You can edit your existing idea or continue with it as is.",
-    "tips_title": "Tips for effective validation:",
+    "tips_title": "Tips for effective audience discovery:",
     "tip_1": "Describe your unique value proposition",
     "tip_2": "Highlight the problem you're solving",
     "tip_3": "Mention your target market",
@@ -49,8 +49,8 @@
   
   "analysis_step": {
     "title": "Audience Analysis",
-    "description": "Let's analyze your audience further to find the most effective hooks.",
-    "continue": "Continue to Ad Generation",
+    "description": "Let's analyze your audience further to find the most effective communication approaches.",
+    "continue": "Continue to Message Creation",
     "previous": "Previous Step",
     "regenerate": "Regenerate Analysis",
     "regenerated_title": "New Analysis Generated!",
@@ -61,30 +61,30 @@
   },
   
   "gallery_step": {
-    "title": "Your Ad Variants",
-    "description": "Review your generated ad variants, provide feedback, and save or download them for use.",
+    "title": "Your Communication Options",
+    "description": "Review your generated communication options, provide feedback, and save the ones that best connect with your audience.",
     "previous": "Previous Step",
     "start_over": "Start Over",
     "create_project": "Create Project",
-    "save_ad": "Save Ad",
+    "save_ad": "Save Message",
     "download": "Download",
     "provide_feedback": "Provide Feedback",
     "like": "Like",
     "dislike": "Dislike",
-    "feedback_placeholder": "Share your thoughts about the generated ads..."
+    "feedback_placeholder": "Share your thoughts about the generated communication..."
   },
   
   "loading": {
-    "title": "Crafting Your Perfect Ad ✨",
-    "analyzing_audience": "Analyzing your target audience 🎯",
-    "crafting_hooks": "Crafting engaging hooks 🎣",
-    "designing_elements": "Designing visual elements 🎨",
-    "optimizing_copy": "Optimizing ad copy ✍️",
-    "generating_variations": "Generating creative variations 🔄",
-    "fine_tuning": "Fine-tuning messaging 💭",
-    "enhancing_engagement": "Enhancing engagement potential 📈",
-    "perfecting_magic": "Perfecting your ad magic ⚡",
-    "almost_ready": "Almost ready to amaze... 🌟",
-    "might_take_time": "This might take a minute or two..."
+    "title": "Finding Your Perfect Customer Match ✨",
+    "analyzing_audience": "Analyzing your target audience insights 🎯",
+    "crafting_hooks": "Crafting resonating messages 🎣",
+    "designing_elements": "Designing visual elements that connect 🎨",
+    "optimizing_copy": "Tailoring communication for your audience ✍️",
+    "generating_variations": "Creating persona-specific variations 🔄",
+    "fine_tuning": "Fine-tuning messaging for ideal customers 💭",
+    "enhancing_engagement": "Enhancing customer connection potential 📈",
+    "perfecting_magic": "Perfecting your customer targeting ⚡",
+    "almost_ready": "Almost ready to connect with your audience... 🌟",
+    "might_take_time": "Finding your perfect audience match might take a minute or two..."
   }
 }

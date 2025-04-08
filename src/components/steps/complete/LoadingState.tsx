@@ -21,26 +21,26 @@ const LoadingState = () => {
           
           <div className="text-center space-y-4">
             <h3 className="text-2xl font-semibold text-gray-800 animate-fade-in">
-              {t('loading.title')}
+              {t('loading.title', 'Finding Your Perfect Customer Match ✨')}
             </h3>
             <p className="text-gray-600 text-lg">
               <TextCycler
                 items={[
-                  t('loading.analyzing_audience'),
-                  t('loading.crafting_hooks'),
-                  t('loading.designing_elements'),
-                  t('loading.optimizing_copy'),
-                  t('loading.generating_variations'),
-                  t('loading.fine_tuning'),
-                  t('loading.enhancing_engagement'),
-                  t('loading.perfecting_magic'),
-                  t('loading.almost_ready'),
+                  t('loading.analyzing_audience', 'Analyzing your target audience insights 🎯'),
+                  t('loading.crafting_hooks', 'Crafting resonating messages 🎣'),
+                  t('loading.designing_elements', 'Designing visual elements that connect 🎨'),
+                  t('loading.optimizing_copy', 'Tailoring communication for your audience ✍️'),
+                  t('loading.generating_variations', 'Creating persona-specific variations 🔄'),
+                  t('loading.fine_tuning', 'Fine-tuning messaging for ideal customers 💭'),
+                  t('loading.enhancing_engagement', 'Enhancing customer connection potential 📈'),
+                  t('loading.perfecting_magic', 'Perfecting your customer targeting ⚡'),
+                  t('loading.almost_ready', 'Almost ready to connect with your audience... 🌟'),
                 ]}
                 interval={2500}
               />
             </p>
             <p className="text-sm text-gray-500 mt-6 animate-pulse">
-              {t('loading.might_take_time')}
+              {t('loading.might_take_time', 'Finding your perfect audience match might take a minute or two...')}
             </p>
           </div>
         </div>

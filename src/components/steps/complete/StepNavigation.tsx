@@ -33,7 +33,7 @@ const StepNavigation = ({
         disabled={isDisabled}
         className="space-x-2 w-full md:w-auto"
       >
-        {t("navigation.start_over")}
+        {t("navigation.refine_audience", "Refine Audience")}
       </Button>
     </div>
   );
