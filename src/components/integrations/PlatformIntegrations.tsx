@@ -7,8 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
   AlertCircle, AlertTriangle, Facebook, Instagram, Loader2, MessageSquare, 
-  Twitter, Plus, LayoutGrid, ChevronDown, RefreshCw 
+  Twitter, Plus, LayoutGrid, ChevronDown, RefreshCw, Youtube
 } from "lucide-react";
+import { SiTiktok, SiGoogle } from "react-icons/si";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import EnvConfigCheck from "@/components/integrations/EnvConfigCheck";
 import FacebookConnection from "@/components/integrations/FacebookConnection";
@@ -24,6 +25,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { Badge } from "@/components/ui/badge";
 
 export default function PlatformIntegrations() {
   const [activeTab, setActiveTab] = useState<string>("overview");
@@ -213,6 +215,24 @@ export default function PlatformIntegrations() {
                   </div>
                   <div className="flex items-center justify-between border p-3 rounded-md">
                     <div className="flex items-center gap-2">
+                      <SiGoogle className="h-5 w-5 text-blue-500" />
+                      <span className="font-medium">Google Ads</span>
+                    </div>
+                    <div>
+                      <Badge variant="outline">Coming Soon</Badge>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between border p-3 rounded-md">
+                    <div className="flex items-center gap-2">
+                      <SiTiktok className="h-5 w-5" />
+                      <span className="font-medium">TikTok</span>
+                    </div>
+                    <div>
+                      <Badge variant="outline">Coming Soon</Badge>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between border p-3 rounded-md">
+                    <div className="flex items-center gap-2">
                       <Twitter className="h-5 w-5 text-blue-400" />
                       <span className="font-medium">X (Twitter)</span>
                     </div>
@@ -284,8 +304,8 @@ export default function PlatformIntegrations() {
                     <TableRow>
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-2">
-                          <Instagram className="h-4 w-4 text-pink-600" />
-                          <span>Instagram</span>
+                          <SiGoogle className="h-4 w-4 text-blue-500" />
+                          <span>Google Ads</span>
                         </div>
                       </TableCell>
                       <TableCell>
@@ -300,8 +320,24 @@ export default function PlatformIntegrations() {
                     <TableRow>
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-2">
-                          <Twitter className="h-4 w-4 text-blue-400" />
-                          <span>X (Twitter)</span>
+                          <SiTiktok className="h-4 w-4" />
+                          <span>TikTok</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">Coming Soon</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Button variant="ghost" size="sm" disabled>
+                          View
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-2">
+                          <Instagram className="h-4 w-4 text-pink-600" />
+                          <span>Instagram</span>
                         </div>
                       </TableCell>
                       <TableCell>
@@ -338,7 +374,7 @@ export default function PlatformIntegrations() {
             </CardHeader>
             <CardContent>
               <Tabs defaultValue="facebook" onValueChange={setPlatform} className="w-full">
-                <TabsList className="w-full grid grid-cols-3 mb-4">
+                <TabsList className="w-full grid grid-cols-5 mb-4">
                   <TabsTrigger value="facebook" className="flex items-center justify-center">
                     <Facebook className="w-4 h-4 mr-2 flex-shrink-0" />
                     <span className="truncate">{t("platforms.facebook")}</span>
@@ -347,9 +383,17 @@ export default function PlatformIntegrations() {
                     <Instagram className="w-4 h-4 mr-2 flex-shrink-0" />
                     <span className="truncate">{t("platforms.instagram")}</span>
                   </TabsTrigger>
+                  <TabsTrigger value="google" className="flex items-center justify-center" disabled>
+                    <SiGoogle className="w-4 h-4 mr-2 flex-shrink-0" />
+                    <span className="truncate">Google</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="tiktok" className="flex items-center justify-center" disabled>
+                    <SiTiktok className="w-4 h-4 mr-2 flex-shrink-0" />
+                    <span className="truncate">TikTok</span>
+                  </TabsTrigger>
                   <TabsTrigger value="twitter" className="flex items-center justify-center" disabled>
                     <Twitter className="w-4 h-4 mr-2 flex-shrink-0" />
-                    <span className="truncate">{t("platforms.twitter")}</span>
+                    <span className="truncate">X (Twitter)</span>
                   </TabsTrigger>
                 </TabsList>
                 
@@ -363,6 +407,26 @@ export default function PlatformIntegrations() {
                     <AlertTitle>{t("coming_soon", "Coming Soon", { ns: "adwizard" })}</AlertTitle>
                     <AlertDescription>
                       {t("instagram_integration_development", "Instagram integration is currently in development", { ns: "adwizard" })}
+                    </AlertDescription>
+                  </Alert>
+                </TabsContent>
+                
+                <TabsContent value="google">
+                  <Alert variant="default">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>{t("coming_soon", "Coming Soon", { ns: "adwizard" })}</AlertTitle>
+                    <AlertDescription>
+                      Google Ads integration is currently in development
+                    </AlertDescription>
+                  </Alert>
+                </TabsContent>
+                
+                <TabsContent value="tiktok">
+                  <Alert variant="default">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>{t("coming_soon", "Coming Soon", { ns: "adwizard" })}</AlertTitle>
+                    <AlertDescription>
+                      TikTok integration is currently in development
                     </AlertDescription>
                   </Alert>
                 </TabsContent>
@@ -482,5 +546,3 @@ export default function PlatformIntegrations() {
     </div>
   );
 }
-
-import { Badge } from "@/components/ui/badge";
