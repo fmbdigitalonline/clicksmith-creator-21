@@ -16,7 +16,7 @@ import { LanguageSwitcher } from "./LanguageSwitcher";
 const Navigation = () => {
   const location = useLocation();
   const currentPath = location.pathname;
-  const { t } = useTranslation();
+  const { t } = useTranslation('common');
   
   const isActive = (path: string) => {
     if (path === "/ad-wizard") {
@@ -34,7 +34,7 @@ const Navigation = () => {
         <div className="flex h-full items-center justify-between">
           <Link to="/" className="flex items-center">
             <span className="text-2xl font-bold tracking-tight text-[#1A1F2C] hover:text-primary/90 transition-colors">
-              {t('app.name')}
+              {t('app_name')}
             </span>
           </Link>
           <div className="flex items-center gap-4">
@@ -50,7 +50,7 @@ const Navigation = () => {
             >
               <Link to="/blog">
                 <BlogIcon className="h-4 w-4" />
-                <span>{t('navigation.blog')}</span>
+                <span>{t('blog')}</span>
               </Link>
             </Button>
             <Button
@@ -64,27 +64,27 @@ const Navigation = () => {
             >
               <Link to="/pricing">
                 <CreditCard className="h-4 w-4" />
-                <span>{t('navigation.pricing')}</span>
+                <span>{t('pricing')}</span>
               </Link>
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="sm" className="gap-2">
                   <HelpCircle className="h-4 w-4" />
-                  <span>{t('navigation.help')}</span>
+                  <span>{t('help')}</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem asChild>
                   <Link to="/help" className="flex items-center gap-2">
                     <BlogIcon className="h-4 w-4" />
-                    {t('navigation.help')}
+                    {t('help')}
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link to="/contact" className="flex items-center gap-2">
                     <MessageSquare className="h-4 w-4" />
-                    {t('navigation.contact', 'Contact Support')}
+                    {t('contact_support', 'Contact Support')}
                   </Link>
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -95,11 +95,11 @@ const Navigation = () => {
             
             {!isPublicPage ? (
               <Button asChild>
-                <Link to="/dashboard">{t('navigation.dashboard')}</Link>
+                <Link to="/dashboard">{t('dashboard')}</Link>
               </Button>
             ) : (
               <Button asChild>
-                <Link to="/login">{t('navigation.login')}</Link>
+                <Link to="/login">{t('login', 'Login')}</Link>
               </Button>
             )}
           </div>

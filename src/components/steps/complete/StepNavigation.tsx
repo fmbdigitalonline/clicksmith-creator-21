@@ -22,7 +22,7 @@ const StepNavigation = ({
         className="space-x-2 w-full md:w-auto"
       >
         <ArrowLeft className="w-4 h-4" />
-        <span>{t("navigation.previous_step")}</span>
+        <span>{t("back")}</span>
       </Button>
       <Button
         onClick={onStartOver}
