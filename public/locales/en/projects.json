@@ -7,10 +7,14 @@
     "title": "Filters",
     "status": "Status",
     "all": "All",
+    "active": "Active",
     "draft": "Draft",
     "in_progress": "In Progress",
     "completed": "Completed",
-    "search": "Search projects..."
+    "not_started": "Not Started",
+    "search": "Search projects...",
+    "grid_view": "Grid view",
+    "table_view": "Table view"
   },
   "empty": {
     "title": "No projects found",
@@ -49,7 +53,9 @@
     "start": "Start",
     "generate_ads": "Generate Ads",
     "back_to_projects": "Back to Projects",
-    "what_next": "What would you like to do next?"
+    "what_next": "What would you like to do next?",
+    "back": "Back",
+    "title": "Actions"
   },
   "validation": {
     "complete": "Data Complete",
@@ -65,5 +71,29 @@
     "description": "Update your project details",
     "success": "Project updated",
     "success_description": "Your project has been updated successfully."
+  },
+  "loading": "Loading project...",
+  "loading_ads": "Loading project ads...",
+  "error_loading": "Error loading ads. Please try again.",
+  "no_ads": "No ads have been assigned to this project yet.",
+  "go_to_gallery": "Go to your saved ads to assign ads to this project",
+  "project_ads": "Project Ads",
+  "view_all_saved": "View all saved ads",
+  "saved_ads": "Saved Ads",
+  "continue_wizard": "Continue Idea Wizard",
+  "start_wizard": "Start Idea Wizard",
+  "details": "Project Details",
+  "progress": "Project Progress",
+  "not_found": {
+    "title": "Project not found",
+    "description": "The project you're looking for doesn't exist or you don't have permission to view it."
+  },
+  "project_selector": {
+    "selected": "Project selected",
+    "loading": "Loading projects...",
+    "select_required": "Select a project (required)",
+    "select_project": "Select a project",
+    "no_projects": "No projects found",
+    "create_first": "Create your first project"
   }
 }

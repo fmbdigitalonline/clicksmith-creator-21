@@ -40,7 +40,7 @@ export function ProjectSelector({
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   const { title: selectedProjectTitle } = useProjectTitle(selectedProjectId || null);
-  const { t } = useTranslation(["gallery", "common", "projects"]);
+  const { t } = useTranslation(["projects", "common"]);
 
   // Fetch projects when component mounts
   useEffect(() => {
@@ -95,7 +95,7 @@ export function ProjectSelector({
       
       // Show success toast
       toast({
-        title: t("project.selected", { ns: "projects" }),
+        title: t("project_selector.selected", { ns: "projects" }),
         description: `"${project.title}" ${t("has_been_selected", { ns: "common" })}`,
         variant: "default",
       });
@@ -108,12 +108,12 @@ export function ProjectSelector({
   // Determine what text to show on the button
   const getButtonText = () => {
     if (loading) {
-      return t("project_selector.loading");
+      return t("project_selector.loading", { ns: "projects" });
     }
     
     return required 
-      ? t("project_selector.select_required")
-      : t("project_selector.select_project");
+      ? t("project_selector.select_required", { ns: "projects" })
+      : t("project_selector.select_project", { ns: "projects" });
   };
 
   return (
@@ -149,8 +149,8 @@ export function ProjectSelector({
           <SelectGroup>
             {projects.length === 0 ? (
               <div className="py-6 text-center px-4">
-                <p className="text-sm text-slate-500 mb-2">{t("project_selector.no_projects")}</p>
-                <p className="text-xs text-slate-400">{t("project_selector.create_first")}</p>
+                <p className="text-sm text-slate-500 mb-2">{t("project_selector.no_projects", { ns: "projects" })}</p>
+                <p className="text-xs text-slate-400">{t("project_selector.create_first", { ns: "projects" })}</p>
               </div>
             ) : (
               projects.map((project) => (
