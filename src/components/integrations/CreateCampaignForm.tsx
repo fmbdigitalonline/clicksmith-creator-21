@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -12,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DatePicker } from "@/components/ui/date-picker";
 import { extractTargetingData, callFacebookCampaignManager } from "@/utils/campaignDataUtils";
+import { CampaignFormRef } from "@/types/campaignTypes";
 
 const campaignFormSchema = z.object({
   name: z.string().min(3, "Campaign name must be at least 3 characters"),
@@ -60,10 +62,10 @@ interface CreateCampaignFormProps {
   onBack: () => void;
   projectDataCompleteness?: number;
   targetingData?: any;
-  formRef?: React.MutableRefObject<{ submitForm: () => Promise<boolean> } | null>;
+  formRef?: React.MutableRefObject<CampaignFormRef | null>;
 }
 
-const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, CreateCampaignFormProps>((
+const CreateCampaignForm = forwardRef<CampaignFormRef, CreateCampaignFormProps>((
   { 
     projectId,
     creationMode,
@@ -106,8 +108,15 @@ const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, Cr
   });
 
   const validateForm = async (): Promise<boolean> => {
-    const result = await form.trigger();
-    return result;
+    try {
+      console.log("Validating form...");
+      const result = await form.trigger();
+      console.log("Form validation result:", result);
+      return result;
+    } catch (error) {
+      console.error("Error during form validation:", error);
+      return false;
+    }
   };
 
   useEffect(() => {
@@ -143,11 +152,11 @@ const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, Cr
     fetchProjectTitle();
   }, [projectId, form]);
 
+  // Expose form submission method to parent component
   useImperativeHandle(ref, () => ({
     submitForm: async () => {
-      const isValid = await form.trigger();
-      console.log("Form validation result before submission:", isValid);
-      console.log("Form errors:", form.formState.errors);
+      console.log("submitForm called from ref");
+      const isValid = await validateForm();
       
       if (!isValid) {
         toast({
@@ -161,29 +170,31 @@ const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, Cr
       const values = form.getValues();
       return handleFormSubmit(values);
     }
-  }));
+  }), [form, toast]);
 
+  // Set the form ref directly if provided
   useEffect(() => {
     if (formRef) {
-      console.log("Setting form ref");
-      formRef.current = { submitForm: async () => {
-        const isValid = await form.trigger();
-        console.log("Form validation result before submission:", isValid);
-        
-        if (!isValid) {
-          toast({
-            title: "Validation Error",
-            description: "Please fix the form errors before submitting",
-            variant: "destructive"
-          });
-          return false;
+      formRef.current = {
+        submitForm: async () => {
+          console.log("submitForm called from formRef");
+          const isValid = await validateForm();
+          
+          if (!isValid) {
+            toast({
+              title: "Validation Error",
+              description: "Please fix the form errors before submitting",
+              variant: "destructive"
+            });
+            return false;
+          }
+          
+          const values = form.getValues();
+          return handleFormSubmit(values);
         }
-        
-        const values = form.getValues();
-        return handleFormSubmit(values);
-      }};
+      };
     }
-  }, [formRef, form, toast]);
+  }, [formRef]);
 
   useEffect(() => {
     if (targetingData && (creationMode === "semi-automatic" || creationMode === "automatic")) {
@@ -199,14 +210,8 @@ const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, Cr
     }
   }, [targetingData, creationMode, form]);
 
-  const handleFormSubmit = async (values: CampaignFormValues) => {
-    console.log("Form values to submit:", values);
-    
-    if (selectedAdIds.length === 0) {
-      console.log("No ads selected, redirecting to ad selection tab");
-      onContinue();
-      return false;
-    }
+  const handleFormSubmit = async (values: CampaignFormValues): Promise<boolean> => {
+    console.log("Handling form submission with values:", values);
     
     if (!projectId) {
       toast({
@@ -220,6 +225,12 @@ const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, Cr
     setIsSubmitting(true);
     
     try {
+      // When submitting from form tab, we may not have selected ads yet
+      if (selectedAdIds.length === 0) {
+        console.log("No ads selected yet, proceeding with form validation only");
+        return true;
+      }
+      
       const adDetails = await loadAdDataForIds(selectedAdIds);
       console.log("Loaded ad details:", adDetails);
       
@@ -227,8 +238,12 @@ const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, Cr
         throw new Error("Could not load details for the selected ads");
       }
       
+      // Ensure the dates are properly handled before sending to the backend
       const campaignData = {
         ...values,
+        // Convert dates to ISO strings for JSON serialization
+        start_date: values.start_date?.toISOString(),
+        end_date: values.end_date?.toISOString(),
         project_id: projectId,
         ads: selectedAdIds,
         ad_details: adDetails,
@@ -277,12 +292,10 @@ const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, Cr
   };
 
   const handleSubmit = async (): Promise<boolean> => {
-    console.log("submitForm called, checking form validity");
+    console.log("handleSubmit called directly from component");
     
     try {
-      const isValid = await form.trigger();
-      console.log("Form validation result:", isValid);
-      console.log("Current errors:", form.formState.errors);
+      const isValid = await validateForm();
       
       if (!isValid) {
         toast({
@@ -384,7 +397,10 @@ const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, Cr
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
+      <form onSubmit={(e) => { 
+        e.preventDefault(); 
+        handleSubmit(); 
+      }} className="space-y-6" noValidate>
         <div className="space-y-4">
           <FormField
             control={form.control}
@@ -412,6 +428,7 @@ const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, Cr
                 <Select
                   onValueChange={field.onChange}
                   defaultValue={field.value}
+                  value={field.value}
                 >
                   <FormControl>
                     <SelectTrigger>
@@ -464,6 +481,7 @@ const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, Cr
                 <Select
                   onValueChange={field.onChange}
                   defaultValue={field.value}
+                  value={field.value}
                 >
                   <FormControl>
                     <SelectTrigger>
@@ -591,6 +609,7 @@ const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, Cr
                     <Select
                       onValueChange={field.onChange}
                       defaultValue={field.value}
+                      value={field.value}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -688,7 +707,14 @@ const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, Cr
             onClick={handleContinueClick}
             disabled={isSubmitting}
           >
-            Continue to Ad Selection
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Processing...
+              </>
+            ) : (
+              "Continue to Ad Selection"
+            )}
           </Button>
         </div>
       </form>

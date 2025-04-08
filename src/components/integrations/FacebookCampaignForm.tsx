@@ -39,7 +39,7 @@ export default function FacebookCampaignForm({
   const [initialProjectSet, setInitialProjectSet] = useState<boolean>(false);
   const { toast } = useToast();
   
-  // Fix: Make sure the form ref is properly created and initialized
+  // Create form ref with explicit type
   const campaignFormRef = useRef<{ submitForm: () => Promise<boolean> } | null>(null);
   
   // Fetch project data for targeting suggestions and validation
@@ -49,6 +49,7 @@ export default function FacebookCampaignForm({
   const [processingImages, setProcessingImages] = useState<string[]>([]);
   const [imageCheckError, setImageCheckError] = useState<string | null>(null);
   const [isProcessingSelected, setIsProcessingSelected] = useState(false);
+  const [formValidated, setFormValidated] = useState<boolean>(false);
   
   // Log any changes to selectedProjectId
   useEffect(() => {
@@ -134,6 +135,7 @@ export default function FacebookCampaignForm({
       setIsSubmitting(false);
       setProjectError(null);
       setInitialProjectSet(false);
+      setFormValidated(false);
     }, 300); // Small delay to avoid seeing the reset during close animation
     onOpenChange(false);
   };
@@ -166,6 +168,29 @@ export default function FacebookCampaignForm({
     }
   };
 
+  const validateFormBeforeSubmit = async (): Promise<boolean> => {
+    // If we don't have a form reference, we can't validate
+    if (!campaignFormRef.current) {
+      toast({
+        title: "Error",
+        description: "Cannot access form validation. Please refresh and try again.",
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    try {
+      // This will trigger validation on the form
+      const isValid = await campaignFormRef.current.submitForm();
+      console.log("Form validation result:", isValid);
+      setFormValidated(isValid);
+      return isValid;
+    } catch (error) {
+      console.error("Error validating form:", error);
+      return false;
+    }
+  };
+
   // Function to handle form submission directly
   const handleFormSubmit = async () => {
     if (isSubmitting) {
@@ -173,7 +198,7 @@ export default function FacebookCampaignForm({
       return;
     }
     
-    // Fix: Check for selected ads first
+    // Check for selected ads first
     if (selectedAdIds.length === 0) {
       toast({
         title: "No ads selected",
@@ -197,7 +222,7 @@ export default function FacebookCampaignForm({
       setIsSubmitting(true);
       console.log("Submitting campaign with selected ads:", selectedAdIds);
       
-      // Fix: Check if campaignFormRef.current exists BEFORE trying to access submitForm
+      // Check if campaignFormRef.current exists BEFORE trying to access submitForm
       if (!campaignFormRef.current) {
         console.error("Campaign form ref is null");
         setIsSubmitting(false);
@@ -248,11 +273,15 @@ export default function FacebookCampaignForm({
     }
   };
 
-  // Fix: Add function to ensure form validation is triggered when switching tabs
-  const handleSwitchToAdsTab = () => {
-    if (canContinueToAds()) {
-      // Ensure form values are retained when switching tabs
+  // Function to ensure form validation is triggered when switching tabs
+  const handleSwitchToAdsTab = async () => {
+    // Validate the form first before switching tabs
+    const isValid = await validateFormBeforeSubmit();
+    
+    if (isValid) {
+      console.log("Form validated successfully, switching to ads tab");
       setFormTab("ads");
+      setFormValidated(true);
     } else {
       if (!selectedProjectId) {
         setProjectError("Please select a project before continuing");
@@ -269,16 +298,6 @@ export default function FacebookCampaignForm({
         });
       }
     }
-  };
-
-  // Validate if user can proceed to ad selection
-  const canContinueToAds = () => {
-    // Make sure we have a project selected before continuing
-    if (!selectedProjectId) {
-      setProjectError("Please select a project before continuing");
-      return false;
-    }
-    return true; // Fix: Remove formTab check as it's not relevant for validation
   };
 
   // Validate if form is ready for submission
@@ -495,7 +514,18 @@ export default function FacebookCampaignForm({
               />
             )}
             
-            <Tabs value={formTab} onValueChange={(value) => setFormTab(value as "details" | "ads")} className="relative z-10">
+            <Tabs value={formTab} onValueChange={(value) => {
+              // Only allow direct tab switching to details, not to ads
+              if (value === "details") {
+                setFormTab("details");
+              } else if (value === "ads" && formValidated) {
+                // Only allow switching to ads tab if form is validated
+                setFormTab("ads");
+              } else {
+                // Otherwise trigger validation
+                handleSwitchToAdsTab();
+              }
+            }} className="relative z-10">
               <TabsList className="grid w-full grid-cols-2 mb-6">
                 <TabsTrigger value="details">Campaign Details</TabsTrigger>
                 <TabsTrigger value="ads" disabled={!selectedProjectId}>Creative Selection</TabsTrigger>
@@ -522,7 +552,6 @@ export default function FacebookCampaignForm({
                   </Alert>
                 )}
                 
-                {/* Fix: Make sure to properly initialize the form ref */}
                 <CreateCampaignForm 
                   projectId={selectedProjectId} 
                   creationMode={selectedMode}
@@ -530,7 +559,7 @@ export default function FacebookCampaignForm({
                   onCancel={handleClose}
                   onBack={handleBack}
                   selectedAdIds={selectedAdIds}
-                  onContinue={handleSwitchToAdsTab} // Fix: Use the new function
+                  onContinue={handleSwitchToAdsTab}
                   projectDataCompleteness={projectData.dataCompleteness}
                   targetingData={targetingData}
                   formRef={campaignFormRef}
@@ -556,7 +585,7 @@ export default function FacebookCampaignForm({
                       </AlertDescription>
                     </Alert>
                     
-                    {/* Now using the new warning variant */}
+                    {/* Now using the warning variant */}
                     {imageCheckError && (
                       <Alert variant="warning" className="flex justify-between items-center">
                         <div className="flex items-start">

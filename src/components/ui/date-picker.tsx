@@ -26,6 +26,8 @@ export function DatePicker({ date, setDate, className }: DatePickerProps) {
       <Popover>
         <PopoverTrigger asChild>
           <Button
+            id="date-picker-trigger"
+            type="button"
             variant={"outline"}
             className={cn(
               "w-full justify-start text-left font-normal",

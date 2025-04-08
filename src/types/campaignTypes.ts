@@ -95,3 +95,7 @@ export interface AdCampaignData {
 export interface FacebookCampaignOverviewProps {
   onConnectionChange?: () => Promise<void>;
 }
+
+export interface CampaignFormRef {
+  submitForm: () => Promise<boolean>;
+}
