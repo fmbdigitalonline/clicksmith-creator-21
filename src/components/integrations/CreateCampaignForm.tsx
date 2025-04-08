@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from "react";
+import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -7,12 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, DollarSign, BrainCircuit, User, Target, Calendar } from "lucide-react";
+import { DollarSign, BrainCircuit, Target } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DatePicker } from "@/components/ui/date-picker";
-import { extractTargetingData, callFacebookCampaignManager } from "@/utils/campaignDataUtils";
+import { callFacebookCampaignManager } from "@/utils/campaignDataUtils";
+import { CampaignFormForwardRef, CampaignFormValues } from "@/types/campaignTypes";
 
 const campaignFormSchema = z.object({
   name: z.string().min(3, "Campaign name must be at least 3 characters"),
@@ -49,8 +50,6 @@ const campaignFormSchema = z.object({
   additional_notes: z.string().optional(),
 });
 
-type CampaignFormValues = z.infer<typeof campaignFormSchema>;
-
 interface CreateCampaignFormProps {
   projectId?: string;
   creationMode: "manual" | "semi-automatic" | "automatic";
@@ -61,10 +60,10 @@ interface CreateCampaignFormProps {
   onBack: () => void;
   projectDataCompleteness?: number;
   targetingData?: any;
-  formRef?: React.MutableRefObject<{ submitForm: () => Promise<boolean> } | null>;
+  formRef?: React.MutableRefObject<CampaignFormForwardRef | null>;
 }
 
-const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, CreateCampaignFormProps>((
+const CreateCampaignForm = forwardRef<CampaignFormForwardRef, CreateCampaignFormProps>((
   { 
     projectId,
     creationMode,
@@ -115,10 +114,10 @@ const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, Cr
     return result;
   };
 
-  // Improved use of useImperativeHandle to ensure form ref works correctly
-  useImperativeHandle(ref, () => ({
-    submitForm: async () => {
-      console.log("submitForm called via ref");
+  // Create a clean submitForm function that handles validation and submission
+  const submitForm = async (): Promise<boolean> => {
+    console.log("submitForm called");
+    try {
       const isValid = await validateForm();
       
       if (!isValid) {
@@ -141,9 +140,28 @@ const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, Cr
         return false;
       }
       
+      // If we're just validating the form, return true without submitting
+      if (selectedAdIds.length === 0) {
+        return true; // Form is valid but we're not submitting yet
+      }
+      
+      // Get form values and proceed with actual submission
       const values = form.getValues();
-      return handleFormSubmit(values);
+      return await handleFormSubmit(values);
+    } catch (error) {
+      console.error("Error in submitForm:", error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "An unexpected error occurred",
+        variant: "destructive"
+      });
+      return false;
     }
+  };
+
+  // Improved use of useImperativeHandle to ensure form ref works correctly
+  useImperativeHandle(ref, () => ({
+    submitForm
   }), [form, projectId, toast, selectedAdIds]);
 
   // Updated useEffect to ensure formRef is properly set
@@ -151,33 +169,7 @@ const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, Cr
     if (formRef) {
       console.log("Setting form ref in CreateCampaignForm");
       formRef.current = {
-        submitForm: async () => {
-          console.log("submitForm called via formRef");
-          const isValid = await validateForm();
-          
-          if (!isValid) {
-            console.log("Form validation failed via formRef");
-            toast({
-              title: "Validation Error",
-              description: "Please fix the form errors before submitting",
-              variant: "destructive"
-            });
-            return false;
-          }
-          
-          if (!projectId) {
-            console.log("No project ID provided");
-            toast({
-              title: "Project Required",
-              description: "Please select a project for this campaign",
-              variant: "destructive"
-            });
-            return false;
-          }
-          
-          const values = form.getValues();
-          return handleFormSubmit(values);
-        }
+        submitForm
       };
     }
   }, [formRef, form, toast, projectId, selectedAdIds]);
@@ -306,35 +298,6 @@ const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, Cr
     }
   };
 
-  // We're now using this function directly from the parent component
-  const handleSubmit = async (): Promise<boolean> => {
-    console.log("handleSubmit called directly in CreateCampaignForm");
-    
-    try {
-      const isValid = await validateForm();
-      
-      if (!isValid) {
-        toast({
-          title: "Validation Error",
-          description: "Please fix the form errors before submitting",
-          variant: "destructive"
-        });
-        return false;
-      }
-      
-      const values = form.getValues();
-      return await handleFormSubmit(values);
-    } catch (error) {
-      console.error("Form submission error:", error);
-      toast({
-        title: "Submission Error",
-        description: error instanceof Error ? error.message : "An unknown error occurred",
-        variant: "destructive"
-      });
-      return false;
-    }
-  };
-
   const loadAdDataForIds = async (adIds: string[]): Promise<any[]> => {
     if (!adIds.length) return [];
     
@@ -394,26 +357,35 @@ const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, Cr
   const shouldShowBidAmount = form.watch('bid_strategy') !== 'LOWEST_COST_WITHOUT_CAP';
 
   const handleContinueClick = async () => {
-    const isValid = await validateForm();
-    
-    if (isValid) {
-      onContinue();
-    } else {
+    try {
+      const isValid = await validateForm();
+      
+      if (isValid) {
+        onContinue();
+      } else {
+        toast({
+          title: "Please complete all required fields",
+          description: "Fix the form errors before continuing to ad selection",
+          variant: "destructive"
+        });
+        const errorFields = Object.keys(form.formState.errors);
+        if (errorFields.length > 0) {
+          form.setFocus(errorFields[0] as keyof CampaignFormValues);
+        }
+      }
+    } catch (error) {
+      console.error("Error validating form:", error);
       toast({
-        title: "Please complete all required fields",
-        description: "Fix the form errors before continuing to ad selection",
+        title: "Validation Error",
+        description: "There was a problem validating the form",
         variant: "destructive"
       });
-      const errorFields = Object.keys(form.formState.errors);
-      if (errorFields.length > 0) {
-        form.setFocus(errorFields[0] as keyof CampaignFormValues);
-      }
     }
   };
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
+      <form onSubmit={(e) => { e.preventDefault(); submitForm(); }} className="space-y-6">
         <div className="space-y-4">
           <FormField
             control={form.control}
@@ -562,6 +534,7 @@ const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, Cr
                     date={field.value}
                     setDate={(newDate) => field.onChange(newDate)}
                     className="w-full"
+                    placeholder="Leave empty for continuous campaign"
                   />
                   <FormDescription>
                     Leave empty for continuous campaign

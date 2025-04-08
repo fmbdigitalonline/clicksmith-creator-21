@@ -95,3 +95,28 @@ export interface AdCampaignData {
 export interface FacebookCampaignOverviewProps {
   onConnectionChange?: () => Promise<void>;
 }
+
+// New interfaces to ensure type safety in form handling
+export interface CampaignFormForwardRef {
+  submitForm: () => Promise<boolean>;
+}
+
+export interface CampaignTargeting {
+  age_min: number;
+  age_max: number;
+  gender: "ALL" | "MALE" | "FEMALE";
+  interests?: string[];
+  locations?: string[];
+}
+
+export interface CampaignFormValues {
+  name: string;
+  objective: string;
+  budget: number;
+  bid_amount?: number;
+  bid_strategy: string;
+  start_date: Date;
+  end_date?: Date | null;
+  targeting?: CampaignTargeting;
+  additional_notes?: string;
+}

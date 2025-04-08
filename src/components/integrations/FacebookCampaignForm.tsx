@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import CreateCampaignForm from "@/components/integrations/CreateCampaignForm";
@@ -14,6 +15,7 @@ import DataCompletionWarning from "@/components/projects/DataCompletionWarning";
 import CampaignStatusCard from "@/components/integrations/CampaignStatusCard";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { CampaignFormForwardRef } from "@/types/campaignTypes";
 
 interface FacebookCampaignFormProps {
   open: boolean;
@@ -39,7 +41,7 @@ export default function FacebookCampaignForm({
   const [initialProjectSet, setInitialProjectSet] = useState<boolean>(false);
   const { toast } = useToast();
   
-  const campaignFormRef = useRef<{ submitForm: () => Promise<boolean> } | null>(null);
+  const campaignFormRef = useRef<CampaignFormForwardRef | null>(null);
   
   const projectData = useProjectCampaignData(selectedProjectId);
 
@@ -244,8 +246,10 @@ export default function FacebookCampaignForm({
       return;
     }
     
+    // Check if the form reference exists and is valid
     if (campaignFormRef.current && typeof campaignFormRef.current.submitForm === 'function') {
       try {
+        // This will validate the form without actual submission
         const isValid = await campaignFormRef.current.submitForm();
         console.log("Form validation result:", isValid);
         setFormIsValid(isValid);
@@ -268,6 +272,7 @@ export default function FacebookCampaignForm({
         });
       }
     } else {
+      // If form reference is not available but we have a project ID, proceed anyway
       if (selectedProjectId) {
         setFormTab("ads");
       }
