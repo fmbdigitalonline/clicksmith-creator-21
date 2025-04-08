@@ -45,7 +45,7 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps = {}) =>
   const [savedAds, setSavedAds] = useState<SavedAd[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
-  const { t } = useTranslation(["gallery", "common"]);
+  const { t } = useTranslation(["gallery", "common", "dashboard"]);
 
   useEffect(() => {
     const fetchSavedAds = async () => {
@@ -112,7 +112,7 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps = {}) =>
   }, [toast, projectFilter, t]);
 
   if (isLoading) {
-    return <div>{t("loading.saved_ads", "Loading saved ads...", { ns: "dashboard" })}</div>;
+    return <div>{t("loading.saved_ads", { ns: "dashboard" })}</div>;
   }
 
   if (savedAds.length === 0) {

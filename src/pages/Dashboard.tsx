@@ -254,7 +254,7 @@ const Dashboard = () => {
             <h1 className="text-4xl font-bold mb-2">{t("welcome")}, {userName}!</h1>
             {lastAccessedProject && (
               <p className="text-muted-foreground text-lg">
-                {t("last_accessed", "Last accessed", { ns: "common" })}: {lastAccessedProject.title} {formatDistanceToNow(new Date(lastAccessedProject.updated_at), { addSuffix: true })}
+                {t("last_accessed")}: {lastAccessedProject.title} {formatDistanceToNow(new Date(lastAccessedProject.updated_at), { addSuffix: true })}
               </p>
             )}
           </div>
@@ -343,7 +343,7 @@ const Dashboard = () => {
               {t("recent.projects")}
             </h2>
             <Button variant="ghost" className="gap-2" onClick={() => navigate("/projects")}>
-              {t("view_all", "View All", { ns: "common" })} <ArrowRight className="h-4 w-4" />
+              {t("view_all")} <ArrowRight className="h-4 w-4" />
             </Button>
           </div>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -359,7 +359,7 @@ const Dashboard = () => {
                 <CardHeader>
                   <CardTitle className="text-lg">{project.title}</CardTitle>
                   <CardDescription>
-                    {t("updated", "Updated", { ns: "common" })} {formatDistanceToNow(new Date(project.updated_at), { addSuffix: true })}
+                    {t("updated_about", "Updated about", { ns: "dashboard" })} {formatDistanceToNow(new Date(project.updated_at), { addSuffix: false })}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -373,7 +373,7 @@ const Dashboard = () => {
                         navigate(`/projects/${project.id}`);
                       }}
                     >
-                      <Pencil className="h-4 w-4 mr-1" /> {t("edit", "Edit", { ns: "common" })}
+                      <Pencil className="h-4 w-4 mr-1" /> {t("edit")}
                     </Button>
                     <Button
                       variant="outline"
@@ -384,7 +384,7 @@ const Dashboard = () => {
                         navigate(`/ad-wizard/${project.id}`);
                       }}
                     >
-                      <Eye className="h-4 w-4 mr-1" /> {t("view_ads", "View Ads", { ns: "common" })}
+                      <Eye className="h-4 w-4 mr-1" /> {t("view_ads")}
                     </Button>
                   </div>
                 </CardContent>
@@ -401,7 +401,7 @@ const Dashboard = () => {
               {t("recently_saved_ads", "Recently Saved Ads", { ns: "gallery" })}
             </h2>
             <Button variant="ghost" className="gap-2" onClick={() => navigate("/saved-ads")}>
-              {t("view_all", "View All", { ns: "common" })} <ArrowRight className="h-4 w-4" />
+              {t("view_all")} <ArrowRight className="h-4 w-4" />
             </Button>
           </div>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -410,7 +410,7 @@ const Dashboard = () => {
                 <CardHeader>
                   <CardTitle className="text-lg">{ad.headline || t("untitled_ad", "Untitled Ad", { ns: "gallery" })}</CardTitle>
                   <CardDescription>
-                    {t("saved", "Saved", { ns: "common" })} {formatDistanceToNow(new Date(ad.created_at), { addSuffix: true })}
+                    {t("saved_about", "Saved about", { ns: "dashboard" })} {formatDistanceToNow(new Date(ad.created_at), { addSuffix: false })}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -420,7 +420,7 @@ const Dashboard = () => {
                       size="sm"
                       onClick={() => navigate(`/saved-ads`)}
                     >
-                      <Eye className="h-4 w-4 mr-1" /> {t("view", "View", { ns: "common" })}
+                      <Eye className="h-4 w-4 mr-1" /> {t("view")}
                     </Button>
                   </div>
                 </CardContent>
@@ -435,21 +435,21 @@ const Dashboard = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <BookOpen className="h-5 w-5 text-primary" />
-                {t("resources", "Resources", { ns: "common" })}
+                {t("resources", "Resources", { ns: "dashboard" })}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <Button variant="link" className="w-full justify-start" onClick={() => navigate("/faq")}>
                 <BookOpen className="h-4 w-4 mr-2" />
-                {t("getting_started", "Getting Started with Ad Wizard", { ns: "adwizard" })}
+                {t("getting_started", "Getting Started with Ad Wizard", { ns: "dashboard" })}
               </Button>
               <Button variant="link" className="w-full justify-start" onClick={() => navigate("/faq")}>
                 <HelpCircle className="h-4 w-4 mr-2" />
-                {t("faq_support", "FAQs and Support", { ns: "adwizard" })}
+                {t("faqs_and_support", "FAQs and Support", { ns: "dashboard" })}
               </Button>
               <Button variant="link" className="w-full justify-start" onClick={() => navigate("/contact")}>
                 <MessageSquare className="h-4 w-4 mr-2" />
-                {t("contact_support", "Contact Support", { ns: "common" })}
+                {t("contact_support", "Contact Support", { ns: "dashboard" })}
               </Button>
             </CardContent>
           </Card>
@@ -458,18 +458,18 @@ const Dashboard = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Star className="h-5 w-5 text-primary" />
-                {t("help_improve", "Help Us Improve", { ns: "common" })}
+                {t("help_us_improve", "Help Us Improve", { ns: "dashboard" })}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <Button variant="link" className="w-full justify-start" onClick={() => navigate("/contact")}>
                 <MessageSquare className="h-4 w-4 mr-2" />
-                {t("share_feedback", "Share Your Feedback", { ns: "common" })}
+                {t("share_feedback", "Share Your Feedback", { ns: "dashboard" })}
               </Button>
               <Button asChild variant="link" className="w-full justify-start">
                 <a href="https://trustpilot.com" target="_blank" rel="noopener noreferrer">
                   <Star className="h-4 w-4 mr-2" />
-                  {t("rate_us", "Rate Us on Trustpilot", { ns: "common" })}
+                  {t("rate_us", "Rate Us on Trustpilot", { ns: "dashboard" })}
                 </a>
               </Button>
             </CardContent>
@@ -479,21 +479,21 @@ const Dashboard = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Users className="h-5 w-5 text-primary" />
-                {t("share_earn", "Share & Earn", { ns: "common" })}
+                {t("share_earn", "Share & Earn", { ns: "dashboard" })}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <Button variant="link" className="w-full justify-start" onClick={() => navigate("/referral")}>
                 <UsersRound className="h-4 w-4 mr-2" />
-                {t("refer_friend", "Refer a Friend", { ns: "common" })}
+                {t("refer_friend", "Refer a Friend", { ns: "dashboard" })}
               </Button>
               <Button variant="link" className="w-full justify-start" onClick={() => navigate("/affiliate")}>
                 <DollarSign className="h-4 w-4 mr-2" />
-                {t("affiliate_program", "Affiliate Program", { ns: "common" })}
+                {t("affiliate_program", "Affiliate Program", { ns: "dashboard" })}
               </Button>
               <Button variant="link" className="w-full justify-start" onClick={() => navigate("/share")}>
                 <Share2 className="h-4 w-4 mr-2" />
-                {t("share_social", "Share on Social Media", { ns: "common" })}
+                {t("share_social", "Share on Social Media", { ns: "dashboard" })}
               </Button>
             </CardContent>
           </Card>

@@ -36,8 +36,8 @@ i18n
     },
     // Language configuration
     supportedLngs: ['en', 'es', 'nl', 'fr', 'de'],
-    // RTL languages support
-    preload: ['en', 'es', 'nl', 'fr'],
+    // Preload all languages
+    preload: ['en', 'es', 'nl', 'fr', 'de'],
   });
 
 export default i18n;

@@ -19,5 +19,52 @@
     "new_project": "Nieuw Project",
     "new_campaign": "Nieuwe Campagne",
     "explore": "Verken Functies"
-  }
+  },
+  "cards": {
+    "continue_wizard": "Ga Door Met Idea Wizard",
+    "resume_journey": "Hervat je business idee validatie traject",
+    "view_saved_ads": "Bekijk Opgeslagen Advertenties",
+    "access_ads": "Bekijk al je eerder gegenereerde advertenties",
+    "create_project": "Maak Nieuw Project",
+    "start_validation": "Start een nieuw business idee validatie project"
+  },
+  "updates": {
+    "latest": "Laatste Updates"
+  },
+  "loading": {
+    "saved_ads": "Opgeslagen advertenties laden...",
+    "projects": "Projecten laden...",
+    "dashboard": "Dashboard gegevens laden..."
+  },
+  "last_accessed": "Laatst geopend",
+  "view_all": "Bekijk Alles",
+  "updated": "Bijgewerkt",
+  "edit": "Bewerken",
+  "view_ads": "Bekijk Advertenties",
+  "saved": "Opgeslagen",
+  "view": "Bekijken",
+  "completed": "voltooid",
+  "in_progress": "in uitvoering",
+  "recently_saved_ads": "Recent Opgeslagen Advertenties",
+  "generated_content": "Gegenereerde Content",
+  "images": "Afbeeldingen",
+  "ad_texts": "Advertentie Teksten",
+  "total_ads": "Totaal Advertenties",
+  "average_rating": "Gemiddelde waardering",
+  "credits_remaining": "Resterende Credits",
+  "available_for": "Beschikbaar voor nieuwe campagnes",
+  "resources": "Bronnen",
+  "help_us_improve": "Help Ons Verbeteren",
+  "share_earn": "Delen & Verdienen",
+  "getting_started": "Aan de slag met Ad Wizard",
+  "faqs_and_support": "FAQ's en Ondersteuning",
+  "contact_support": "Contact Ondersteuning",
+  "share_feedback": "Deel Uw Feedback",
+  "rate_us": "Beoordeel Ons op Trustpilot",
+  "refer_friend": "Verwijs een Vriend",
+  "affiliate_program": "Affiliate Programma",
+  "share_social": "Deel op Social Media",
+  "updated_about": "Bijgewerkt ongeveer",
+  "saved_about": "Opgeslagen ongeveer",
+  "hour_ago": "uur geleden"
 }

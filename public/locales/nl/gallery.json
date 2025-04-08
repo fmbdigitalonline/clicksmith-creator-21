@@ -1,0 +1,59 @@
+
+{
+  "title": "Advertentie Galerij",
+  "saved_ads": "Opgeslagen Advertenties",
+  "empty_state": "Nog geen opgeslagen advertenties. Like of markeer advertenties als favoriet om ze hier te zien!",
+  "primary_text": "Primaire Tekst",
+  "headline": "Kop",
+  "ad_creative_alt": "Advertentie creatief",
+  "load_error": "Opgeslagen advertenties laden mislukt. Probeer het opnieuw.",
+  "select_all": "Selecteer Alles",
+  "deselect_all": "Deselecteer Alles",
+  "selected": "{count} geselecteerd",
+  "add_to_project": "Toevoegen aan Project",
+  "remove_from_project": "Verwijderen uit Project",
+  "confirm_add": {
+    "title": "Advertenties aan Project Toewijzen",
+    "description": "Weet je zeker dat je {count} advertentie(s) aan het geselecteerde project wilt toevoegen?"
+  },
+  "confirm_remove": {
+    "title": "Advertenties uit Project Verwijderen",
+    "description": "Weet je zeker dat je deze {count} advertentie(s) uit hun projecten wilt verwijderen?"
+  },
+  "view": {
+    "grid": "Raster",
+    "table": "Tabel"
+  },
+  "sort": {
+    "newest": "Nieuwste Eerst",
+    "oldest": "Oudste Eerst",
+    "rating_high": "Hoogste Waardering",
+    "rating_low": "Laagste Waardering"
+  },
+  "filters": {
+    "search": "Zoek advertenties op tekst...",
+    "platform": "Platform",
+    "all_platforms": "Alle Platforms",
+    "facebook": "Facebook",
+    "instagram": "Instagram",
+    "google": "Google"
+  },
+  "stats": {
+    "ads_found": "{count} advertenties gevonden",
+    "search": "Zoeken: {query}",
+    "platform": "Platform: {platform}"
+  },
+  "project": {
+    "selected": "Advertenties voor geselecteerd project weergeven",
+    "not_assigned": "Er zijn nog geen advertenties toegewezen aan dit project.",
+    "go_to_gallery": "Ga naar je galerie met opgeslagen advertenties om advertenties toe te wijzen aan dit project"
+  },
+  "no_results": {
+    "title": "Geen advertenties gevonden",
+    "description": "Pas je zoek- of filtercriteria aan",
+    "clear_filters": "Alle filters wissen"
+  },
+  "recently_saved_ads": "Recent Opgeslagen Advertenties",
+  "untitled_ad": "Naamloze Advertentie",
+  "error": "Fout"
+}

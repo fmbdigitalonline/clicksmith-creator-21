@@ -48,7 +48,7 @@ const ProjectsCard = () => {
       <CardContent>
         <div className="text-2xl font-bold">{projectStats?.total || 0}</div>
         <div className="text-xs text-muted-foreground mt-1">
-          {projectStats?.completed || 0} {t("completed", "completed", { ns: "common" })} · {projectStats?.inProgress || 0} {t("in_progress", "in progress", { ns: "common" })}
+          {projectStats?.completed || 0} {t("completed")} · {projectStats?.inProgress || 0} {t("in_progress")}
         </div>
       </CardContent>
     </Card>
