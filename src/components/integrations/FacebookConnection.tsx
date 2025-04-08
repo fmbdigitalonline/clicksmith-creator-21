@@ -645,7 +645,7 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
               </div>
             ) : (
               <Alert variant="default" className="bg-yellow-50 border-yellow-200 mt-4">
-                <AlertCircle className="h-4 w-4 text-yellow-600" />
+                <AlertCircle className="h-4 w-4" />
                 <AlertTitle className="text-yellow-800">Facebook Page Required</AlertTitle>
                 <AlertDescription className="text-yellow-700">
                   You need to connect at least one Facebook Page to create ad campaigns. 
@@ -711,7 +711,11 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
               <AlertCircle className="h-4 w-4" />
               <AlertTitle>Important Facebook Setup</AlertTitle>
               <AlertDescription className="space-y-2">
-                <p>Make sure your Facebook App settings include <strong>{window.location.origin}/integrations?connection=facebook</strong> as a valid OAuth redirect URI.</p>
+                {isAdmin ? (
+                  <p>Make sure your Facebook App settings include <strong>{window.location.origin}/integrations?connection=facebook</strong> as a valid OAuth redirect URI.</p>
+                ) : (
+                  <p>Facebook integration requires proper configuration to work correctly.</p>
+                )}
                 {isAdmin && (
                   <>
                     <div className="flex items-center text-xs text-muted-foreground mt-2">
@@ -724,14 +728,16 @@ export default function FacebookConnection({ onConnectionChange }: FacebookConne
                   </>
                 )}
                 <div className="flex items-center gap-1 mt-1">
-                  <a 
-                    href="https://developers.facebook.com/apps/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center text-xs text-blue-600 hover:underline"
-                  >
-                    Facebook Developers Console <ExternalLink className="h-3 w-3 ml-1" />
-                  </a>
+                  {isAdmin && (
+                    <a 
+                      href="https://developers.facebook.com/apps/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center text-xs text-blue-600 hover:underline"
+                    >
+                      Facebook Developers Console <ExternalLink className="h-3 w-3 ml-1" />
+                    </a>
+                  )}
                 </div>
               </AlertDescription>
             </Alert>
