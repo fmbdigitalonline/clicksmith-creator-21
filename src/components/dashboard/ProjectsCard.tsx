@@ -24,7 +24,7 @@ const ProjectsCard = () => {
 
       if (error) {
         toast({
-          title: t("error_fetching_projects", "Error fetching projects", { ns: "projects" }),
+          title: t("error_fetching_projects", { ns: "projects" }),
           description: error.message,
           variant: "destructive",
         });

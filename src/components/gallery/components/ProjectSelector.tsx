@@ -40,7 +40,7 @@ export function ProjectSelector({
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   const { title: selectedProjectTitle } = useProjectTitle(selectedProjectId || null);
-  const { t } = useTranslation(["gallery", "common"]);
+  const { t } = useTranslation(["gallery", "common", "projects"]);
 
   // Fetch projects when component mounts
   useEffect(() => {
@@ -95,8 +95,8 @@ export function ProjectSelector({
       
       // Show success toast
       toast({
-        title: t("project.selected", "Project Selected", { ns: "projects" }),
-        description: `"${project.title}" ${t("has_been_selected", "has been selected", { ns: "common" })}`,
+        title: t("project.selected", { ns: "projects" }),
+        description: `"${project.title}" ${t("has_been_selected", { ns: "common" })}`,
         variant: "default",
       });
     }
