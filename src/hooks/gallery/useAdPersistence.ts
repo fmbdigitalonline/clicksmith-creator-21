@@ -24,10 +24,18 @@ export const useAdPersistence = (projectId: string | undefined) => {
         .single();
       
       if (project?.generated_ads && Array.isArray(project.generated_ads)) {
-        // Ensure uniqueness by ad ID when loading
-        const uniqueAds = Array.from(
-          new Map(project.generated_ads.map((ad: any) => [ad.id, ad])).values()
-        );
+        // Create a map using image URL as key to ensure uniqueness
+        const uniqueAdsMap = new Map();
+        
+        project.generated_ads.forEach((ad: any) => {
+          const imageKey = ad.imageUrl || ad.imageurl || (ad.saved_images && ad.saved_images[0]);
+          if (imageKey && !uniqueAdsMap.has(imageKey)) {
+            uniqueAdsMap.set(imageKey, ad);
+          }
+        });
+        
+        // Convert back to array
+        const uniqueAds = Array.from(uniqueAdsMap.values());
         setSavedAds(uniqueAds);
       }
     } catch (error) {
@@ -80,14 +88,30 @@ export const useAdPersistence = (projectId: string | undefined) => {
     if (!projectId || projectId === 'new') return;
 
     try {
-      // Create a Map to store unique ads by ID
+      // Create a Map to store unique ads by image URL for better deduplication
       const uniqueAdsMap = new Map();
       
-      // First add existing ads to the map
-      savedAds.forEach(ad => uniqueAdsMap.set(ad.id, ad));
+      // First add existing ads to the map using image URL as key
+      savedAds.forEach(ad => {
+        const imageKey = ad.imageUrl || ad.imageurl || (ad.saved_images && ad.saved_images[0]);
+        if (imageKey) {
+          uniqueAdsMap.set(imageKey, ad);
+        } else {
+          // If no image key found, use ID as fallback (should be rare)
+          uniqueAdsMap.set(ad.id, ad);
+        }
+      });
       
-      // Then add new ads, overwriting any duplicates
-      newAds.forEach(ad => uniqueAdsMap.set(ad.id, ad));
+      // Then add new ads, overwriting any duplicates based on image URL
+      newAds.forEach(ad => {
+        const imageKey = ad.imageUrl || ad.imageurl || (ad.saved_images && ad.saved_images[0]);
+        if (imageKey) {
+          uniqueAdsMap.set(imageKey, ad);
+        } else {
+          // If no image key found, use ID as fallback (should be rare)
+          uniqueAdsMap.set(ad.id, ad);
+        }
+      });
       
       // Convert map back to array
       const updatedAds = Array.from(uniqueAdsMap.values());
@@ -124,4 +148,3 @@ export const useAdPersistence = (projectId: string | undefined) => {
     saveGeneratedAds
   };
 };
-

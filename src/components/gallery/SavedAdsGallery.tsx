@@ -23,8 +23,8 @@ interface SavedAd {
   rating: number;
   feedback: string;
   created_at: string;
-  imageurl?: string;  // Keep lowercase for database compatibility
-  imageUrl?: string;  // Add camelCase version
+  imageurl?: string;
+  imageUrl?: string;
   platform?: string;
   project_id?: string;
   size?: {
@@ -42,8 +42,8 @@ interface AdFeedbackRow {
   rating: number;
   feedback: string;
   created_at: string;
-  imageurl?: string;  // Keep lowercase for database compatibility
-  imageUrl?: string;  // Add camelCase version
+  imageurl?: string;
+  imageUrl?: string;
   platform?: string;
   project_id?: string;
   size?: Json;
@@ -82,7 +82,6 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps) => {
         .select('id, saved_images, headline, primary_text, rating, feedback, created_at, imageurl, imageUrl, platform, project_id, size')
         .eq('user_id', user.id);
       
-      // If projectFilter is provided, filter ads by that project
       if (projectFilter) {
         query = query.eq('project_id', projectFilter);
         console.log("Filtering ads for project:", projectFilter);
@@ -94,23 +93,39 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps) => {
         throw error;
       }
 
-      // Find the default format (square 1:1)
       const defaultFormat = AD_FORMATS.find(format => format.width === 1080 && format.height === 1080) || AD_FORMATS[0];
 
-      const convertedAds: SavedAd[] = (data as AdFeedbackRow[]).map(ad => ({
-        ...ad,
-        saved_images: Array.isArray(ad.saved_images) 
-          ? (ad.saved_images as string[])
-          : typeof ad.saved_images === 'string'
-            ? [ad.saved_images as string]
-            : [],
-        platform: ad.platform || 'facebook',
-        size: ad.size 
-          ? (ad.size as { width: number; height: number; label: string }) 
-          : defaultFormat
-      }));
+      const uniqueAdsMap = new Map();
+      
+      (data as AdFeedbackRow[] || []).forEach(ad => {
+        const imageUrls = [
+          ad.imageurl,
+          ad.imageUrl,
+          ...(Array.isArray(ad.saved_images) ? ad.saved_images as string[] : 
+             typeof ad.saved_images === 'string' ? [ad.saved_images as string] : [])
+        ].filter(Boolean);
+        
+        const primaryImageUrl = imageUrls[0];
+        
+        if (primaryImageUrl && !uniqueAdsMap.has(primaryImageUrl)) {
+          uniqueAdsMap.set(primaryImageUrl, {
+            ...ad,
+            saved_images: Array.isArray(ad.saved_images) 
+              ? (ad.saved_images as string[])
+              : typeof ad.saved_images === 'string'
+                ? [ad.saved_images as string]
+                : [],
+            platform: ad.platform || 'facebook',
+            size: ad.size 
+              ? (ad.size as { width: number; height: number; label: string }) 
+              : defaultFormat
+          });
+        }
+      });
+      
+      const convertedAds = Array.from(uniqueAdsMap.values());
 
-      console.log("Fetched ads count:", convertedAds.length);
+      console.log("Fetched ads count:", data?.length, "Unique ads count:", convertedAds.length);
       setSavedAds(convertedAds);
       setTotalPages(Math.ceil(convertedAds.length / itemsPerPage));
     } catch (error) {
@@ -172,7 +187,6 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps) => {
 
       console.log("Assigning ads to project:", selectedProjectId, "Ads:", selectedAdIds);
 
-      // For each selected ad, update it with the new project ID
       for (const adId of selectedAdIds) {
         const { error } = await supabase
           .from('ad_feedback')
@@ -180,7 +194,7 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps) => {
             project_id: selectedProjectId 
           })
           .eq('id', adId)
-          .is('project_id', null); // Only update if project_id is null
+          .is('project_id', null);
           
         if (error) {
           console.error("Error assigning to project:", error);
@@ -246,7 +260,6 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps) => {
     }
   };
 
-  // Filter and sort ads based on search query, platform filter, and sort option
   const filteredAds = savedAds.filter(ad => {
     const matchesSearch = 
       (ad.headline?.toLowerCase().includes(searchQuery.toLowerCase()) || false) ||
@@ -268,7 +281,6 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps) => {
     return 0;
   });
 
-  // Calculate paginated ads
   const paginatedAds = filteredAds.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
@@ -276,7 +288,7 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps) => {
 
   useEffect(() => {
     setTotalPages(Math.max(1, Math.ceil(filteredAds.length / itemsPerPage)));
-    setCurrentPage(1); // Reset to first page when filters change
+    setCurrentPage(1);
   }, [filteredAds.length, itemsPerPage]);
 
   if (isLoading) {
@@ -312,14 +324,11 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps) => {
     savedAds.find(ad => ad.id === id)?.project_id !== undefined
   );
 
-  // Only show action bar when not filtering by project
   const showActionBar = !projectFilter;
 
   return (
     <div className="space-y-6">
-      {/* Controls and Filters */}
       <div className="flex flex-col gap-4 bg-gray-50 p-4 rounded-lg shadow-sm">
-        {/* View Controls */}
         <div className="flex flex-col sm:flex-row gap-4 justify-between">
           <div className="flex items-center space-x-2">
             <Button
@@ -357,7 +366,6 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps) => {
           </div>
         </div>
         
-        {/* Search and Filters */}
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex-1 relative">
             <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -383,107 +391,103 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps) => {
         </div>
       </div>
 
-      {/* Selection Stats & Actions Bar */}
-      {showActionBar && (
-        <div className="bg-gray-50 p-4 rounded-lg shadow-sm">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleSelectAll}
-                className="flex items-center"
-              >
-                {selectedAdIds.length === filteredAds.length ? (
-                  <>
-                    <CheckSquare className="h-4 w-4 mr-2" />
-                    Deselect All
-                  </>
-                ) : (
-                  <>
-                    <SquareCheckIcon className="h-4 w-4 mr-2" />
-                    Select All
-                  </>
-                )}
-              </Button>
-              {selectedAdIds.length > 0 && (
-                <Badge variant="secondary">
-                  {selectedAdIds.length} selected
-                </Badge>
+      <div className="bg-gray-50 p-4 rounded-lg shadow-sm">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSelectAll}
+              className="flex items-center"
+            >
+              {selectedAdIds.length === filteredAds.length ? (
+                <>
+                  <CheckSquare className="h-4 w-4 mr-2" />
+                  Deselect All
+                </>
+              ) : (
+                <>
+                  <SquareCheckIcon className="h-4 w-4 mr-2" />
+                  Select All
+                </>
               )}
+            </Button>
+            {selectedAdIds.length > 0 && (
+              <Badge variant="secondary">
+                {selectedAdIds.length} selected
+              </Badge>
+            )}
+          </div>
+          
+          <div className="flex items-center gap-3 flex-wrap sm:flex-nowrap">
+            <div className="w-full sm:w-64 relative" style={{ zIndex: 60 }}>
+              <ProjectSelector
+                selectedProjectId={selectedProjectId}
+                onSelect={handleProjectSelect}
+              />
             </div>
             
-            <div className="flex items-center gap-3 flex-wrap sm:flex-nowrap">
-              <div className="w-full sm:w-64 relative" style={{ zIndex: 60 }}>
-                <ProjectSelector
-                  selectedProjectId={selectedProjectId}
-                  onSelect={handleProjectSelect}
-                />
-              </div>
-              
-              <AlertDialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
+            <AlertDialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
+              <AlertDialogTrigger asChild>
+                <Button 
+                  variant="default" 
+                  disabled={selectedAdIds.length === 0 || !selectedProjectId || isAssigning}
+                  className="whitespace-nowrap"
+                  onClick={() => {
+                    if (selectedAdIds.length > 0 && selectedProjectId) {
+                      setIsConfirmDialogOpen(true);
+                    }
+                  }}
+                >
+                  {isAssigning ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : null}
+                  Add to Project
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Assign Ads to Project</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to add {selectedAdIds.length} ad(s) to the selected project?
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleAssignToProject}>Continue</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+            
+            {hasProjectAssigned && (
+              <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button 
-                    variant="default" 
-                    disabled={selectedAdIds.length === 0 || !selectedProjectId || isAssigning}
+                    variant="outline" 
+                    disabled={selectedAdIds.length === 0 || isAssigning}
                     className="whitespace-nowrap"
-                    onClick={() => {
-                      if (selectedAdIds.length > 0 && selectedProjectId) {
-                        setIsConfirmDialogOpen(true);
-                      }
-                    }}
                   >
-                    {isAssigning ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : null}
-                    Add to Project
+                    Remove from Project
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Assign Ads to Project</AlertDialogTitle>
+                    <AlertDialogTitle>Remove Ads from Project</AlertDialogTitle>
                     <AlertDialogDescription>
-                      Are you sure you want to add {selectedAdIds.length} ad(s) to the selected project?
+                      Are you sure you want to remove these {selectedAdIds.length} ad(s) from their projects?
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleAssignToProject}>Continue</AlertDialogAction>
+                    <AlertDialogAction onClick={handleRemoveFromProject}>Continue</AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
-            
-              {hasProjectAssigned && (
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button 
-                      variant="outline" 
-                      disabled={selectedAdIds.length === 0 || isAssigning}
-                      className="whitespace-nowrap"
-                    >
-                      Remove from Project
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Remove Ads from Project</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Are you sure you want to remove these {selectedAdIds.length} ad(s) from their projects?
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={handleRemoveFromProject}>Continue</AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              )}
-            </div>
+            )}
           </div>
         </div>
-      )}
+      </div>
 
-      {/* Filter Stats & Current Filters Display */}
       <div className="flex flex-wrap gap-2 items-center">
         <Badge variant="outline" className="bg-gray-50">
           {filteredAds.length} ads found
@@ -524,7 +528,6 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps) => {
         )}
       </div>
 
-      {/* Project Filter Info - Show when filtering by project */}
       {projectFilter && (
         <div className="mb-4">
           <Badge variant="outline" className="text-sm font-normal">
@@ -533,7 +536,6 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps) => {
         </div>
       )}
 
-      {/* No results message */}
       {filteredAds.length === 0 && (
         <div className="text-center py-8 bg-gray-50 rounded-lg">
           <AlertCircle className="mx-auto h-8 w-8 text-gray-400 mb-2" />
@@ -556,7 +558,6 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps) => {
         </div>
       )}
 
-      {/* Content View: Grid or Table */}
       {filteredAds.length > 0 && (
         <>
           {view === "grid" ? (
@@ -589,7 +590,6 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps) => {
             />
           )}
 
-          {/* Pagination */}
           {totalPages > 1 && (
             <div className="flex justify-center mt-8">
               <Pagination

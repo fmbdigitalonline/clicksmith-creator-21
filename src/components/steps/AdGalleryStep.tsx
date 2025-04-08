@@ -196,17 +196,49 @@ const AdGalleryStep = ({
       const savedAds = [];
       const facebookAds = [];
       
+      // Check for existing ads first to prevent duplicates
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('User must be logged in to save ads');
+      }
+
+      // Get existing ads for this project
+      const { data: existingAds, error: fetchError } = await supabase
+        .from('ad_feedback')
+        .select('imageurl, imageUrl')
+        .eq('user_id', user.id)
+        .eq('project_id', selectedProjectId);
+        
+      if (fetchError) {
+        console.error("Error fetching existing ads:", fetchError);
+      }
+      
+      // Create a set of existing image URLs for O(1) lookup
+      const existingImageUrls = new Set();
+      if (existingAds) {
+        existingAds.forEach(ad => {
+          if (ad.imageurl) existingImageUrls.add(ad.imageurl);
+          if (ad.imageUrl) existingImageUrls.add(ad.imageUrl);
+        });
+      }
+      
       for (const ad of selectedAds) {
         const imageUrl = ad.imageUrl || ad.image?.url;
         if (!imageUrl) {
           console.warn("Ad missing image URL:", ad);
           continue;
         }
+        
+        // Skip if this image already exists for this project
+        if (existingImageUrls.has(imageUrl)) {
+          console.log("Skipping duplicate ad:", imageUrl);
+          continue;
+        }
 
         const { data, error } = await supabase
           .from('ad_feedback')
           .insert({
-            user_id: (await supabase.auth.getUser()).data.user?.id,
+            user_id: user.id,
             project_id: selectedProjectId,
             saved_images: [imageUrl],
             primary_text: ad.description,
@@ -244,7 +276,7 @@ const AdGalleryStep = ({
 
       toast({
         title: "Ads saved to project",
-        description: `${selectedAdIds.length} ad(s) saved to project successfully.`,
+        description: `${savedAds.length} ad(s) saved to project successfully.`,
       });
       
       // Auto-process Facebook images if there are any
