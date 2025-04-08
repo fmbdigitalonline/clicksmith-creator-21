@@ -35,5 +35,12 @@
     "saved_ads": "Loading saved ads...",
     "projects": "Loading projects...",
     "dashboard": "Loading dashboard data..."
-  }
+  },
+  "last_accessed": "Last accessed",
+  "view_all": "View All",
+  "updated": "Updated",
+  "edit": "Edit",
+  "view_ads": "View Ads",
+  "saved": "Saved",
+  "view": "View"
 }

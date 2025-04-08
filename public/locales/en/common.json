@@ -35,5 +35,25 @@
     "step_data": "Loading step data...",
     "please_wait": "Please wait...",
     "processing": "Processing..."
-  }
+  },
+  "view_all": "View All",
+  "updated": "Updated",
+  "edit": "Edit",
+  "view_ads": "View Ads",
+  "saved": "Saved",
+  "view": "View",
+  "completed": "completed",
+  "in_progress": "in progress",
+  "resources": "Resources",
+  "getting_started": "Getting Started with Ad Wizard",
+  "faq_support": "FAQs and Support",
+  "contact_support": "Contact Support",
+  "help_improve": "Help Us Improve",
+  "share_feedback": "Share Your Feedback",
+  "rate_us": "Rate Us on Trustpilot",
+  "share_earn": "Share & Earn",
+  "refer_friend": "Refer a Friend",
+  "affiliate_program": "Affiliate Program",
+  "share_social": "Share on Social Media",
+  "last_accessed": "Last accessed"
 }

@@ -1,15 +1,17 @@
 
-import { Card } from "@/components/ui/card";
+import { BookmarkX } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 export const EmptyState = () => {
-  const { t } = useTranslation();
+  const { t } = useTranslation("gallery");
   
   return (
-    <Card className="p-6">
-      <p className="text-center text-gray-500">
-        {t("gallery.empty_state", "No saved ads yet. Like or favorite ads to see them here!")}
+    <div className="flex flex-col items-center justify-center py-12">
+      <BookmarkX className="h-16 w-16 text-muted-foreground mb-4" />
+      <h3 className="text-xl font-semibold mb-2">{t("saved_ads")}</h3>
+      <p className="text-muted-foreground text-center max-w-md">
+        {t("empty_state")}
       </p>
-    </Card>
+    </div>
   );
 };

@@ -6,6 +6,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { AdFeedbackControls } from "@/components/steps/gallery/components/AdFeedbackControls";
 import { Json } from "@/integrations/supabase/types";
 import { EmptyState } from "@/components/gallery/components/EmptyState";
+import { useTranslation } from "react-i18next";
+import { AdCard } from "@/components/gallery/components/AdCard";
 
 interface SavedAd {
   id: string;
@@ -43,6 +45,7 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps = {}) =>
   const [savedAds, setSavedAds] = useState<SavedAd[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+  const { t } = useTranslation(["gallery", "common"]);
 
   useEffect(() => {
     const fetchSavedAds = async () => {
@@ -96,8 +99,8 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps = {}) =>
       } catch (error) {
         console.error('Error fetching saved ads:', error);
         toast({
-          title: "Error",
-          description: "Failed to load saved ads. Please try again.",
+          title: t("error"),
+          description: t("load_error"),
           variant: "destructive",
         });
       } finally {
@@ -106,10 +109,10 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps = {}) =>
     };
 
     fetchSavedAds();
-  }, [toast, projectFilter]);
+  }, [toast, projectFilter, t]);
 
   if (isLoading) {
-    return <div>Loading saved ads...</div>;
+    return <div>{t("loading.saved_ads", "Loading saved ads...", { ns: "dashboard" })}</div>;
   }
 
   if (savedAds.length === 0) {
@@ -119,48 +122,16 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps = {}) =>
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {savedAds.map((ad) => (
-        <Card key={ad.id} className="overflow-hidden">
-          {/* Primary Text Section */}
-          {ad.primary_text && (
-            <CardContent className="p-4 border-b">
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-gray-600">Primary Text</p>
-                <p className="text-gray-800 whitespace-pre-wrap">{ad.primary_text}</p>
-              </div>
-            </CardContent>
-          )}
-          
-          {/* Image Section */}
-          {ad.imageurl && (
-            <div className="aspect-video relative">
-              <img
-                src={ad.imageurl}
-                alt="Ad creative"
-                className="object-cover w-full h-full"
-              />
-            </div>
-          )}
-
-          {/* Headline Section */}
-          {ad.headline && (
-            <CardContent className="p-4 border-t">
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-gray-600">Headline</p>
-                <h3 className="text-lg font-semibold text-facebook">{ad.headline}</h3>
-              </div>
-            </CardContent>
-          )}
-
-          {/* Feedback Controls */}
-          <CardContent className="p-4 border-t bg-gray-50">
-            <AdFeedbackControls
-              adId={ad.id}
-              onFeedbackSubmit={() => {
-                window.location.reload();
-              }}
-            />
-          </CardContent>
-        </Card>
+        <AdCard 
+          key={ad.id}
+          id={ad.id}
+          primaryText={ad.primary_text}
+          headline={ad.headline}
+          imageUrl={ad.imageurl}
+          onFeedbackSubmit={() => {
+            window.location.reload();
+          }}
+        />
       ))}
     </div>
   );

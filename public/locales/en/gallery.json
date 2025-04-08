@@ -52,5 +52,8 @@
     "title": "No ads found",
     "description": "Try adjusting your search or filter criteria",
     "clear_filters": "Clear all filters"
-  }
+  },
+  "recently_saved_ads": "Recently Saved Ads",
+  "untitled_ad": "Untitled Ad",
+  "error": "Error"
 }

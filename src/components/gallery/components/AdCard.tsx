@@ -13,7 +13,7 @@ interface AdCardProps {
 }
 
 export const AdCard = ({ id, primaryText, headline, imageUrl, onFeedbackSubmit }: AdCardProps) => {
-  const { t } = useTranslation();
+  const { t } = useTranslation("gallery");
   
   return (
     <Card className="overflow-hidden">
