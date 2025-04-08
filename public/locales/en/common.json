@@ -55,5 +55,18 @@
   "refer_friend": "Refer a Friend",
   "affiliate_program": "Affiliate Program",
   "share_social": "Share on Social Media",
-  "last_accessed": "Last accessed"
+  "last_accessed": "Last accessed",
+  "dashboard": "Dashboard",
+  "projects": "Projects",
+  "gallery": "Gallery",
+  "integrations": "Integrations",
+  "settings": "Settings",
+  "help": "Help",
+  "blog": "Blog",
+  "auth": {
+    "logout": {
+      "button": "Logout"
+    }
+  },
+  "has_been_selected": "has been selected"
 }

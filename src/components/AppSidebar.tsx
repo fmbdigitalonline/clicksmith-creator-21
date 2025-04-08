@@ -88,7 +88,7 @@ export default function AppSidebar() {
                   }
                 >
                   <LayoutDashboard size={18} className="flex-shrink-0" />
-                  {!isCollapsed && <span className="ml-2 truncate">{t('navigation.dashboard')}</span>}
+                  {!isCollapsed && <span className="ml-2 truncate">{t('dashboard')}</span>}
                 </NavLink>
                 
                 <NavLink 
@@ -100,7 +100,7 @@ export default function AppSidebar() {
                   }
                 >
                   <Briefcase size={18} className="flex-shrink-0" />
-                  {!isCollapsed && <span className="ml-2 truncate">{t('navigation.projects')}</span>}
+                  {!isCollapsed && <span className="ml-2 truncate">{t('projects')}</span>}
                 </NavLink>
                 
                 <NavLink 
@@ -112,7 +112,7 @@ export default function AppSidebar() {
                   }
                 >
                   <ImageIcon size={18} className="flex-shrink-0" />
-                  {!isCollapsed && <span className="ml-2 truncate">{t('navigation.gallery')}</span>}
+                  {!isCollapsed && <span className="ml-2 truncate">{t('gallery')}</span>}
                 </NavLink>
                 
                 <NavLink 
@@ -124,7 +124,7 @@ export default function AppSidebar() {
                   }
                 >
                   <LinkIcon size={18} className="flex-shrink-0" />
-                  {!isCollapsed && <span className="ml-2 truncate">{t('navigation.integrations')}</span>}
+                  {!isCollapsed && <span className="ml-2 truncate">{t('integrations')}</span>}
                 </NavLink>
                 
                 {isAdmin && (
@@ -137,7 +137,7 @@ export default function AppSidebar() {
                     }
                   >
                     <FileText size={18} className="flex-shrink-0" />
-                    {!isCollapsed && <span className="ml-2 truncate">{t('navigation.blog')}</span>}
+                    {!isCollapsed && <span className="ml-2 truncate">{t('blog')}</span>}
                   </NavLink>
                 )}
               </div>
@@ -155,7 +155,7 @@ export default function AppSidebar() {
                 }
               >
                 <Settings size={18} className="flex-shrink-0" />
-                {!isCollapsed && <span className="ml-2 truncate">{t('navigation.settings')}</span>}
+                {!isCollapsed && <span className="ml-2 truncate">{t('settings')}</span>}
               </NavLink>
               
               <NavLink 
@@ -167,7 +167,7 @@ export default function AppSidebar() {
                 }
               >
                 <HelpCircle size={18} className="flex-shrink-0" />
-                {!isCollapsed && <span className="ml-2 truncate">{t('navigation.help')}</span>}
+                {!isCollapsed && <span className="ml-2 truncate">{t('help')}</span>}
               </NavLink>
               
               <button

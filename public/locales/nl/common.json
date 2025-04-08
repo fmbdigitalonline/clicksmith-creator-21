@@ -55,5 +55,18 @@
   "refer_friend": "Verwijs een Vriend",
   "affiliate_program": "Affiliate Programma",
   "share_social": "Deel op Social Media",
-  "last_accessed": "Laatst geopend"
+  "last_accessed": "Laatst geopend",
+  "dashboard": "Dashboard",
+  "projects": "Projecten",
+  "gallery": "Galerij",
+  "integrations": "Integraties",
+  "settings": "Instellingen",
+  "help": "Hulp",
+  "blog": "Blog",
+  "auth": {
+    "logout": {
+      "button": "Uitloggen"
+    }
+  },
+  "has_been_selected": "is geselecteerd"
 }

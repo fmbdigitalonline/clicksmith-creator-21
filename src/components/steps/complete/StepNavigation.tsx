@@ -12,7 +12,7 @@ const StepNavigation = ({
   onBack,
   onStartOver,
 }: StepNavigationProps) => {
-  const { t } = useTranslation();
+  const { t } = useTranslation('common');
   
   return (
     <div className="flex flex-col md:flex-row justify-between gap-4 mb-4">
@@ -22,14 +22,14 @@ const StepNavigation = ({
         className="space-x-2 w-full md:w-auto"
       >
         <ArrowLeft className="w-4 h-4" />
-        <span>{t("navigation.previous_step", "Previous Step")}</span>
+        <span>{t("navigation.previous_step")}</span>
       </Button>
       <Button
         onClick={onStartOver}
         variant="outline"
         className="space-x-2 w-full md:w-auto"
       >
-        {t("navigation.start_over", "Start Over")}
+        {t("navigation.start_over")}
       </Button>
     </div>
   );
