@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/popover"
 
 interface DatePickerProps {
-  date?: Date | undefined;
+  date?: Date | undefined | string;
   setDate: (date: Date | undefined) => void;
   className?: string;
 }
@@ -26,7 +26,7 @@ export function DatePicker({ date, setDate, className }: DatePickerProps) {
   
   if (date instanceof Date && !isNaN(date.getTime())) {
     normalizedDate = date;
-  } else if (typeof date === 'string' && date.trim() !== '') {
+  } else if (typeof date === 'string' && date !== '') {
     const parsedDate = new Date(date);
     normalizedDate = isNaN(parsedDate.getTime()) ? undefined : parsedDate;
   } else {
@@ -40,7 +40,7 @@ export function DatePicker({ date, setDate, className }: DatePickerProps) {
     // Check if the incoming date is different from the current state
     const incomingDate = date instanceof Date && !isNaN(date.getTime()) 
       ? date 
-      : typeof date === 'string' && date.trim() !== '' 
+      : typeof date === 'string' && date !== '' 
         ? new Date(date)
         : undefined;
     
@@ -54,7 +54,7 @@ export function DatePicker({ date, setDate, className }: DatePickerProps) {
     ) {
       setSelectedDate(incomingDate);
     }
-  }, [date]);
+  }, [date, selectedDate]);
   
   const handleDateChange = (newDate: Date | undefined) => {
     console.log("Date selected:", newDate);
