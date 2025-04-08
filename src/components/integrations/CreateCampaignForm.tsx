@@ -1,5 +1,4 @@
-
-import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
+import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -7,13 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { DollarSign, BrainCircuit, Target } from "lucide-react";
+import { Loader2, DollarSign, BrainCircuit, User, Target, Calendar } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DatePicker } from "@/components/ui/date-picker";
-import { callFacebookCampaignManager } from "@/utils/campaignDataUtils";
-import { CampaignFormForwardRef, CampaignFormValues } from "@/types/campaignTypes";
+import { extractTargetingData, callFacebookCampaignManager } from "@/utils/campaignDataUtils";
 
 const campaignFormSchema = z.object({
   name: z.string().min(3, "Campaign name must be at least 3 characters"),
@@ -38,7 +36,7 @@ const campaignFormSchema = z.object({
     "LOWEST_COST_WITH_BID_CAP",
     "COST_CAP"
   ]).default("LOWEST_COST_WITHOUT_CAP"),
-  end_date: z.date().optional().nullable(),
+  end_date: z.date().optional(),
   start_date: z.date().default(() => new Date()),
   targeting: z.object({
     age_min: z.number().min(13).max(65).default(18),
@@ -50,6 +48,8 @@ const campaignFormSchema = z.object({
   additional_notes: z.string().optional(),
 });
 
+type CampaignFormValues = z.infer<typeof campaignFormSchema>;
+
 interface CreateCampaignFormProps {
   projectId?: string;
   creationMode: "manual" | "semi-automatic" | "automatic";
@@ -60,10 +60,10 @@ interface CreateCampaignFormProps {
   onBack: () => void;
   projectDataCompleteness?: number;
   targetingData?: any;
-  formRef?: React.MutableRefObject<CampaignFormForwardRef | null>;
+  formRef?: React.MutableRefObject<{ submitForm: () => Promise<boolean> } | null>;
 }
 
-const CreateCampaignForm = forwardRef<CampaignFormForwardRef, CreateCampaignFormProps>((
+const CreateCampaignForm = forwardRef<{ submitForm: () => Promise<boolean> }, CreateCampaignFormProps>((
   { 
     projectId,
     creationMode,
@@ -91,7 +91,7 @@ const CreateCampaignForm = forwardRef<CampaignFormForwardRef, CreateCampaignForm
       bid_amount: 0,
       bid_strategy: "LOWEST_COST_WITHOUT_CAP",
       start_date: new Date(),
-      end_date: null,
+      end_date: undefined,
       targeting: {
         age_min: 18,
         age_max: 65,
@@ -105,74 +105,10 @@ const CreateCampaignForm = forwardRef<CampaignFormForwardRef, CreateCampaignForm
     reValidateMode: "onChange"
   });
 
-  // Add a validate form function that ensures validation happens without submission
   const validateForm = async (): Promise<boolean> => {
-    console.log("Validating form...");
     const result = await form.trigger();
-    console.log("Form validation result:", result);
-    console.log("Current form errors:", form.formState.errors);
     return result;
   };
-
-  // Create a clean submitForm function that handles validation and submission
-  const submitForm = async (): Promise<boolean> => {
-    console.log("submitForm called");
-    try {
-      const isValid = await validateForm();
-      
-      if (!isValid) {
-        console.log("Form validation failed, stopping submission");
-        toast({
-          title: "Validation Error",
-          description: "Please fix the form errors before submitting",
-          variant: "destructive"
-        });
-        return false;
-      }
-      
-      if (!projectId) {
-        console.log("No project ID provided");
-        toast({
-          title: "Project Required",
-          description: "Please select a project for this campaign",
-          variant: "destructive"
-        });
-        return false;
-      }
-      
-      // If we're just validating the form, return true without submitting
-      if (selectedAdIds.length === 0) {
-        return true; // Form is valid but we're not submitting yet
-      }
-      
-      // Get form values and proceed with actual submission
-      const values = form.getValues();
-      return await handleFormSubmit(values);
-    } catch (error) {
-      console.error("Error in submitForm:", error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "An unexpected error occurred",
-        variant: "destructive"
-      });
-      return false;
-    }
-  };
-
-  // Improved use of useImperativeHandle to ensure form ref works correctly
-  useImperativeHandle(ref, () => ({
-    submitForm
-  }), [form, projectId, toast, selectedAdIds]);
-
-  // Updated useEffect to ensure formRef is properly set
-  useEffect(() => {
-    if (formRef) {
-      console.log("Setting form ref in CreateCampaignForm");
-      formRef.current = {
-        submitForm
-      };
-    }
-  }, [formRef, form, toast, projectId, selectedAdIds]);
 
   useEffect(() => {
     const fetchProjectTitle = async () => {
@@ -183,7 +119,7 @@ const CreateCampaignForm = forwardRef<CampaignFormForwardRef, CreateCampaignForm
             .from('projects')
             .select('title')
             .eq('id', projectId)
-            .maybeSingle();
+            .single();
             
           if (error) {
             console.error('Error fetching project title:', error);
@@ -206,6 +142,48 @@ const CreateCampaignForm = forwardRef<CampaignFormForwardRef, CreateCampaignForm
     
     fetchProjectTitle();
   }, [projectId, form]);
+
+  useImperativeHandle(ref, () => ({
+    submitForm: async () => {
+      const isValid = await form.trigger();
+      console.log("Form validation result before submission:", isValid);
+      console.log("Form errors:", form.formState.errors);
+      
+      if (!isValid) {
+        toast({
+          title: "Validation Error",
+          description: "Please fix the form errors before submitting",
+          variant: "destructive"
+        });
+        return false;
+      }
+      
+      const values = form.getValues();
+      return handleFormSubmit(values);
+    }
+  }));
+
+  useEffect(() => {
+    if (formRef) {
+      console.log("Setting form ref");
+      formRef.current = { submitForm: async () => {
+        const isValid = await form.trigger();
+        console.log("Form validation result before submission:", isValid);
+        
+        if (!isValid) {
+          toast({
+            title: "Validation Error",
+            description: "Please fix the form errors before submitting",
+            variant: "destructive"
+          });
+          return false;
+        }
+        
+        const values = form.getValues();
+        return handleFormSubmit(values);
+      }};
+    }
+  }, [formRef, form, toast]);
 
   useEffect(() => {
     if (targetingData && (creationMode === "semi-automatic" || creationMode === "automatic")) {
@@ -270,7 +248,6 @@ const CreateCampaignForm = forwardRef<CampaignFormForwardRef, CreateCampaignForm
           description: error.message || "There was an error creating your campaign",
           variant: "destructive",
         });
-        setIsSubmitting(false);
         return false;
       }
 
@@ -293,7 +270,38 @@ const CreateCampaignForm = forwardRef<CampaignFormForwardRef, CreateCampaignForm
         description: error instanceof Error ? error.message : "Failed to create campaign",
         variant: "destructive",
       });
+      return false;
+    } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleSubmit = async (): Promise<boolean> => {
+    console.log("submitForm called, checking form validity");
+    
+    try {
+      const isValid = await form.trigger();
+      console.log("Form validation result:", isValid);
+      console.log("Current errors:", form.formState.errors);
+      
+      if (!isValid) {
+        toast({
+          title: "Validation Error",
+          description: "Please fix the form errors before submitting",
+          variant: "destructive"
+        });
+        return false;
+      }
+      
+      const values = form.getValues();
+      return await handleFormSubmit(values);
+    } catch (error) {
+      console.error("Form submission error:", error);
+      toast({
+        title: "Submission Error",
+        description: error instanceof Error ? error.message : "An unknown error occurred",
+        variant: "destructive"
+      });
       return false;
     }
   };
@@ -357,35 +365,26 @@ const CreateCampaignForm = forwardRef<CampaignFormForwardRef, CreateCampaignForm
   const shouldShowBidAmount = form.watch('bid_strategy') !== 'LOWEST_COST_WITHOUT_CAP';
 
   const handleContinueClick = async () => {
-    try {
-      const isValid = await validateForm();
-      
-      if (isValid) {
-        onContinue();
-      } else {
-        toast({
-          title: "Please complete all required fields",
-          description: "Fix the form errors before continuing to ad selection",
-          variant: "destructive"
-        });
-        const errorFields = Object.keys(form.formState.errors);
-        if (errorFields.length > 0) {
-          form.setFocus(errorFields[0] as keyof CampaignFormValues);
-        }
-      }
-    } catch (error) {
-      console.error("Error validating form:", error);
+    const isValid = await validateForm();
+    
+    if (isValid) {
+      onContinue();
+    } else {
       toast({
-        title: "Validation Error",
-        description: "There was a problem validating the form",
+        title: "Please complete all required fields",
+        description: "Fix the form errors before continuing to ad selection",
         variant: "destructive"
       });
+      const errorFields = Object.keys(form.formState.errors);
+      if (errorFields.length > 0) {
+        form.setFocus(errorFields[0] as keyof CampaignFormValues);
+      }
     }
   };
 
   return (
     <Form {...form}>
-      <form onSubmit={(e) => { e.preventDefault(); submitForm(); }} className="space-y-6">
+      <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
         <div className="space-y-4">
           <FormField
             control={form.control}
@@ -534,7 +533,6 @@ const CreateCampaignForm = forwardRef<CampaignFormForwardRef, CreateCampaignForm
                     date={field.value}
                     setDate={(newDate) => field.onChange(newDate)}
                     className="w-full"
-                    placeholder="Leave empty for continuous campaign"
                   />
                   <FormDescription>
                     Leave empty for continuous campaign
