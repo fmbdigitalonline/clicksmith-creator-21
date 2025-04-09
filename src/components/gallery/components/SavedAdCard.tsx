@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { AdFeedbackControls } from "@/components/steps/gallery/components/AdFeedbackControls";
@@ -88,6 +87,7 @@ export const SavedAdCard = ({
   const [isRegenerateDialogOpen, setIsRegenerateDialogOpen] = useState(false);
   const [regeneratePrompt, setRegeneratePrompt] = useState(primaryText || "Professional marketing image for advertisement");
   const [isRegenerating, setIsRegenerating] = useState(false);
+  const [imageTimestamp, setImageTimestamp] = useState<number>(Date.now());
   const { toast } = useToast();
 
   useEffect(() => {
@@ -109,6 +109,7 @@ export const SavedAdCard = ({
           setCurrentImageStatus(data.image_status || 'pending');
           if (data.storage_url) {
             setDisplayUrl(data.storage_url);
+            setImageTimestamp(Date.now());
           }
         }
       } catch (error) {
@@ -311,6 +312,7 @@ export const SavedAdCard = ({
     
     try {
       await onRegenerateImage(id, regeneratePrompt);
+      setImageTimestamp(Date.now());
       toast({
         title: "Regeneration started",
         description: "Your new image is being generated. This may take a moment.",
@@ -380,6 +382,21 @@ export const SavedAdCard = ({
         : "Your Facebook ad settings have been saved for this ad"
     });
   };
+
+  const getCacheBustedUrl = () => {
+    if (!displayUrl) return '';
+    return `${displayUrl}${displayUrl.includes('?') ? '&' : '?'}t=${imageTimestamp}`;
+  };
+
+  useEffect(() => {
+    if (storage_url && storage_url !== displayUrl) {
+      setDisplayUrl(storage_url);
+      setImageTimestamp(Date.now());
+    } else if (imageUrl && !displayUrl) {
+      setDisplayUrl(imageUrl);
+      setImageTimestamp(Date.now());
+    }
+  }, [storage_url, imageUrl]);
 
   return (
     <Card 
@@ -510,7 +527,7 @@ export const SavedAdCard = ({
             onMouseLeave={() => setIsHovered(false)}
           >
             <img
-              src={displayUrl}
+              src={getCacheBustedUrl()}
               alt="Ad creative"
               className="object-cover w-full h-full"
             />

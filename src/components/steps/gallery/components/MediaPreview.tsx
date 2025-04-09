@@ -10,9 +10,10 @@ interface MediaPreviewProps {
     label: string;
   };
   status?: 'pending' | 'processing' | 'ready' | 'failed';
+  timestamp?: number;
 }
 
-const MediaPreview = ({ imageUrl, isVideo, format, status }: MediaPreviewProps) => {
+const MediaPreview = ({ imageUrl, isVideo, format, status, timestamp }: MediaPreviewProps) => {
   if (isVideo) {
     return (
       <div className="w-full h-full flex items-center justify-center bg-gray-100">
@@ -31,11 +32,16 @@ const MediaPreview = ({ imageUrl, isVideo, format, status }: MediaPreviewProps) 
       </div>
     );
   }
+  
+  // Add cache-busting query parameter to the image URL
+  const cacheBustedUrl = timestamp ? 
+    `${imageUrl}${imageUrl.includes('?') ? '&' : '?'}t=${timestamp}` : 
+    imageUrl;
 
   return (
     <div className="w-full h-full relative">
       <img
-        src={imageUrl}
+        src={cacheBustedUrl}
         alt={`Ad preview (${format.label})`}
         className="object-cover w-full h-full transition-transform duration-300 ease-in-out"
       />

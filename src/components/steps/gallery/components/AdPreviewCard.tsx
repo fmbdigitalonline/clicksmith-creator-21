@@ -68,6 +68,16 @@ const AdPreviewCard = ({
   const [isRegenerateDialogOpen, setIsRegenerateDialogOpen] = useState(false);
   const [regeneratePrompt, setRegeneratePrompt] = useState(variant.image?.prompt || "Professional marketing image for advertisement");
   const [isRegenerating, setIsRegenerating] = useState(false);
+  const [currentImageUrl, setCurrentImageUrl] = useState<string | null>(null);
+  const [imageTimestamp, setImageTimestamp] = useState<number>(Date.now());
+
+  useEffect(() => {
+    if (variant.image?.url) {
+      setCurrentImageUrl(variant.image.url);
+    } else if (variant.imageUrl) {
+      setCurrentImageUrl(variant.imageUrl);
+    }
+  }, [variant.image?.url, variant.imageUrl]);
 
   useEffect(() => {
     if (variant.id && isProcessingImage) {
@@ -114,13 +124,7 @@ const AdPreviewCard = ({
   }, [variant.id, isProcessingImage, toast]);
 
   const getImageUrl = () => {
-    if (variant.image?.url) {
-      return variant.image.url;
-    }
-    if (variant.imageUrl) {
-      return variant.imageUrl;
-    }
-    return null;
+    return currentImageUrl;
   };
 
   const handleSave = async () => {
@@ -162,7 +166,7 @@ const AdPreviewCard = ({
           primary_text: editedDescription,
           headline: editedHeadline,
           imageUrl: imageUrl,
-          original_url: imageUrl, // Store original URL for migration
+          original_url: imageUrl,
           image_status: 'pending',
           platform: variant.platform,
           size: selectedFormat,
@@ -308,6 +312,7 @@ const AdPreviewCard = ({
     setIsRegenerating(true);
     try {
       await onRegenerateImage(regeneratePrompt);
+      setImageTimestamp(Date.now());
       toast({
         title: "Image regeneration started",
         description: "Your new image is being generated. This may take a moment."
@@ -325,6 +330,14 @@ const AdPreviewCard = ({
     }
   };
 
+  useEffect(() => {
+    const newUrl = variant.image?.url || variant.imageUrl;
+    if (newUrl && newUrl !== currentImageUrl) {
+      setCurrentImageUrl(newUrl);
+      setImageTimestamp(Date.now());
+    }
+  }, [variant.image?.url, variant.imageUrl]);
+
   return (
     <Card className="overflow-hidden relative">
       {selectable && (
@@ -341,7 +354,6 @@ const AdPreviewCard = ({
       )}
       
       <div className="p-4 space-y-4">
-        {/* Format Selector */}
         <div className="flex justify-end mb-2">
           <AdSizeSelector
             selectedFormat={selectedFormat}
@@ -349,7 +361,6 @@ const AdPreviewCard = ({
           />
         </div>
 
-        {/* Primary Text Section */}
         <div className="space-y-2">
           <div className="flex justify-between items-center">
             <p className="text-sm font-medium text-gray-600">Primary Text:</p>
@@ -389,7 +400,6 @@ const AdPreviewCard = ({
           )}
         </div>
 
-        {/* Image Section */}
         <div className="relative">
           <div 
             style={{ 
@@ -405,6 +415,7 @@ const AdPreviewCard = ({
               isVideo={isVideo}
               format={selectedFormat}
               status={isProcessingImage ? imageStatus : undefined}
+              timestamp={imageTimestamp}
             />
             
             {isHovered && onRegenerateImage && (
@@ -431,7 +442,6 @@ const AdPreviewCard = ({
           )}
         </div>
 
-        {/* Headline Section */}
         <div className="space-y-2">
           <div className="flex justify-between items-center">
             <p className="text-sm font-medium text-gray-600">Headline:</p>

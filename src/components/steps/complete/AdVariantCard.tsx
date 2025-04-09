@@ -29,10 +29,12 @@ const AdVariantCard = ({ image, hook, index, onCreateProject }: AdVariantCardPro
   const [isHovered, setIsHovered] = useState(false);
   const [currentImageUrl, setCurrentImageUrl] = useState(image.url);
   const [imageStatus, setImageStatus] = useState<'ready' | 'processing' | 'failed'>('ready');
+  const [imageTimestamp, setImageTimestamp] = useState<number>(Date.now());
   const { toast } = useToast();
 
   useEffect(() => {
     setCurrentImageUrl(image.url);
+    setImageTimestamp(Date.now());
   }, [image.url]);
 
   useEffect(() => {
@@ -58,7 +60,11 @@ const AdVariantCard = ({ image, hook, index, onCreateProject }: AdVariantCardPro
       if (data) {
         if (data.image_status === 'ready') {
           setImageStatus('ready');
-          setCurrentImageUrl(data.storage_url || data.imageurl || currentImageUrl);
+          const newImageUrl = data.storage_url || data.imageurl || currentImageUrl;
+          if (newImageUrl !== currentImageUrl) {
+            setCurrentImageUrl(newImageUrl);
+            setImageTimestamp(Date.now());
+          }
         } else if (data.image_status === 'failed') {
           setImageStatus('failed');
           toast({
@@ -113,6 +119,7 @@ const AdVariantCard = ({ image, hook, index, onCreateProject }: AdVariantCardPro
       
       if (data && data.imageUrl) {
         setCurrentImageUrl(data.imageUrl);
+        setImageTimestamp(Date.now()); // Add timestamp to force image refresh
       }
       
     } catch (error) {
@@ -133,6 +140,12 @@ const AdVariantCard = ({ image, hook, index, onCreateProject }: AdVariantCardPro
     handleRegenerateImage(regeneratePrompt);
   };
 
+  // Get URL with cache-busting parameter
+  const getCacheBustedUrl = () => {
+    if (!currentImageUrl) return '';
+    return `${currentImageUrl}${currentImageUrl.includes('?') ? '&' : '?'}t=${imageTimestamp}`;
+  };
+
   return (
     <Card className="overflow-hidden">
       <div className="aspect-video relative">
@@ -142,7 +155,7 @@ const AdVariantCard = ({ image, hook, index, onCreateProject }: AdVariantCardPro
           onMouseLeave={() => setIsHovered(false)}
         >
           <img
-            src={currentImageUrl}
+            src={getCacheBustedUrl()}
             alt={`Ad variant ${index + 1}`}
             className="object-cover w-full h-full"
           />
