@@ -1,10 +1,11 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { AdFeedbackControls } from "@/components/steps/gallery/components/AdFeedbackControls";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { Pencil, Check, X, Download, Save, CheckSquare, Square, Image, AlertCircle, Loader2, Facebook, Globe, Copy, ChevronUp, ChevronDown } from "lucide-react";
+import { Pencil, Check, X, Download, Save, CheckSquare, Square, Image, AlertCircle, Loader2, Facebook, Globe, Copy, ChevronUp, ChevronDown, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { AdSizeSelector, AD_FORMATS } from "@/components/steps/gallery/components/AdSizeSelector";
@@ -43,6 +44,7 @@ interface SavedAdCardProps {
   fb_ad_settings?: FacebookAdSettings;
   projectUrl?: string;
   onSettingsSaved?: (settings: FacebookAdSettings, adId: string, applyToAll?: boolean) => void;
+  onRegenerateImage?: (adId: string) => void;
 }
 
 export const SavedAdCard = ({ 
@@ -62,6 +64,7 @@ export const SavedAdCard = ({
   fb_ad_settings,
   projectUrl,
   onSettingsSaved,
+  onRegenerateImage
 }: SavedAdCardProps) => {
   const [isEditingText, setIsEditingText] = useState(false);
   const [editedHeadline, setEditedHeadline] = useState(headline || "");
@@ -72,6 +75,7 @@ export const SavedAdCard = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentImageStatus, setCurrentImageStatus] = useState(image_status);
   const [displayUrl, setDisplayUrl] = useState(storage_url || imageUrl);
+  const [isHovered, setIsHovered] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -275,6 +279,18 @@ export const SavedAdCard = ({
     }
   };
 
+  const handleRegenerateImage = () => {
+    if (onRegenerateImage) {
+      onRegenerateImage(id);
+    } else {
+      toast({
+        title: "Regeneration not supported",
+        description: "Image regeneration is not available for this ad.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const renderImageStatus = () => {
     switch (currentImageStatus) {
       case 'ready':
@@ -330,7 +346,9 @@ export const SavedAdCard = ({
   };
 
   return (
-    <Card className={`overflow-hidden relative ${selected ? 'ring-2 ring-primary border-primary' : ''}`}>
+    <Card 
+      className={`overflow-hidden relative ${selected ? 'ring-2 ring-primary border-primary' : ''}`}
+    >
       {selectable && (
         <div className="absolute top-3 left-3 z-10 bg-white/90 p-1.5 rounded-md shadow-sm border border-gray-200">
           <Checkbox 
@@ -447,11 +465,13 @@ export const SavedAdCard = ({
       
         {displayUrl && (
           <div 
+            className="relative rounded-lg overflow-hidden"
             style={{ 
               aspectRatio: `${selectedFormat.width} / ${selectedFormat.height}`,
               maxHeight: '600px'
-            }} 
-            className="relative rounded-lg overflow-hidden"
+            }}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
           >
             <img
               src={displayUrl}
@@ -464,6 +484,19 @@ export const SavedAdCard = ({
                   <Loader2 className="h-6 w-6 animate-spin text-primary" />
                 </div>
               </div>
+            )}
+            
+            {/* Regenerate button - only visible on hover */}
+            {isHovered && onRegenerateImage && (
+              <Button 
+                variant="secondary"
+                size="icon"
+                className="absolute bottom-3 right-3 bg-white/90 hover:bg-white shadow-md"
+                onClick={handleRegenerateImage}
+                title="Regenerate image"
+              >
+                <RefreshCw className="h-4 w-4" />
+              </Button>
             )}
           </div>
         )}
