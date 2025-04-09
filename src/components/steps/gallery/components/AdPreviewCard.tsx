@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -5,15 +6,32 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Download, Upload, Wand2, Pencil, Check, X, CheckSquare, Square, Loader2 } from "lucide-react";
+import { 
+  Download, 
+  Upload, 
+  Wand2, 
+  Pencil, 
+  Check, 
+  X, 
+  CheckSquare, 
+  Square, 
+  Loader2 
+} from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import MediaPreview from "./MediaPreview";
 import AdDetails from "./AdDetails";
 import { AdFeedbackControls } from "./AdFeedbackControls";
 import { convertImage } from "@/utils/imageUtils";
-import { supabase } from "@/integrations/supabase/client";
 import { useAdPersistence } from "@/hooks/gallery/useAdPersistence";
 import { AdSizeSelector, AD_FORMATS } from "../components/AdSizeSelector";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogFooter, 
+  DialogHeader, 
+  DialogTitle 
+} from "@/components/ui/dialog";
 import DownloadControls from "./DownloadControls";
 
 interface AdPreviewCardProps {

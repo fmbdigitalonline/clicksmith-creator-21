@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import {
   Card,
@@ -128,7 +129,7 @@ function FileUploader({ onFileSelected, isUploading }: { onFileSelected: (file: 
                     disabled={isUploading}
                     className="hidden"
                   />
-                  <Label htmlFor="image-upload" className="cursor-pointer bg-secondary hover:bg-secondary-foreground text-secondary-foreground font-semibold py-2 px-4 rounded-md">
+                  <Label htmlFor="image-upload" className="cursor-pointer bg-secondary hover:bg-secondary-foreground text-secondary-foreground hover:text-secondary font-semibold py-2 px-4 rounded-md">
                     {isUploading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -413,14 +414,15 @@ export function SavedAdCard({
         <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
           <DialogContent className="sm:max-w-[600px]">
             <DialogHeader>
-              <DialogTitle>Facebook Ad Settings</DialogTitle>
+              <DialogTitle>Ad Settings</DialogTitle>
               <DialogDescription>
-                Configure the settings for your Facebook ad
+                Configure the settings for your ad
               </DialogDescription>
             </DialogHeader>
             <AdFeedbackControls
               adId={id}
               projectId={projectId}
+              onFeedbackSubmit={onFeedbackSubmit}
             />
           </DialogContent>
         </Dialog>
