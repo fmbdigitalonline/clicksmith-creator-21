@@ -1,59 +1,36 @@
-
-import { useState, useEffect, useCallback } from "react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
+import { useState, useEffect, useRef } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { AdFeedbackControls } from "@/components/steps/gallery/components/AdFeedbackControls";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Pencil, Check, X, Download, Save, CheckSquare, Square, Image, AlertCircle, Loader2, Facebook, Globe, Copy, ChevronUp, ChevronDown, RefreshCw, Wand2, Upload } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { AdSizeSelector, AD_FORMATS } from "@/components/steps/gallery/components/AdSizeSelector";
+import DownloadControls from "@/components/steps/gallery/components/DownloadControls";
+import { convertImage } from "@/utils/imageUtils";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { uploadMedia } from "@/utils/uploadUtils";
+import { FacebookAdSettings } from "@/types/campaignTypes";
+import { 
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import FacebookAdSettingsForm from "@/components/integrations/FacebookAdSettings";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Slider } from "@/components/ui/slider";
-import { Textarea } from "@/components/ui/textarea";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { useToast } from "@/hooks/use-toast";
-import {
-  AlertTriangle,
-  Facebook,
-  ImagePlus,
-  Loader2,
-  Pencil,
-  Wand2,
-} from "lucide-react";
-import { uploadMedia, updateAdImage } from "@/utils/uploadUtils";
-import { AdSize, FacebookAdSettings } from "@/types/campaignTypes";
-import MediaPreview from "@/components/steps/gallery/components/MediaPreview";
-import { AdFeedbackControls } from "@/components/steps/gallery/components/AdFeedbackControls";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs"
-import { useTranslation } from "react-i18next";
 
 interface SavedAdCardProps {
   id: string;
@@ -61,372 +38,703 @@ interface SavedAdCardProps {
   headline?: string;
   imageUrl?: string;
   storage_url?: string;
-  image_status?: 'pending' | 'processing' | 'ready' | 'failed';
-  onFeedbackSubmit?: () => void;
+  image_status?: string;
+  onFeedbackSubmit: () => void;
   platform?: string;
-  size?: AdSize;
-  selected?: boolean;
-  selectable?: boolean;
-  onSelect?: (id: string, selected: boolean) => void;
+  size?: {
+    width: number;
+    height: number;
+    label: string;
+  };
   projectId?: string;
+  selected?: boolean;
+  onSelect?: (id: string, isSelected: boolean) => void;
+  selectable?: boolean;
   fb_ad_settings?: FacebookAdSettings;
   projectUrl?: string;
   onSettingsSaved?: (settings: FacebookAdSettings, adId: string, applyToAll?: boolean) => void;
+  onRegenerateImage?: (adId: string, prompt?: string) => void;
 }
 
-const fileUploadSchema = z.object({
-  file: z.any(),
-});
-
-function FileUploader({ onFileSelected, isUploading }: { onFileSelected: (file: File) => Promise<void>, isUploading: boolean }) {
+export const SavedAdCard = ({ 
+  id, 
+  primaryText, 
+  headline, 
+  imageUrl,
+  storage_url,
+  image_status = "pending",
+  onFeedbackSubmit,
+  platform = "facebook",
+  size = AD_FORMATS[0],
+  projectId,
+  selected = false,
+  onSelect,
+  selectable = false,
+  fb_ad_settings,
+  projectUrl,
+  onSettingsSaved,
+  onRegenerateImage
+}: SavedAdCardProps) => {
+  const [isEditingText, setIsEditingText] = useState(false);
+  const [editedHeadline, setEditedHeadline] = useState(headline || "");
+  const [editedDescription, setEditedDescription] = useState(primaryText || "");
+  const [selectedFormat, setSelectedFormat] = useState(size);
+  const [downloadFormat, setDownloadFormat] = useState<"jpg" | "png" | "pdf" | "docx">("jpg");
+  const [isSaving, setIsSaving] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [currentImageStatus, setCurrentImageStatus] = useState(image_status);
+  const [displayUrl, setDisplayUrl] = useState(storage_url || imageUrl);
+  const [isHovered, setIsHovered] = useState(false);
+  const [isRegenerateDialogOpen, setIsRegenerateDialogOpen] = useState(false);
+  const [regeneratePrompt, setRegeneratePrompt] = useState(primaryText || "Professional marketing image for advertisement");
+  const [isRegenerating, setIsRegenerating] = useState(false);
+  const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
-  const form = useForm<z.infer<typeof fileUploadSchema>>({
-    resolver: zodResolver(fileUploadSchema),
-    defaultValues: {
-      file: null,
-    },
-  });
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) {
+  useEffect(() => {
+    if (currentImageStatus === 'ready' || !id) {
+      return;
+    }
+
+    const checkImageStatus = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('ad_feedback')
+          .select('image_status, storage_url')
+          .eq('id', id)
+          .single();
+
+        if (error) throw error;
+        
+        if (data) {
+          setCurrentImageStatus(data.image_status || 'pending');
+          if (data.storage_url) {
+            setDisplayUrl(data.storage_url);
+          }
+        }
+      } catch (error) {
+        console.error("Error checking image status:", error);
+      }
+    };
+
+    checkImageStatus();
+    
+    const interval = setInterval(() => {
+      if (currentImageStatus !== 'ready') {
+        checkImageStatus();
+      } else {
+        clearInterval(interval);
+      }
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [id, currentImageStatus]);
+
+  const handleSaveTextEdits = async () => {
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('ad_feedback')
+        .update({
+          primary_text: editedDescription,
+          headline: editedHeadline
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setIsEditingText(false);
+      onFeedbackSubmit();
+      
+      toast({
+        title: "Changes saved",
+        description: "Your ad text has been updated.",
+      });
+    } catch (error) {
+      console.error('Error saving text edits:', error);
       toast({
         title: "Error",
-        description: "No file selected",
+        description: "Failed to save text edits. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleCancelTextEdits = () => {
+    setIsEditingText(false);
+    setEditedHeadline(headline || "");
+    setEditedDescription(primaryText || "");
+  };
+
+  const handleFormatChange = (format: typeof AD_FORMATS[0]) => {
+    setSelectedFormat(format);
+    toast({
+      title: "Format updated",
+      description: `Ad format changed to ${format.label}`,
+    });
+  };
+
+  const handleDownload = async () => {
+    if (!displayUrl) {
+      toast({
+        title: "Error",
+        description: "No image URL available for download",
         variant: "destructive",
       });
       return;
     }
 
     try {
-      await onFileSelected(file);
+      const blob = await convertImage(displayUrl, downloadFormat, { 
+        platform,
+        size: selectedFormat, 
+        headline: editedHeadline, 
+        description: editedDescription 
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${platform}-ad-${selectedFormat.width}x${selectedFormat.height}.${downloadFormat}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: "Success!",
+        description: `Your ${selectedFormat.label} ad has been downloaded as ${downloadFormat.toUpperCase()}.`,
+      });
     } catch (error) {
-      console.error("Error uploading file:", error);
+      console.error('Error downloading:', error);
       toast({
         title: "Error",
-        description: "Failed to upload file",
+        description: error instanceof Error ? error.message : "Failed to download file.",
         variant: "destructive",
       });
     }
   };
 
-  return (
-    <Form {...form}>
-      <form className="space-y-4">
-        <FormField
-          control={form.control}
-          name="file"
-          render={() => (
-            <FormItem>
-              <FormLabel>Upload New Image</FormLabel>
-              <FormControl>
-                <div className="flex items-center space-x-2">
-                  <Input
-                    type="file"
-                    id="image-upload"
-                    accept="image/*"
-                    onChange={handleFileChange}
-                    disabled={isUploading}
-                    className="hidden"
-                  />
-                  <Label htmlFor="image-upload" className="cursor-pointer bg-secondary hover:bg-secondary-foreground text-secondary-foreground hover:text-secondary font-semibold py-2 px-4 rounded-md">
-                    {isUploading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Uploading...
-                      </>
-                    ) : (
-                      "Select Image"
-                    )}
-                  </Label>
-                </div>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      </form>
-    </Form>
-  );
-}
-
-export function SavedAdCard({ 
-  id, 
-  primaryText, 
-  headline, 
-  imageUrl,
-  storage_url,
-  image_status,
-  onFeedbackSubmit, 
-  platform,
-  size,
-  selected = false,
-  selectable = false,
-  onSelect,
-  projectId,
-  fb_ad_settings,
-  projectUrl,
-  onSettingsSaved
-}: SavedAdCardProps) {
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-  const [currentImageUrl, setCurrentImageUrl] = useState(imageUrl || storage_url || '');
-  const [isRegenerateDialogOpen, setIsRegenerateDialogOpen] = useState(false);
-  const [regeneratePrompt, setRegeneratePrompt] = useState("Professional marketing image for advertisement");
-  const [isRegenerating, setIsRegenerating] = useState(false);
-  const { toast } = useToast();
-  const { t } = useTranslation(["gallery", "common", "integrations"]);
-
-  const handleFileUpload = async (file: File) => {
+  const handleUpdateSizeInDb = async () => {
+    setIsSaving(true);
     try {
-      setIsUploading(true);
-      // Upload the file
-      const newImageUrl = await uploadMedia(file);
-      
-      // Update the ad record with the new image URL
-      await updateAdImage(id, newImageUrl);
-      
-      // Update the local state
-      setCurrentImageUrl(newImageUrl);
+      const { error } = await supabase
+        .from('ad_feedback')
+        .update({
+          size: selectedFormat
+        })
+        .eq('id', id);
+
+      if (error) throw error;
       
       toast({
-        title: "Upload successful",
-        description: "Your new image has been uploaded and saved.",
+        title: "Format updated",
+        description: `The ad format has been saved as ${selectedFormat.label}.`,
+      });
+      onFeedbackSubmit();
+    } catch (error) {
+      console.error('Error updating format:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update format. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSelectChange = (checked: boolean) => {
+    if (onSelect) {
+      onSelect(id, checked);
+    }
+  };
+
+  const handleProcessImage = async () => {
+    if (!imageUrl || currentImageStatus === 'ready') {
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('migrate-images', {
+        body: { adId: id }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Image processing",
+        description: "Your image is being processed for Facebook ads. This may take a moment.",
+      });
+
+      if (data.processed && data.processed.length > 0) {
+        const result = data.processed[0];
+        if (result.success) {
+          setCurrentImageStatus('processing');
+          if (result.storage_url) {
+            setDisplayUrl(result.storage_url);
+          }
+        } else {
+          throw new Error(result.error || "Failed to process image");
+        }
+      }
+    } catch (error) {
+      console.error('Error processing image:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to process image. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleRegenerateImage = () => {
+    setIsRegenerateDialogOpen(true);
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!event.target.files || event.target.files.length === 0) {
+      return;
+    }
+
+    const file = event.target.files[0];
+    setIsUploading(true);
+
+    try {
+      const imageUrl = await uploadMedia(file);
+      
+      const { error } = await supabase
+        .from('ad_feedback')
+        .update({
+          imageurl: imageUrl,
+          image_status: platform === 'facebook' ? 'pending' : 'ready'
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setDisplayUrl(imageUrl);
+      
+      if (platform === 'facebook') {
+        setCurrentImageStatus('pending');
+        try {
+          await handleProcessImage();
+        } catch (processError) {
+          console.error('Error processing uploaded image:', processError);
+        }
+      } else {
+        setCurrentImageStatus('ready');
+      }
+
+      toast({
+        title: "Image uploaded successfully",
+        description: "Your new image has been uploaded and is ready to use.",
       });
       
-      // Call the feedback submit function to refresh the parent
-      if (onFeedbackSubmit) {
-        onFeedbackSubmit();
-      }
+      setIsUploadDialogOpen(false);
+      onFeedbackSubmit();
     } catch (error) {
       console.error('Error uploading image:', error);
       toast({
         title: "Upload failed",
-        description: error instanceof Error ? error.message : "Failed to upload image",
+        description: "Could not upload the image. Please try again.",
         variant: "destructive",
       });
     } finally {
       setIsUploading(false);
-      setIsRegenerateDialogOpen(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
-  const handleImageActionClick = () => {
-    setIsRegenerateDialogOpen(true);
-  };
-
   const handleSubmitRegeneration = async () => {
+    if (!onRegenerateImage) {
+      setIsUploadDialogOpen(true);
+      setIsRegenerateDialogOpen(false);
+      return;
+    }
+    
     setIsRegenerating(true);
+    setIsRegenerateDialogOpen(false);
+    
     try {
-      // Simulate AI image generation (replace with actual AI call)
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // For now, just update the image URL with a placeholder
-      const newImageUrl = "https://placekitten.com/500/300";
-      
-      // Update the ad record with the new image URL
-      await updateAdImage(id, newImageUrl);
-      
-      // Update the local state
-      setCurrentImageUrl(newImageUrl);
-      
+      await onRegenerateImage(id, regeneratePrompt);
       toast({
-        title: "Image regenerated",
-        description: "Your new image has been generated.",
+        title: "Regeneration started",
+        description: "Your new image is being generated. This may take a moment.",
       });
-      
-      // Call the feedback submit function to refresh the parent
-      if (onFeedbackSubmit) {
-        onFeedbackSubmit();
-      }
     } catch (error) {
-      console.error('Error in regeneration:', error);
+      console.error('Error submitting regeneration:', error);
       toast({
         title: "Regeneration failed",
-        description: "Could not regenerate the image. Please try again later.",
+        description: "Could not start image regeneration. Please try again.",
         variant: "destructive",
       });
     } finally {
       setIsRegenerating(false);
-      setIsRegenerateDialogOpen(false);
     }
   };
 
-  const handleSelectToggle = () => {
-    if (selectable && onSelect) {
-      onSelect(id, !selected);
+  const renderImageStatus = () => {
+    switch (currentImageStatus) {
+      case 'ready':
+        return (
+          <Badge variant="outline" className="bg-green-50 text-green-600 border-green-200">
+            <Check className="h-3 w-3 mr-1" /> Ready for Facebook
+          </Badge>
+        );
+      case 'processing':
+        return (
+          <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200">
+            <Loader2 className="h-3 w-3 mr-1 animate-spin" /> Processing
+          </Badge>
+        );
+      case 'failed':
+        return (
+          <Badge variant="outline" className="bg-red-50 text-red-600 border-red-200">
+            <AlertCircle className="h-3 w-3 mr-1" /> Processing Failed
+          </Badge>
+        );
+      default:
+        return (
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="text-xs flex items-center gap-1"
+            onClick={handleProcessImage}
+            disabled={isProcessing}
+          >
+            {isProcessing ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              <Image className="h-3 w-3" />
+            )}
+            Process for Facebook
+          </Button>
+        );
     }
   };
 
-  // Make sure we update the local state when props change
-  useEffect(() => {
-    if (imageUrl) {
-      setCurrentImageUrl(imageUrl);
-    } else if (storage_url) {
-      setCurrentImageUrl(storage_url);
+  const [isAdSettingsOpen, setIsAdSettingsOpen] = useState(false);
+  
+  const handleAdSettingsSaved = (settings: FacebookAdSettings, adId: string, applyToAll: boolean = false) => {
+    if (onSettingsSaved) {
+      onSettingsSaved(settings, adId, applyToAll);
     }
-  }, [imageUrl, storage_url]);
+    toast({
+      title: "Facebook Ad Settings Saved",
+      description: applyToAll 
+        ? "Your settings have been applied to all selected ads" 
+        : "Your Facebook ad settings have been saved for this ad"
+    });
+  };
 
   return (
-    <Card className={`overflow-hidden ${selected ? 'ring-2 ring-primary' : ''}`}>
+    <Card 
+      className={`overflow-hidden relative ${selected ? 'ring-2 ring-primary border-primary' : ''}`}
+    >
       {selectable && (
-        <div 
-          className="absolute top-2 left-2 z-10 bg-white bg-opacity-80 rounded-md p-1 cursor-pointer shadow-sm hover:bg-opacity-100 transition-all" 
-          onClick={handleSelectToggle}
-        >
-          {selected ? (
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="h-6 w-6 text-primary"
-            >
-              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-              <polyline points="22 4 12 14.01 9 11.01"></polyline>
-            </svg>
-          ) : (
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="h-6 w-6 text-muted-foreground"
-            >
-              <rect width="18" height="18" x="3" y="3" rx="2" ry="2"></rect>
-            </svg>
-          )}
+        <div className="absolute top-3 left-3 z-10 bg-white/90 p-1.5 rounded-md shadow-sm border border-gray-200">
+          <Checkbox 
+            checked={selected} 
+            onCheckedChange={handleSelectChange}
+            className="h-5 w-5"
+            id={`select-ad-${id}`}
+          />
         </div>
       )}
-      
-      <div className="relative">
-        <div style={{ 
-          aspectRatio: size ? `${size.width} / ${size.height}` : "1.91 / 1",
-          maxHeight: '300px'
-        }} className="relative rounded-t-md overflow-hidden">
-          <MediaPreview
-            imageUrl={currentImageUrl || ''}
-            isVideo={false}
-            format={size || { width: 1200, height: 628, label: "Default" }}
-            status={image_status}
-          />
-          
-          <div className="absolute bottom-2 right-2 flex gap-1">
-            <Button
-              variant="secondary"
-              size="icon"
-              className="bg-white/90 hover:bg-white shadow-md"
-              onClick={handleImageActionClick}
-              title="Replace image"
+
+      {projectId && (
+        <div className="absolute top-3 right-3 z-10 bg-primary/90 text-white text-xs px-2 py-1 rounded-md">
+          Project
+        </div>
+      )}
+
+      <div className="p-4 space-y-4">
+        <div className="flex justify-between mb-2 items-center">
+          <div className="flex-shrink-0">
+            {renderImageStatus()}
+          </div>
+          <div className="flex items-center gap-2">
+            <AdSizeSelector
+              selectedFormat={selectedFormat}
+              onFormatChange={handleFormatChange}
+            />
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="ml-2" 
+              onClick={handleUpdateSizeInDb}
+              disabled={isSaving}
             >
-              <Wand2 className="h-4 w-4" />
+              <Save className="h-4 w-4 mr-1" /> Save
             </Button>
           </div>
         </div>
 
-        <CardContent className="p-4">
-          <div className="space-y-2">
-            <h3 className="text-sm font-medium text-gray-600">
-              {t("primary_text")}
-            </h3>
-            <p className="text-gray-800">{primaryText}</p>
-          </div>
-        </CardContent>
+        {platform === "facebook" && (
+          <Collapsible 
+            open={isAdSettingsOpen} 
+            onOpenChange={setIsAdSettingsOpen}
+            className="border rounded-lg bg-blue-50/30 mb-4"
+          >
+            <div className="flex items-center justify-between p-3 border-b">
+              <div className="flex items-center">
+                <Facebook className="h-4 w-4 mr-2 text-facebook" />
+                <h3 className="text-sm font-medium">Facebook Ad Settings</h3>
+                {fb_ad_settings?.website_url && !isAdSettingsOpen && (
+                  <Badge variant="outline" className="ml-2 text-xs bg-blue-50 border-blue-200">
+                    <Globe className="h-3 w-3 mr-1" /> 
+                    {fb_ad_settings.website_url}
+                  </Badge>
+                )}
+              </div>
+              <CollapsibleTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                  {isAdSettingsOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                </Button>
+              </CollapsibleTrigger>
+            </div>
+            <CollapsibleContent className="p-3">
+              <FacebookAdSettingsForm 
+                adIds={[id]} 
+                projectUrl={projectUrl}
+                initialSettings={fb_ad_settings}
+                onSettingsSaved={handleAdSettingsSaved}
+                showApplyToAllOption={selectable && selected}
+              />
+            </CollapsibleContent>
+          </Collapsible>
+        )}
 
-        <CardFooter className="flex items-center justify-between p-4">
-          <div className="space-y-1">
-            <h4 className="text-sm font-semibold">{headline}</h4>
-            <p className="text-xs text-gray-500">
-              {platform} Ad
-            </p>
+        <div className="space-y-2">
+          <div className="flex justify-between items-center">
+            <p className="text-sm font-medium text-gray-600">Primary Text:</p>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsEditingText(!isEditingText)}
+            >
+              {isEditingText ? <Check className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
+            </Button>
           </div>
-          <Button variant="outline" size="icon" onClick={() => setIsSettingsOpen(true)}>
-            <Pencil className="h-4 w-4" />
-          </Button>
-        </CardFooter>
+          {isEditingText ? (
+            <div className="space-y-2">
+              <Textarea
+                value={editedDescription}
+                onChange={(e) => setEditedDescription(e.target.value)}
+                className="min-h-[100px]"
+              />
+              <div className="flex justify-end space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCancelTextEdits}
+                >
+                  <X className="h-4 w-4 mr-1" /> Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={handleSaveTextEdits}
+                  disabled={isSaving}
+                >
+                  <Check className="h-4 w-4 mr-1" /> Save
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <p className="text-gray-800 whitespace-pre-wrap">{editedDescription}</p>
+          )}
+        </div>
+      
+        {displayUrl && (
+          <div 
+            className="relative rounded-lg overflow-hidden"
+            style={{ 
+              aspectRatio: `${selectedFormat.width} / ${selectedFormat.height}`,
+              maxHeight: '600px'
+            }}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+          >
+            <img
+              src={displayUrl}
+              alt="Ad creative"
+              className="object-cover w-full h-full"
+            />
+            {currentImageStatus === 'processing' && (
+              <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+                <div className="bg-white p-2 rounded-full">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                </div>
+              </div>
+            )}
+            
+            {isHovered && (
+              <Button 
+                variant="secondary"
+                size="icon"
+                className="absolute bottom-3 right-3 bg-white/90 hover:bg-white shadow-md"
+                onClick={handleRegenerateImage}
+                title="Replace image"
+                disabled={isRegenerating || isUploading}
+              >
+                {isRegenerating || isUploading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Upload className="h-4 w-4" />
+                )}
+              </Button>
+            )}
+          </div>
+        )}
+
+        {currentImageStatus === 'failed' && (
+          <Alert variant="destructive" className="my-2">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Processing Failed</AlertTitle>
+            <AlertDescription>
+              We couldn't process this image for Facebook ads. Try uploading a different image.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        <div className="space-y-2">
+          <div className="flex justify-between items-center">
+            <p className="text-sm font-medium text-gray-600">Headline:</p>
+          </div>
+          {isEditingText ? (
+            <Input
+              value={editedHeadline}
+              onChange={(e) => setEditedHeadline(e.target.value)}
+            />
+          ) : (
+            <h3 className="text-lg font-semibold text-facebook">{editedHeadline}</h3>
+          )}
+        </div>
+
+        <div className="mt-4">
+          <DownloadControls
+            downloadFormat={downloadFormat}
+            onFormatChange={(value) => setDownloadFormat(value as "jpg" | "png" | "pdf" | "docx")}
+            onSave={handleSaveTextEdits}
+            onDownload={handleDownload}
+            isSaving={isSaving}
+          />
+        </div>
+
+        <CardContent className="p-4 bg-gray-50 rounded-md mt-4">
+          <AdFeedbackControls
+            adId={id}
+            onFeedbackSubmit={onFeedbackSubmit}
+          />
+        </CardContent>
       </div>
 
       <Dialog open={isRegenerateDialogOpen} onOpenChange={setIsRegenerateDialogOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>Replace Image</DialogTitle>
+            <DialogTitle>Update Ad Image</DialogTitle>
             <DialogDescription>
-              Choose how you want to replace the image
+              Choose how you'd like to update this ad image
             </DialogDescription>
           </DialogHeader>
           
-          <Tabs defaultValue="upload">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="upload">Upload Image</TabsTrigger>
-              <TabsTrigger value="ai">AI Generate</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="upload" className="pt-4">
-              <FileUploader 
-                onFileSelected={handleFileUpload}
-                isUploading={isUploading} 
-              />
-            </TabsContent>
-            
-            <TabsContent value="ai" className="pt-4">
-              <div className="space-y-4">
+          <div className="py-4 space-y-4">
+            {onRegenerateImage && (
+              <>
+                <h3 className="text-sm font-medium">Option 1: Generate with AI</h3>
                 <Textarea
                   placeholder="Describe what you'd like to see in this image..."
+                  className="min-h-[120px]"
                   value={regeneratePrompt}
                   onChange={(e) => setRegeneratePrompt(e.target.value)}
-                  className="min-h-[120px]"
                 />
-                
-                <Button 
-                  onClick={handleSubmitRegeneration}
-                  disabled={isRegenerating} 
-                  className="w-full"
-                >
-                  {isRegenerating ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Generating...
-                    </>
-                  ) : (
-                    <>
-                      <Wand2 className="mr-2 h-4 w-4" />
-                      Generate New Image
-                    </>
-                  )}
-                </Button>
-              </div>
-            </TabsContent>
-          </Tabs>
+              </>
+            )}
+            
+            <div className="mt-4">
+              <h3 className="text-sm font-medium mb-2">Option 2: Upload Your Own Image</h3>
+              <Button 
+                variant="outline" 
+                className="w-full flex items-center justify-center"
+                onClick={() => {
+                  setIsRegenerateDialogOpen(false);
+                  setIsUploadDialogOpen(true);
+                }}
+              >
+                <Upload className="mr-2 h-4 w-4" />
+                Select Image File
+              </Button>
+            </div>
+          </div>
+          
+          <DialogFooter className="flex justify-between">
+            <Button variant="outline" onClick={() => setIsRegenerateDialogOpen(false)}>
+              Cancel
+            </Button>
+            {onRegenerateImage && (
+              <Button onClick={handleSubmitRegeneration} disabled={isRegenerating}>
+                {isRegenerating ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Wand2 className="mr-2 h-4 w-4" />
+                    Generate with AI
+                  </>
+                )}
+              </Button>
+            )}
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {isSettingsOpen && (
-        <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
-          <DialogContent className="sm:max-w-[600px]">
-            <DialogHeader>
-              <DialogTitle>Ad Settings</DialogTitle>
-              <DialogDescription>
-                Configure the settings for your ad
-              </DialogDescription>
-            </DialogHeader>
-            <AdFeedbackControls
-              adId={id}
-              projectId={projectId}
-              onFeedbackSubmit={onFeedbackSubmit}
-            />
-          </DialogContent>
-        </Dialog>
-      )}
+      <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Upload Custom Image</DialogTitle>
+            <DialogDescription>
+              Select an image file from your computer to use for this ad
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4">
+            <div className="grid w-full max-w-sm items-center gap-1.5">
+              <Label htmlFor="image-upload">Image</Label>
+              <Input
+                ref={fileInputRef}
+                id="image-upload"
+                type="file"
+                accept="image/*"
+                onChange={handleFileUpload}
+                disabled={isUploading}
+              />
+            </div>
+            
+            <div className="mt-4 text-sm text-muted-foreground">
+              <p>Recommended image dimensions: {selectedFormat.width}x{selectedFormat.height}px</p>
+              <p>Supported formats: JPG, PNG, WebP</p>
+              <p>Maximum file size: 5MB</p>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsUploadDialogOpen(false)} disabled={isUploading}>
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
-}
+};
