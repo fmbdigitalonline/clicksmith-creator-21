@@ -45,3 +45,23 @@ export async function uploadMedia(file: File, path: string = 'ad-images') {
     throw error;
   }
 }
+
+// Add a function to update the ad record with the new image URL
+export async function updateAdImage(adId: string, imageUrl: string) {
+  try {
+    const { error } = await supabase
+      .from('ad_feedback')
+      .update({ 
+        imageUrl: imageUrl,
+        original_url: imageUrl // Store original URL for migration
+      })
+      .eq('id', adId);
+    
+    if (error) throw error;
+    
+    return { success: true };
+  } catch (error) {
+    console.error('Error updating ad image:', error);
+    throw error;
+  }
+}
