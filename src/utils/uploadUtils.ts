@@ -45,3 +45,23 @@ export async function uploadMedia(file: File, path: string = 'ad-images') {
     throw error;
   }
 }
+
+// Helper function to update image in ad_feedback table
+export async function updateAdImage(adId: string, imageUrl: string, imageStatus: string = 'pending') {
+  try {
+    const { error } = await supabase
+      .from('ad_feedback')
+      .update({
+        imageurl: imageUrl,
+        storage_url: imageUrl,  // Update both fields to ensure consistency
+        image_status: imageStatus
+      })
+      .eq('id', adId);
+    
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Error updating ad image:', error);
+    throw error;
+  }
+}

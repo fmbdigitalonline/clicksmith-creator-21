@@ -94,6 +94,10 @@ export const SavedAdCard = ({
   const { toast } = useToast();
 
   useEffect(() => {
+    setDisplayUrl(storage_url || imageUrl);
+  }, [storage_url, imageUrl]);
+
+  useEffect(() => {
     if (currentImageStatus === 'ready' || !id) {
       return;
     }
@@ -313,6 +317,7 @@ export const SavedAdCard = ({
         .from('ad_feedback')
         .update({
           imageurl: imageUrl,
+          storage_url: imageUrl,
           image_status: platform === 'facebook' ? 'pending' : 'ready'
         })
         .eq('id', id);
@@ -338,7 +343,10 @@ export const SavedAdCard = ({
       });
       
       setIsUploadDialogOpen(false);
-      onFeedbackSubmit();
+      
+      if (onFeedbackSubmit) {
+        onFeedbackSubmit();
+      }
     } catch (error) {
       console.error('Error uploading image:', error);
       toast({
