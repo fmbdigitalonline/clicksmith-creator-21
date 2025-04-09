@@ -366,7 +366,10 @@ const AdGalleryStep = ({
         }
       });
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error from generate-images function:', error);
+        throw error;
+      }
       
       toast({
         title: "Image regeneration started",
@@ -374,32 +377,61 @@ const AdGalleryStep = ({
       });
       
       if (data && data.imageUrl) {
-        const updatedVariants = adVariants.map(v => {
-          if ((v.id && v.id === variant.id) || 
-              (v.imageUrl === variant.imageUrl) || 
-              (v.image?.url === variant.image?.url)) {
-            return {
-              ...v,
-              imageUrl: data.imageUrl,
-              image: { ...v.image, url: data.imageUrl },
-              image_status: 'processing'
-            };
-          }
-          return v;
+        setAdVariants(prevVariants => {
+          return prevVariants.map(v => {
+            if ((v.id && v.id === variant.id) || 
+                (v.imageUrl === variant.imageUrl) || 
+                (v.image?.url === variant.image?.url)) {
+              return {
+                ...v,
+                imageUrl: data.imageUrl,
+                image: { 
+                  ...(v.image || {}), 
+                  url: data.imageUrl,
+                  prompt: prompt
+                }
+              };
+            }
+            return v;
+          });
         });
         
         if (variant.platform === 'facebook') {
-          const updatedVariant = updatedVariants.find(v => 
-            (v.id && v.id === variant.id) || 
-            (v.imageUrl === data.imageUrl) || 
-            (v.image?.url === data.imageUrl)
-          );
-          if (updatedVariant) {
+          const updatedVariant = {
+            ...variant,
+            imageUrl: data.imageUrl,
+            image: { 
+              ...(variant.image || {}), 
+              url: data.imageUrl,
+              prompt: prompt
+            }
+          };
+          
+          try {
             await processImagesForFacebook([updatedVariant]);
+            console.log('Started processing regenerated image for Facebook');
+          } catch (processError) {
+            console.error('Error processing regenerated image for Facebook:', processError);
           }
         }
+        
+        if (projectId && projectId !== 'new') {
+          try {
+            const { error: updateError } = await supabase
+              .from('projects')
+              .update({ generated_ads: adVariants })
+              .eq('id', projectId);
+              
+            if (updateError) {
+              console.error('Error saving regenerated image to project:', updateError);
+            }
+          } catch (saveError) {
+            console.error('Error updating project with regenerated image:', saveError);
+          }
+        }
+      } else {
+        console.warn('No imageUrl returned from generate-images function', data);
       }
-      
     } catch (error) {
       console.error('Error regenerating image:', error);
       toast({
