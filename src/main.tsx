@@ -6,7 +6,6 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { SessionContextProvider } from '@supabase/auth-helpers-react'
 import { supabase } from "@/integrations/supabase/client"
 import './i18n' // Import i18n configuration
-import { TooltipProvider } from "@/components/ui/tooltip" // Add TooltipProvider import
 
 // Create a client
 const queryClient = new QueryClient({
@@ -33,9 +32,7 @@ const queryClient = new QueryClient({
 createRoot(document.getElementById("root")!).render(
   <QueryClientProvider client={queryClient}>
     <SessionContextProvider supabaseClient={supabase}>
-      <TooltipProvider>
-        <App />
-      </TooltipProvider>
+      <App />
     </SessionContextProvider>
   </QueryClientProvider>
 );
