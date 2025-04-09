@@ -1,10 +1,11 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { AdFeedbackControls } from "@/components/steps/gallery/components/AdFeedbackControls";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { Pencil, Check, X, Download, Save, CheckSquare, Square, Image, AlertCircle, Loader2, Facebook, Globe, Copy, ChevronUp, ChevronDown, RefreshCw } from "lucide-react";
+import { Pencil, Check, X, Download, Save, CheckSquare, Square, Image, AlertCircle, Loader2, Facebook, Globe, Copy, ChevronUp, ChevronDown, RefreshCw, Wand2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { AdSizeSelector, AD_FORMATS } from "@/components/steps/gallery/components/AdSizeSelector";
@@ -21,6 +22,15 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import FacebookAdSettingsForm from "@/components/integrations/FacebookAdSettings";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 interface SavedAdCardProps {
   id: string;
@@ -43,7 +53,7 @@ interface SavedAdCardProps {
   fb_ad_settings?: FacebookAdSettings;
   projectUrl?: string;
   onSettingsSaved?: (settings: FacebookAdSettings, adId: string, applyToAll?: boolean) => void;
-  onRegenerateImage?: (adId: string) => void;
+  onRegenerateImage?: (adId: string, prompt?: string) => void;
 }
 
 export const SavedAdCard = ({ 
@@ -75,6 +85,9 @@ export const SavedAdCard = ({
   const [currentImageStatus, setCurrentImageStatus] = useState(image_status);
   const [displayUrl, setDisplayUrl] = useState(storage_url || imageUrl);
   const [isHovered, setIsHovered] = useState(false);
+  const [isRegenerateDialogOpen, setIsRegenerateDialogOpen] = useState(false);
+  const [regeneratePrompt, setRegeneratePrompt] = useState(primaryText || "Professional marketing image for advertisement");
+  const [isRegenerating, setIsRegenerating] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -280,13 +293,37 @@ export const SavedAdCard = ({
 
   const handleRegenerateImage = () => {
     if (onRegenerateImage) {
-      onRegenerateImage(id);
+      setIsRegenerateDialogOpen(true);
     } else {
       toast({
         title: "Regeneration not available",
         description: "Image regeneration is not available in this view.",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleSubmitRegeneration = async () => {
+    if (!onRegenerateImage) return;
+    
+    setIsRegenerating(true);
+    setIsRegenerateDialogOpen(false);
+    
+    try {
+      await onRegenerateImage(id, regeneratePrompt);
+      toast({
+        title: "Regeneration started",
+        description: "Your new image is being generated. This may take a moment.",
+      });
+    } catch (error) {
+      console.error('Error submitting regeneration:', error);
+      toast({
+        title: "Regeneration failed",
+        description: "Could not start image regeneration. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsRegenerating(false);
     }
   };
 
@@ -492,8 +529,13 @@ export const SavedAdCard = ({
                 className="absolute bottom-3 right-3 bg-white/90 hover:bg-white shadow-md"
                 onClick={handleRegenerateImage}
                 title="Regenerate image"
+                disabled={isRegenerating}
               >
-                <RefreshCw className="h-4 w-4" />
+                {isRegenerating ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Wand2 className="h-4 w-4" />
+                )}
               </Button>
             )}
           </div>
@@ -540,6 +582,46 @@ export const SavedAdCard = ({
           />
         </CardContent>
       </div>
+
+      {/* Regenerate Image Dialog */}
+      <Dialog open={isRegenerateDialogOpen} onOpenChange={setIsRegenerateDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Regenerate Image</DialogTitle>
+            <DialogDescription>
+              Enter specific instructions to customize your new ad image.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4">
+            <Textarea
+              placeholder="Describe what you'd like to see in this image..."
+              className="min-h-[120px]"
+              value={regeneratePrompt}
+              onChange={(e) => setRegeneratePrompt(e.target.value)}
+            />
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsRegenerateDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSubmitRegeneration} disabled={isRegenerating}>
+              {isRegenerating ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Wand2 className="mr-2 h-4 w-4" />
+                  Generate
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };

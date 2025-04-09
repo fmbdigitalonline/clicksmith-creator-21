@@ -54,6 +54,7 @@ serve(async (req) => {
     const promptText = prompt || "Professional marketing image for advertisement";
     
     console.log("Starting image regeneration for ad:", adId);
+    console.log("Using prompt:", promptText);
 
     // Update the ad to show it's being processed
     await supabaseAdmin

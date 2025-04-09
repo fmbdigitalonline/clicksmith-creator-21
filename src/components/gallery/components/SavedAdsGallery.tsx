@@ -127,7 +127,7 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps = {}) =>
     fetchSavedAds();
   }, [toast, projectFilter, t]);
 
-  const handleRegenerateImage = async (adId: string) => {
+  const handleRegenerateImage = async (adId: string, prompt?: string) => {
     setIsRegenerating(adId);
     try {
       // Get the ad data to regenerate
@@ -140,11 +140,12 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps = {}) =>
       if (adError) throw adError;
       
       // Call the edge function to regenerate the image
-      // Use a default prompt if one doesn't exist
-      const defaultPrompt = "Professional marketing image for advertisement";
+      // Use the provided prompt or fall back to the ad's primary text or a default
+      const regenerationPrompt = prompt || adData.primary_text || "Professional marketing image for advertisement";
+      
       const { data, error } = await supabase.functions.invoke('generate-images', {
         body: { 
-          prompt: adData.primary_text || defaultPrompt,
+          prompt: regenerationPrompt,
           adId: adId
         }
       });
