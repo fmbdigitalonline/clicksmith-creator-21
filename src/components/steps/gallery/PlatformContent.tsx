@@ -11,6 +11,7 @@ interface PlatformContentProps {
   selectable?: boolean;
   selectedAdIds?: string[];
   onAdSelect?: (id: string, selected: boolean) => void;
+  onRegenerateImage?: (variant: any, prompt: string) => Promise<void>;
 }
 
 const PlatformContent = ({ 
@@ -21,7 +22,8 @@ const PlatformContent = ({
   selectedFormat,
   selectable = false,
   selectedAdIds = [],
-  onAdSelect
+  onAdSelect,
+  onRegenerateImage
 }: PlatformContentProps) => {
   // Filter variants by platform and ensure we only show 2 variants per unique image
   const filteredVariants = (() => {
@@ -75,6 +77,9 @@ const PlatformContent = ({
             selectable={selectable}
             selected={selectedAdIds.includes(variant.id)}
             onSelect={onAdSelect}
+            onRegenerateImage={onRegenerateImage ? 
+              (prompt) => onRegenerateImage(variant, prompt) : 
+              undefined}
           />
         ))}
       </div>

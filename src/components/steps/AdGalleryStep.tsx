@@ -48,6 +48,7 @@ const AdGalleryStep = ({
   const [manualProcessingNeeded, setManualProcessingNeeded] = useState(false);
   const [isProcessingImages, setIsProcessingImages] = useState(false);
   const [showCampaignHelp, setShowCampaignHelp] = useState(false);
+  const [isRegeneratingImage, setIsRegeneratingImage] = useState(false);
   const { toast } = useToast();
   
   const {
@@ -351,6 +352,66 @@ const AdGalleryStep = ({
     }
   };
 
+  const handleRegenerateImage = async (variant: any, prompt: string) => {
+    if (isRegeneratingImage) return;
+    
+    setIsRegeneratingImage(true);
+    try {
+      const tempId = variant.id || `temp_${Date.now()}`;
+      
+      const { data, error } = await supabase.functions.invoke('generate-images', {
+        body: { 
+          prompt,
+          adId: tempId
+        }
+      });
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Image regeneration started",
+        description: "Your new image is being generated. This may take a moment."
+      });
+      
+      if (data && data.imageUrl) {
+        const updatedVariants = adVariants.map(v => {
+          if ((v.id && v.id === variant.id) || 
+              (v.imageUrl === variant.imageUrl) || 
+              (v.image?.url === variant.image?.url)) {
+            return {
+              ...v,
+              imageUrl: data.imageUrl,
+              image: { ...v.image, url: data.imageUrl },
+              image_status: 'processing'
+            };
+          }
+          return v;
+        });
+        
+        if (variant.platform === 'facebook') {
+          const updatedVariant = updatedVariants.find(v => 
+            (v.id && v.id === variant.id) || 
+            (v.imageUrl === data.imageUrl) || 
+            (v.image?.url === data.imageUrl)
+          );
+          if (updatedVariant) {
+            await processImagesForFacebook([updatedVariant]);
+          }
+        }
+      }
+      
+    } catch (error) {
+      console.error('Error regenerating image:', error);
+      toast({
+        title: "Regeneration failed",
+        description: "Could not regenerate the image. Please try again later.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsRegeneratingImage(false);
+    }
+  };
+
   const renderPlatformContent = (platformName: string) => (
     <TabsContent value={platformName} className="space-y-4">
       <div className="flex justify-end mb-4">
@@ -368,6 +429,7 @@ const AdGalleryStep = ({
         selectable={true}
         selectedAdIds={selectedAdIds}
         onAdSelect={handleAdSelect}
+        onRegenerateImage={handleRegenerateImage}
       />
     </TabsContent>
   );

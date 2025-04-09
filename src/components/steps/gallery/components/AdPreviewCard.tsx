@@ -11,9 +11,10 @@ import AdDetails from "./AdDetails";
 import DownloadControls from "./DownloadControls";
 import { AdFeedbackControls } from "./AdFeedbackControls";
 import { convertImage } from "@/utils/imageUtils";
-import { Pencil, Check, X, CheckSquare, Square, Loader2 } from "lucide-react";
+import { Pencil, Check, X, CheckSquare, Square, Loader2, Wand } from "lucide-react";
 import { useAdPersistence } from "@/hooks/gallery/useAdPersistence";
 import { AdSizeSelector, AD_FORMATS } from "../components/AdSizeSelector";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface AdPreviewCardProps {
   variant: {
@@ -39,6 +40,7 @@ interface AdPreviewCardProps {
   selectable?: boolean;
   selected?: boolean;
   onSelect?: (id: string, selected: boolean) => void;
+  onRegenerateImage?: (prompt: string) => Promise<void>;
 }
 
 const AdPreviewCard = ({ 
@@ -49,7 +51,8 @@ const AdPreviewCard = ({
   selectedFormat: initialFormat,
   selectable = false,
   selected = false,
-  onSelect
+  onSelect,
+  onRegenerateImage
 }: AdPreviewCardProps) => {
   const [downloadFormat, setDownloadFormat] = useState<"jpg" | "png" | "pdf" | "docx">("jpg");
   const [isSaving, setIsSaving] = useState(false);
@@ -61,6 +64,10 @@ const AdPreviewCard = ({
   const { toast } = useToast();
   const { projectId } = useParams();
   const [isProcessingImage, setIsProcessingImage] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+  const [isRegenerateDialogOpen, setIsRegenerateDialogOpen] = useState(false);
+  const [regeneratePrompt, setRegeneratePrompt] = useState(variant.image?.prompt || "Professional marketing image for advertisement");
+  const [isRegenerating, setIsRegenerating] = useState(false);
 
   useEffect(() => {
     if (variant.id && isProcessingImage) {
@@ -283,6 +290,29 @@ const AdPreviewCard = ({
     }
   };
 
+  const handleSubmitRegeneration = async () => {
+    if (!onRegenerateImage) return;
+    
+    setIsRegenerating(true);
+    try {
+      await onRegenerateImage(regeneratePrompt);
+      toast({
+        title: "Image regeneration started",
+        description: "Your new image is being generated. This may take a moment."
+      });
+    } catch (error) {
+      console.error('Error in regeneration:', error);
+      toast({
+        title: "Regeneration failed",
+        description: "Could not regenerate the image. Please try again later.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsRegenerating(false);
+      setIsRegenerateDialogOpen(false);
+    }
+  };
+
   return (
     <Card className="overflow-hidden relative">
       {selectable && (
@@ -355,6 +385,8 @@ const AdPreviewCard = ({
               maxHeight: '600px'
             }} 
             className="relative rounded-lg overflow-hidden"
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
           >
             <MediaPreview
               imageUrl={getImageUrl()}
@@ -362,6 +394,19 @@ const AdPreviewCard = ({
               format={selectedFormat}
               status={isProcessingImage ? imageStatus : undefined}
             />
+            
+            {isHovered && onRegenerateImage && (
+              <Button 
+                variant="secondary"
+                size="icon"
+                className="absolute bottom-3 right-3 bg-white/90 hover:bg-white shadow-md"
+                onClick={() => setIsRegenerateDialogOpen(true)}
+                title="Regenerate image"
+                disabled={isRegenerating || isProcessingImage}
+              >
+                <Wand className="h-4 w-4" />
+              </Button>
+            )}
           </div>
           
           {isProcessingImage && (
@@ -406,6 +451,47 @@ const AdPreviewCard = ({
           />
         </CardContent>
       </div>
+
+      {onRegenerateImage && (
+        <Dialog open={isRegenerateDialogOpen} onOpenChange={setIsRegenerateDialogOpen}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Regenerate Image</DialogTitle>
+              <DialogDescription>
+                Enter specific instructions to customize your new ad image.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="py-4">
+              <Textarea
+                placeholder="Describe what you'd like to see in this image..."
+                className="min-h-[120px]"
+                value={regeneratePrompt}
+                onChange={(e) => setRegeneratePrompt(e.target.value)}
+              />
+            </div>
+            
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsRegenerateDialogOpen(false)} disabled={isRegenerating}>
+                Cancel
+              </Button>
+              <Button onClick={handleSubmitRegeneration} disabled={isRegenerating}>
+                {isRegenerating ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Wand className="mr-2 h-4 w-4" />
+                    Generate
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </Card>
   );
 };
