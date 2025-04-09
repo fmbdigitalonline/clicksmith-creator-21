@@ -2,7 +2,7 @@
 import { Loader2 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 
-interface LoadingStateProps {
+export interface LoadingStateProps {
   platform: string;
   generationStatus: string;
   processingStatus: {
@@ -13,7 +13,16 @@ interface LoadingStateProps {
   };
 }
 
-const LoadingState = ({ platform, generationStatus, processingStatus }: LoadingStateProps) => {
+const LoadingState = ({ 
+  platform = "ads", 
+  generationStatus = "Processing", 
+  processingStatus = {
+    inProgress: false,
+    total: 0,
+    completed: 0,
+    failed: 0
+  }
+}: LoadingStateProps) => {
   const platformName = platform.charAt(0).toUpperCase() + platform.slice(1);
   const progress = processingStatus.total > 0 
     ? ((processingStatus.completed + processingStatus.failed) / processingStatus.total) * 100

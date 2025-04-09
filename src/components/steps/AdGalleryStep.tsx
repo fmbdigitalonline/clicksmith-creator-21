@@ -18,7 +18,7 @@ import useAdWizardState from "@/hooks/useAdWizardState";
 import { useTranslation } from "react-i18next";
 
 const AdGalleryStep = () => {
-  const { businessIdea, targetAudience, adHooks } = useAdWizardState();
+  const { businessIdea, targetAudience, selectedHooks } = useAdWizardState();
   const { t } = useTranslation("gallery");
   const [selectedPlatform, setSelectedPlatform] = useState("facebook");
   const [activeTab, setActiveTab] = useState("generate");
@@ -39,7 +39,7 @@ const AdGalleryStep = () => {
     processImagesForFacebook,
     regenerateImage,
     setAdVariants
-  } = useAdGeneration(businessIdea, targetAudience, adHooks);
+  } = useAdGeneration(businessIdea, targetAudience, selectedHooks);
 
   const breakpointCols = {
     default: 3,
@@ -62,7 +62,7 @@ const AdGalleryStep = () => {
         .from('projects')
         .insert({
           user_id: user.id,
-          title: businessIdea?.name || "New Ad Project",
+          title: businessIdea?.description || "New Ad Project",
           description: businessIdea?.description || "",
           generated_ads: adVariants
         })

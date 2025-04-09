@@ -1,7 +1,7 @@
 
 import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react";
-import StepNavigation from "../wizard/StepNavigation";
+import StepNavigation from "../../wizard/StepNavigation";
 
 interface AdGenerationControlsProps {
   selectedPlatform: string;
