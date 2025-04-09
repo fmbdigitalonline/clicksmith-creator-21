@@ -58,6 +58,7 @@ export type MarketingCampaign = {
 export type AdImage = {
   url: string;
   prompt: string;
+  id?: string; // Added id property as optional
 };
 
 export type Step = "idea" | "audience" | "analysis" | "campaign" | "format" | "size" | "hook" | "complete";

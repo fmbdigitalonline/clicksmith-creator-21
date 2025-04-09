@@ -52,12 +52,17 @@ serve(async (req) => {
     console.log("Starting image regeneration for ad:", adId);
     console.log("Using prompt:", promptText);
 
+    // Initialize Replicate client
+    const replicate = new Replicate({
+      auth: REPLICATE_API_KEY,
+    });
+
     // Check if this ad already exists in the database
     const { data: existingAd } = await supabaseAdmin
       .from('ad_feedback')
       .select('id')
       .eq('id', adId)
-      .single();
+      .maybeSingle(); // Using maybeSingle instead of single to prevent error
     
     // If this is an existing ad in the database, update its status
     if (existingAd) {

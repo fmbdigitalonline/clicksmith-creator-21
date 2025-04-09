@@ -1,3 +1,4 @@
+
 import { Card, CardContent } from "@/components/ui/card";
 import { AdHook, AdImage } from "@/types/adWizard";
 import AdFeedbackForm from "./AdFeedbackForm";
@@ -42,13 +43,14 @@ const AdVariantCard = ({ image, hook, index, onCreateProject }: AdVariantCardPro
   }, [imageStatus]);
 
   const checkImageStatus = async () => {
-    if (!image.id) return;
+    const imageId = image.id;
+    if (!imageId) return;
     
     try {
       const { data, error } = await supabase
         .from('ad_feedback')
         .select('image_status, storage_url, imageurl')
-        .eq('id', image.id)
+        .eq('id', imageId)
         .single();
 
       if (error) throw error;
@@ -92,6 +94,7 @@ const AdVariantCard = ({ image, hook, index, onCreateProject }: AdVariantCardPro
     setIsRegenerating(true);
     setImageStatus('processing');
     try {
+      // Generate a temporary ID if image.id is not available
       const tempId = image.id || `temp_${Date.now()}_${index}`;
       
       const { data, error } = await supabase.functions.invoke('generate-images', {
