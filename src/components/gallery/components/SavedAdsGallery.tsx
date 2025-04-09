@@ -1,11 +1,12 @@
+
 import { useEffect, useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { AdFeedbackControls } from "@/components/steps/gallery/components/AdFeedbackControls";
 import { Json } from "@/integrations/supabase/types";
 import { EmptyState } from "@/components/gallery/components/EmptyState";
 import { useTranslation } from "react-i18next";
+import { SavedAdCard } from "@/components/gallery/components/SavedAdCard";
+import { Loader2 } from "lucide-react";
 
 interface SavedAd {
   id: string;
@@ -15,12 +16,15 @@ interface SavedAd {
   feedback: string;
   created_at: string;
   imageurl?: string;
+  storage_url?: string;
+  image_status?: 'pending' | 'processing' | 'ready' | 'failed';
   platform?: string;
   size?: {
     width: number;
     height: number;
     label: string;
   };
+  project_id?: string;
 }
 
 interface AdFeedbackRow {
@@ -31,8 +35,11 @@ interface AdFeedbackRow {
   feedback: string;
   created_at: string;
   imageurl?: string;
+  storage_url?: string;
+  image_status?: string;
   platform?: string;
   size?: Json;
+  project_id?: string;
 }
 
 interface SavedAdsGalleryProps {
@@ -42,84 +49,133 @@ interface SavedAdsGalleryProps {
 export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps = {}) => {
   const [savedAds, setSavedAds] = useState<SavedAd[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRegenerating, setIsRegenerating] = useState<string | null>(null);
   const { toast } = useToast();
-  const { t } = useTranslation();
+  const { t } = useTranslation(["gallery", "common", "dashboard"]);
 
-  useEffect(() => {
-    const fetchSavedAds = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
-          setIsLoading(false);
-          return;
-        }
+  const fetchSavedAds = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setIsLoading(false);
+        return;
+      }
 
-        console.log('Fetching saved ads for user:', user.id, projectFilter ? `with project filter: ${projectFilter}` : 'without project filter');
+      console.log('Fetching saved ads for user:', user.id, projectFilter ? `with project filter: ${projectFilter}` : 'without project filter');
 
-        let query = supabase
-          .from('ad_feedback')
-          .select('id, headline, primary_text, rating, feedback, created_at, imageurl, platform, size')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false });
-          
-        // Apply project filter if provided
-        if (projectFilter) {
-          query = query.eq('project_id', projectFilter);
-        }
+      let query = supabase
+        .from('ad_feedback')
+        .select('id, headline, primary_text, rating, feedback, created_at, imageurl, storage_url, image_status, platform, size, project_id')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+        
+      // Apply project filter if provided
+      if (projectFilter) {
+        query = query.eq('project_id', projectFilter);
+      }
 
-        const { data, error } = await query;
+      const { data, error } = await query;
 
-        if (error) {
-          throw error;
-        }
+      if (error) {
+        throw error;
+      }
 
-        console.log('Retrieved ads count:', data?.length);
+      console.log('Retrieved ads count:', data?.length);
 
-        // Deduplicate ads by imageurl but check for null imageurl values
-        const uniqueImageUrls = new Set();
-        const uniqueAds = (data as AdFeedbackRow[] || []).filter(ad => {
-          if (!ad.imageurl) {
-            // If no imageurl, use the ad id as a fallback key
-            if (uniqueImageUrls.has(ad.id)) {
-              return false;
-            }
-            uniqueImageUrls.add(ad.id);
-            return true;
-          }
-          
-          if (uniqueImageUrls.has(ad.imageurl)) {
+      // Deduplicate ads by imageurl but check for null imageurl values
+      const uniqueImageUrls = new Set();
+      const uniqueAds = (data as AdFeedbackRow[] || []).filter(ad => {
+        if (!ad.imageurl) {
+          // If no imageurl, use the ad id as a fallback key
+          if (uniqueImageUrls.has(ad.id)) {
             return false;
           }
-          uniqueImageUrls.add(ad.imageurl);
+          uniqueImageUrls.add(ad.id);
           return true;
-        });
+        }
+        
+        if (uniqueImageUrls.has(ad.imageurl)) {
+          return false;
+        }
+        uniqueImageUrls.add(ad.imageurl);
+        return true;
+      });
 
-        console.log('Unique ads count:', uniqueAds.length);
+      console.log('Unique ads count:', uniqueAds.length);
 
-        // Convert the data to match SavedAd interface
-        const convertedAds: SavedAd[] = uniqueAds.map(ad => ({
-          ...ad,
-          size: ad.size as { width: number; height: number; label: string }
-        }));
+      // Convert the data to match SavedAd interface
+      const convertedAds: SavedAd[] = uniqueAds.map(ad => ({
+        ...ad,
+        size: ad.size as { width: number; height: number; label: string },
+        image_status: ad.image_status as 'pending' | 'processing' | 'ready' | 'failed'
+      }));
 
-        setSavedAds(convertedAds);
-      } catch (error) {
-        console.error('Error fetching saved ads:', error);
-        toast({
-          title: t("errors.title", "Error"),
-          description: t("gallery.load_error", "Failed to load saved ads. Please try again."),
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
+      setSavedAds(convertedAds);
+    } catch (error) {
+      console.error('Error fetching saved ads:', error);
+      toast({
+        title: t("error", { ns: "common" }),
+        description: t("load_error", { ns: "gallery" }),
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchSavedAds();
   }, [toast, projectFilter, t]);
 
+  const handleRegenerateImage = async (adId: string) => {
+    setIsRegenerating(adId);
+    try {
+      // Get the ad data to regenerate
+      const { data: adData, error: adError } = await supabase
+        .from('ad_feedback')
+        .select('*')
+        .eq('id', adId)
+        .single();
+      
+      if (adError) throw adError;
+      
+      // Call the edge function to regenerate the image
+      const { data, error } = await supabase.functions.invoke('generate-images', {
+        body: { 
+          prompt: adData.prompt || "Professional marketing image for advertisement",
+          adId: adId
+        }
+      });
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Image regeneration started",
+        description: "Your new image is being generated. This may take a moment."
+      });
+      
+      // Refresh the ads list to show the updated status
+      await fetchSavedAds();
+      
+    } catch (error) {
+      console.error('Error regenerating image:', error);
+      toast({
+        title: "Regeneration failed",
+        description: "Could not regenerate the image. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsRegenerating(null);
+    }
+  };
+
   if (isLoading) {
-    return <div>{t("loading.saved_ads", "Loading saved ads...")}</div>;
+    return (
+      <div className="flex justify-center items-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-primary mr-2" />
+        <span>{t("loading.saved_ads", { ns: "dashboard" })}</span>
+      </div>
+    );
   }
 
   if (savedAds.length === 0) {
@@ -129,48 +185,20 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps = {}) =>
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {savedAds.map((ad) => (
-        <Card key={ad.id} className="overflow-hidden">
-          {/* Primary Text Section */}
-          {ad.primary_text && (
-            <CardContent className="p-4 border-b">
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-gray-600">{t("gallery.primary_text", "Primary Text")}</p>
-                <p className="text-gray-800 whitespace-pre-wrap">{ad.primary_text}</p>
-              </div>
-            </CardContent>
-          )}
-          
-          {/* Image Section */}
-          {ad.imageurl && (
-            <div className="aspect-video relative">
-              <img
-                src={ad.imageurl}
-                alt={t("gallery.ad_creative_alt", "Ad creative")}
-                className="object-cover w-full h-full"
-              />
-            </div>
-          )}
-
-          {/* Headline Section */}
-          {ad.headline && (
-            <CardContent className="p-4 border-t">
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-gray-600">{t("gallery.headline", "Headline")}</p>
-                <h3 className="text-lg font-semibold text-facebook">{ad.headline}</h3>
-              </div>
-            </CardContent>
-          )}
-
-          {/* Feedback Controls */}
-          <CardContent className="p-4 border-t bg-gray-50">
-            <AdFeedbackControls
-              adId={ad.id}
-              onFeedbackSubmit={() => {
-                window.location.reload();
-              }}
-            />
-          </CardContent>
-        </Card>
+        <SavedAdCard 
+          key={ad.id}
+          id={ad.id}
+          primaryText={ad.primary_text}
+          headline={ad.headline}
+          imageUrl={ad.imageurl}
+          storage_url={ad.storage_url}
+          image_status={ad.image_status}
+          platform={ad.platform}
+          size={ad.size}
+          projectId={ad.project_id}
+          onFeedbackSubmit={fetchSavedAds}
+          onRegenerateImage={handleRegenerateImage}
+        />
       ))}
     </div>
   );

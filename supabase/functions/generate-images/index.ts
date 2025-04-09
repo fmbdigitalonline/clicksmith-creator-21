@@ -1,196 +1,155 @@
 
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0';
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
+import Replicate from "https://esm.sh/replicate@0.25.2"
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    const { prompt, negative_prompt, width, height } = await req.json();
+    const REPLICATE_API_KEY = Deno.env.get('REPLICATE_API_KEY')
+    if (!REPLICATE_API_KEY) {
+      throw new Error('REPLICATE_API_KEY is not set')
+    }
+
+    const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     
-    if (!prompt) {
-      throw new Error('Prompt is required');
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+      throw new Error('SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY is not set')
+    }
+    
+    const supabaseAdmin = createClient(
+      SUPABASE_URL,
+      SUPABASE_SERVICE_ROLE_KEY
+    );
+
+    const replicate = new Replicate({
+      auth: REPLICATE_API_KEY,
+    })
+
+    const { prompt, adId } = await req.json()
+
+    if (!prompt || !adId) {
+      return new Response(
+        JSON.stringify({ 
+          error: "Missing required fields: prompt and adId are required" 
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400,
+        }
+      )
     }
 
-    console.log('Generating image with params:', {
-      prompt,
-      negative_prompt,
-      width: width || 1024,
-      height: height || 1024
-    });
+    console.log("Starting image regeneration for ad:", adId);
 
-    // Initialize Supabase client for storage operations
-    const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    // Update the ad to show it's being processed
+    await supabaseAdmin
+      .from('ad_feedback')
+      .update({ image_status: 'processing' })
+      .eq('id', adId);
 
-    if (!supabaseUrl || !supabaseKey) {
-      throw new Error('Missing Supabase configuration');
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseKey);
-
-    // Call Replicate API
-    const REPLICATE_API_TOKEN = Deno.env.get('REPLICATE_API_TOKEN');
-    if (!REPLICATE_API_TOKEN) {
-      throw new Error('REPLICATE_API_TOKEN is not set');
-    }
-
-    const response = await fetch("https://api.replicate.com/v1/predictions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Token ${REPLICATE_API_TOKEN}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        version: "black-forest-labs/flux-1.1-pro-ultra",
+    console.log("Generating image with prompt:", prompt);
+    const output = await replicate.run(
+      "stability-ai/sdxl:1bfb924045802467cf8869d96b231a12e6aa994a3b779be5c88c6499a0b7d92d",
+      {
         input: {
-          prompt,
-          negative_prompt: negative_prompt || "",
-          width: width || 1024,
-          height: height || 1024,
+          width: 1024,
+          height: 1024,
+          prompt: prompt,
+          refine: "expert_ensemble_refiner",
+          scheduler: "K_EULER",
+          lora_scale: 0.6,
           num_outputs: 1,
-        },
-      }),
-    });
+          guidance_scale: 7.5,
+          apply_watermark: false,
+          high_noise_frac: 0.8,
+          negative_prompt: "blurry, low quality, low resolution",
+          prompt_strength: 0.8,
+          num_inference_steps: 25
+        }
+      }
+    )
 
-    if (!response.ok) {
-      const error = await response.json();
-      console.error('Replicate API error:', error);
-      throw new Error(`Replicate API error: ${error.detail || 'Unknown error'}`);
+    // Get the generated image URL
+    let imageUrl = null;
+    if (Array.isArray(output) && output.length > 0) {
+      imageUrl = output[0];
+    } else {
+      imageUrl = output;
     }
 
-    const prediction = await response.json();
-    console.log('Replicate prediction created:', prediction);
-
-    // Poll for the result
-    const maxAttempts = 60;
-    let attempts = 0;
-    let result = null;
-
-    while (attempts < maxAttempts) {
-      const checkResponse = await fetch(
-        `https://api.replicate.com/v1/predictions/${prediction.id}`,
-        {
-          headers: {
-            "Authorization": `Token ${REPLICATE_API_TOKEN}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      if (!checkResponse.ok) {
-        throw new Error('Failed to check prediction status');
-      }
-
-      const predictionStatus = await checkResponse.json();
-      console.log('Prediction status:', predictionStatus.status);
-
-      if (predictionStatus.status === "succeeded") {
-        result = predictionStatus.output;
-        break;
-      } else if (predictionStatus.status === "failed") {
-        throw new Error('Image generation failed');
-      }
-
-      // Wait before next attempt
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      attempts++;
+    if (!imageUrl) {
+      throw new Error("Failed to generate image, no URL returned");
     }
 
-    if (!result) {
-      throw new Error('Generation timed out');
-    }
+    console.log("Generated image:", imageUrl);
 
-    console.log('Generation successful:', result);
-    const imageUrl = result[0];
-
-    // Now download the image and store it in Supabase Storage
-    // We'll do this in the background so we don't delay the response
-    const storeImagePromise = (async () => {
-      try {
-        console.log('Downloading image from URL:', imageUrl);
-        
-        const imageResponse = await fetch(imageUrl);
-        if (!imageResponse.ok) {
-          throw new Error(`Failed to download image: ${imageResponse.status} ${imageResponse.statusText}`);
-        }
-        
-        const imageBlob = await imageResponse.blob();
-        const imageBuffer = await imageBlob.arrayBuffer();
-        
-        // Generate a unique path including a timestamp
-        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-        const userId = 'system'; // Default to system if no user context
-        const fileName = `${userId}/${timestamp}-${crypto.randomUUID()}.webp`;
-        
-        console.log('Uploading image to Supabase Storage:', fileName);
-        
-        // Upload the image to Supabase Storage
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('ad-images')
-          .upload(fileName, imageBuffer, {
-            contentType: 'image/webp',
-            cacheControl: '3600',
-          });
-          
-        if (uploadError) {
-          console.error('Error uploading to Supabase Storage:', uploadError);
-          throw uploadError;
-        }
-        
-        // Get public URL for the uploaded image
-        const { data: { publicUrl } } = supabase.storage
-          .from('ad-images')
-          .getPublicUrl(fileName);
-          
-        console.log('Image stored in Supabase, public URL:', publicUrl);
-        
-        return { 
-          original: imageUrl, 
-          storage: publicUrl 
-        };
-      } catch (error) {
-        console.error('Error in background image processing:', error);
-        return { 
-          original: imageUrl, 
-          storage: null, 
-          error: error.message 
-        };
-      }
-    })();
+    // Upload the image to the storage bucket
+    const timestamp = Date.now();
+    const imageName = `generated/${adId}/${timestamp}.jpg`;
+    const imageResponse = await fetch(imageUrl);
     
-    // Start the background job without awaiting it
-    // This will allow us to return the response faster
-    EdgeRuntime.waitUntil(storeImagePromise);
+    if (!imageResponse.ok) {
+      throw new Error(`Failed to fetch the generated image: ${imageResponse.statusText}`);
+    }
+    
+    const imageBlob = await imageResponse.blob();
+    
+    const { data: uploadData, error: uploadError } = await supabaseAdmin
+      .storage
+      .from('ad_images')
+      .upload(imageName, imageBlob, {
+        contentType: 'image/jpeg',
+        cacheControl: '3600',
+        upsert: true,
+      });
+    
+    if (uploadError) {
+      throw uploadError;
+    }
+    
+    // Get the public URL for the uploaded image
+    const { data: publicUrlData } = supabaseAdmin
+      .storage
+      .from('ad_images')
+      .getPublicUrl(imageName);
+      
+    const storageUrl = publicUrlData.publicUrl;
+    
+    // Update the ad with the new image and mark as ready
+    await supabaseAdmin
+      .from('ad_feedback')
+      .update({ 
+        storage_url: storageUrl,
+        image_status: 'ready',
+        imageurl: imageUrl,  // Keep the original URL as backup
+      })
+      .eq('id', adId);
 
+    console.log("Image regeneration complete for ad:", adId);
     return new Response(JSON.stringify({ 
-      url: imageUrl,
-      prediction_id: prediction.id,
-      storage_pending: true
+      success: true,
+      message: "Image regenerated successfully",
+      imageUrl: storageUrl,
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
-
+      status: 200,
+    })
   } catch (error) {
-    console.error('Error in generate-images function:', error);
-    return new Response(
-      JSON.stringify({ 
-        error: error.message,
-        details: 'Check function logs for more information'
-      }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500,
-      }
-    );
+    console.error("Error in generate-images function:", error)
+    return new Response(JSON.stringify({ error: error.message }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 500,
+    })
   }
-});
+})
