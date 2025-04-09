@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,11 +14,11 @@ import AdPreviewCard from "./gallery/components/AdPreviewCard";
 import { useAdGeneration } from "./gallery/useAdGeneration";
 import AdGenerationControls from "./gallery/AdGenerationControls";
 import PlatformTabs from "./gallery/PlatformTabs";
-import { useWizardContext } from "@/hooks/useAdWizardState";
+import useAdWizardState from "@/hooks/useAdWizardState";
 import { useTranslation } from "react-i18next";
 
 const AdGalleryStep = () => {
-  const { businessIdea, targetAudience, adHooks } = useWizardContext();
+  const { businessIdea, targetAudience, adHooks } = useAdWizardState();
   const { t } = useTranslation("gallery");
   const [selectedPlatform, setSelectedPlatform] = useState("facebook");
   const [activeTab, setActiveTab] = useState("generate");
@@ -61,8 +62,8 @@ const AdGalleryStep = () => {
         .from('projects')
         .insert({
           user_id: user.id,
-          name: businessIdea.name,
-          description: businessIdea.description,
+          title: businessIdea?.name || "New Ad Project",
+          description: businessIdea?.description || "",
           generated_ads: adVariants
         })
         .select()
@@ -145,7 +146,11 @@ const AdGalleryStep = () => {
       <PlatformTabs
         selectedPlatform={selectedPlatform}
         onPlatformChange={setSelectedPlatform}
-      />
+      >
+        <TabsContent value={selectedPlatform}>
+          {/* Platform specific content can go here */}
+        </TabsContent>
+      </PlatformTabs>
 
       <Tabs defaultValue="generate" className="w-full">
         <TabsList>
@@ -168,6 +173,7 @@ const AdGalleryStep = () => {
             selectedPlatform={selectedPlatform}
             onGenerateClick={() => generateAds(selectedPlatform)}
             isGenerating={isGenerating}
+            generationStatus={generationStatus}
           />
         </div>
       )}
@@ -223,7 +229,6 @@ const AdGalleryStep = () => {
       )}
 
       <StepNavigation
-        nextStepLink="/campaign"
         onNext={handleCreateProject}
         isNextDisabled={isCreatingProject || adVariants.length === 0}
         nextButtonText={isCreatingProject ? "Creating Project..." : "Create Project"}

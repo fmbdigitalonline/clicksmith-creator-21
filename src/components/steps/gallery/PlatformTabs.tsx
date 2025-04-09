@@ -1,16 +1,17 @@
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Linkedin } from "lucide-react";
 import { SiTiktok } from "react-icons/si";
 
 interface PlatformTabsProps {
-  platform: string;
+  selectedPlatform: string;
   onPlatformChange: (value: string) => void;
-  children: React.ReactNode;
+  children?: React.ReactNode;
 }
 
-const PlatformTabs = ({ platform, onPlatformChange, children }: PlatformTabsProps) => {
+const PlatformTabs = ({ selectedPlatform, onPlatformChange, children }: PlatformTabsProps) => {
   return (
-    <Tabs defaultValue={platform} className="w-full" onValueChange={onPlatformChange}>
+    <Tabs defaultValue={selectedPlatform} className="w-full" onValueChange={onPlatformChange}>
       <div className="mb-4">
         <h3 className="text-lg font-semibold mb-2">Your Generated Ads</h3>
         <p className="text-gray-600 mb-4">

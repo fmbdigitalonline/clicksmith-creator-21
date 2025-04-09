@@ -69,6 +69,20 @@ const AdPreviewCard = ({
   const [isRegenerateDialogOpen, setIsRegenerateDialogOpen] = useState(false);
   const [regeneratePrompt, setRegeneratePrompt] = useState(variant.image?.prompt || "Professional marketing image for advertisement");
   const [isRegenerating, setIsRegenerating] = useState(false);
+
+  const getImageUrl = () => {
+    if (variant.storage_url) {
+      return variant.storage_url;
+    }
+    if (variant.image?.url) {
+      return variant.image.url;
+    }
+    if (variant.imageUrl) {
+      return variant.imageUrl;
+    }
+    return null;
+  };
+
   const [currentImageUrl, setCurrentImageUrl] = useState<string | null>(getImageUrl());
 
   useEffect(() => {
@@ -118,19 +132,6 @@ const AdPreviewCard = ({
       return () => clearInterval(interval);
     }
   }, [variant.id, isProcessingImage, toast]);
-
-  const getImageUrl = () => {
-    if (variant.storage_url) {
-      return variant.storage_url;
-    }
-    if (variant.image?.url) {
-      return variant.image.url;
-    }
-    if (variant.imageUrl) {
-      return variant.imageUrl;
-    }
-    return null;
-  };
 
   const handleSave = async () => {
     setIsSaving(true);
