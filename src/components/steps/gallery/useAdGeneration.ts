@@ -444,6 +444,7 @@ export const useAdGeneration = (
     generationStatus,
     processingStatus,
     generateAds,
-    processImagesForFacebook
+    processImagesForFacebook,
+    setAdVariants // Ensure setAdVariants is included in the return value
   };
 };
