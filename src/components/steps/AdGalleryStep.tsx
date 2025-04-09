@@ -360,12 +360,70 @@ const AdGalleryStep = ({
     
     setIsRegeneratingImage(true);
     try {
-      await onRegenerateImage(prompt);
+      const tempId = `temp_${Date.now()}`;
+      
+      console.log('Starting image regeneration with prompt:', prompt);
+      
+      const { data, error } = await supabase.functions.invoke('generate-images', {
+        body: { 
+          prompt,
+          adId: tempId
+        }
+      });
+      
+      if (error) {
+        console.error('Error from generate-images function:', error);
+        throw error;
+      }
       
       toast({
         title: "Image regeneration started",
         description: "Your new image is being generated. This may take a moment."
       });
+      
+      if (data && data.imageUrl) {
+        setAdVariants(prevVariants => {
+          return prevVariants.map(v => {
+            if (selectedAdIds.includes(v.id)) {
+              return {
+                ...v,
+                imageUrl: data.imageUrl,
+                image: { 
+                  ...(v.image || {}), 
+                  url: data.imageUrl,
+                  prompt: prompt
+                }
+              };
+            }
+            return v;
+          });
+        });
+        
+        const facebookVariants = adVariants.filter(v => 
+          selectedAdIds.includes(v.id) && v.platform === 'facebook'
+        );
+        
+        if (facebookVariants.length > 0) {
+          try {
+            const updatedVariants = facebookVariants.map(v => ({
+              ...v,
+              imageUrl: data.imageUrl,
+              image: { 
+                ...(v.image || {}), 
+                url: data.imageUrl,
+                prompt: prompt
+              }
+            }));
+            
+            await processImagesForFacebook(updatedVariants);
+            console.log('Started processing regenerated images for Facebook');
+          } catch (processError) {
+            console.error('Error processing regenerated images for Facebook:', processError);
+          }
+        }
+      } else {
+        console.warn('No imageUrl returned from generate-images function', data);
+      }
     } catch (error) {
       console.error('Error in regeneration:', error);
       toast({
