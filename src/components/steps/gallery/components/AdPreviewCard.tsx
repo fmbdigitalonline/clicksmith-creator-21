@@ -24,6 +24,7 @@ interface AdPreviewCardProps {
       prompt: string;
     };
     imageUrl?: string;
+    storage_url?: string;
     size: {
       width: number;
       height: number;
@@ -68,6 +69,11 @@ const AdPreviewCard = ({
   const [isRegenerateDialogOpen, setIsRegenerateDialogOpen] = useState(false);
   const [regeneratePrompt, setRegeneratePrompt] = useState(variant.image?.prompt || "Professional marketing image for advertisement");
   const [isRegenerating, setIsRegenerating] = useState(false);
+  const [currentImageUrl, setCurrentImageUrl] = useState<string | null>(getImageUrl());
+
+  useEffect(() => {
+    setCurrentImageUrl(getImageUrl());
+  }, [variant]);
 
   useEffect(() => {
     if (variant.id && isProcessingImage) {
@@ -114,6 +120,9 @@ const AdPreviewCard = ({
   }, [variant.id, isProcessingImage, toast]);
 
   const getImageUrl = () => {
+    if (variant.storage_url) {
+      return variant.storage_url;
+    }
     if (variant.image?.url) {
       return variant.image.url;
     }
@@ -162,7 +171,7 @@ const AdPreviewCard = ({
           primary_text: editedDescription,
           headline: editedHeadline,
           imageUrl: imageUrl,
-          original_url: imageUrl, // Store original URL for migration
+          original_url: imageUrl,
           image_status: 'pending',
           platform: variant.platform,
           size: selectedFormat,
@@ -308,6 +317,28 @@ const AdPreviewCard = ({
     setIsRegenerating(true);
     try {
       await onRegenerateImage(regeneratePrompt);
+      
+      if (variant.id) {
+        try {
+          const { data, error } = await supabase
+            .from('ad_feedback')
+            .select('imageUrl, storage_url')
+            .eq('id', variant.id)
+            .single();
+          
+          if (data) {
+            console.log("Updated image data:", data);
+            if (data.storage_url) {
+              setCurrentImageUrl(data.storage_url);
+            } else if (data.imageUrl) {
+              setCurrentImageUrl(data.imageUrl);
+            }
+          }
+        } catch (err) {
+          console.error("Error fetching updated image:", err);
+        }
+      }
+      
       toast({
         title: "Image regeneration started",
         description: "Your new image is being generated. This may take a moment."
@@ -341,7 +372,6 @@ const AdPreviewCard = ({
       )}
       
       <div className="p-4 space-y-4">
-        {/* Format Selector */}
         <div className="flex justify-end mb-2">
           <AdSizeSelector
             selectedFormat={selectedFormat}
@@ -349,7 +379,6 @@ const AdPreviewCard = ({
           />
         </div>
 
-        {/* Primary Text Section */}
         <div className="space-y-2">
           <div className="flex justify-between items-center">
             <p className="text-sm font-medium text-gray-600">Primary Text:</p>
@@ -389,7 +418,6 @@ const AdPreviewCard = ({
           )}
         </div>
 
-        {/* Image Section */}
         <div className="relative">
           <div 
             style={{ 
@@ -401,7 +429,7 @@ const AdPreviewCard = ({
             onMouseLeave={() => setIsHovered(false)}
           >
             <MediaPreview
-              imageUrl={getImageUrl()}
+              imageUrl={currentImageUrl}
               isVideo={isVideo}
               format={selectedFormat}
               status={isProcessingImage ? imageStatus : undefined}
@@ -431,7 +459,6 @@ const AdPreviewCard = ({
           )}
         </div>
 
-        {/* Headline Section */}
         <div className="space-y-2">
           <div className="flex justify-between items-center">
             <p className="text-sm font-medium text-gray-600">Headline:</p>
