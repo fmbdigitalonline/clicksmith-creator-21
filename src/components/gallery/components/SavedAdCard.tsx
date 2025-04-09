@@ -16,7 +16,12 @@ import { Star, ThumbsUp, ThumbsDown, Download, Share2, Edit, Loader2, Trash2, Up
 import { useToast } from "@/hooks/use-toast";
 import { AdFeedbackControls } from "@/components/steps/gallery/components/AdFeedbackControls";
 import { supabase } from "@/integrations/supabase/client";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { 
+  Tooltip, 
+  TooltipContent, 
+  TooltipProvider, 
+  TooltipTrigger 
+} from "@/components/ui/tooltip";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { uploadMedia, updateAdImage } from "@/utils/uploadUtils";
 
@@ -37,6 +42,9 @@ interface SavedAdCardProps {
   onFeedbackSubmit?: () => void;
   onRegenerateImage?: (adId: string, prompt?: string) => Promise<void>;
   media_type?: 'image' | 'video';
+  selectable?: boolean;
+  selected?: boolean;
+  onSelect?: (adId: string, isSelected: boolean) => void;
 }
 
 export function SavedAdCard({
@@ -51,7 +59,10 @@ export function SavedAdCard({
   projectId,
   onFeedbackSubmit,
   onRegenerateImage,
-  media_type: initialMediaType = 'image'
+  media_type: initialMediaType = 'image',
+  selectable = false,
+  selected = false,
+  onSelect
 }: SavedAdCardProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -270,33 +281,37 @@ export function SavedAdCard({
         </div>
         
         <div className="absolute top-2 right-2 flex space-x-1">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button 
-                size="icon" 
-                variant="secondary" 
-                className="bg-white/90 hover:bg-white"
-                onClick={() => setIsUploadDialogOpen(true)}
-              >
-                <Upload size={16} />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Upload new media</TooltipContent>
-          </Tooltip>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  size="icon" 
+                  variant="secondary" 
+                  className="bg-white/90 hover:bg-white"
+                  onClick={() => setIsUploadDialogOpen(true)}
+                >
+                  <Upload size={16} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Upload new media</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
           
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button 
-                size="icon" 
-                variant="secondary" 
-                className="bg-white/90 hover:bg-white"
-                onClick={() => setIsDeleteDialogOpen(true)}
-              >
-                <Trash2 size={16} />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Delete ad</TooltipContent>
-          </Tooltip>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  size="icon" 
+                  variant="secondary" 
+                  className="bg-white/90 hover:bg-white"
+                  onClick={() => setIsDeleteDialogOpen(true)}
+                >
+                  <Trash2 size={16} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Delete ad</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       </div>
 

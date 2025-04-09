@@ -7,6 +7,7 @@ import { EmptyState } from "@/components/gallery/components/EmptyState";
 import { useTranslation } from "react-i18next";
 import { SavedAdCard } from "@/components/gallery/components/SavedAdCard";
 import { Loader2 } from "lucide-react";
+import { TooltipProvider } from "@/components/ui/tooltip"; // Add TooltipProvider import
 
 interface SavedAd {
   id: string;
@@ -25,6 +26,7 @@ interface SavedAd {
     label: string;
   };
   project_id?: string;
+  media_type?: 'image' | 'video';
 }
 
 interface AdFeedbackRow {
@@ -40,6 +42,7 @@ interface AdFeedbackRow {
   platform?: string;
   size?: Json;
   project_id?: string;
+  media_type?: string;
 }
 
 interface SavedAdsGalleryProps {
@@ -65,7 +68,7 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps = {}) =>
 
       let query = supabase
         .from('ad_feedback')
-        .select('id, headline, primary_text, rating, feedback, created_at, imageurl, storage_url, image_status, platform, size, project_id')
+        .select('id, headline, primary_text, rating, feedback, created_at, imageurl, storage_url, image_status, platform, size, project_id, media_type')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
         
@@ -103,7 +106,8 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps = {}) =>
       const convertedAds: SavedAd[] = uniqueAds.map(ad => ({
         ...ad,
         size: ad.size as { width: number; height: number; label: string },
-        image_status: ad.image_status as 'pending' | 'processing' | 'ready' | 'failed'
+        image_status: ad.image_status as 'pending' | 'processing' | 'ready' | 'failed',
+        media_type: ad.media_type as 'image' | 'video'
       }));
 
       setSavedAds(convertedAds);
@@ -180,23 +184,26 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps = {}) =>
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {savedAds.map((ad) => (
-        <SavedAdCard 
-          key={ad.id}
-          id={ad.id}
-          primaryText={ad.primary_text}
-          headline={ad.headline}
-          imageUrl={ad.imageurl}
-          storage_url={ad.storage_url}
-          image_status={ad.image_status}
-          platform={ad.platform}
-          size={ad.size}
-          projectId={ad.project_id}
-          onFeedbackSubmit={fetchSavedAds}
-          onRegenerateImage={handleRegenerateImage}
-        />
-      ))}
-    </div>
+    <TooltipProvider> {/* Wrap the component with TooltipProvider */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {savedAds.map((ad) => (
+          <SavedAdCard 
+            key={ad.id}
+            id={ad.id}
+            primaryText={ad.primary_text}
+            headline={ad.headline}
+            imageUrl={ad.imageurl}
+            storage_url={ad.storage_url}
+            image_status={ad.image_status}
+            platform={ad.platform}
+            size={ad.size}
+            projectId={ad.project_id}
+            onFeedbackSubmit={fetchSavedAds}
+            onRegenerateImage={handleRegenerateImage}
+            media_type={ad.media_type}
+          />
+        ))}
+      </div>
+    </TooltipProvider>
   );
 };

@@ -1,6 +1,6 @@
-
 import { AdHook } from "@/types/adWizard";
 import AdPreviewCard from "./components/AdPreviewCard";
+import { TooltipProvider } from "@/components/ui/tooltip"; // Add TooltipProvider import
 
 interface PlatformContentProps {
   platformName: string;
@@ -64,26 +64,28 @@ const PlatformContent = ({
   }[platformName] || "";
 
   return (
-    <div className="space-y-6">
-      <p className="text-sm text-gray-600 mb-4">{platformSpecificMessage}</p>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {filteredVariants.map((variant, index) => (
-          <AdPreviewCard
-            key={`${platformName}-${index}-${variant.imageUrl || variant.image?.url}`}
-            variant={variant}
-            onCreateProject={onCreateProject}
-            isVideo={videoAdsEnabled}
-            selectedFormat={selectedFormat}
-            selectable={selectable}
-            selected={selectedAdIds.includes(variant.id)}
-            onSelect={onAdSelect}
-            onRegenerateImage={onRegenerateImage ? 
-              (prompt) => onRegenerateImage(variant, prompt) : 
-              undefined}
-          />
-        ))}
+    <TooltipProvider> {/* Add TooltipProvider here */}
+      <div className="space-y-6">
+        <p className="text-sm text-gray-600 mb-4">{platformSpecificMessage}</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {filteredVariants.map((variant, index) => (
+            <AdPreviewCard
+              key={`${platformName}-${index}-${variant.imageUrl || variant.image?.url}`}
+              variant={variant}
+              onCreateProject={onCreateProject}
+              isVideo={videoAdsEnabled}
+              selectedFormat={selectedFormat}
+              selectable={selectable}
+              selected={selectedAdIds.includes(variant.id)}
+              onSelect={onAdSelect}
+              onRegenerateImage={onRegenerateImage ? 
+                (prompt) => onRegenerateImage(variant, prompt) : 
+                undefined}
+            />
+          ))}
+        </div>
       </div>
-    </div>
+    </TooltipProvider>
   );
 };
 
