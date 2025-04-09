@@ -1,12 +1,13 @@
+
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
-import MediaPreview from "./components/MediaPreview";
-import AdDetails from "./components/AdDetails";
-import DownloadControls from "./components/DownloadControls";
-import { AdFeedbackControls } from "./components/AdFeedbackControls";
+import MediaPreview from "../components/MediaPreview";
+import AdDetails from "@/components/steps/gallery/components/AdDetails";
+import DownloadControls from "../components/DownloadControls";
+import { AdFeedbackControls } from "../components/AdFeedbackControls";
 import { convertToFormat } from "@/utils/imageUtils";
 import { TooltipProvider } from "@/components/ui/tooltip"; // Add TooltipProvider import
 
@@ -30,9 +31,23 @@ interface AdPreviewCardProps {
   };
   onCreateProject: () => void;
   isVideo?: boolean;
+  selectedFormat?: { width: number; height: number; label: string };
+  selectable?: boolean;
+  selected?: boolean;
+  onSelect?: (id: string, selected: boolean) => void;
+  onRegenerateImage?: (prompt: string) => Promise<void>;
 }
 
-const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewCardProps) => {
+const AdPreviewCard = ({ 
+  variant, 
+  onCreateProject, 
+  isVideo = false, 
+  selectedFormat,
+  selectable = false,
+  selected = false,
+  onSelect,
+  onRegenerateImage
+}: AdPreviewCardProps) => {
   const [downloadFormat, setDownloadFormat] = useState<"jpg" | "png" | "pdf" | "docx">("jpg");
   const [isSaving, setSaving] = useState(false);
   const { toast } = useToast();

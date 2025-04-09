@@ -1,49 +1,38 @@
+
+import { Card } from "@/components/ui/card";
+
 interface AdDetailsProps {
-  variant: {
-    headline: string;
-    description: string;
-    specs?: {
-      designRecommendations?: {
-        fileTypes: string[];
-        aspectRatios: string;
-      };
-      textRecommendations?: {
-        primaryTextLength: string;
-        headlineLength: string;
-      };
-    };
-  };
-  isVideo: boolean;
+  headline: string;
+  description: string;
+  callToAction: string;
+  platform: string;
 }
 
-const AdDetails = ({ variant, isVideo }: AdDetailsProps) => {
+const AdDetails = ({ headline, description, callToAction, platform }: AdDetailsProps) => {
   return (
-    <div className="space-y-2">
-      <p className="text-sm font-medium text-gray-600">Primary Text:</p>
-      <p className="text-gray-800">{variant.description}</p>
-      <p className="text-sm font-medium text-gray-600">Headline:</p>
-      <h3 className="text-lg font-semibold text-facebook">
-        {variant.headline}
-      </h3>
-      {variant.specs && (
-        <div className="mt-4 space-y-2">
-          {variant.specs.designRecommendations && (
-            <div>
-              <p className="text-sm font-medium text-gray-600">Design Recommendations:</p>
-              <p className="text-gray-700">File Types: {variant.specs.designRecommendations.fileTypes.join(', ')}</p>
-              <p className="text-gray-700">Aspect Ratios: {variant.specs.designRecommendations.aspectRatios}</p>
-            </div>
-          )}
-          {variant.specs.textRecommendations && (
-            <div>
-              <p className="text-sm font-medium text-gray-600">Text Recommendations:</p>
-              <p className="text-gray-700">Primary Text: {variant.specs.textRecommendations.primaryTextLength}</p>
-              <p className="text-gray-700">Headline: {variant.specs.textRecommendations.headlineLength}</p>
-            </div>
-          )}
+    <Card className="p-4">
+      <div className="space-y-3">
+        <div>
+          <p className="text-sm font-medium text-gray-500">Headline</p>
+          <h3 className="font-semibold text-gray-900">{headline}</h3>
         </div>
-      )}
-    </div>
+        
+        <div>
+          <p className="text-sm font-medium text-gray-500">Description</p>
+          <p className="text-gray-700">{description}</p>
+        </div>
+        
+        <div>
+          <p className="text-sm font-medium text-gray-500">Call to Action</p>
+          <p className="text-blue-600 font-medium">{callToAction}</p>
+        </div>
+        
+        <div>
+          <p className="text-sm font-medium text-gray-500">Platform</p>
+          <p className="text-gray-700">{platform}</p>
+        </div>
+      </div>
+    </Card>
   );
 };
 

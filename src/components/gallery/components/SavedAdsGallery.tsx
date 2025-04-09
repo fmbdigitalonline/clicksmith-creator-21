@@ -85,7 +85,10 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps = {}) =>
       console.log('Retrieved ads count:', data?.length);
 
       const uniqueImageUrls = new Set();
-      const uniqueAds = (data as AdFeedbackRow[] || []).filter(ad => {
+      // Cast data as AdFeedbackRow[] to avoid TypeScript errors
+      const rawData = data as AdFeedbackRow[];
+      
+      const uniqueAds = rawData.filter(ad => {
         if (!ad.imageurl) {
           if (uniqueImageUrls.has(ad.id)) {
             return false;

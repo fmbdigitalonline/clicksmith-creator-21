@@ -1,11 +1,10 @@
 
 import { useState } from "react";
+import { ThumbsUp, ThumbsDown, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ThumbsUp, ThumbsDown } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
+import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 
 interface AdFeedbackControlsProps {
   adId: string;
@@ -13,155 +12,97 @@ interface AdFeedbackControlsProps {
   onFeedbackSubmit?: () => void;
 }
 
-export const AdFeedbackControls = ({ adId, projectId, onFeedbackSubmit }: AdFeedbackControlsProps) => {
-  const [rating, setRating] = useState<number | null>(null);
-  const [feedback, setFeedback] = useState<string>("");
-  const [isSaving, setIsSaving] = useState(false);
-  const [showFeedbackInput, setShowFeedbackInput] = useState(false);
+export const AdFeedbackControls = ({ 
+  adId,
+  projectId,
+  onFeedbackSubmit
+}: AdFeedbackControlsProps) => {
+  const [selectedRating, setSelectedRating] = useState<number | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
-  const saveFeedbackToDatabase = async (rating: number, feedbackText: string | null) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      throw new Error('User must be authenticated');
-    }
-
-    const feedbackData = {
-      user_id: user.id,
-      project_id: projectId,
-      ad_id: adId,
-      rating: rating,
-      feedback: feedbackText
-    };
-
-    const { error: updateError } = await supabase
-      .from('ad_feedback')
-      .update(feedbackData)
-      .eq('user_id', user.id)
-      .eq('ad_id', adId);
-
-    if (updateError) {
-      const { error: insertError } = await supabase
-        .from('ad_feedback')
-        .insert(feedbackData);
-
-      if (insertError) throw insertError;
-    }
-  };
-
-  const handleFeedback = async (newRating: number) => {
+  const handleFeedback = async (feedback: 'like' | 'dislike') => {
+    setIsSubmitting(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
+      
       if (!user) {
-        toast({
-          title: "Authentication required",
-          description: "Please sign in to provide feedback",
-          variant: "destructive",
-        });
-        return;
+        throw new Error('User must be logged in to provide feedback');
       }
 
-      // If dislike is clicked, show feedback input
-      if (newRating === 0) {
-        setRating(newRating);
-        setShowFeedbackInput(true);
-        return;
-      }
+      const rating = feedback === 'like' ? 5 : 1;
+      setSelectedRating(rating);
 
-      // For likes, save immediately
-      setIsSaving(true);
-      await saveFeedbackToDatabase(newRating, null);
-      setRating(newRating);
-      onFeedbackSubmit?.();
+      const { error } = await supabase
+        .from('ad_feedback')
+        .update({ 
+          rating: rating,
+          feedback: feedback 
+        })
+        .eq('id', adId);
+
+      if (error) throw error;
 
       toast({
-        title: "Feedback saved",
-        description: "Thank you for your feedback!",
+        title: "Thank you!",
+        description: `Your ${feedback} has been recorded.`,
       });
+      
+      if (onFeedbackSubmit) {
+        onFeedbackSubmit();
+      }
     } catch (error) {
-      console.error('Error saving feedback:', error);
+      console.error('Error submitting feedback:', error);
       toast({
         title: "Error",
-        description: "Failed to save feedback. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to submit feedback",
         variant: "destructive",
       });
     } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleFeedbackSubmit = async () => {
-    if (rating === null) return;
-    
-    try {
-      setIsSaving(true);
-      await saveFeedbackToDatabase(rating, feedback);
-      setShowFeedbackInput(false);
-      setFeedback("");
-      onFeedbackSubmit?.();
-
-      toast({
-        title: "Feedback saved",
-        description: "Thank you for your detailed feedback!",
-      });
-    } catch (error) {
-      console.error('Error saving feedback:', error);
-      toast({
-        title: "Error",
-        description: "Failed to save feedback. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSaving(false);
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between space-x-2">
-        <div className="flex space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleFeedback(1)}
-            className={cn(rating === 1 && "bg-green-100")}
-            disabled={isSaving}
-          >
-            <ThumbsUp className="w-4 h-4 mr-2" />
-            Like
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleFeedback(0)}
-            className={cn(rating === 0 && "bg-red-100")}
-            disabled={isSaving}
-          >
-            <ThumbsDown className="w-4 h-4 mr-2" />
-            Dislike
-          </Button>
+    <TooltipProvider>
+      <div className="flex justify-between">
+        <div className="flex space-x-1">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button 
+                size="sm" 
+                variant="outline"
+                onClick={() => handleFeedback('like')}
+                disabled={isSubmitting || selectedRating === 5}
+                className={selectedRating === 5 ? "bg-green-50 text-green-700 border-green-200" : ""}
+              >
+                <ThumbsUp className={`h-4 w-4 ${selectedRating === 5 ? "text-green-700" : ""}`} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Like this ad</TooltipContent>
+          </Tooltip>
+          
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button 
+                size="sm" 
+                variant="outline"
+                onClick={() => handleFeedback('dislike')}
+                disabled={isSubmitting || selectedRating === 1}
+                className={selectedRating === 1 ? "bg-red-50 text-red-700 border-red-200" : ""}
+              >
+                <ThumbsDown className={`h-4 w-4 ${selectedRating === 1 ? "text-red-700" : ""}`} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Dislike this ad</TooltipContent>
+          </Tooltip>
+        </div>
+        
+        <div className="flex items-center">
+          <Star className="h-4 w-4 text-yellow-400 mr-1" />
+          <span className="text-sm text-gray-600">{selectedRating || '—'}</span>
         </div>
       </div>
-
-      {showFeedbackInput && (
-        <div className="space-y-2">
-          <Textarea
-            placeholder="Please tell us why you didn't like this ad..."
-            value={feedback}
-            onChange={(e) => setFeedback(e.target.value)}
-            className="min-h-[80px]"
-          />
-          <div className="flex justify-end">
-            <Button
-              size="sm"
-              onClick={handleFeedbackSubmit}
-              disabled={isSaving || !feedback.trim()}
-            >
-              Submit Feedback
-            </Button>
-          </div>
-        </div>
-      )}
-    </div>
+    </TooltipProvider>
   );
 };

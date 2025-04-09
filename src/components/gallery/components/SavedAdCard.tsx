@@ -45,6 +45,7 @@ interface SavedAdCardProps {
   selectable?: boolean;
   selected?: boolean;
   onSelect?: (adId: string, isSelected: boolean) => void;
+  fb_ad_settings?: any;
 }
 
 export function SavedAdCard({
@@ -62,7 +63,8 @@ export function SavedAdCard({
   media_type: initialMediaType = 'image',
   selectable = false,
   selected = false,
-  onSelect
+  onSelect,
+  fb_ad_settings
 }: SavedAdCardProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -96,11 +98,16 @@ export function SavedAdCard({
         if (error) throw error;
         
         if (data && isSubscribed) {
-          setCurrentImageStatus(data.image_status as 'pending' | 'processing' | 'ready' | 'failed');
-          if (data.storage_url) {
+          // Check if data has the properties before accessing them
+          if ('image_status' in data) {
+            setCurrentImageStatus(data.image_status as 'pending' | 'processing' | 'ready' | 'failed');
+          }
+          
+          if ('storage_url' in data && data.storage_url) {
             setDisplayUrl(data.storage_url);
           }
-          if (data.media_type) {
+          
+          if ('media_type' in data && data.media_type) {
             setMediaType(data.media_type as 'image' | 'video');
           }
           

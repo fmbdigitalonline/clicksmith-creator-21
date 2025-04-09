@@ -1,6 +1,7 @@
+
 import { AdHook } from "@/types/adWizard";
 import AdPreviewCard from "./components/AdPreviewCard";
-import { TooltipProvider } from "@/components/ui/tooltip"; // Add TooltipProvider import
+import { TooltipProvider } from "@/components/ui/tooltip"; 
 
 interface PlatformContentProps {
   platformName: string;
@@ -64,7 +65,7 @@ const PlatformContent = ({
   }[platformName] || "";
 
   return (
-    <TooltipProvider> {/* Add TooltipProvider here */}
+    <TooltipProvider>
       <div className="space-y-6">
         <p className="text-sm text-gray-600 mb-4">{platformSpecificMessage}</p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -74,7 +75,6 @@ const PlatformContent = ({
               variant={variant}
               onCreateProject={onCreateProject}
               isVideo={videoAdsEnabled}
-              selectedFormat={selectedFormat}
               selectable={selectable}
               selected={selectedAdIds.includes(variant.id)}
               onSelect={onAdSelect}
