@@ -140,9 +140,11 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps = {}) =>
       if (adError) throw adError;
       
       // Call the edge function to regenerate the image
+      // Use a default prompt if one doesn't exist
+      const defaultPrompt = "Professional marketing image for advertisement";
       const { data, error } = await supabase.functions.invoke('generate-images', {
         body: { 
-          prompt: adData.prompt || "Professional marketing image for advertisement",
+          prompt: adData.primary_text || defaultPrompt,
           adId: adId
         }
       });

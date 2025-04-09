@@ -39,10 +39,10 @@ serve(async (req) => {
 
     const { prompt, adId } = await req.json()
 
-    if (!prompt || !adId) {
+    if (!adId) {
       return new Response(
         JSON.stringify({ 
-          error: "Missing required fields: prompt and adId are required" 
+          error: "Missing required field: adId is required" 
         }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 400,
@@ -50,6 +50,9 @@ serve(async (req) => {
       )
     }
 
+    // Use a default prompt if none is provided
+    const promptText = prompt || "Professional marketing image for advertisement";
+    
     console.log("Starting image regeneration for ad:", adId);
 
     // Update the ad to show it's being processed
@@ -58,14 +61,14 @@ serve(async (req) => {
       .update({ image_status: 'processing' })
       .eq('id', adId);
 
-    console.log("Generating image with prompt:", prompt);
+    console.log("Generating image with prompt:", promptText);
     const output = await replicate.run(
       "stability-ai/sdxl:1bfb924045802467cf8869d96b231a12e6aa994a3b779be5c88c6499a0b7d92d",
       {
         input: {
           width: 1024,
           height: 1024,
-          prompt: prompt,
+          prompt: promptText,
           refine: "expert_ensemble_refiner",
           scheduler: "K_EULER",
           lora_scale: 0.6,
