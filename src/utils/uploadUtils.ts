@@ -1,25 +1,47 @@
 
 import { supabase } from "@/integrations/supabase/client";
 
-export async function uploadMedia(file: File) {
-  const fileExt = file.name.split('.').pop();
-  const sanitizedFileName = file.name.replace(/[^\x00-\x7F]/g, '');
-  const filePath = `${crypto.randomUUID()}-${sanitizedFileName}`;
-  
-  const { data, error } = await supabase.storage
-    .from('blog-media')
-    .upload(filePath, file, {
-      cacheControl: '3600',
-      upsert: false,
-    });
-
-  if (error) throw error;
-
-  // Get the public URL using the correct bucket name
-  const { data: { publicUrl } } = supabase.storage
-    .from('blog-media')
-    .getPublicUrl(filePath);
-
-  // Return the complete public URL
-  return publicUrl;
+export async function uploadMedia(file: File, path: string = 'ad-images') {
+  try {
+    // Validate file size (5MB max)
+    const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+    if (file.size > maxSize) {
+      throw new Error(`File size exceeds the 5MB limit`);
+    }
+    
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    if (!validTypes.includes(file.type)) {
+      throw new Error('Invalid file type. Please upload JPG, PNG, or WebP images');
+    }
+    
+    // Generate a unique filename
+    const fileExt = file.name.split('.').pop();
+    const sanitizedFileName = file.name.replace(/[^\x00-\x7F]/g, '');
+    const timestamp = Date.now();
+    const randomString = Math.random().toString(36).substring(2, 10);
+    const filePath = `${path}/${timestamp}-${randomString}-${sanitizedFileName}`;
+    
+    // Upload to Supabase storage
+    const { data, error } = await supabase.storage
+      .from('ad-images')
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: false
+      });
+    
+    if (error) throw error;
+    
+    // Get the public URL
+    const { data: urlData } = supabase.storage
+      .from('ad-images')
+      .getPublicUrl(filePath);
+    
+    console.log('File uploaded successfully:', urlData.publicUrl);
+    
+    return urlData.publicUrl;
+  } catch (error) {
+    console.error('Error uploading media:', error);
+    throw error;
+  }
 }

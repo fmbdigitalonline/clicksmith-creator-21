@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -69,7 +68,6 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps = {}) =>
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
         
-      // Apply project filter if provided
       if (projectFilter) {
         query = query.eq('project_id', projectFilter);
       }
@@ -82,11 +80,9 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps = {}) =>
 
       console.log('Retrieved ads count:', data?.length);
 
-      // Deduplicate ads by imageurl but check for null imageurl values
       const uniqueImageUrls = new Set();
       const uniqueAds = (data as AdFeedbackRow[] || []).filter(ad => {
         if (!ad.imageurl) {
-          // If no imageurl, use the ad id as a fallback key
           if (uniqueImageUrls.has(ad.id)) {
             return false;
           }
@@ -103,7 +99,6 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps = {}) =>
 
       console.log('Unique ads count:', uniqueAds.length);
 
-      // Convert the data to match SavedAd interface
       const convertedAds: SavedAd[] = uniqueAds.map(ad => ({
         ...ad,
         size: ad.size as { width: number; height: number; label: string },
@@ -130,7 +125,6 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps = {}) =>
   const handleRegenerateImage = async (adId: string, prompt?: string) => {
     setIsRegenerating(adId);
     try {
-      // Get the ad data to regenerate
       const { data: adData, error: adError } = await supabase
         .from('ad_feedback')
         .select('*')
@@ -139,25 +133,24 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps = {}) =>
       
       if (adError) throw adError;
       
-      // Call the edge function to regenerate the image
-      // Use the provided prompt or fall back to the ad's primary text or a default
-      const regenerationPrompt = prompt || adData.primary_text || "Professional marketing image for advertisement";
+      if (prompt) {
+        const regenerationPrompt = prompt || adData.primary_text || "Professional marketing image for advertisement";
+        
+        const { data, error } = await supabase.functions.invoke('generate-images', {
+          body: { 
+            prompt: regenerationPrompt,
+            adId: adId
+          }
+        });
+        
+        if (error) throw error;
+        
+        toast({
+          title: "Image regeneration started",
+          description: "Your new image is being generated. This may take a moment."
+        });
+      }
       
-      const { data, error } = await supabase.functions.invoke('generate-images', {
-        body: { 
-          prompt: regenerationPrompt,
-          adId: adId
-        }
-      });
-      
-      if (error) throw error;
-      
-      toast({
-        title: "Image regeneration started",
-        description: "Your new image is being generated. This may take a moment."
-      });
-      
-      // Refresh the ads list to show the updated status
       await fetchSavedAds();
       
     } catch (error) {

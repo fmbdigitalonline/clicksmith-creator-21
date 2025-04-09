@@ -1,11 +1,11 @@
-
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { AdFeedbackControls } from "@/components/steps/gallery/components/AdFeedbackControls";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { Pencil, Check, X, Download, Save, CheckSquare, Square, Image, AlertCircle, Loader2, Facebook, Globe, Copy, ChevronUp, ChevronDown, RefreshCw, Wand2 } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Pencil, Check, X, Download, Save, CheckSquare, Square, Image, AlertCircle, Loader2, Facebook, Globe, Copy, ChevronUp, ChevronDown, RefreshCw, Wand2, Upload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { AdSizeSelector, AD_FORMATS } from "@/components/steps/gallery/components/AdSizeSelector";
@@ -82,12 +82,15 @@ export const SavedAdCard = ({
   const [downloadFormat, setDownloadFormat] = useState<"jpg" | "png" | "pdf" | "docx">("jpg");
   const [isSaving, setIsSaving] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [currentImageStatus, setCurrentImageStatus] = useState(image_status);
   const [displayUrl, setDisplayUrl] = useState(storage_url || imageUrl);
   const [isHovered, setIsHovered] = useState(false);
   const [isRegenerateDialogOpen, setIsRegenerateDialogOpen] = useState(false);
   const [regeneratePrompt, setRegeneratePrompt] = useState(primaryText || "Professional marketing image for advertisement");
   const [isRegenerating, setIsRegenerating] = useState(false);
+  const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -292,19 +295,71 @@ export const SavedAdCard = ({
   };
 
   const handleRegenerateImage = () => {
-    if (onRegenerateImage) {
-      setIsRegenerateDialogOpen(true);
-    } else {
+    setIsRegenerateDialogOpen(true);
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!event.target.files || event.target.files.length === 0) {
+      return;
+    }
+
+    const file = event.target.files[0];
+    setIsUploading(true);
+
+    try {
+      const imageUrl = await uploadMedia(file);
+      
+      const { error } = await supabase
+        .from('ad_feedback')
+        .update({
+          imageurl: imageUrl,
+          image_status: platform === 'facebook' ? 'pending' : 'ready'
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setDisplayUrl(imageUrl);
+      
+      if (platform === 'facebook') {
+        setCurrentImageStatus('pending');
+        try {
+          await handleProcessImage();
+        } catch (processError) {
+          console.error('Error processing uploaded image:', processError);
+        }
+      } else {
+        setCurrentImageStatus('ready');
+      }
+
       toast({
-        title: "Regeneration not available",
-        description: "Image regeneration is not available in this view.",
+        title: "Image uploaded successfully",
+        description: "Your new image has been uploaded and is ready to use.",
+      });
+      
+      setIsUploadDialogOpen(false);
+      onFeedbackSubmit();
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast({
+        title: "Upload failed",
+        description: "Could not upload the image. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
   const handleSubmitRegeneration = async () => {
-    if (!onRegenerateImage) return;
+    if (!onRegenerateImage) {
+      setIsUploadDialogOpen(true);
+      setIsRegenerateDialogOpen(false);
+      return;
+    }
     
     setIsRegenerating(true);
     setIsRegenerateDialogOpen(false);
@@ -528,13 +583,13 @@ export const SavedAdCard = ({
                 size="icon"
                 className="absolute bottom-3 right-3 bg-white/90 hover:bg-white shadow-md"
                 onClick={handleRegenerateImage}
-                title="Regenerate image"
-                disabled={isRegenerating}
+                title="Replace image"
+                disabled={isRegenerating || isUploading}
               >
-                {isRegenerating ? (
+                {isRegenerating || isUploading ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
-                  <Wand2 className="h-4 w-4" />
+                  <Upload className="h-4 w-4" />
                 )}
               </Button>
             )}
@@ -583,41 +638,99 @@ export const SavedAdCard = ({
         </CardContent>
       </div>
 
-      {/* Regenerate Image Dialog */}
       <Dialog open={isRegenerateDialogOpen} onOpenChange={setIsRegenerateDialogOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>Regenerate Image</DialogTitle>
+            <DialogTitle>Update Ad Image</DialogTitle>
             <DialogDescription>
-              Enter specific instructions to customize your new ad image.
+              Choose how you'd like to update this ad image
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4 space-y-4">
+            {onRegenerateImage && (
+              <>
+                <h3 className="text-sm font-medium">Option 1: Generate with AI</h3>
+                <Textarea
+                  placeholder="Describe what you'd like to see in this image..."
+                  className="min-h-[120px]"
+                  value={regeneratePrompt}
+                  onChange={(e) => setRegeneratePrompt(e.target.value)}
+                />
+              </>
+            )}
+            
+            <div className="mt-4">
+              <h3 className="text-sm font-medium mb-2">Option 2: Upload Your Own Image</h3>
+              <Button 
+                variant="outline" 
+                className="w-full flex items-center justify-center"
+                onClick={() => {
+                  setIsRegenerateDialogOpen(false);
+                  setIsUploadDialogOpen(true);
+                }}
+              >
+                <Upload className="mr-2 h-4 w-4" />
+                Select Image File
+              </Button>
+            </div>
+          </div>
+          
+          <DialogFooter className="flex justify-between">
+            <Button variant="outline" onClick={() => setIsRegenerateDialogOpen(false)}>
+              Cancel
+            </Button>
+            {onRegenerateImage && (
+              <Button onClick={handleSubmitRegeneration} disabled={isRegenerating}>
+                {isRegenerating ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Wand2 className="mr-2 h-4 w-4" />
+                    Generate with AI
+                  </>
+                )}
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Upload Custom Image</DialogTitle>
+            <DialogDescription>
+              Select an image file from your computer to use for this ad
             </DialogDescription>
           </DialogHeader>
           
           <div className="py-4">
-            <Textarea
-              placeholder="Describe what you'd like to see in this image..."
-              className="min-h-[120px]"
-              value={regeneratePrompt}
-              onChange={(e) => setRegeneratePrompt(e.target.value)}
-            />
+            <div className="grid w-full max-w-sm items-center gap-1.5">
+              <Label htmlFor="image-upload">Image</Label>
+              <Input
+                ref={fileInputRef}
+                id="image-upload"
+                type="file"
+                accept="image/*"
+                onChange={handleFileUpload}
+                disabled={isUploading}
+              />
+            </div>
+            
+            <div className="mt-4 text-sm text-muted-foreground">
+              <p>Recommended image dimensions: {selectedFormat.width}x{selectedFormat.height}px</p>
+              <p>Supported formats: JPG, PNG, WebP</p>
+              <p>Maximum file size: 5MB</p>
+            </div>
           </div>
           
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsRegenerateDialogOpen(false)}>
+            <Button variant="outline" onClick={() => setIsUploadDialogOpen(false)} disabled={isUploading}>
               Cancel
-            </Button>
-            <Button onClick={handleSubmitRegeneration} disabled={isRegenerating}>
-              {isRegenerating ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Generating...
-                </>
-              ) : (
-                <>
-                  <Wand2 className="mr-2 h-4 w-4" />
-                  Generate
-                </>
-              )}
             </Button>
           </DialogFooter>
         </DialogContent>

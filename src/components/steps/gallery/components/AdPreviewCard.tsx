@@ -1,14 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { useParams } from "react-router-dom";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { supabase } from "@/integrations/supabase/client";
+import { Card } from "@/components/ui/card";
+import { Download, Loader2, Upload, Wand2 } from "lucide-react";
 import MediaPreview from "./MediaPreview";
 import AdDetails from "./AdDetails";
-import DownloadControls from "./DownloadControls";
 import { AdFeedbackControls } from "./AdFeedbackControls";
 import { convertImage } from "@/utils/imageUtils";
 import { Pencil, Check, X, CheckSquare, Square, Loader2, Wand } from "lucide-react";
@@ -416,7 +412,7 @@ const AdPreviewCard = ({
                 title="Regenerate image"
                 disabled={isRegenerating || isProcessingImage}
               >
-                <Wand className="h-4 w-4" />
+                <Wand2 className="h-4 w-4" />
               </Button>
             )}
           </div>
@@ -495,7 +491,7 @@ const AdPreviewCard = ({
                   </>
                 ) : (
                   <>
-                    <Wand className="mr-2 h-4 w-4" />
+                    <Wand2 className="mr-2 h-4 w-4" />
                     Generate
                   </>
                 )}
