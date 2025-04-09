@@ -33,10 +33,6 @@ serve(async (req) => {
       SUPABASE_SERVICE_ROLE_KEY
     );
 
-    const replicate = new Replicate({
-      auth: REPLICATE_API_KEY,
-    })
-
     const { prompt, adId } = await req.json()
 
     if (!adId) {
@@ -56,11 +52,20 @@ serve(async (req) => {
     console.log("Starting image regeneration for ad:", adId);
     console.log("Using prompt:", promptText);
 
-    // Update the ad to show it's being processed
-    await supabaseAdmin
+    // Check if this ad already exists in the database
+    const { data: existingAd } = await supabaseAdmin
       .from('ad_feedback')
-      .update({ image_status: 'processing' })
-      .eq('id', adId);
+      .select('id')
+      .eq('id', adId)
+      .single();
+    
+    // If this is an existing ad in the database, update its status
+    if (existingAd) {
+      await supabaseAdmin
+        .from('ad_feedback')
+        .update({ image_status: 'processing' })
+        .eq('id', adId);
+    }
 
     console.log("Generating image with prompt:", promptText);
     const output = await replicate.run(
@@ -130,21 +135,25 @@ serve(async (req) => {
       
     const storageUrl = publicUrlData.publicUrl;
     
-    // Update the ad with the new image and mark as ready
-    await supabaseAdmin
-      .from('ad_feedback')
-      .update({ 
-        storage_url: storageUrl,
-        image_status: 'ready',
-        imageurl: imageUrl,  // Keep the original URL as backup
-      })
-      .eq('id', adId);
+    // If this is an existing ad in the database, update it with the new image
+    if (existingAd) {
+      await supabaseAdmin
+        .from('ad_feedback')
+        .update({ 
+          storage_url: storageUrl,
+          image_status: 'ready',
+          imageurl: imageUrl,  // Keep the original URL as backup
+        })
+        .eq('id', adId);
+    }
 
     console.log("Image regeneration complete for ad:", adId);
     return new Response(JSON.stringify({ 
       success: true,
       message: "Image regenerated successfully",
       imageUrl: storageUrl,
+      originalImageUrl: imageUrl,
+      adId: adId
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,

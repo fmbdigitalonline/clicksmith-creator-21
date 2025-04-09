@@ -1,8 +1,7 @@
-
 import { Card, CardContent } from "@/components/ui/card";
 import { AdHook, AdImage } from "@/types/adWizard";
 import AdFeedbackForm from "./AdFeedbackForm";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { SaveAdButton } from "./SaveAdButton";
 import { Button } from "@/components/ui/button";
@@ -27,11 +26,54 @@ const AdVariantCard = ({ image, hook, index, onCreateProject }: AdVariantCardPro
   const [regeneratePrompt, setRegeneratePrompt] = useState(hook.text || "Professional marketing image for advertisement");
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const [currentImageUrl, setCurrentImageUrl] = useState(image.url);
+  const [imageStatus, setImageStatus] = useState<'ready' | 'processing' | 'failed'>('ready');
   const { toast } = useToast();
+
+  useEffect(() => {
+    setCurrentImageUrl(image.url);
+  }, [image.url]);
+
+  useEffect(() => {
+    if (imageStatus === 'processing') {
+      const intervalId = setInterval(checkImageStatus, 3000);
+      return () => clearInterval(intervalId);
+    }
+  }, [imageStatus]);
+
+  const checkImageStatus = async () => {
+    if (!image.id) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('ad_feedback')
+        .select('image_status, storage_url, imageurl')
+        .eq('id', image.id)
+        .single();
+
+      if (error) throw error;
+      
+      if (data) {
+        if (data.image_status === 'ready') {
+          setImageStatus('ready');
+          setCurrentImageUrl(data.storage_url || data.imageurl || currentImageUrl);
+        } else if (data.image_status === 'failed') {
+          setImageStatus('failed');
+          toast({
+            title: "Image generation failed",
+            description: "We couldn't generate a new image. Please try again with different instructions.",
+            variant: "destructive",
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Error checking image status:", error);
+    }
+  };
 
   const handleDownload = async () => {
     try {
-      const response = await fetch(image.url);
+      const response = await fetch(currentImageUrl);
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -48,13 +90,14 @@ const AdVariantCard = ({ image, hook, index, onCreateProject }: AdVariantCardPro
 
   const handleRegenerateImage = async (prompt: string) => {
     setIsRegenerating(true);
+    setImageStatus('processing');
     try {
-      // Call the edge function to regenerate the image
+      const tempId = image.id || `temp_${Date.now()}_${index}`;
+      
       const { data, error } = await supabase.functions.invoke('generate-images', {
         body: { 
           prompt,
-          // We don't have an adId in this context, so we'll generate a temporary id
-          adId: `temp_${Date.now()}`
+          adId: tempId
         }
       });
       
@@ -65,19 +108,13 @@ const AdVariantCard = ({ image, hook, index, onCreateProject }: AdVariantCardPro
         description: "Your new image is being generated. This may take a moment."
       });
       
-      // Since we don't have a stored ad yet, we'll need to poll for the result
-      // or update the UI with the generated image URL when it's available
       if (data && data.imageUrl) {
-        // Update the image URL in our local state/UI
-        // Note: This will require modifying how images are stored and managed in the parent component
-        // For now, we'll just show a toast notification
-        toast({
-          title: "Image regenerated",
-          description: "Your new image has been generated successfully."
-        });
+        setCurrentImageUrl(data.imageUrl);
       }
+      
     } catch (error) {
       console.error('Error regenerating image:', error);
+      setImageStatus('failed');
       toast({
         title: "Regeneration failed",
         description: "Could not regenerate the image. Please try again later.",
@@ -102,10 +139,17 @@ const AdVariantCard = ({ image, hook, index, onCreateProject }: AdVariantCardPro
           onMouseLeave={() => setIsHovered(false)}
         >
           <img
-            src={image.url}
+            src={currentImageUrl}
             alt={`Ad variant ${index + 1}`}
             className="object-cover w-full h-full"
           />
+          {imageStatus === 'processing' && (
+            <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+              <div className="bg-white p-2 rounded-full">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              </div>
+            </div>
+          )}
           {isHovered && (
             <Button 
               variant="secondary"
@@ -113,6 +157,7 @@ const AdVariantCard = ({ image, hook, index, onCreateProject }: AdVariantCardPro
               className="absolute bottom-3 right-3 bg-white/90 hover:bg-white shadow-md"
               onClick={() => setIsRegenerateDialogOpen(true)}
               title="Regenerate image"
+              disabled={imageStatus === 'processing'}
             >
               <Wand className="h-4 w-4" />
             </Button>
@@ -141,7 +186,10 @@ const AdVariantCard = ({ image, hook, index, onCreateProject }: AdVariantCardPro
           />
 
           <SaveAdButton
-            image={image}
+            image={{
+              ...image,
+              url: currentImageUrl,
+            }}
             hook={hook}
             primaryText={hook.text}
             headline={hook.description}
@@ -154,7 +202,6 @@ const AdVariantCard = ({ image, hook, index, onCreateProject }: AdVariantCardPro
         </div>
       </CardContent>
 
-      {/* Regenerate Image Dialog */}
       <Dialog open={isRegenerateDialogOpen} onOpenChange={setIsRegenerateDialogOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
@@ -174,7 +221,7 @@ const AdVariantCard = ({ image, hook, index, onCreateProject }: AdVariantCardPro
           </div>
           
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsRegenerateDialogOpen(false)}>
+            <Button variant="outline" onClick={() => setIsRegenerateDialogOpen(false)} disabled={isRegenerating}>
               Cancel
             </Button>
             <Button onClick={handleSubmitRegeneration} disabled={isRegenerating}>
