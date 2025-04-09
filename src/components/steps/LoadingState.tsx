@@ -1,57 +1,18 @@
 
 import { Loader2 } from "lucide-react";
-import { Progress } from "@/components/ui/progress";
+import { useTranslation } from "react-i18next";
 
-export interface LoadingStateProps {
-  platform: string;
-  generationStatus: string;
-  processingStatus: {
-    inProgress: boolean;
-    total: number;
-    completed: number;
-    failed: number;
-  };
-}
-
-const LoadingState = ({ 
-  platform = "ads", 
-  generationStatus = "Processing", 
-  processingStatus = {
-    inProgress: false,
-    total: 0,
-    completed: 0,
-    failed: 0
-  }
-}: LoadingStateProps) => {
-  const platformName = platform.charAt(0).toUpperCase() + platform.slice(1);
-  const progress = processingStatus.total > 0 
-    ? ((processingStatus.completed + processingStatus.failed) / processingStatus.total) * 100
-    : 0;
-
+const StepLoadingState = () => {
+  const { t } = useTranslation();
+  
   return (
-    <div className="flex flex-col items-center justify-center py-16 space-y-8">
-      <div className="flex flex-col items-center space-y-4">
-        <Loader2 className="h-12 w-12 text-primary animate-spin" />
-        <h3 className="text-xl font-medium">
-          {generationStatus || `Generating ${platformName} Ads`}
-        </h3>
-        <p className="text-muted-foreground text-center max-w-md">
-          We're creating unique ad content tailored for {platformName}.
-          This typically takes about 15-30 seconds.
-        </p>
+    <div className="flex items-center justify-center min-h-[200px]">
+      <div className="text-center">
+        <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-facebook" />
+        <p className="text-gray-600">{t("loading.step_data", "Loading step data...")}</p>
       </div>
-
-      {processingStatus.inProgress && (
-        <div className="w-full max-w-md space-y-2">
-          <div className="flex justify-between text-sm">
-            <span>Processing images for {platformName}</span>
-            <span>{processingStatus.completed} of {processingStatus.total} complete</span>
-          </div>
-          <Progress value={progress} className="h-2" />
-        </div>
-      )}
     </div>
   );
 };
 
-export default LoadingState;
+export default StepLoadingState;

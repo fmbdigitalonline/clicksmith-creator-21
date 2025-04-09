@@ -1,3 +1,4 @@
+
 import { BusinessIdea, TargetAudience, AdHook } from "@/types/adWizard";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -436,101 +437,6 @@ export const useAdGeneration = (
     return variants;
   };
 
-  const regenerateImage = async (adId: string, prompt: string) => {
-    console.log(`Regenerating image for ad ID: ${adId} with prompt: ${prompt}`);
-    
-    try {
-      // First update the ad status to processing in our local state
-      setAdVariants(prevVariants => {
-        return prevVariants.map(variant => {
-          if (variant.id === adId) {
-            return {
-              ...variant,
-              image_status: 'processing'
-            };
-          }
-          return variant;
-        });
-      });
-      
-      // Call the generate-images edge function
-      const { data, error } = await supabase.functions.invoke('generate-images', {
-        body: { 
-          prompt,
-          adId
-        }
-      });
-      
-      if (error) {
-        console.error('Error from generate-images function:', error);
-        throw error;
-      }
-      
-      console.log('Regenerate image response:', data);
-      
-      if (data && data.imageUrl) {
-        // Update our local state with the new image URL
-        setAdVariants(prevVariants => {
-          return prevVariants.map(variant => {
-            if (variant.id === adId) {
-              return {
-                ...variant,
-                imageUrl: data.storageUrl || data.imageUrl,
-                storage_url: data.storageUrl,
-                image_status: 'ready'
-              };
-            }
-            return variant;
-          });
-        });
-        
-        // If we have a project ID, update the project with the updated variants
-        if (projectId && projectId !== 'new') {
-          const updatedVariants = adVariants.map(variant => {
-            if (variant.id === adId) {
-              return {
-                ...variant,
-                imageUrl: data.storageUrl || data.imageUrl,
-                storage_url: data.storageUrl,
-                image_status: 'ready'
-              };
-            }
-            return variant;
-          });
-          
-          await supabase
-            .from('projects')
-            .update({
-              generated_ads: updatedVariants
-            })
-            .eq('id', projectId);
-        }
-      }
-      
-      // Trigger a small update to force a re-render
-      setRegenerationCount(prev => prev + 1);
-      
-      return data;
-    } catch (error) {
-      console.error('Error regenerating image:', error);
-      
-      // Update state to reflect the failure
-      setAdVariants(prevVariants => {
-        return prevVariants.map(variant => {
-          if (variant.id === adId) {
-            return {
-              ...variant,
-              image_status: 'failed'
-            };
-          }
-          return variant;
-        });
-      });
-      
-      throw error;
-    }
-  };
-
   return {
     isGenerating,
     adVariants,
@@ -539,7 +445,6 @@ export const useAdGeneration = (
     processingStatus,
     generateAds,
     processImagesForFacebook,
-    regenerateImage,
-    setAdVariants
+    setAdVariants // Ensure setAdVariants is included in the return value
   };
 };

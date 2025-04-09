@@ -14,7 +14,7 @@ import { Video, Image } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 import { Loader2 } from "lucide-react";
-import LoadingState from "./steps/LoadingState";
+import StepLoadingState from "./steps/LoadingState";
 import { useTranslation } from "react-i18next";
 
 const AdWizard = () => {
@@ -39,18 +39,6 @@ const AdWizard = () => {
     canNavigateToStep,
     setCurrentStep,
   } = useAdWizardState();
-
-  // Default loading state props
-  const defaultLoadingProps = {
-    platform: "ads",
-    generationStatus: "Processing",
-    processingStatus: {
-      inProgress: false,
-      total: 0,
-      completed: 0,
-      failed: 0
-    }
-  };
 
   // Handle project initialization
   useEffect(() => {
@@ -118,7 +106,7 @@ const AdWizard = () => {
         return <IdeaStep onNext={handleIdeaSubmit} initialBusinessIdea={businessIdea} />;
       case 2:
         if (!businessIdea) {
-          return <LoadingState {...defaultLoadingProps} />;
+          return <StepLoadingState />;
         }
         return (
           <AudienceStep
@@ -129,7 +117,7 @@ const AdWizard = () => {
         );
       case 3:
         if (!businessIdea || !targetAudience) {
-          return <LoadingState {...defaultLoadingProps} />;
+          return <StepLoadingState />;
         }
         return (
           <AudienceAnalysisStep
@@ -141,13 +129,21 @@ const AdWizard = () => {
         );
       case 4:
         if (!businessIdea || !targetAudience || !audienceAnalysis) {
-          return <LoadingState {...defaultLoadingProps} />;
+          return <StepLoadingState />;
         }
         return (
-          <AdGalleryStep />
+          <AdGalleryStep
+            businessIdea={businessIdea}
+            targetAudience={targetAudience}
+            adHooks={selectedHooks}
+            onStartOver={handleStartOver}
+            onBack={handleBack}
+            onCreateProject={handleCreateProject}
+            videoAdsEnabled={videoAdsEnabled}
+          />
         );
       default:
-        return <LoadingState {...defaultLoadingProps} />;
+        return <StepLoadingState />;
     }
   };
 
