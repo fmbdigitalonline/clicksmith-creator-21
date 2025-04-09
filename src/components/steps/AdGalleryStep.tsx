@@ -362,6 +362,13 @@ const AdGalleryStep = ({
     try {
       const tempId = variant.id || `temp_${Date.now()}`;
       
+      console.log('Starting image regeneration with prompt:', prompt);
+      console.log('Variant data:', JSON.stringify({
+        id: tempId,
+        platform: variant.platform,
+        imageUrl: variant.imageUrl || variant.image?.url
+      }, null, 2));
+      
       const { data, error } = await supabase.functions.invoke('generate-images', {
         body: { 
           prompt,

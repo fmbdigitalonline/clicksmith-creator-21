@@ -290,6 +290,18 @@ const AdPreviewCard = ({
     }
   };
 
+  const handleRegenerateImage = async () => {
+    if (onRegenerateImage) {
+      setIsRegenerateDialogOpen(true);
+    } else {
+      toast({
+        title: "Regeneration not available",
+        description: "Image regeneration is not available in this view.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleSubmitRegeneration = async () => {
     if (!onRegenerateImage) return;
     
@@ -400,7 +412,7 @@ const AdPreviewCard = ({
                 variant="secondary"
                 size="icon"
                 className="absolute bottom-3 right-3 bg-white/90 hover:bg-white shadow-md"
-                onClick={() => setIsRegenerateDialogOpen(true)}
+                onClick={() => handleRegenerateImage()}
                 title="Regenerate image"
                 disabled={isRegenerating || isProcessingImage}
               >

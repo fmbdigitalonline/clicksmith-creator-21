@@ -16,9 +16,10 @@ serve(async (req) => {
   }
 
   try {
-    const REPLICATE_API_KEY = Deno.env.get('REPLICATE_API_KEY')
+    // Check for both potential environment variable names
+    const REPLICATE_API_KEY = Deno.env.get('REPLICATE_API_KEY') || Deno.env.get('REPLICATE_API_TOKEN')
     if (!REPLICATE_API_KEY) {
-      throw new Error('REPLICATE_API_KEY is not set')
+      throw new Error('REPLICATE_API_KEY or REPLICATE_API_TOKEN is not set')
     }
 
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
@@ -86,6 +87,7 @@ serve(async (req) => {
 
     console.log("Generating image with prompt:", promptText);
     try {
+      // Make sure to handle both successful output formats from Replicate
       const output = await replicate.run(
         "stability-ai/sdxl:1bfb924045802467cf8869d96b231a12e6aa994a3b779be5c88c6499a0b7d92d",
         {
@@ -111,8 +113,13 @@ serve(async (req) => {
       let imageUrl = null;
       if (Array.isArray(output) && output.length > 0) {
         imageUrl = output[0];
-      } else {
+      } else if (typeof output === 'string') {
         imageUrl = output;
+      } else if (output.output && Array.isArray(output.output)) {
+        imageUrl = output.output[0];
+      } else {
+        console.error("Unexpected Replicate response format:", output);
+        throw new Error(`Unexpected response format from Replicate: ${JSON.stringify(output)}`);
       }
 
       if (!imageUrl) {
@@ -120,6 +127,27 @@ serve(async (req) => {
       }
 
       console.log("Generated image:", imageUrl);
+
+      // Check if the 'ad_images' bucket exists before trying to upload
+      const { error: bucketError } = await supabaseAdmin
+        .storage
+        .getBucket('ad_images');
+        
+      if (bucketError) {
+        console.error('Error accessing ad_images bucket:', bucketError);
+        // Create the bucket if it doesn't exist
+        const { error: createBucketError } = await supabaseAdmin
+          .storage
+          .createBucket('ad_images', {
+            public: true,
+            allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp']
+          });
+          
+        if (createBucketError) {
+          console.error('Error creating ad_images bucket:', createBucketError);
+          throw new Error(`Storage bucket error: ${createBucketError.message}`);
+        }
+      }
 
       // Upload the image to the storage bucket
       const timestamp = Date.now();
