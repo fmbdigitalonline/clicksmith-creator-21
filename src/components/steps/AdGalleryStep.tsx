@@ -1,3 +1,4 @@
+
 import { BusinessIdea, TargetAudience, AdHook } from "@/types/adWizard";
 import { TabsContent } from "@/components/ui/tabs";
 import LoadingState from "./complete/LoadingState";
@@ -19,6 +20,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useAdPersistence } from "@/hooks/gallery/useAdPersistence";
+import { useParams } from "react-router-dom";
 
 interface AdGalleryStepProps {
   businessIdea: BusinessIdea;
@@ -50,6 +52,7 @@ const AdGalleryStep = ({
   const [showCampaignHelp, setShowCampaignHelp] = useState(false);
   const [isRegeneratingImage, setIsRegeneratingImage] = useState(false);
   const { toast } = useToast();
+  const { projectId } = useParams();
   
   const {
     platform,
@@ -66,7 +69,8 @@ const AdGalleryStep = ({
     generationStatus,
     processingStatus,
     generateAds,
-    processImagesForFacebook
+    processImagesForFacebook,
+    setAdVariants
   } = useAdGeneration(businessIdea, targetAudience, adHooks);
   
   const { saveGeneratedAds } = useAdPersistence(selectedProjectId);
