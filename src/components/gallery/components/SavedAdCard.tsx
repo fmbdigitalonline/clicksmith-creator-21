@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { AdFeedbackControls } from "@/components/steps/gallery/components/AdFeedbackControls";
@@ -284,8 +283,8 @@ export const SavedAdCard = ({
       onRegenerateImage(id);
     } else {
       toast({
-        title: "Regeneration not supported",
-        description: "Image regeneration is not available for this ad.",
+        title: "Regeneration not available",
+        description: "Image regeneration is not available in this view.",
         variant: "destructive",
       });
     }
@@ -486,8 +485,7 @@ export const SavedAdCard = ({
               </div>
             )}
             
-            {/* Regenerate button - only visible on hover */}
-            {isHovered && onRegenerateImage && (
+            {isHovered && (
               <Button 
                 variant="secondary"
                 size="icon"
