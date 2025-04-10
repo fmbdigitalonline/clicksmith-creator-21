@@ -19,6 +19,7 @@ export interface SavedAd {
   project_id?: string;
   size?: AdSize;
   fb_ad_settings?: FacebookAdSettings;
+  file_type?: string;
 }
 
 export interface FacebookAdSettings extends Record<string, Json> {

@@ -3,10 +3,10 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { FileVideo, Upload, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { uploadMedia } from "@/utils/uploadUtils";
+import { uploadMedia, MediaUploadResult } from "@/utils/uploadUtils";
 
 interface VideoUploadButtonProps {
-  onUploadComplete: (mediaInfo: { url: string; isVideo: boolean; fileType: string }) => void;
+  onUploadComplete: (mediaInfo: MediaUploadResult) => void;
   variant?: "outline" | "default" | "destructive" | "secondary" | "ghost" | "link";
   size?: "default" | "sm" | "lg" | "icon";
   className?: string;

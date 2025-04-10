@@ -1,7 +1,13 @@
 
 import { supabase } from "@/integrations/supabase/client";
 
-export async function uploadMedia(file: File, path: string = 'ad-images') {
+export interface MediaUploadResult {
+  url: string;
+  isVideo: boolean;
+  fileType: string;
+}
+
+export async function uploadMedia(file: File, path: string = 'ad-images'): Promise<MediaUploadResult> {
   try {
     // Validate file size (50MB max for videos, 5MB max for images)
     const isVideo = file.type.startsWith('video/');
@@ -61,7 +67,7 @@ export async function uploadMedia(file: File, path: string = 'ad-images') {
 }
 
 // Helper function to update image/video in ad_feedback table
-export async function updateAdMedia(adId: string, mediaData: { url: string, isVideo: boolean, fileType: string }, mediaStatus: string = 'pending') {
+export async function updateAdMedia(adId: string, mediaData: MediaUploadResult, mediaStatus: string = 'pending') {
   try {
     const { error } = await supabase
       .from('ad_feedback')
