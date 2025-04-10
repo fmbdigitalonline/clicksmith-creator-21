@@ -9,6 +9,7 @@ import { SavedAdCard } from "@/components/gallery/components/SavedAdCard";
 import { Loader2, FileVideo, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { uploadMedia, MediaUploadResult } from "@/utils/uploadUtils";
+import MediaPreview from "@/components/steps/gallery/components/MediaPreview";
 
 interface SavedAd {
   id: string;
@@ -88,8 +89,19 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps = {}) =>
 
       console.log('Retrieved ads count:', data?.length);
 
+      // Add runtime type checking and safe casting
+      if (!Array.isArray(data)) {
+        throw new Error("Unexpected response format from database");
+      }
+      
+      // Use explicit type assertion with filtering for safety
+      const adFeedbackRows = data.filter((item): item is AdFeedbackRow => {
+        return typeof item === 'object' && item !== null && 'id' in item && 
+               'rating' in item && 'feedback' in item && 'created_at' in item;
+      });
+
       const uniqueImageUrls = new Set();
-      const uniqueAds = (data as AdFeedbackRow[] || []).filter(ad => {
+      const uniqueAds = adFeedbackRows.filter(ad => {
         if (!ad.imageurl) {
           if (uniqueImageUrls.has(ad.id)) {
             return false;

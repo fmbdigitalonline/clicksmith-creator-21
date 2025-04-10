@@ -1,5 +1,6 @@
+
 import { useState } from "react";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
   FileEdit,
@@ -12,7 +13,8 @@ import {
   Copy,
   RotateCcw,
   Upload,
-  FileVideo
+  FileVideo,
+  Loader2
 } from "lucide-react";
 import {
   Tooltip,
@@ -62,7 +64,7 @@ interface SavedAdCardProps {
   storage_url?: string;
   image_status?: 'pending' | 'processing' | 'ready' | 'failed';
   onFeedbackSubmit?: () => void;
-  onRegenerateImage?: (prompt?: string) => void;
+  onRegenerateImage?: (adId: string, prompt?: string) => void;
   platform?: string;
   size?: {
     width: number;
@@ -263,7 +265,16 @@ export const SavedAdCard = ({
   const onSubmit = async (data: z.infer<typeof formSchema>) => {
     try {
       if (onSettingsSaved) {
-        await onSettingsSaved(data, id, isApplyingToAll);
+        // Make sure all required properties are present
+        const fbSettings: FacebookAdSettings = {
+          website_url: data.website_url,
+          visible_link: data.visible_link || "",
+          call_to_action: data.call_to_action,
+          ad_language: data.ad_language,
+          url_parameters: data.url_parameters || "",
+          browser_addon: data.browser_addon || ""
+        };
+        await onSettingsSaved(fbSettings, id, isApplyingToAll);
         setIsSettingsOpen(false);
       } else {
         throw new Error("Settings save function not provided.");
@@ -302,7 +313,7 @@ export const SavedAdCard = ({
           </Label>
         </div>
       )}
-      <Card className="relative">
+      <div className="relative">
         {showActions && (
           <div className="absolute top-2 right-2 z-10 flex space-x-2">
             <TooltipProvider>
@@ -399,7 +410,7 @@ export const SavedAdCard = ({
             </TooltipProvider>
           </div>
         </CardContent>
-      </Card>
+      </div>
       <Collapsible className="w-full border-b">
         <CollapsibleTrigger className="w-full flex items-center justify-between p-2">
           Facebook Ad Settings
