@@ -13,6 +13,7 @@ export interface SavedAd {
   imageUrl?: string;
   storage_url?: string;
   original_url?: string;
+  media_type?: 'image' | 'video';
   image_status?: 'pending' | 'processing' | 'ready' | 'failed';
   platform?: string;
   project_id?: string;
@@ -49,6 +50,7 @@ export interface AdImageWithVariants {
   projectId?: string;
   prompt?: string;
   metadata?: Record<string, unknown>;
+  mediaType?: 'image' | 'video';
 }
 
 export interface Campaign {

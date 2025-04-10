@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useParams } from "react-router-dom";
@@ -8,6 +9,7 @@ import AdDetails from "./components/AdDetails";
 import DownloadControls from "./components/DownloadControls";
 import { AdFeedbackControls } from "./components/AdFeedbackControls";
 import { convertToFormat } from "@/utils/imageUtils";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 interface AdPreviewCardProps {
   variant: {
@@ -26,6 +28,7 @@ interface AdPreviewCardProps {
     description: string;
     callToAction: string;
     id: string;
+    isVideo?: boolean;
   };
   onCreateProject: () => void;
   isVideo?: boolean;
@@ -36,6 +39,8 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewC
   const [isSaving, setSaving] = useState(false);
   const { toast } = useToast();
   const { projectId } = useParams();
+  
+  const actualIsVideo = variant.isVideo || isVideo;
 
   const getImageUrl = () => {
     if (variant.image?.url) {
@@ -52,28 +57,39 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewC
     if (!imageUrl) {
       toast({
         title: "Error",
-        description: "No image URL available for download",
+        description: "No media URL available for download",
         variant: "destructive",
       });
       return;
     }
 
     try {
-      const response = await fetch(imageUrl);
-      const blob = await response.blob();
-      const convertedBlob = await convertToFormat(URL.createObjectURL(blob), downloadFormat as "jpg" | "png");
-      const url = URL.createObjectURL(convertedBlob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${variant.platform}-${isVideo ? 'video' : 'ad'}-${variant.size.width}x${variant.size.height}.${downloadFormat}`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+      if (actualIsVideo) {
+        // For videos, direct download
+        const link = document.createElement('a');
+        link.href = imageUrl;
+        link.download = `${variant.platform}-video-${variant.size.width}x${variant.size.height}.mp4`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } else {
+        // For images, use conversion
+        const response = await fetch(imageUrl);
+        const blob = await response.blob();
+        const convertedBlob = await convertToFormat(URL.createObjectURL(blob), downloadFormat as "jpg" | "png");
+        const url = URL.createObjectURL(convertedBlob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${variant.platform}-ad-${variant.size.width}x${variant.size.height}.${downloadFormat}`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }
 
       toast({
         title: "Success!",
-        description: `Your ${variant.size.label} ${isVideo ? 'video' : 'ad'} has been downloaded as ${downloadFormat.toUpperCase()}.`,
+        description: `Your ${variant.size.label} ${actualIsVideo ? 'video' : 'ad'} has been downloaded as ${actualIsVideo ? 'MP4' : downloadFormat.toUpperCase()}.`,
       });
     } catch (error) {
       console.error('Error downloading:', error);
@@ -111,6 +127,7 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewC
             saved_images: [getImageUrl()],
             primary_text: variant.description,
             headline: variant.headline,
+            media_type: actualIsVideo ? 'video' : 'image',
             feedback: 'saved'
           });
 
@@ -118,7 +135,7 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewC
 
         toast({
           title: "Success!",
-          description: "Ad saved successfully.",
+          description: actualIsVideo ? "Video ad saved successfully." : "Ad saved successfully.",
         });
       }
     } catch (error) {
@@ -134,51 +151,54 @@ const AdPreviewCard = ({ variant, onCreateProject, isVideo = false }: AdPreviewC
   };
 
   return (
-    <Card className="overflow-hidden">
-      <div className="p-4 space-y-4">
-        <div className="space-y-2">
-          <p className="text-sm font-medium text-gray-600">Primary Text:</p>
-          <p className="text-gray-800">{variant.description}</p>
-        </div>
-
-        <div 
-          style={{ 
-            aspectRatio: `${variant.size.width} / ${variant.size.height}`,
-            maxHeight: '600px',
-            transition: 'aspect-ratio 0.3s ease-in-out'
-          }} 
-          className="relative group rounded-lg overflow-hidden"
-        >
-          <MediaPreview
-            imageUrl={getImageUrl()}
-            isVideo={isVideo}
-            format={variant.size}
-          />
-        </div>
-
-        <CardContent className="p-4 space-y-4">
+    <TooltipProvider>
+      <Card className="overflow-hidden">
+        <div className="p-4 space-y-4">
           <div className="space-y-2">
-            <p className="text-sm font-medium text-gray-600">Headline:</p>
-            <h3 className="text-lg font-semibold text-facebook">
-              {variant.headline}
-            </h3>
+            <p className="text-sm font-medium text-gray-600">Primary Text:</p>
+            <p className="text-gray-800">{variant.description}</p>
           </div>
 
-          <DownloadControls
-            downloadFormat={downloadFormat}
-            onFormatChange={(value) => setDownloadFormat(value as "jpg" | "png" | "pdf" | "docx")}
-            onSave={handleSave}
-            onDownload={handleDownload}
-            isSaving={isSaving}
-          />
+          <div 
+            style={{ 
+              aspectRatio: `${variant.size.width} / ${variant.size.height}`,
+              maxHeight: '600px',
+              transition: 'aspect-ratio 0.3s ease-in-out'
+            }} 
+            className="relative group rounded-lg overflow-hidden"
+          >
+            <MediaPreview
+              imageUrl={getImageUrl()}
+              isVideo={actualIsVideo}
+              format={variant.size}
+            />
+          </div>
 
-          <AdFeedbackControls
-            adId={variant.id}
-            projectId={projectId}
-          />
-        </CardContent>
-      </div>
-    </Card>
+          <CardContent className="p-4 space-y-4">
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-gray-600">Headline:</p>
+              <h3 className="text-lg font-semibold text-facebook">
+                {variant.headline}
+              </h3>
+            </div>
+
+            <DownloadControls
+              downloadFormat={downloadFormat}
+              onFormatChange={(value) => setDownloadFormat(value as "jpg" | "png" | "pdf" | "docx")}
+              onSave={handleSave}
+              onDownload={handleDownload}
+              isSaving={isSaving}
+              isVideo={actualIsVideo}
+            />
+
+            <AdFeedbackControls
+              adId={variant.id}
+              projectId={projectId}
+            />
+          </CardContent>
+        </div>
+      </Card>
+    </TooltipProvider>
   );
 };
 
