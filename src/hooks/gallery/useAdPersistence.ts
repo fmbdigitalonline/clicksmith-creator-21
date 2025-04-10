@@ -45,7 +45,7 @@ export const useAdPersistence = (projectId: string | undefined) => {
     }
   };
 
-  const processMediaForPlatforms = async (ads: any[]) => {
+  const processImagesForFacebook = async (ads: any[]) => {
     try {
       // Call the edge function with all ad IDs for batch processing
       const { data, error } = await supabase.functions.invoke('migrate-images', {
@@ -70,15 +70,15 @@ export const useAdPersistence = (projectId: string | undefined) => {
         }));
 
         toast({
-          title: "Media Processing Started",
-          description: "Your images and videos are being processed for platform compatibility. This may take a moment.",
+          title: "Image Processing Started",
+          description: "Your images are being processed for Facebook ads. This may take a moment.",
         });
       }
     } catch (error) {
-      console.error('Error processing media:', error);
+      console.error('Error processing images:', error);
       toast({
         title: "Processing Error",
-        description: "Failed to start media processing. Please try again later.",
+        description: "Failed to start image processing. Please try again later.",
         variant: "destructive",
       });
     }
@@ -126,11 +126,11 @@ export const useAdPersistence = (projectId: string | undefined) => {
       setSavedAds(updatedAds);
 
       // Start processing images for Facebook automatically
-      await processMediaForPlatforms(newAds);
+      await processImagesForFacebook(newAds);
       
       toast({
         title: "Ads Saved",
-        description: "Your ads have been saved to the project and media processing has started.",
+        description: "Your ads have been saved to the project and image processing has started.",
       });
     } catch (error) {
       console.error('Error saving generated ads:', error);
