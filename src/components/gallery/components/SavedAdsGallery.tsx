@@ -96,8 +96,8 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps = {}) =>
       
       // Use explicit type assertion with filtering for safety
       const adFeedbackRows = data.filter((item): item is AdFeedbackRow => {
-        return typeof item === 'object' && item !== null && 'id' in item && 
-               'rating' in item && 'feedback' in item && 'created_at' in item;
+        return typeof item === 'object' && item !== null && 
+               'id' in item && 'rating' in item && 'feedback' in item && 'created_at' in item;
       });
 
       const uniqueImageUrls = new Set();
