@@ -17,6 +17,7 @@ export interface SavedAd {
   platform?: string;
   project_id?: string;
   size?: AdSize;
+  media_type?: 'image' | 'video';
   fb_ad_settings?: FacebookAdSettings;
 }
 
