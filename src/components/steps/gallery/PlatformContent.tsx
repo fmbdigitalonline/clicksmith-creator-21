@@ -50,8 +50,8 @@ const PlatformContent = ({
 
   if (filteredVariants.length === 0) {
     return (
-      <div className="text-center py-8">
-        <p className="text-gray-500">No ad variants available. Please try regenerating the ads.</p>
+      <div className="text-center py-4 md:py-8">
+        <p className="text-gray-500 text-xs md:text-sm">No ad variants available. Please try regenerating the ads.</p>
       </div>
     );
   }
@@ -64,9 +64,9 @@ const PlatformContent = ({
   }[platformName] || "";
 
   return (
-    <div className="space-y-6">
-      <p className="text-sm text-gray-600 mb-4">{platformSpecificMessage}</p>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div className="space-y-4 md:space-y-6">
+      <p className="text-xs md:text-sm text-gray-600 mb-2 md:mb-4">{platformSpecificMessage}</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
         {filteredVariants.map((variant, index) => (
           <AdPreviewCard
             key={`${platformName}-${index}-${variant.imageUrl || variant.image?.url}`}

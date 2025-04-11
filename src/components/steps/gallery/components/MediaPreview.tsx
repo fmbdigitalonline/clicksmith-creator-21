@@ -16,7 +16,7 @@ const MediaPreview = ({ imageUrl, isVideo, format, status }: MediaPreviewProps) 
   if (isVideo) {
     return (
       <div className="w-full h-full flex items-center justify-center bg-gray-100">
-        <p className="text-gray-500">Video Preview</p>
+        <p className="text-gray-500 text-sm md:text-base">Video Preview</p>
       </div>
     );
   }
@@ -25,8 +25,8 @@ const MediaPreview = ({ imageUrl, isVideo, format, status }: MediaPreviewProps) 
     return (
       <div className="w-full h-full flex items-center justify-center bg-gray-100">
         <div className="flex flex-col items-center text-gray-500">
-          <ImageOff className="h-10 w-10 mb-2 text-gray-400" />
-          <p>No image available</p>
+          <ImageOff className="h-6 w-6 md:h-10 md:w-10 mb-1 md:mb-2 text-gray-400" />
+          <p className="text-xs md:text-sm">No image available</p>
         </div>
       </div>
     );
@@ -42,18 +42,18 @@ const MediaPreview = ({ imageUrl, isVideo, format, status }: MediaPreviewProps) 
       
       {status === 'processing' && (
         <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
-          <div className="bg-white p-2 rounded-full">
-            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          <div className="bg-white p-1 md:p-2 rounded-full">
+            <Loader2 className="h-4 w-4 md:h-6 md:w-6 animate-spin text-primary" />
           </div>
         </div>
       )}
       
       {status === 'failed' && (
         <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
-          <div className="bg-red-50 p-4 rounded-md border border-red-200">
+          <div className="bg-red-50 p-2 md:p-4 rounded-md border border-red-200">
             <div className="flex flex-col items-center">
-              <AlertTriangle className="h-6 w-6 text-red-500 mb-2" />
-              <p className="text-red-700 text-sm font-medium">Image processing failed</p>
+              <AlertTriangle className="h-4 w-4 md:h-6 md:w-6 text-red-500 mb-1 md:mb-2" />
+              <p className="text-xs md:text-sm font-medium text-red-700">Image processing failed</p>
             </div>
           </div>
         </div>

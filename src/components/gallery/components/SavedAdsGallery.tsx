@@ -168,9 +168,9 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps = {}) =>
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-primary mr-2" />
-        <span>{t("loading.saved_ads", { ns: "dashboard" })}</span>
+      <div className="flex justify-center items-center py-8 md:py-12">
+        <Loader2 className="h-6 w-6 md:h-8 md:w-8 animate-spin text-primary mr-2" />
+        <span className="text-sm md:text-base">{t("loading.saved_ads", { ns: "dashboard" })}</span>
       </div>
     );
   }
@@ -180,7 +180,7 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps = {}) =>
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
       {savedAds.map((ad) => (
         <SavedAdCard 
           key={ad.id}

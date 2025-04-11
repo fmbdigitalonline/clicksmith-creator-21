@@ -26,12 +26,12 @@ const DownloadControls = ({
 }: DownloadControlsProps) => {
   return (
     <div className="space-y-2">
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <Select
           value={downloadFormat}
           onValueChange={onFormatChange}
         >
-          <SelectTrigger className="w-24">
+          <SelectTrigger className="w-18 md:w-24 h-9 text-xs md:text-sm">
             <SelectValue placeholder="Format" />
           </SelectTrigger>
           <SelectContent>
@@ -44,26 +44,26 @@ const DownloadControls = ({
 
         <Button
           onClick={onDownload}
-          className="flex-1"
+          className="flex-1 h-9 text-xs md:text-sm"
           variant="outline"
           disabled={isSaving}
         >
-          <Download className="w-4 h-4 mr-2" />
-          Download
+          <Download className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" />
+          <span className="whitespace-nowrap">Download</span>
         </Button>
       </div>
       
       <Button
         onClick={onSave}
-        className="w-full bg-facebook hover:bg-facebook/90"
+        className="w-full bg-facebook hover:bg-facebook/90 h-9 text-xs md:text-sm"
         disabled={isSaving}
       >
         {isSaving ? (
           "Saving..."
         ) : (
           <>
-            <Save className="w-4 h-4 mr-2" />
-            Save Ad
+            <Save className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" />
+            <span>Save Ad</span>
           </>
         )}
       </Button>
