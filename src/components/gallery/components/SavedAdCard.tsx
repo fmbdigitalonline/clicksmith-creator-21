@@ -14,7 +14,7 @@ import { convertImage } from "@/utils/imageUtils";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { uploadMedia, MediaUploadResult } from "@/utils/uploadUtils";
+import { uploadMedia } from "@/utils/uploadUtils";
 import { FacebookAdSettings } from "@/types/campaignTypes";
 import { 
   Collapsible,
@@ -319,8 +319,7 @@ export const SavedAdCard = ({
           imageurl: mediaData.url,
           storage_url: mediaData.url,
           image_status: platform === 'facebook' ? 'pending' : 'ready',
-          media_type: mediaData.isVideo ? 'video' : 'image',
-          file_type: mediaData.fileType
+          media_type: mediaData.isVideo ? 'video' : 'image'
         })
         .eq('id', id);
 
