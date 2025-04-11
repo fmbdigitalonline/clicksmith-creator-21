@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export async function uploadMedia(file: File, path: string = 'ad-images') {
@@ -57,12 +56,16 @@ export async function uploadMedia(file: File, path: string = 'ad-images') {
 // Helper function to update image or video in ad_feedback table
 export async function updateAdImage(adId: string, mediaUrl: string, isVideo: boolean = false, mediaStatus: string = 'pending') {
   try {
+    // Set image_status to 'ready' immediately for videos, but keep 'pending' for images
+    // This is because video files don't need the same Facebook processing as images
+    const status = isVideo && mediaStatus === 'pending' ? 'ready' : mediaStatus;
+    
     const { error } = await supabase
       .from('ad_feedback')
       .update({
         imageurl: mediaUrl,
         storage_url: mediaUrl,
-        image_status: mediaStatus,
+        image_status: status,
         media_type: isVideo ? 'video' : 'image'
       })
       .eq('id', adId);

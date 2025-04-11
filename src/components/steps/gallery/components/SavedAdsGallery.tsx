@@ -84,7 +84,6 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps = {}) =>
       console.log('Retrieved ads count:', data?.length);
 
       // Safely cast data and handle any potential error response from Supabase
-      // We need to ensure data is an array before proceeding
       const responseData = Array.isArray(data) ? (data as AdFeedbackRow[]) : [];
 
       const uniqueImageUrls = new Set();
@@ -140,6 +139,16 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps = {}) =>
         .single();
       
       if (adError) throw adError;
+
+      // Check if this is a video ad - if so, we don't regenerate with AI
+      if (adData.media_type === 'video') {
+        toast({
+          title: "Video replacement",
+          description: "To replace a video, please upload a new one directly."
+        });
+        setIsRegenerating(null);
+        return;
+      }
       
       if (prompt) {
         const regenerationPrompt = prompt || adData.primary_text || "Professional marketing image for advertisement";
