@@ -14,7 +14,7 @@ import { convertImage } from "@/utils/imageUtils";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { uploadMedia } from "@/utils/uploadUtils";
+import { uploadMedia, MediaUploadResult } from "@/utils/uploadUtils";
 import { FacebookAdSettings } from "@/types/campaignTypes";
 import { 
   Collapsible,
@@ -311,20 +311,22 @@ export const SavedAdCard = ({
     setIsUploading(true);
 
     try {
-      const imageUrl = await uploadMedia(file);
+      const mediaData = await uploadMedia(file);
       
       const { error } = await supabase
         .from('ad_feedback')
         .update({
-          imageurl: imageUrl,
-          storage_url: imageUrl,
-          image_status: platform === 'facebook' ? 'pending' : 'ready'
+          imageurl: mediaData.url,
+          storage_url: mediaData.url,
+          image_status: platform === 'facebook' ? 'pending' : 'ready',
+          media_type: mediaData.isVideo ? 'video' : 'image',
+          file_type: mediaData.fileType
         })
         .eq('id', id);
 
       if (error) throw error;
 
-      setDisplayUrl(imageUrl);
+      setDisplayUrl(mediaData.url);
       
       if (platform === 'facebook') {
         setCurrentImageStatus('pending');
