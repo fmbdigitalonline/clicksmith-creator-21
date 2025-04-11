@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Pencil, Check, X, Download, Save, CheckSquare, Square, Image, AlertCircle, Loader2, Facebook, Globe, Copy, ChevronUp, ChevronDown, RefreshCw, Wand2, Upload } from "lucide-react";
+import { Pencil, Check, X, Download, Save, CheckSquare, Square, Image, AlertCircle, Loader2, Facebook, Globe, Copy, ChevronUp, ChevronDown, RefreshCw, Wand2, Upload, Video } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { AdSizeSelector, AD_FORMATS } from "@/components/steps/gallery/components/AdSizeSelector";
@@ -14,7 +14,7 @@ import { convertImage } from "@/utils/imageUtils";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { uploadMedia } from "@/utils/uploadUtils";
+import { uploadMedia, updateAdImage } from "@/utils/uploadUtils";
 import { FacebookAdSettings } from "@/types/campaignTypes";
 import { 
   Collapsible,
@@ -31,6 +31,14 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import MediaPreview from "@/components/steps/gallery/components/MediaPreview";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface SavedAdCardProps {
   id: string;
@@ -54,6 +62,7 @@ interface SavedAdCardProps {
   projectUrl?: string;
   onSettingsSaved?: (settings: FacebookAdSettings, adId: string, applyToAll?: boolean) => void;
   onRegenerateImage?: (adId: string, prompt?: string) => void;
+  media_type?: string;
 }
 
 export const SavedAdCard = ({ 
@@ -73,7 +82,8 @@ export const SavedAdCard = ({
   fb_ad_settings,
   projectUrl,
   onSettingsSaved,
-  onRegenerateImage
+  onRegenerateImage,
+  media_type = "image"
 }: SavedAdCardProps) => {
   const [isEditingText, setIsEditingText] = useState(false);
   const [editedHeadline, setEditedHeadline] = useState(headline || "");
@@ -90,8 +100,12 @@ export const SavedAdCard = ({
   const [regeneratePrompt, setRegeneratePrompt] = useState(primaryText || "Professional marketing image for advertisement");
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
+  const [mediaType, setMediaType] = useState(media_type || "image");
+  const [selectedMediaType, setSelectedMediaType] = useState<"image" | "video">(media_type === "video" ? "video" : "image");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  
+  const isVideo = mediaType === "video";
 
   useEffect(() => {
     setDisplayUrl(storage_url || imageUrl);
@@ -311,22 +325,26 @@ export const SavedAdCard = ({
     setIsUploading(true);
 
     try {
-      const imageUrl = await uploadMedia(file);
+      const result = await uploadMedia(file);
+      const mediaUrl = result.url;
+      const isVideoFile = result.isVideo;
       
       const { error } = await supabase
         .from('ad_feedback')
         .update({
-          imageurl: imageUrl,
-          storage_url: imageUrl,
-          image_status: platform === 'facebook' ? 'pending' : 'ready'
+          imageurl: mediaUrl,
+          storage_url: mediaUrl,
+          media_type: isVideoFile ? 'video' : 'image',
+          image_status: isVideoFile ? 'ready' : (platform === 'facebook' ? 'pending' : 'ready')
         })
         .eq('id', id);
 
       if (error) throw error;
 
-      setDisplayUrl(imageUrl);
+      setDisplayUrl(mediaUrl);
+      setMediaType(isVideoFile ? 'video' : 'image');
       
-      if (platform === 'facebook') {
+      if (!isVideoFile && platform === 'facebook') {
         setCurrentImageStatus('pending');
         try {
           await handleProcessImage();
@@ -338,8 +356,8 @@ export const SavedAdCard = ({
       }
 
       toast({
-        title: "Image uploaded successfully",
-        description: "Your new image has been uploaded and is ready to use.",
+        title: `${isVideoFile ? 'Video' : 'Image'} uploaded successfully`,
+        description: `Your new ${isVideoFile ? 'video' : 'image'} has been uploaded and is ready to use.`,
       });
       
       setIsUploadDialogOpen(false);
@@ -348,10 +366,10 @@ export const SavedAdCard = ({
         onFeedbackSubmit();
       }
     } catch (error) {
-      console.error('Error uploading image:', error);
+      console.error('Error uploading media:', error);
       toast({
         title: "Upload failed",
-        description: "Could not upload the image. Please try again.",
+        description: "Could not upload the file. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -390,7 +408,7 @@ export const SavedAdCard = ({
     }
   };
 
-  const renderImageStatus = () => {
+  const renderMediaStatus = () => {
     switch (currentImageStatus) {
       case 'ready':
         return (
@@ -411,7 +429,11 @@ export const SavedAdCard = ({
           </Badge>
         );
       default:
-        return (
+        return isVideo ? (
+          <Badge variant="outline" className="bg-purple-50 text-purple-600 border-purple-200">
+            <Video className="h-3 w-3 mr-1" /> Video
+          </Badge>
+        ) : (
           <Button 
             variant="outline" 
             size="sm" 
@@ -468,7 +490,7 @@ export const SavedAdCard = ({
       <div className="p-4 space-y-4">
         <div className="flex justify-between mb-2 items-center">
           <div className="flex-shrink-0">
-            {renderImageStatus()}
+            {renderMediaStatus()}
           </div>
           <div className="flex items-center gap-2">
             <AdSizeSelector
@@ -572,18 +594,12 @@ export const SavedAdCard = ({
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
           >
-            <img
-              src={displayUrl}
-              alt="Ad creative"
-              className="object-cover w-full h-full"
+            <MediaPreview
+              imageUrl={displayUrl}
+              isVideo={isVideo}
+              format={selectedFormat}
+              status={currentImageStatus as 'pending' | 'processing' | 'ready' | 'failed'}
             />
-            {currentImageStatus === 'processing' && (
-              <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
-                <div className="bg-white p-2 rounded-full">
-                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                </div>
-              </div>
-            )}
             
             {isHovered && (
               <Button 
@@ -591,7 +607,7 @@ export const SavedAdCard = ({
                 size="icon"
                 className="absolute bottom-3 right-3 bg-white/90 hover:bg-white shadow-md"
                 onClick={handleRegenerateImage}
-                title="Replace image"
+                title="Replace media"
                 disabled={isRegenerating || isUploading}
               >
                 {isRegenerating || isUploading ? (
@@ -609,7 +625,7 @@ export const SavedAdCard = ({
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Processing Failed</AlertTitle>
             <AlertDescription>
-              We couldn't process this image for Facebook ads. Try uploading a different image.
+              We couldn't process this {isVideo ? "video" : "image"} for Facebook ads. Try uploading a different one.
             </AlertDescription>
           </Alert>
         )}
@@ -649,16 +665,32 @@ export const SavedAdCard = ({
       <Dialog open={isRegenerateDialogOpen} onOpenChange={setIsRegenerateDialogOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>Update Ad Image</DialogTitle>
+            <DialogTitle>Update Ad Media</DialogTitle>
             <DialogDescription>
-              Choose how you'd like to update this ad image
+              Choose how you'd like to update this ad
             </DialogDescription>
           </DialogHeader>
           
           <div className="py-4 space-y-4">
-            {onRegenerateImage && (
+            <div className="mb-4">
+              <Label className="text-sm font-medium mb-2">Media Type</Label>
+              <Select
+                value={selectedMediaType}
+                onValueChange={(value) => setSelectedMediaType(value as "image" | "video")}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select media type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="image">Image</SelectItem>
+                  <SelectItem value="video">Video</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {onRegenerateImage && selectedMediaType === "image" && (
               <>
-                <h3 className="text-sm font-medium">Option 1: Generate with AI</h3>
+                <h3 className="text-sm font-medium">Option 1: Generate with AI (Images only)</h3>
                 <Textarea
                   placeholder="Describe what you'd like to see in this image..."
                   className="min-h-[120px]"
@@ -669,7 +701,7 @@ export const SavedAdCard = ({
             )}
             
             <div className="mt-4">
-              <h3 className="text-sm font-medium mb-2">Option 2: Upload Your Own Image</h3>
+              <h3 className="text-sm font-medium mb-2">Option {onRegenerateImage ? "2" : "1"}: Upload Your Own {selectedMediaType === "video" ? "Video" : "Image"}</h3>
               <Button 
                 variant="outline" 
                 className="w-full flex items-center justify-center"
@@ -679,7 +711,7 @@ export const SavedAdCard = ({
                 }}
               >
                 <Upload className="mr-2 h-4 w-4" />
-                Select Image File
+                Select {selectedMediaType === "video" ? "Video" : "Image"} File
               </Button>
             </div>
           </div>
@@ -688,7 +720,7 @@ export const SavedAdCard = ({
             <Button variant="outline" onClick={() => setIsRegenerateDialogOpen(false)}>
               Cancel
             </Button>
-            {onRegenerateImage && (
+            {onRegenerateImage && selectedMediaType === "image" && (
               <Button onClick={handleSubmitRegeneration} disabled={isRegenerating}>
                 {isRegenerating ? (
                   <>
@@ -710,29 +742,38 @@ export const SavedAdCard = ({
       <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>Upload Custom Image</DialogTitle>
+            <DialogTitle>Upload {selectedMediaType === "video" ? "Video" : "Image"}</DialogTitle>
             <DialogDescription>
-              Select an image file from your computer to use for this ad
+              Select a {selectedMediaType === "video" ? "video" : "image"} file from your computer to use for this ad
             </DialogDescription>
           </DialogHeader>
           
           <div className="py-4">
             <div className="grid w-full max-w-sm items-center gap-1.5">
-              <Label htmlFor="image-upload">Image</Label>
+              <Label htmlFor="media-upload">{selectedMediaType === "video" ? "Video" : "Image"}</Label>
               <Input
                 ref={fileInputRef}
-                id="image-upload"
+                id="media-upload"
                 type="file"
-                accept="image/*"
+                accept={selectedMediaType === "video" ? "video/*" : "image/*"}
                 onChange={handleFileUpload}
                 disabled={isUploading}
               />
             </div>
             
             <div className="mt-4 text-sm text-muted-foreground">
-              <p>Recommended image dimensions: {selectedFormat.width}x{selectedFormat.height}px</p>
-              <p>Supported formats: JPG, PNG, WebP</p>
-              <p>Maximum file size: 5MB</p>
+              <p>Recommended {selectedMediaType === "video" ? "video" : "image"} dimensions: {selectedFormat.width}x{selectedFormat.height}px</p>
+              {selectedMediaType === "video" ? (
+                <>
+                  <p>Supported formats: MP4, WebM, MOV</p>
+                  <p>Maximum file size: 10MB</p>
+                </>
+              ) : (
+                <>
+                  <p>Supported formats: JPG, PNG, WebP</p>
+                  <p>Maximum file size: 10MB</p>
+                </>
+              )}
             </div>
           </div>
           

@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,6 +24,7 @@ interface SavedAd {
     label: string;
   };
   project_id?: string;
+  media_type?: 'image' | 'video';
 }
 
 interface AdFeedbackRow {
@@ -40,6 +40,7 @@ interface AdFeedbackRow {
   platform?: string;
   size?: Json;
   project_id?: string;
+  media_type?: string;
 }
 
 interface SavedAdsGalleryProps {
@@ -65,7 +66,7 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps = {}) =>
 
       let query = supabase
         .from('ad_feedback')
-        .select('id, headline, primary_text, rating, feedback, created_at, imageurl, storage_url, image_status, platform, size, project_id')
+        .select('id, headline, primary_text, rating, feedback, created_at, imageurl, storage_url, image_status, platform, size, project_id, media_type')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
         
@@ -103,7 +104,8 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps = {}) =>
       const convertedAds: SavedAd[] = uniqueAds.map(ad => ({
         ...ad,
         size: ad.size as { width: number; height: number; label: string },
-        image_status: ad.image_status as 'pending' | 'processing' | 'ready' | 'failed'
+        image_status: ad.image_status as 'pending' | 'processing' | 'ready' | 'failed',
+        media_type: (ad.media_type || 'image') as 'image' | 'video'
       }));
 
       setSavedAds(convertedAds);
@@ -195,6 +197,7 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps = {}) =>
           projectId={ad.project_id}
           onFeedbackSubmit={fetchSavedAds}
           onRegenerateImage={handleRegenerateImage}
+          media_type={ad.media_type}
         />
       ))}
     </div>

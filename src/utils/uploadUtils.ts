@@ -3,17 +3,22 @@ import { supabase } from "@/integrations/supabase/client";
 
 export async function uploadMedia(file: File, path: string = 'ad-images') {
   try {
-    // Validate file size (5MB max)
-    const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+    // Validate file size (10MB max)
+    const maxSize = 10 * 1024 * 1024; // 10MB in bytes
     if (file.size > maxSize) {
-      throw new Error(`File size exceeds the 5MB limit`);
+      throw new Error(`File size exceeds the 10MB limit`);
     }
     
     // Validate file type
-    const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    const validImageTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    const validVideoTypes = ['video/mp4', 'video/webm', 'video/quicktime'];
+    const validTypes = [...validImageTypes, ...validVideoTypes];
+    
     if (!validTypes.includes(file.type)) {
-      throw new Error('Invalid file type. Please upload JPG, PNG, or WebP images');
+      throw new Error('Invalid file type. Please upload JPG, PNG, WebP images or MP4, WebM, MOV videos');
     }
+    
+    const isVideo = validVideoTypes.includes(file.type);
     
     // Generate a unique filename
     const fileExt = file.name.split('.').pop();
@@ -39,22 +44,26 @@ export async function uploadMedia(file: File, path: string = 'ad-images') {
     
     console.log('File uploaded successfully:', urlData.publicUrl);
     
-    return urlData.publicUrl;
+    return {
+      url: urlData.publicUrl,
+      isVideo: isVideo
+    };
   } catch (error) {
     console.error('Error uploading media:', error);
     throw error;
   }
 }
 
-// Helper function to update image in ad_feedback table
-export async function updateAdImage(adId: string, imageUrl: string, imageStatus: string = 'pending') {
+// Helper function to update image or video in ad_feedback table
+export async function updateAdImage(adId: string, mediaUrl: string, isVideo: boolean = false, mediaStatus: string = 'pending') {
   try {
     const { error } = await supabase
       .from('ad_feedback')
       .update({
-        imageurl: imageUrl,
-        storage_url: imageUrl,  // Update both fields to ensure consistency
-        image_status: imageStatus
+        imageurl: mediaUrl,
+        storage_url: mediaUrl,
+        image_status: mediaStatus,
+        media_type: isVideo ? 'video' : 'image'
       })
       .eq('id', adId);
     
