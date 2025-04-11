@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -33,6 +34,7 @@ export default function AdSelectionGallery({
   const [searchTerm, setSearchTerm] = useState("");
   const [ratingFilter, setRatingFilter] = useState<string>("all");
   const [formatFilter, setFormatFilter] = useState<string>("all");
+  const [mediaTypeFilter, setMediaTypeFilter] = useState<string>("all");
   const [projectUrl, setProjectUrl] = useState<string>("");
   const { toast } = useToast();
   const { t } = useTranslation(["gallery", "common", "integrations"]);
@@ -80,9 +82,10 @@ export default function AdSelectionGallery({
 
       console.log('Fetching saved ads for user:', user.id, projectId ? `with project filter: ${projectId}` : 'without project filter');
 
+      // Important update: Include all necessary fields including storage_url and media_type
       let query = supabase
         .from('ad_feedback')
-        .select('id, saved_images, headline, primary_text, rating, feedback, created_at, imageurl, imageUrl, platform, project_id, size, fb_ad_settings, storage_url')
+        .select('id, saved_images, headline, primary_text, rating, feedback, created_at, imageurl, imageUrl, platform, project_id, size, fb_ad_settings, storage_url, media_type, image_status')
         .eq('user_id', user.id);
       
       // IMPORTANT: Always filter by project_id if it's provided
@@ -142,12 +145,22 @@ export default function AdSelectionGallery({
             browser_addon: typeof fbSettings.browser_addon === 'string' ? fbSettings.browser_addon : "",
           };
         }
+
+        // Get the image URL from any available source - important to show uploaded content correctly
+        const imageUrl = ad.imageUrl || ad.imageurl || ad.storage_url || (ad.saved_images && ad.saved_images[0]);
         
         return {
           ...ad,
           saved_images: savedImages,
           size: sizeObj,
-          fb_ad_settings: fbAdSettings
+          fb_ad_settings: fbAdSettings,
+          // Ensure we have the correct image URL, focusing on storage_url for uploads
+          imageUrl: imageUrl,
+          imageurl: imageUrl,
+          storage_url: ad.storage_url || imageUrl,
+          // Ensure we have the correct media type
+          media_type: (ad.media_type || 'image') as 'image' | 'video',
+          image_status: ad.image_status as 'pending' | 'processing' | 'ready' | 'failed'
         };
       });
 
@@ -160,6 +173,11 @@ export default function AdSelectionGallery({
         // Skip if no image or already seen
         if (!imageUrl || uniqueImageUrls.has(imageUrl)) {
           return false;
+        }
+        
+        // Debug log for missing storage URLs
+        if (!ad.storage_url && imageUrl) {
+          console.log('Ad without storage_url but with image:', ad.id);
         }
         
         uniqueImageUrls.add(imageUrl);
@@ -288,8 +306,12 @@ export default function AdSelectionGallery({
       // Apply format/size filter
       const matchesFormat = formatFilter === "all" || 
         (ad.size && formatLabelToString(ad.size) === formatFilter);
+        
+      // Apply media type filter
+      const matchesMediaType = mediaTypeFilter === "all" || 
+        (ad.media_type === mediaTypeFilter);
       
-      return matchesSearch && matchesRating && matchesFormat;
+      return matchesSearch && matchesRating && matchesFormat && matchesMediaType;
     });
   };
 
@@ -320,12 +342,21 @@ export default function AdSelectionGallery({
 
   const filteredAds = getFilteredAds();
   const uniqueFormats = getUniqueFormats();
+  
+  // Debug what's being rendered
+  console.log('Rendering AdSelectionGallery with:', {
+    totalAds: savedAds.length,
+    filteredAds: filteredAds.length,
+    selectedAds: selectedAds.length,
+    uniqueFormats: uniqueFormats.length,
+    mediaTypesPresent: [...new Set(savedAds.map(ad => ad.media_type))]
+  });
 
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-8">
         <Loader2 className="w-8 h-8 animate-spin text-primary mb-4" />
-        <p className="text-muted-foreground">{t("loading.saved_ads", { ns: "dashboard" })}</p>
+        <p className="text-sm md:text-base">{t("loading.saved_ads", { ns: "dashboard" })}</p>
       </div>
     );
   }
@@ -432,6 +463,26 @@ export default function AdSelectionGallery({
               </SelectContent>
             </Select>
           </div>
+          
+          {/* Media Type Filter */}
+          <div className="flex items-center gap-2">
+            <Label htmlFor="media-type-filter" className="whitespace-nowrap text-sm">
+              {t("media_type", "Media Type:", { ns: "integrations" })}
+            </Label>
+            <Select
+              value={mediaTypeFilter}
+              onValueChange={setMediaTypeFilter}
+            >
+              <SelectTrigger id="media-type-filter" className="w-32 h-9">
+                <SelectValue placeholder={t("any_media", "Any media", { ns: "integrations" })} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t("all_media", "All Media", { ns: "integrations" })}</SelectItem>
+                <SelectItem value="image">{t("media.image", "Image", { ns: "integrations" })}</SelectItem>
+                <SelectItem value="video">{t("media.video", "Video", { ns: "integrations" })}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
       
@@ -454,24 +505,47 @@ export default function AdSelectionGallery({
               const ad = savedAds.find(a => a.id === adId);
               if (!ad) return null;
               
+              // Get the best available image URL
+              const displayUrl = ad.imageUrl || ad.imageurl || (ad.saved_images && ad.saved_images[0]) || ad.storage_url;
+              
               return (
                 <div 
                   key={ad.id} 
                   className="relative border rounded-md p-2 bg-white shadow-sm cursor-pointer"
                   onClick={() => handleAdSelect(ad.id, false)}
                 >
-                  {/* Image */}
+                  {/* Image or Video Preview */}
                   <div 
                     style={{ 
                       aspectRatio: ad.size ? `${ad.size.width} / ${ad.size.height}` : "1.91 / 1",
                     }} 
                     className="overflow-hidden rounded mb-1"
                   >
-                    <img
-                      src={ad.imageUrl || ad.imageurl || (ad.saved_images && ad.saved_images[0])}
-                      alt={ad.headline || t("ad_creative_alt")}
-                      className="object-cover w-full h-full"
-                    />
+                    {ad.media_type === 'video' ? (
+                      <div className="w-full h-full relative bg-gray-100 flex items-center justify-center">
+                        <video 
+                          src={displayUrl}
+                          className="w-full h-full object-cover"
+                          poster={`${displayUrl}?poster=true`}
+                          muted
+                        />
+                      </div>
+                    ) : (
+                      <img
+                        src={displayUrl}
+                        alt={ad.headline || t("ad_creative_alt")}
+                        className="object-cover w-full h-full"
+                      />
+                    )}
+                  </div>
+                  
+                  {/* Media Type Badge */}
+                  <div className="absolute top-1 left-1 bg-black/70 text-white text-xs rounded px-1 py-0.5 flex items-center">
+                    {ad.media_type === 'video' ? (
+                      <>Video</>
+                    ) : (
+                      <>Image</>
+                    )}
                   </div>
                   
                   {/* Size Badge */}
@@ -493,27 +567,33 @@ export default function AdSelectionGallery({
       
       {/* Ads Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredAds.map((ad) => (
-          <SavedAdCard 
-            key={ad.id}
-            id={ad.id}
-            primaryText={ad.primary_text}
-            headline={ad.headline}
-            imageUrl={ad.imageUrl || ad.imageurl || (ad.saved_images && ad.saved_images[0])}
-            storage_url={ad.storage_url}
-            image_status={ad.image_status}
-            onFeedbackSubmit={fetchSavedAds}
-            platform={ad.platform}
-            size={ad.size}
-            projectId={ad.project_id}
-            selected={selectedAdIds.includes(ad.id)}
-            onSelect={handleAdSelect}
-            selectable={true}
-            fb_ad_settings={ad.fb_ad_settings}
-            projectUrl={projectUrl}
-            onSettingsSaved={handleAdSettingsSaved}
-          />
-        ))}
+        {filteredAds.map((ad) => {
+          // Get the best available image URL
+          const displayUrl = ad.imageUrl || ad.imageurl || (ad.saved_images && ad.saved_images[0]) || ad.storage_url;
+          
+          return (
+            <SavedAdCard 
+              key={ad.id}
+              id={ad.id}
+              primaryText={ad.primary_text}
+              headline={ad.headline}
+              imageUrl={displayUrl}
+              storage_url={ad.storage_url}
+              image_status={ad.image_status}
+              onFeedbackSubmit={fetchSavedAds}
+              platform={ad.platform}
+              size={ad.size}
+              projectId={ad.project_id}
+              selected={selectedAdIds.includes(ad.id)}
+              onSelect={handleAdSelect}
+              selectable={true}
+              fb_ad_settings={ad.fb_ad_settings}
+              projectUrl={projectUrl}
+              onSettingsSaved={handleAdSettingsSaved}
+              media_type={ad.media_type}
+            />
+          );
+        })}
       </div>
     </div>
   );

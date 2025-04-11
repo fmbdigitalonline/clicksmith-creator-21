@@ -39,6 +39,7 @@ const MediaPreview = ({ imageUrl, isVideo, format, status }: MediaPreviewProps) 
         >
           Your browser does not support the video tag.
         </video>
+        
         {status === 'processing' && (
           <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
             <div className="bg-white p-1 md:p-2 rounded-full">
