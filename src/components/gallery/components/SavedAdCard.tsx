@@ -311,21 +311,20 @@ export const SavedAdCard = ({
     setIsUploading(true);
 
     try {
-      const mediaData = await uploadMedia(file);
+      const imageUrl = await uploadMedia(file);
       
       const { error } = await supabase
         .from('ad_feedback')
         .update({
-          imageurl: mediaData.url,
-          storage_url: mediaData.url,
-          image_status: platform === 'facebook' ? 'pending' : 'ready',
-          media_type: mediaData.isVideo ? 'video' : 'image'
+          imageurl: imageUrl,
+          storage_url: imageUrl,
+          image_status: platform === 'facebook' ? 'pending' : 'ready'
         })
         .eq('id', id);
 
       if (error) throw error;
 
-      setDisplayUrl(mediaData.url);
+      setDisplayUrl(imageUrl);
       
       if (platform === 'facebook') {
         setCurrentImageStatus('pending');

@@ -1,190 +1,257 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0';
+import { corsHeaders } from "../_shared/cors.ts";
 
-// CORS headers for browser support
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+// Global constants for configuration
+const MAX_CONCURRENT_PROCESSING = 3; // Process up to 3 images in parallel
+const PROCESSING_TIMEOUT = 30000; // 30 seconds timeout for image processing
+const USER_AGENT = 'Mozilla/5.0 (compatible; BoltAdImageProcessor/1.0)';
 
-// Main function to handle requests
+interface ProcessImageResult {
+  adId: string;
+  success: boolean;
+  storage_url?: string;
+  error?: string;
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
   }
 
   try {
-    // Parse request body
-    const { adId, adIds } = await req.json();
-    const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+    const body = await req.json();
+    const singleAdId = body.adId;
+    const adIds = body.adIds || (singleAdId ? [singleAdId] : null);
+    
+    if (!adIds || adIds.length === 0) {
+      throw new Error('At least one ad ID is required');
+    }
+
+    console.log(`[migrate-images] Starting batch image processing for ${adIds.length} ads`);
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error('Missing Supabase configuration');
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Update all ads to processing status immediately
+    await updateStatusToBatch(supabase, adIds, 'processing');
+    
+    // Process images in parallel with controlled concurrency
+    const results = await processImagesWithConcurrency(supabase, adIds);
+    
+    console.log(`[migrate-images] Batch processing completed: ${results.filter(r => r.success).length}/${results.length} successful`);
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        message: `Processed ${results.length} images`,
+        processed: results
+      }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200
+      }
     );
 
-    // If batch processing requested
-    if (adIds && Array.isArray(adIds) && adIds.length > 0) {
-      const results = await Promise.all(
-        adIds.map(id => processAdMedia(id, supabaseAdmin))
-      );
-
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          processed: results.filter(r => r !== null)
-        }),
-        { 
-          headers: { 
-            ...corsHeaders,
-            "Content-Type": "application/json"
-          }
-        }
-      );
-    } 
-    // Single ad processing
-    else if (adId) {
-      const result = await processAdMedia(adId, supabaseAdmin);
-      
-      if (result) {
-        return new Response(
-          JSON.stringify({ 
-            success: true, 
-            processed: result
-          }),
-          { 
-            headers: { 
-              ...corsHeaders,
-              "Content-Type": "application/json"
-            }
-          }
-        );
-      } else {
-        throw new Error("Failed to process media");
-      }
-    } else {
-      throw new Error("No adId or adIds provided");
-    }
   } catch (error) {
-    console.error("Error in migrate-images function:", error);
+    console.error('[migrate-images] Error in migrate-images function:', error);
     
     return new Response(
-      JSON.stringify({ 
-        success: false, 
-        error: error.message 
+      JSON.stringify({
+        error: error.message,
+        details: 'Check function logs for more information'
       }),
-      { 
-        headers: { 
-          ...corsHeaders,
-          "Content-Type": "application/json"
-        },
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500
       }
     );
   }
 });
 
-// Process a single ad media
-async function processAdMedia(adId: string, supabase: any) {
-  try {
-    // Get ad data including media type
-    const { data: ad, error: getError } = await supabase
-      .from('ad_feedback')
-      .select('imageurl, original_url, media_type')
-      .eq('id', adId)
-      .single();
-    
-    if (getError) throw getError;
-    if (!ad || !ad.imageurl) return null;
-    
-    const isVideo = ad.media_type === 'video';
-    const sourceUrl = ad.original_url || ad.imageurl;
-    
-    // Process based on media type
-    if (isVideo) {
-      // For videos, we just update the status to processing
-      const { error: updateError } = await supabase
-        .from('ad_feedback')
-        .update({ 
-          image_status: 'ready',
-          storage_url: sourceUrl
-        })
-        .eq('id', adId);
-      
-      if (updateError) throw updateError;
-      
-      return {
-        adId,
-        success: true,
-        storage_url: sourceUrl
-      };
-    } else {
-      // For images, process through Facebook's requirements
-      const response = await fetch(sourceUrl);
-      if (!response.ok) throw new Error(`Failed to fetch image: ${response.status}`);
-      
-      const imageBuffer = await response.arrayBuffer();
-      const contentType = response.headers.get('content-type') || 'image/jpeg';
-      
-      // Generate a unique filename for the processed image
-      const timestamp = Date.now();
-      const randomString = Math.random().toString(36).substring(2, 10);
-      const fileExtension = contentType.split('/')[1] || 'jpg';
-      const fileName = `processed-${timestamp}-${randomString}.${fileExtension}`;
-      
-      // Upload the image to Supabase storage
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('ad-images-processed')
-        .upload(fileName, imageBuffer, {
-          contentType,
-          cacheControl: '3600',
-          upsert: false
-        });
-      
-      if (uploadError) throw uploadError;
-      
-      // Get the public URL of the processed image
-      const { data: urlData } = supabase.storage
-        .from('ad-images-processed')
-        .getPublicUrl(fileName);
-      
-      if (!urlData || !urlData.publicUrl) {
-        throw new Error('Failed to get public URL for processed image');
+// Process images with controlled concurrency
+async function processImagesWithConcurrency(supabase, adIds) {
+  const results: ProcessImageResult[] = [];
+  const queue = [...adIds];
+  const inProgress = new Set();
+  
+  return new Promise(async (resolve) => {
+    async function processNext() {
+      if (queue.length === 0 && inProgress.size === 0) {
+        resolve(results);
+        return;
       }
       
-      // Update the ad record with the processed image URL
-      const { error: updateError } = await supabase
-        .from('ad_feedback')
-        .update({
-          storage_url: urlData.publicUrl,
-          image_status: 'ready'
-        })
-        .eq('id', adId);
-      
-      if (updateError) throw updateError;
-      
-      return {
-        adId,
-        success: true,
-        storage_url: urlData.publicUrl
-      };
+      while (queue.length > 0 && inProgress.size < MAX_CONCURRENT_PROCESSING) {
+        const adId = queue.shift()!;
+        inProgress.add(adId);
+        
+        processImage(supabase, adId)
+          .then(result => {
+            results.push(result);
+            inProgress.delete(adId);
+            processNext();
+          })
+          .catch(error => {
+            console.error(`[migrate-images] Error processing ad ${adId}:`, error);
+            results.push({ adId, success: false, error: error.message });
+            inProgress.delete(adId);
+            processNext();
+          });
+      }
     }
+    
+    processNext();
+  });
+}
+
+// Process a single image with timeout
+async function processImage(supabase, adId): Promise<ProcessImageResult> {
+  const timeoutPromise = new Promise<ProcessImageResult>((_, reject) => {
+    setTimeout(() => reject(new Error(`Processing timed out after ${PROCESSING_TIMEOUT}ms`)), PROCESSING_TIMEOUT);
+  });
+  
+  const processingPromise = processImageInternal(supabase, adId);
+  
+  return Promise.race([processingPromise, timeoutPromise]);
+}
+
+// Internal function to process a single image
+async function processImageInternal(supabase, adId): Promise<ProcessImageResult> {
+  console.log(`[migrate-images] Processing image for ad: ${adId}`);
+  
+  try {
+    const { data: adData, error: fetchError } = await supabase
+      .from('ad_feedback')
+      .select('original_url, imageUrl, imageurl')
+      .eq('id', adId)
+      .single();
+
+    if (fetchError || !adData) {
+      throw new Error(`Could not fetch ad data: ${fetchError?.message || 'No data returned'}`);
+    }
+    
+    const originalUrl = adData.original_url || adData.imageUrl || adData.imageurl;
+    
+    if (!originalUrl) {
+      throw new Error('No image URL found in ad data');
+    }
+
+    console.log(`[migrate-images] Found original URL for ad ${adId}: ${originalUrl.substring(0, 50)}...`);
+
+    // Download the original image with improved headers
+    const imageResponse = await fetch(originalUrl, {
+      headers: {
+        'Accept': 'image/*',
+        'User-Agent': USER_AGENT
+      }
+    });
+    
+    if (!imageResponse.ok) {
+      throw new Error(`Failed to download image: ${imageResponse.status}`);
+    }
+
+    const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
+    const imageBlob = await imageResponse.blob();
+    const imageBuffer = await imageBlob.arrayBuffer();
+    
+    console.log(`[migrate-images] Downloaded image for ad ${adId}: ${(imageBlob.size / 1024).toFixed(2)} KB, type: ${contentType}`);
+
+    // Generate a unique filename with optimized structure
+    const fileName = `processed/${adId}/${Date.now()}.webp`;
+
+    // Upload to Supabase Storage
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('ad-images')
+      .upload(fileName, imageBuffer, {
+        contentType: 'image/webp',
+        cacheControl: '3600'
+      });
+
+    if (uploadError) {
+      throw new Error(`Upload error: ${uploadError.message}`);
+    }
+
+    // Get the public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from('ad-images')
+      .getPublicUrl(fileName);
+
+    console.log(`[migrate-images] Uploaded image for ad ${adId}, URL: ${publicUrl.substring(0, 50)}...`);
+
+    // Update the ad with the new storage URL and status
+    const { error: updateError } = await supabase
+      .from('ad_feedback')
+      .update({
+        storage_url: publicUrl,
+        image_status: 'ready'
+      })
+      .eq('id', adId);
+
+    if (updateError) {
+      throw new Error(`Error updating status: ${updateError.message}`);
+    }
+
+    console.log(`[migrate-images] Successfully processed image for ad ${adId}`);
+    return { adId, success: true, storage_url: publicUrl };
+
   } catch (error) {
-    console.error(`Error processing ad ${adId}:`, error);
+    console.error(`[migrate-images] Error processing image for ad ${adId}:`, error);
     
-    // Update status to failed
-    try {
-      await supabase
-        .from('ad_feedback')
-        .update({ image_status: 'failed' })
-        .eq('id', adId);
-    } catch (updateError) {
-      console.error('Error updating status to failed:', updateError);
-    }
+    // Update the ad status to failed
+    await updateStatusToFailed(supabase, adId, error.message);
     
-    return {
-      adId,
-      success: false,
-      error: error.message
+    return { 
+      adId, 
+      success: false, 
+      error: error.message 
     };
+  }
+}
+
+// Helper function to update status to failed
+async function updateStatusToFailed(supabase, adId, errorMessage) {
+  console.log(`[migrate-images] Updating status to failed for ad ${adId}: ${errorMessage}`);
+  try {
+    await supabase
+      .from('ad_feedback')
+      .update({
+        image_status: 'failed',
+        error_message: errorMessage
+      })
+      .eq('id', adId);
+  } catch (updateError) {
+    console.error('[migrate-images] Error updating status to failed:', updateError);
+  }
+}
+
+// Update multiple ads to a specific status
+async function updateStatusToBatch(supabase, adIds, status) {
+  console.log(`[migrate-images] Batch updating ${adIds.length} ads to status: ${status}`);
+  
+  // Process in batches of 100 to avoid request size limits
+  const batchSize = 100;
+  for (let i = 0; i < adIds.length; i += batchSize) {
+    const batch = adIds.slice(i, i + batchSize);
+    try {
+      const { error } = await supabase
+        .from('ad_feedback')
+        .update({ image_status: status })
+        .in('id', batch);
+      
+      if (error) {
+        console.error(`[migrate-images] Error updating batch status: ${error.message}`);
+      }
+    } catch (error) {
+      console.error(`[migrate-images] Error in batch update: ${error.message}`);
+    }
   }
 }
