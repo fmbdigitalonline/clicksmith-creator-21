@@ -14,11 +14,13 @@
   "remove_from_project": "Verwijderen uit Project",
   "confirm_add": {
     "title": "Advertenties aan Project Toewijzen",
-    "description": "Weet je zeker dat je {count} advertentie(s) aan het geselecteerde project wilt toevoegen?"
+    "description": "Weet je zeker dat je {count} advertentie(s) aan het geselecteerde project wilt toevoegen?",
+    "success": "{count} advertentie(s) succesvol toegewezen aan project"
   },
   "confirm_remove": {
     "title": "Advertenties uit Project Verwijderen",
-    "description": "Weet je zeker dat je deze {count} advertentie(s) uit hun projecten wilt verwijderen?"
+    "description": "Weet je zeker dat je deze {count} advertentie(s) uit hun projecten wilt verwijderen?",
+    "success": "{count} advertentie(s) succesvol verwijderd uit project"
   },
   "view": {
     "grid": "Raster",
@@ -58,7 +60,39 @@
     "download": "Downloaden",
     "edit": "Bewerken",
     "assign": "Toewijzen",
-    "settings": "Instellingen"
+    "settings": "Instellingen",
+    "delete": "Verwijderen",
+    "duplicate": "Dupliceren",
+    "batch": "Batch Acties",
+    "share": "Delen",
+    "export": "Exporteren",
+    "process": "Afbeelding Verwerken",
+    "convert_to_video": "Video Maken"
+  },
+  "tabs": {
+    "all": "Alle",
+    "images": "Afbeeldingen",
+    "videos": "Video's", 
+    "projects": "Projecten"
+  },
+  "batch_actions": {
+    "title": "Batch Acties",
+    "description": "Kies een actie om uit te voeren op {count} geselecteerde advertentie(s).",
+    "duplicate": "Dupliceren",
+    "delete": "Verwijderen",
+    "export": "Exporteren",
+    "cancel": "Annuleren"
+  },
+  "media": {
+    "image": "Afbeelding",
+    "video": "Video", 
+    "type": "Mediatype",
+    "status": {
+      "pending": "Wachtend",
+      "processing": "Verwerken",
+      "ready": "Gereed",
+      "failed": "Mislukt"
+    }
   },
   "table": {
     "ad_preview": "Advertentie Voorbeeld",
@@ -86,5 +120,25 @@
     "next": "Volgende",
     "page": "Pagina {page}",
     "of": "van {total}"
+  },
+  "success": "Succes",
+  "deleted_ads": "Met succes {count} advertentie(s) verwijderd",
+  "duplicated_ads": "Met succes {count} advertentie(s) gedupliceerd",
+  "errors": {
+    "delete_failed": "Verwijderen van advertentie(s) mislukt",
+    "duplicate_failed": "Dupliceren van advertentie(s) mislukt"
+  },
+  "quick_actions": {
+    "edit": "Bewerken",
+    "duplicate": "Dupliceren",
+    "download": "Downloaden",
+    "copy_link": "Link Kopiëren",
+    "share": "Delen",
+    "create_video": "Video Maken",
+    "delete": "Verwijderen",
+    "delete_confirm": {
+      "title": "Weet je het zeker?",
+      "description": "Deze actie kan niet ongedaan worden gemaakt. Dit verwijdert de advertentie permanent."
+    }
   }
 }

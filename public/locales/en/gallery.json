@@ -14,11 +14,13 @@
   "remove_from_project": "Remove from Project",
   "confirm_add": {
     "title": "Assign Ads to Project",
-    "description": "Are you sure you want to add {count} ad(s) to the selected project?"
+    "description": "Are you sure you want to add {count} ad(s) to the selected project?",
+    "success": "{count} ad(s) assigned to project successfully"
   },
   "confirm_remove": {
     "title": "Remove Ads from Project",
-    "description": "Are you sure you want to remove these {count} ad(s) from their projects?"
+    "description": "Are you sure you want to remove these {count} ad(s) from their projects?",
+    "success": "{count} ad(s) removed from project successfully"
   },
   "view": {
     "grid": "Grid",
@@ -53,7 +55,90 @@
     "description": "Try adjusting your search or filter criteria",
     "clear_filters": "Clear all filters"
   },
+  "actions": {
+    "view": "View",
+    "download": "Download",
+    "edit": "Edit",
+    "assign": "Assign",
+    "settings": "Settings",
+    "delete": "Delete",
+    "duplicate": "Duplicate",
+    "batch": "Batch Actions",
+    "share": "Share",
+    "export": "Export",
+    "process": "Process Image",
+    "convert_to_video": "Create Video"
+  },
+  "tabs": {
+    "all": "All",
+    "images": "Images",
+    "videos": "Videos", 
+    "projects": "Projects"
+  },
+  "batch_actions": {
+    "title": "Batch Actions",
+    "description": "Choose an action to perform on {count} selected ad(s).",
+    "duplicate": "Duplicate",
+    "delete": "Delete",
+    "export": "Export",
+    "cancel": "Cancel"
+  },
+  "media": {
+    "image": "Image",
+    "video": "Video", 
+    "type": "Media Type",
+    "status": {
+      "pending": "Pending",
+      "processing": "Processing",
+      "ready": "Ready",
+      "failed": "Failed"
+    }
+  },
+  "table": {
+    "ad_preview": "Ad Preview",
+    "headline": "Headline",
+    "text": "Text",
+    "platform_size": "Platform/Size",
+    "rating": "Rating",
+    "created": "Created",
+    "actions": "Actions",
+    "no_headline": "No headline",
+    "no_text": "No text"
+  },
+  "project_selector": {
+    "loading": "Projects loading...",
+    "select_required": "Select a project (required)",
+    "select_project": "Select project...",
+    "no_projects": "No projects available",
+    "create_first": "Create a project first"
+  },
   "recently_saved_ads": "Recently Saved Ads",
   "untitled_ad": "Untitled Ad",
-  "error": "Error"
+  "error": "Error",
+  "pagination": {
+    "previous": "Previous",
+    "next": "Next",
+    "page": "Page {page}",
+    "of": "of {total}"
+  },
+  "success": "Success",
+  "deleted_ads": "Successfully deleted {count} ad(s)",
+  "duplicated_ads": "Successfully duplicated {count} ad(s)",
+  "errors": {
+    "delete_failed": "Failed to delete ad(s)",
+    "duplicate_failed": "Failed to duplicate ad(s)"
+  },
+  "quick_actions": {
+    "edit": "Edit",
+    "duplicate": "Duplicate",
+    "download": "Download",
+    "copy_link": "Copy Link",
+    "share": "Share",
+    "create_video": "Create Video",
+    "delete": "Delete",
+    "delete_confirm": {
+      "title": "Are you sure?",
+      "description": "This action cannot be undone. This will permanently delete the ad."
+    }
+  }
 }

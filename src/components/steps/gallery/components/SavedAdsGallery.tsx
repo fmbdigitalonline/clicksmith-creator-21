@@ -88,7 +88,7 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps = {}) =>
 
       const uniqueImageUrls = new Set();
       const uniqueAds = responseData.filter(ad => {
-        if (!ad.imageurl) {
+        if (!ad.imageurl && !ad.storage_url) {
           if (uniqueImageUrls.has(ad.id)) {
             return false;
           }
@@ -96,21 +96,32 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps = {}) =>
           return true;
         }
         
-        if (uniqueImageUrls.has(ad.imageurl)) {
+        const imageKey = ad.storage_url || ad.imageurl;
+        if (uniqueImageUrls.has(imageKey)) {
           return false;
         }
-        uniqueImageUrls.add(ad.imageurl);
+        
+        uniqueImageUrls.add(imageKey);
         return true;
       });
 
       console.log('Unique ads count:', uniqueAds.length);
 
-      const convertedAds: SavedAd[] = uniqueAds.map(ad => ({
-        ...ad,
-        size: ad.size as { width: number; height: number; label: string },
-        image_status: ad.image_status as 'pending' | 'processing' | 'ready' | 'failed',
-        media_type: (ad.media_type || 'image') as 'image' | 'video'
-      }));
+      const convertedAds: SavedAd[] = uniqueAds.map(ad => {
+        // Handle size field
+        let sizeObj = ad.size as { width: number; height: number; label: string };
+        if (!sizeObj || typeof sizeObj !== 'object') {
+          // Provide default size if missing
+          sizeObj = { width: 1080, height: 1080, label: "Square" };
+        }
+        
+        return {
+          ...ad,
+          size: sizeObj,
+          image_status: ad.image_status as 'pending' | 'processing' | 'ready' | 'failed',
+          media_type: (ad.media_type || 'image') as 'image' | 'video'
+        };
+      });
 
       setSavedAds(convertedAds);
     } catch (error) {
@@ -150,7 +161,7 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps = {}) =>
         return;
       }
       
-      if (prompt) {
+      if (prompt || adData.primary_text) {
         const regenerationPrompt = prompt || adData.primary_text || "Professional marketing image for advertisement";
         
         const { data, error } = await supabase.functions.invoke('generate-images', {
@@ -212,6 +223,7 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps = {}) =>
           onFeedbackSubmit={fetchSavedAds}
           onRegenerateImage={handleRegenerateImage}
           media_type={ad.media_type}
+          selectable={false}
         />
       ))}
     </div>
