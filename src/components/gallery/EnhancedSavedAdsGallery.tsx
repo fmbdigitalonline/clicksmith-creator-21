@@ -46,7 +46,6 @@ interface EnhancedSavedAdsGalleryProps {
 }
 
 export const EnhancedSavedAdsGallery = ({ projectFilter }: EnhancedSavedAdsGalleryProps) => {
-  // State management
   const [savedAds, setSavedAds] = useState<SavedAd[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedAdIds, setSelectedAdIds] = useState<string[]>([]);
@@ -69,7 +68,6 @@ export const EnhancedSavedAdsGallery = ({ projectFilter }: EnhancedSavedAdsGalle
   const { toast } = useToast();
   const { t } = useTranslation(["gallery", "common", "dashboard"]);
 
-  // Fetch ads from Supabase
   const fetchSavedAds = async () => {
     try {
       setIsLoading(true);
@@ -90,7 +88,6 @@ export const EnhancedSavedAdsGallery = ({ projectFilter }: EnhancedSavedAdsGalle
         query = query.eq('project_id', projectFilter);
       }
       
-      // Apply tab filters
       if (activeTab === "images") {
         query = query.eq('media_type', 'image');
       } else if (activeTab === "videos") {
@@ -105,11 +102,9 @@ export const EnhancedSavedAdsGallery = ({ projectFilter }: EnhancedSavedAdsGalle
         throw error;
       }
 
-      // Map data to SavedAd type with proper conversions
       const formatAdData = (ad: AdFeedbackRow): SavedAd => {
         let savedImages: string[] = [];
         
-        // Process the saved_images field
         if (ad.saved_images) {
           if (Array.isArray(ad.saved_images)) {
             savedImages = ad.saved_images.map(img => 
@@ -120,26 +115,21 @@ export const EnhancedSavedAdsGallery = ({ projectFilter }: EnhancedSavedAdsGalle
           }
         }
         
-        // Handle the size field with proper type checking
         let sizeObj: AdSize = { width: 1200, height: 628, label: "Default" };
         if (ad.size) {
-          // Check if size is an object first
           if (typeof ad.size === 'object' && ad.size !== null && !Array.isArray(ad.size)) {
             const sizeData = ad.size as Record<string, Json>;
             
-            // Check if width property exists and is a number
             const width = sizeData.width;
             if (typeof width === 'number') {
               sizeObj.width = width;
             }
             
-            // Check if height property exists and is a number
             const height = sizeData.height;
             if (typeof height === 'number') {
               sizeObj.height = height;
             }
             
-            // Check if label property exists and is a string
             const label = sizeData.label;
             if (typeof label === 'string') {
               sizeObj.label = label;
@@ -147,7 +137,6 @@ export const EnhancedSavedAdsGallery = ({ projectFilter }: EnhancedSavedAdsGalle
           }
         }
 
-        // Get best available image URL
         const imageUrl = ad.imageUrl || ad.imageurl || ad.storage_url || (savedImages.length > 0 ? savedImages[0] : undefined);
         
         return {
@@ -166,7 +155,6 @@ export const EnhancedSavedAdsGallery = ({ projectFilter }: EnhancedSavedAdsGalle
 
       console.log(`Retrieved ${processedAds.length} ads`);
       
-      // Deduplicate ads based on image URL
       const uniqueImageUrls = new Set<string>();
       const uniqueAds = processedAds.filter(ad => {
         const imageUrl = ad.imageUrl || ad.imageurl || (ad.saved_images && ad.saved_images[0]);
@@ -198,12 +186,10 @@ export const EnhancedSavedAdsGallery = ({ projectFilter }: EnhancedSavedAdsGalle
     }
   };
 
-  // Effect to fetch ads when dependencies change
   useEffect(() => {
     fetchSavedAds();
   }, [toast, projectFilter, activeTab, t]);
 
-  // Handle selection of individual ads
   const handleAdSelect = (adId: string, isSelected: boolean) => {
     if (isSelected) {
       setSelectedAdIds(prev => [...prev, adId]);
@@ -212,7 +198,6 @@ export const EnhancedSavedAdsGallery = ({ projectFilter }: EnhancedSavedAdsGalle
     }
   };
 
-  // Select or deselect all visible ads
   const handleSelectAll = () => {
     const filteredAds = getFilteredAds();
     
@@ -223,7 +208,6 @@ export const EnhancedSavedAdsGallery = ({ projectFilter }: EnhancedSavedAdsGalle
     }
   };
 
-  // Handle project selection for assigning ads
   const handleProjectSelect = (projectId: string) => {
     console.log("Project selected:", projectId);
     setSelectedProjectId(projectId);
@@ -236,7 +220,6 @@ export const EnhancedSavedAdsGallery = ({ projectFilter }: EnhancedSavedAdsGalle
     }
   };
 
-  // Handle assigning selected ads to a project
   const handleAssignToProject = async () => {
     if (!selectedProjectId || selectedAdIds.length === 0) {
       toast({
@@ -283,7 +266,6 @@ export const EnhancedSavedAdsGallery = ({ projectFilter }: EnhancedSavedAdsGalle
     }
   };
 
-  // Handle removing selected ads from their projects
   const handleRemoveFromProject = async () => {
     setIsAssigning(true);
     try {
@@ -314,7 +296,6 @@ export const EnhancedSavedAdsGallery = ({ projectFilter }: EnhancedSavedAdsGalle
     }
   };
 
-  // Handle deleting selected ads
   const handleDeleteSelectedAds = async () => {
     if (selectedAdIds.length === 0) return;
     
@@ -347,7 +328,6 @@ export const EnhancedSavedAdsGallery = ({ projectFilter }: EnhancedSavedAdsGalle
     }
   };
 
-  // Handle duplicating selected ads
   const handleDuplicateSelectedAds = async () => {
     if (selectedAdIds.length === 0) return;
     
@@ -365,7 +345,7 @@ export const EnhancedSavedAdsGallery = ({ projectFilter }: EnhancedSavedAdsGalle
       
       const duplicates = originalAds.map(ad => ({
         ...ad,
-        id: undefined, // Remove ID so Supabase generates a new one
+        id: undefined,
         created_at: new Date().toISOString(),
         headline: ad.headline ? `${ad.headline} (Copy)` : "Untitled Ad (Copy)",
       }));
@@ -395,23 +375,18 @@ export const EnhancedSavedAdsGallery = ({ projectFilter }: EnhancedSavedAdsGalle
     }
   };
 
-  // Apply filters to the ads list
   const getFilteredAds = (adsToFilter = savedAds) => {
     return adsToFilter.filter(ad => {
-      // Apply search filter
       const matchesSearch = searchQuery === "" || 
         (ad.headline?.toLowerCase().includes(searchQuery.toLowerCase()) || false) ||
         (ad.primary_text?.toLowerCase().includes(searchQuery.toLowerCase()) || false);
       
-      // Apply platform filter
       const matchesPlatform = platformFilter === 'all' || ad.platform === platformFilter;
       
-      // Apply media type filter if not already filtered by tab
       const matchesMediaType = mediaTypeFilter === 'all' || ad.media_type === mediaTypeFilter;
       
       return matchesSearch && matchesPlatform && matchesMediaType;
     }).sort((a, b) => {
-      // Apply sorting
       if (sortBy === 'newest') {
         return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
       } else if (sortBy === 'oldest') {
@@ -425,25 +400,21 @@ export const EnhancedSavedAdsGallery = ({ projectFilter }: EnhancedSavedAdsGalle
     });
   };
 
-  // Get the current page of ads for display
   const filteredAds = getFilteredAds();
   const paginatedAds = filteredAds.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
 
-  // Update total pages when filters change
   useEffect(() => {
     setTotalPages(Math.max(1, Math.ceil(filteredAds.length / itemsPerPage)));
     setCurrentPage(1);
   }, [searchQuery, platformFilter, mediaTypeFilter, sortBy, activeTab]);
 
-  // Check if any selected ads have projects assigned
   const hasProjectAssigned = selectedAdIds.some(id => 
     savedAds.find(ad => ad.id === id)?.project_id !== undefined
   );
 
-  // Loading state UI
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-12">
@@ -454,7 +425,6 @@ export const EnhancedSavedAdsGallery = ({ projectFilter }: EnhancedSavedAdsGalle
     );
   }
 
-  // Empty state UI
   if (savedAds.length === 0) {
     if (projectFilter) {
       return (
@@ -474,12 +444,10 @@ export const EnhancedSavedAdsGallery = ({ projectFilter }: EnhancedSavedAdsGalle
     return <EmptyState />;
   }
 
-  // Determine tab content data
   const getTabStats = () => {
     const imageCount = savedAds.filter(ad => ad.media_type === 'image').length;
     const videoCount = savedAds.filter(ad => ad.media_type === 'video').length;
     
-    // Get count of unique project IDs
     const projectIds = new Set();
     savedAds.forEach(ad => {
       if (ad.project_id) projectIds.add(ad.project_id);
@@ -493,7 +461,6 @@ export const EnhancedSavedAdsGallery = ({ projectFilter }: EnhancedSavedAdsGalle
 
   return (
     <div className="space-y-6">
-      {/* Tabs navigation */}
       <Tabs 
         value={activeTab} 
         onValueChange={(value) => setActiveTab(value as "all" | "images" | "videos" | "projects")}
@@ -519,7 +486,6 @@ export const EnhancedSavedAdsGallery = ({ projectFilter }: EnhancedSavedAdsGalle
         </TabsList>
         
         <TabsContent value="all" className="space-y-6">
-          {/* Filters and search */}
           <div className="flex flex-col gap-4 bg-gray-50 p-4 rounded-lg shadow-sm">
             <div className="flex flex-col sm:flex-row gap-4 justify-between">
               <div className="flex items-center space-x-2">
@@ -596,7 +562,6 @@ export const EnhancedSavedAdsGallery = ({ projectFilter }: EnhancedSavedAdsGalle
             </div>
           </div>
 
-          {/* Batch Actions Bar */}
           <div className="bg-gray-50 p-4 rounded-lg shadow-sm">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-2">
@@ -758,7 +723,6 @@ export const EnhancedSavedAdsGallery = ({ projectFilter }: EnhancedSavedAdsGalle
             </div>
           </div>
 
-          {/* Filters Tags */}
           <div className="flex flex-wrap gap-2 items-center">
             <Badge variant="outline" className="bg-gray-50">
               {t("stats.ads_found", { count: filteredAds.length })}
@@ -816,7 +780,6 @@ export const EnhancedSavedAdsGallery = ({ projectFilter }: EnhancedSavedAdsGalle
             )}
           </div>
 
-          {/* Main content - Ads display */}
           {filteredAds.length === 0 ? (
             <div className="text-center py-8 bg-gray-50 rounded-lg">
               <h3 className="text-lg font-medium text-gray-900">{t("no_results.title")}</h3>
@@ -872,7 +835,6 @@ export const EnhancedSavedAdsGallery = ({ projectFilter }: EnhancedSavedAdsGalle
                 />
               )}
 
-              {/* Pagination */}
               {totalPages > 1 && (
                 <div className="flex justify-center mt-8">
                   <Pagination
@@ -887,10 +849,7 @@ export const EnhancedSavedAdsGallery = ({ projectFilter }: EnhancedSavedAdsGalle
         </TabsContent>
         
         <TabsContent value="images" className="space-y-4">
-          {/* Re-use the same content structure as "all" tab but with prefiltered data for images */}
-          {/* Same structure as "all" tab with image-specific content */}
           <div className="flex flex-col gap-4">
-            {/* Filter bar for images tab */}
             <div className="flex justify-between items-center bg-gray-50 p-4 rounded-lg">
               <h3 className="font-medium">Image Ads</h3>
               <div className="flex gap-2">
@@ -905,7 +864,6 @@ export const EnhancedSavedAdsGallery = ({ projectFilter }: EnhancedSavedAdsGalle
               </div>
             </div>
             
-            {/* Content will be auto-filtered by the tab selection */}
             {filteredAds.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {paginatedAds.map((ad) => (
@@ -940,9 +898,7 @@ export const EnhancedSavedAdsGallery = ({ projectFilter }: EnhancedSavedAdsGalle
         </TabsContent>
         
         <TabsContent value="videos" className="space-y-4">
-          {/* Video-specific content */}
           <div className="flex flex-col gap-4">
-            {/* Filter bar for videos tab */}
             <div className="flex justify-between items-center bg-gray-50 p-4 rounded-lg">
               <h3 className="font-medium">Video Ads</h3>
               <div className="flex gap-2">
@@ -957,7 +913,6 @@ export const EnhancedSavedAdsGallery = ({ projectFilter }: EnhancedSavedAdsGalle
               </div>
             </div>
             
-            {/* Content will be auto-filtered by the tab selection */}
             {filteredAds.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {paginatedAds.map((ad) => (
@@ -992,9 +947,7 @@ export const EnhancedSavedAdsGallery = ({ projectFilter }: EnhancedSavedAdsGalle
         </TabsContent>
         
         <TabsContent value="projects" className="space-y-4">
-          {/* Projects-specific content */}
           <div className="flex flex-col gap-4">
-            {/* Filter bar for projects tab */}
             <div className="flex justify-between items-center bg-gray-50 p-4 rounded-lg">
               <h3 className="font-medium">Project Ads</h3>
               <div className="flex gap-2">
@@ -1005,7 +958,6 @@ export const EnhancedSavedAdsGallery = ({ projectFilter }: EnhancedSavedAdsGalle
               </div>
             </div>
             
-            {/* Content will be auto-filtered by the tab selection */}
             {filteredAds.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {paginatedAds.map((ad) => (

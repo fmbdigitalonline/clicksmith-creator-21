@@ -4,12 +4,21 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Heart, Video, MessageSquare, MoreHorizontal, Star } from "lucide-react";
+import { Heart, Video, MessageSquare, MoreHorizontal, Star, Upload, Edit, Image } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import MediaPreview from "@/components/steps/gallery/components/MediaPreview";
 import { useTranslation } from "react-i18next";
 import { AdQuickActions } from "./AdQuickActions";
 import { AdSize, FacebookAdSettings } from "@/types/campaignTypes";
+import { AdSizeSelector } from "@/components/steps/gallery/components/AdSizeSelector";
+import { uploadMedia, updateAdImage } from "@/utils/uploadUtils";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
 
 interface SavedAdCardProps {
   id: string;
@@ -55,10 +64,58 @@ export const SavedAdCard = ({
   const [isHovered, setIsHovered] = useState(false);
   const [showFullText, setShowFullText] = useState(false);
   const { t } = useTranslation(["gallery", "common"]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isFormatDialogOpen, setIsFormatDialogOpen] = useState(false);
+  const [selectedFormat, setSelectedFormat] = useState<AdSize>(size);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const { toast } = useToast();
   
+  // Handle format change
+  const handleFormatChange = (newFormat: AdSize) => {
+    setSelectedFormat(newFormat);
+    toast({
+      title: t("format_updated"),
+      description: `${t("format_changed_to")} ${newFormat.label}`,
+    });
+  };
+  
+  // Handle processing image
   const handleProcessImage = () => {
     if (onRegenerateImage) {
       onRegenerateImage(id, primaryText);
+    }
+  };
+
+  // Handle media upload
+  const handleUploadMedia = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    const file = files[0];
+    setIsUploading(true);
+
+    try {
+      const { url, isVideo } = await uploadMedia(file);
+      
+      await updateAdImage(id, url, isVideo);
+      toast({
+        title: t("upload_success", { ns: "common" }),
+        description: isVideo 
+          ? t("video_uploaded_success", { ns: "gallery" }) 
+          : t("image_uploaded_success", { ns: "gallery" }),
+      });
+      
+      await onFeedbackSubmit();
+    } catch (error) {
+      console.error("Upload error:", error);
+      toast({
+        title: t("error", { ns: "common" }),
+        description: t("upload_error", { ns: "gallery" }),
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+      event.target.value = ''; // Reset file input
     }
   };
   
@@ -102,6 +159,49 @@ export const SavedAdCard = ({
               mediaType={media_type}
               imageUrl={imageUrl || storage_url}
             />
+          </div>
+
+          {/* Upload media button (visible on hover) */}
+          <div className={`absolute top-12 right-2 z-10 transition-opacity ${isHovered ? 'opacity-100' : 'opacity-0'}`}>
+            <label htmlFor={`upload-media-${id}`} className="cursor-pointer">
+              <div className="bg-white/90 backdrop-blur-sm p-1.5 rounded-full hover:bg-white">
+                <Upload className="h-4 w-4 text-gray-700" />
+                <input
+                  type="file"
+                  id={`upload-media-${id}`}
+                  className="hidden"
+                  accept="image/jpeg,image/png,image/webp,video/mp4,video/webm"
+                  onChange={handleUploadMedia}
+                  disabled={isUploading}
+                />
+              </div>
+            </label>
+          </div>
+          
+          {/* Format selector button (visible on hover) */}
+          <div className={`absolute top-24 right-2 z-10 transition-opacity ${isHovered ? 'opacity-100' : 'opacity-0'}`}>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0 bg-white/90 backdrop-blur-sm rounded-full hover:bg-white"
+              onClick={() => setIsFormatDialogOpen(true)}
+            >
+              <span className="sr-only">Change Format</span>
+              <Image className="h-4 w-4 text-gray-700" />
+            </Button>
+          </div>
+          
+          {/* Edit button (visible on hover) */}
+          <div className={`absolute top-36 right-2 z-10 transition-opacity ${isHovered ? 'opacity-100' : 'opacity-0'}`}>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0 bg-white/90 backdrop-blur-sm rounded-full hover:bg-white"
+              onClick={() => window.location.href = `/gallery/edit/${id}`}
+            >
+              <span className="sr-only">Edit</span>
+              <Edit className="h-4 w-4 text-gray-700" />
+            </Button>
           </div>
 
           {/* Platform/format badge */}
@@ -194,6 +294,33 @@ export const SavedAdCard = ({
           </Button>
         </div>
       </CardFooter>
+      
+      {/* Format selection dialog */}
+      <Dialog open={isFormatDialogOpen} onOpenChange={setIsFormatDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("select_ad_format", { ns: "gallery" })}</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <AdSizeSelector 
+              selectedFormat={selectedFormat} 
+              onFormatChange={handleFormatChange}
+            />
+            <div className="mt-6 flex justify-end">
+              <Button 
+                variant="default" 
+                onClick={() => {
+                  setIsFormatDialogOpen(false);
+                  // Here you would save the format to the database
+                  // For now, we just close the dialog
+                }}
+              >
+                {t("apply", { ns: "common" })}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };
