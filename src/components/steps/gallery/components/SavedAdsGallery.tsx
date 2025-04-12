@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -83,7 +82,6 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps = {}) =>
 
       console.log('Retrieved ads count:', data?.length);
 
-      // Safely cast data and handle any potential error response from Supabase
       const responseData = Array.isArray(data) ? (data as AdFeedbackRow[]) : [];
 
       const uniqueImageUrls = new Set();
@@ -108,11 +106,26 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps = {}) =>
       console.log('Unique ads count:', uniqueAds.length);
 
       const convertedAds: SavedAd[] = uniqueAds.map(ad => {
-        // Handle size field
-        let sizeObj = ad.size as { width: number; height: number; label: string };
-        if (!sizeObj || typeof sizeObj !== 'object') {
-          // Provide default size if missing
-          sizeObj = { width: 1080, height: 1080, label: "Square" };
+        let sizeObj = { width: 1080, height: 1080, label: "Square" };
+        if (ad.size) {
+          if (typeof ad.size === 'object' && ad.size !== null && !Array.isArray(ad.size)) {
+            const sizeData = ad.size as Record<string, Json>;
+            
+            const width = sizeData.width;
+            if (typeof width === 'number') {
+              sizeObj.width = width;
+            }
+            
+            const height = sizeData.height;
+            if (typeof height === 'number') {
+              sizeObj.height = height;
+            }
+            
+            const label = sizeData.label;
+            if (typeof label === 'string') {
+              sizeObj.label = label;
+            }
+          }
         }
         
         return {
@@ -151,7 +164,6 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps = {}) =>
       
       if (adError) throw adError;
 
-      // Check if this is a video ad - if so, we don't regenerate with AI
       if (adData.media_type === 'video') {
         toast({
           title: "Video replacement",

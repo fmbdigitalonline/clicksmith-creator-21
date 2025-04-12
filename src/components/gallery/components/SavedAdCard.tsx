@@ -53,6 +53,7 @@ export const SavedAdCard = ({
   onSettingsSaved
 }: SavedAdCardProps) => {
   const [isHovered, setIsHovered] = useState(false);
+  const [showFullText, setShowFullText] = useState(false);
   const { t } = useTranslation(["gallery", "common"]);
   
   const handleProcessImage = () => {
@@ -155,7 +156,24 @@ export const SavedAdCard = ({
         </div>
         
         {primaryText && (
-          <p className="text-xs text-gray-500 line-clamp-2">{primaryText}</p>
+          <div>
+            <p 
+              className={`text-xs text-gray-500 ${showFullText ? '' : 'line-clamp-2'}`}
+              onClick={() => setShowFullText(!showFullText)}
+            >
+              {primaryText}
+            </p>
+            {primaryText.length > 120 && (
+              <Button 
+                variant="link" 
+                size="sm" 
+                className="text-xs p-0 h-auto mt-1"
+                onClick={() => setShowFullText(!showFullText)}
+              >
+                {showFullText ? t("show_less") : t("show_more")}
+              </Button>
+            )}
+          </div>
         )}
       </CardContent>
       

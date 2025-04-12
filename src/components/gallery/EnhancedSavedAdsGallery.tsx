@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -107,7 +106,7 @@ export const EnhancedSavedAdsGallery = ({ projectFilter }: EnhancedSavedAdsGalle
       }
 
       // Map data to SavedAd type with proper conversions
-      const processedAds: SavedAd[] = (data as AdFeedbackRow[] || []).map(ad => {
+      const formatAdData = (ad: AdFeedbackRow): SavedAd => {
         let savedImages: string[] = [];
         
         // Process the saved_images field
@@ -161,7 +160,9 @@ export const EnhancedSavedAdsGallery = ({ projectFilter }: EnhancedSavedAdsGalle
           media_type: (ad.media_type || 'image') as 'image' | 'video',
           image_status: ad.image_status as 'pending' | 'processing' | 'ready' | 'failed'
         };
-      });
+      };
+
+      const processedAds: SavedAd[] = (data as AdFeedbackRow[] || []).map(formatAdData);
 
       console.log(`Retrieved ${processedAds.length} ads`);
       
