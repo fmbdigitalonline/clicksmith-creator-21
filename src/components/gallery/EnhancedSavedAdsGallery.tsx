@@ -121,14 +121,32 @@ export const EnhancedSavedAdsGallery = ({ projectFilter }: EnhancedSavedAdsGalle
           }
         }
         
-        // Handle the size field
-        const sizeObj: AdSize = ad.size ? 
-          {
-            width: typeof ad.size.width === 'number' ? ad.size.width : 1200,
-            height: typeof ad.size.height === 'number' ? ad.size.height : 628,
-            label: typeof ad.size.label === 'string' ? ad.size.label : "Default"
-          } : 
-          { width: 1200, height: 628, label: "Default" };
+        // Handle the size field with proper type checking
+        let sizeObj: AdSize = { width: 1200, height: 628, label: "Default" };
+        if (ad.size) {
+          // Check if size is an object first
+          if (typeof ad.size === 'object' && ad.size !== null && !Array.isArray(ad.size)) {
+            const sizeData = ad.size as Record<string, Json>;
+            
+            // Check if width property exists and is a number
+            const width = sizeData.width;
+            if (typeof width === 'number') {
+              sizeObj.width = width;
+            }
+            
+            // Check if height property exists and is a number
+            const height = sizeData.height;
+            if (typeof height === 'number') {
+              sizeObj.height = height;
+            }
+            
+            // Check if label property exists and is a string
+            const label = sizeData.label;
+            if (typeof label === 'string') {
+              sizeObj.label = label;
+            }
+          }
+        }
 
         // Get best available image URL
         const imageUrl = ad.imageUrl || ad.imageurl || ad.storage_url || (savedImages.length > 0 ? savedImages[0] : undefined);

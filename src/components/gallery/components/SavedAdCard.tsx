@@ -9,7 +9,7 @@ import { formatDistanceToNow } from "date-fns";
 import MediaPreview from "@/components/steps/gallery/components/MediaPreview";
 import { useTranslation } from "react-i18next";
 import { AdQuickActions } from "./AdQuickActions";
-import { AdSize } from "@/types/campaignTypes";
+import { AdSize, FacebookAdSettings } from "@/types/campaignTypes";
 
 interface SavedAdCardProps {
   id: string;
@@ -27,6 +27,9 @@ interface SavedAdCardProps {
   onSelect?: (id: string, selected: boolean) => void;
   onRegenerateImage?: (adId: string, prompt?: string) => Promise<void>;
   media_type?: 'image' | 'video';
+  fb_ad_settings?: FacebookAdSettings;
+  projectUrl?: string;
+  onSettingsSaved?: (settings: FacebookAdSettings, adId: string, applyToAll?: boolean) => Promise<void>;
 }
 
 export const SavedAdCard = ({
@@ -44,7 +47,10 @@ export const SavedAdCard = ({
   selected = false,
   onSelect,
   onRegenerateImage,
-  media_type = 'image'
+  media_type = 'image',
+  fb_ad_settings,
+  projectUrl,
+  onSettingsSaved
 }: SavedAdCardProps) => {
   const [isHovered, setIsHovered] = useState(false);
   const { t } = useTranslation(["gallery", "common"]);
