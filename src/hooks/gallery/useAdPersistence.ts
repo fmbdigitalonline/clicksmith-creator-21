@@ -2,9 +2,10 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { SavedAd } from "@/types/campaignTypes";
 
 export const useAdPersistence = (projectId: string | undefined) => {
-  const [savedAds, setSavedAds] = useState<any[]>([]);
+  const [savedAds, setSavedAds] = useState<SavedAd[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
@@ -45,7 +46,7 @@ export const useAdPersistence = (projectId: string | undefined) => {
     }
   };
 
-  const processImagesForFacebook = async (ads: any[]) => {
+  const processImagesForFacebook = async (ads: SavedAd[]) => {
     try {
       // Call the edge function with all ad IDs for batch processing
       const { data, error } = await supabase.functions.invoke('migrate-images', {
@@ -84,7 +85,7 @@ export const useAdPersistence = (projectId: string | undefined) => {
     }
   };
 
-  const saveGeneratedAds = async (newAds: any[]) => {
+  const saveGeneratedAds = async (newAds: SavedAd[]) => {
     if (!projectId || projectId === 'new') return;
 
     try {
@@ -126,7 +127,10 @@ export const useAdPersistence = (projectId: string | undefined) => {
       setSavedAds(updatedAds);
 
       // Start processing images for Facebook automatically
-      await processImagesForFacebook(newAds);
+      const facebookAds = newAds.filter(ad => ad.platform === 'facebook');
+      if (facebookAds.length > 0) {
+        await processImagesForFacebook(facebookAds);
+      }
       
       toast({
         title: "Ads Saved",
@@ -145,6 +149,7 @@ export const useAdPersistence = (projectId: string | undefined) => {
   return {
     savedAds,
     isLoading,
-    saveGeneratedAds
+    saveGeneratedAds,
+    processImagesForFacebook
   };
 };
