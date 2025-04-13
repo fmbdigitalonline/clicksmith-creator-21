@@ -24,7 +24,16 @@
     "budget": "Budget",
     "impressions": "Weergaven",
     "clicks": "Klikken",
-    "cost": "Kosten"
+    "cost": "Kosten",
+    "success_title": "Campagne Succesvol Gemaakt!",
+    "success_description": "Je Facebook-campagne is aangemaakt en klaar voor activering.",
+    "next_steps": "Volgende Stappen",
+    "step_review": "Bekijk je campagne in Facebook Ads Manager",
+    "step_activate": "Activeer je campagne in Facebook Ads Manager",
+    "step_monitor": "Monitor prestaties in je Facebook Business-account",
+    "open_facebook_manager": "Facebook Ads Manager Openen",
+    "close": "Sluiten",
+    "create_another": "Nog Een Campagne Maken"
   },
   "errors": {
     "configuration": "Platform integratie niet beschikbaar",

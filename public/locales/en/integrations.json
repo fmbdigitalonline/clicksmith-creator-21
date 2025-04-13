@@ -1,3 +1,4 @@
+
 {
   "title": "Platform Integrations",
   "subtitle": "Connect your social media and advertising platforms to automate campaign management",
@@ -23,7 +24,16 @@
     "budget": "Budget",
     "impressions": "Impressions",
     "clicks": "Clicks",
-    "cost": "Cost"
+    "cost": "Cost",
+    "success_title": "Campaign Created Successfully!",
+    "success_description": "Your Facebook campaign has been created and is ready for activation.",
+    "next_steps": "Next Steps",
+    "step_review": "Review your campaign in Facebook Ads Manager",
+    "step_activate": "Activate your campaign in Facebook Ads Manager",
+    "step_monitor": "Monitor performance in your Facebook Business account",
+    "open_facebook_manager": "Open Facebook Ads Manager",
+    "close": "Close",
+    "create_another": "Create Another Campaign"
   },
   "errors": {
     "configuration": "Platform integration unavailable",
