@@ -96,22 +96,3 @@ export interface AdCampaignData {
 export interface FacebookCampaignOverviewProps {
   onConnectionChange?: () => Promise<void>;
 }
-
-// Additional types for enhanced gallery functionality
-export interface EnhancedSavedAdsGalleryProps {
-  projectFilter?: string;
-}
-
-export interface AdQuickActionsProps {
-  adId: string;
-  onUpdate?: () => void;
-  projectId?: string;
-  mediaType?: 'image' | 'video';
-  imageUrl?: string;
-}
-
-export interface BatchActionState {
-  isOpen: boolean;
-  isProcessing: boolean;
-  type: 'delete' | 'duplicate' | 'assign' | null;
-}

@@ -83,11 +83,12 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps = {}) =>
 
       console.log('Retrieved ads count:', data?.length);
 
+      // Safely cast data and handle any potential error response from Supabase
       const responseData = Array.isArray(data) ? (data as AdFeedbackRow[]) : [];
 
       const uniqueImageUrls = new Set();
       const uniqueAds = responseData.filter(ad => {
-        if (!ad.imageurl && !ad.storage_url) {
+        if (!ad.imageurl) {
           if (uniqueImageUrls.has(ad.id)) {
             return false;
           }
@@ -95,47 +96,21 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps = {}) =>
           return true;
         }
         
-        const imageKey = ad.storage_url || ad.imageurl;
-        if (uniqueImageUrls.has(imageKey)) {
+        if (uniqueImageUrls.has(ad.imageurl)) {
           return false;
         }
-        
-        uniqueImageUrls.add(imageKey);
+        uniqueImageUrls.add(ad.imageurl);
         return true;
       });
 
       console.log('Unique ads count:', uniqueAds.length);
 
-      const convertedAds: SavedAd[] = uniqueAds.map(ad => {
-        let sizeObj = { width: 1080, height: 1080, label: "Square" };
-        if (ad.size) {
-          if (typeof ad.size === 'object' && ad.size !== null && !Array.isArray(ad.size)) {
-            const sizeData = ad.size as Record<string, Json>;
-            
-            const width = sizeData.width;
-            if (typeof width === 'number') {
-              sizeObj.width = width;
-            }
-            
-            const height = sizeData.height;
-            if (typeof height === 'number') {
-              sizeObj.height = height;
-            }
-            
-            const label = sizeData.label;
-            if (typeof label === 'string') {
-              sizeObj.label = label;
-            }
-          }
-        }
-        
-        return {
-          ...ad,
-          size: sizeObj,
-          image_status: ad.image_status as 'pending' | 'processing' | 'ready' | 'failed',
-          media_type: (ad.media_type || 'image') as 'image' | 'video'
-        };
-      });
+      const convertedAds: SavedAd[] = uniqueAds.map(ad => ({
+        ...ad,
+        size: ad.size as { width: number; height: number; label: string },
+        image_status: ad.image_status as 'pending' | 'processing' | 'ready' | 'failed',
+        media_type: (ad.media_type || 'image') as 'image' | 'video'
+      }));
 
       setSavedAds(convertedAds);
     } catch (error) {
@@ -165,6 +140,7 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps = {}) =>
       
       if (adError) throw adError;
 
+      // Check if this is a video ad - if so, we don't regenerate with AI
       if (adData.media_type === 'video') {
         toast({
           title: "Video replacement",
@@ -174,7 +150,7 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps = {}) =>
         return;
       }
       
-      if (prompt || adData.primary_text) {
+      if (prompt) {
         const regenerationPrompt = prompt || adData.primary_text || "Professional marketing image for advertisement";
         
         const { data, error } = await supabase.functions.invoke('generate-images', {
@@ -236,7 +212,6 @@ export const SavedAdsGallery = ({ projectFilter }: SavedAdsGalleryProps = {}) =>
           onFeedbackSubmit={fetchSavedAds}
           onRegenerateImage={handleRegenerateImage}
           media_type={ad.media_type}
-          selectable={false}
         />
       ))}
     </div>

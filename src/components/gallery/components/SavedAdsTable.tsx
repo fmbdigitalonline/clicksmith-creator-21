@@ -33,7 +33,7 @@ interface SavedAdsTableProps {
   onAdSelect: (adId: string, isSelected: boolean) => void;
   onSelectAll: () => void;
   selectable: boolean;
-  onFeedbackSubmit: () => Promise<void>;
+  onFeedbackSubmit: () => void;
 }
 
 export const SavedAdsTable = ({
@@ -76,12 +76,6 @@ export const SavedAdsTable = ({
         ))}
       </div>
     );
-  };
-
-  // Helper to wrap syncFeedbackSubmit into a Promise
-  const handleFeedbackSubmit = async () => {
-    await onFeedbackSubmit();
-    setActiveAdId(null);
   };
 
   return (
@@ -174,7 +168,10 @@ export const SavedAdsTable = ({
                         platform={ad.platform}
                         size={ad.size}
                         projectId={ad.project_id}
-                        onFeedbackSubmit={handleFeedbackSubmit}
+                        onFeedbackSubmit={() => {
+                          onFeedbackSubmit();
+                          setActiveAdId(null);
+                        }}
                         selectable={false}
                       />
                     </DialogContent>
