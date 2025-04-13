@@ -17,6 +17,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 
@@ -116,6 +117,39 @@ export const SavedAdCard = ({
     } finally {
       setIsUploading(false);
       event.target.value = ''; // Reset file input
+    }
+  };
+
+  // Handle saving format changes
+  const handleSaveFormat = async () => {
+    try {
+      // Save format to database
+      const { error } = await fetch(`/api/ads/${id}/format`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ size: selectedFormat }),
+      }).then(res => res.json());
+
+      if (error) throw new Error(error);
+
+      toast({
+        title: t("format_updated"),
+        description: `${t("format_saved")} ${selectedFormat.label}`,
+      });
+
+      // Refresh data
+      await onFeedbackSubmit();
+    } catch (error) {
+      console.error("Error saving format:", error);
+      toast({
+        title: t("error", { ns: "common" }),
+        description: t("save_error", { ns: "gallery" }),
+        variant: "destructive",
+      });
+    } finally {
+      setIsFormatDialogOpen(false);
     }
   };
   
@@ -309,11 +343,7 @@ export const SavedAdCard = ({
             <div className="mt-6 flex justify-end">
               <Button 
                 variant="default" 
-                onClick={() => {
-                  setIsFormatDialogOpen(false);
-                  // Here you would save the format to the database
-                  // For now, we just close the dialog
-                }}
+                onClick={handleSaveFormat}
               >
                 {t("apply", { ns: "common" })}
               </Button>

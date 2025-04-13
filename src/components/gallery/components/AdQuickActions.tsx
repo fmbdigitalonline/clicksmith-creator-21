@@ -177,6 +177,12 @@ export const AdQuickActions = ({
       description: "Video conversion will be available soon.",
     });
   };
+  
+  // Handle edit navigation
+  const handleEditAd = () => {
+    // Make sure we're navigating with the correct path
+    window.location.href = `/gallery/edit/${adId}`;
+  };
 
   return (
     <>
@@ -192,7 +198,7 @@ export const AdQuickActions = ({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-48">
-          <DropdownMenuItem onClick={() => window.location.href = `/gallery/edit/${adId}`}>
+          <DropdownMenuItem onClick={handleEditAd}>
             <Pencil className="mr-2 h-4 w-4" />
             <span>Edit</span>
           </DropdownMenuItem>
